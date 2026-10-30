@@ -1,4 +1,5 @@
 "use client";
+import { practiceId } from "@/lib/room/practice";
 import Link from "next/link";
 import { useState,type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -8,7 +9,7 @@ import type { HubClient,HubEngagement,HubElement,HubEvent } from "@/lib/team-hub
 export async function setupRequest(body:Record<string,unknown>){const response=await fetch("/api/setup",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify(body)});const result=await response.json();if(!response.ok||!result.ok)throw new Error(result.message||"We couldn’t finish that. Please try again.");return result;}
 function Field({label,value,onChange,type="text",required=false}:{label:string;value:string;onChange:(value:string)=>void;type?:string;required?:boolean}){return <label>{label}<input type={type} value={value} required={required} onChange={e=>onChange(e.target.value)} /></label>;}
 export function SetupEditor({id,initial,members,admin,hubConfigured}:{id?:string;initial:SetupForm;members:Member[];admin:boolean;hubConfigured:boolean}){
- const router=useRouter(),[form,setForm]=useState(initial),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[search,setSearch]=useState(""),[clients,setClients]=useState<HubClient[]>([]),[engagements,setEngagements]=useState<HubEngagement[]>([]),[planned,setPlanned]=useState<{elements:HubElement[];events:HubEvent[]}|null>(null),[hubMembers,setHubMembers]=useState<Member[]>([]),[member,setMember]=useState("");
+ const router=useRouter(),[form,setForm]=useState(initial),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[search,setSearch]=useState(""),[clients,setClients]=useState<HubClient[]>([]),[engagements,setEngagements]=useState<HubEngagement[]>([]),[planned,setPlanned]=useState<{elements:HubElement[];events:HubEvent[]}|null>(null),[hubMembers,setHubMembers]=useState<Member[]>([]),[member,setMember]=useState(""),[reset,setReset]=useState(false);
  const church=(key:keyof ChurchForm,value:string)=>setForm(f=>({...f,church:{...f.church,[key]:value}}));
  const engagement=(key:keyof EngagementForm,value:unknown)=>setForm(f=>({...f,engagement:{...f.engagement,[key]:value}}));
  const settings=(key:keyof EngagementForm["settings"],value:unknown)=>setForm(f=>({...f,engagement:{...f.engagement,settings:{...f.engagement.settings,[key]:value}}}));
@@ -49,6 +50,7 @@ export function SetupEditor({id,initial,members,admin,hubConfigured}:{id?:string
    <button className="button-link" type="submit" disabled={busy||(!id&&!form.hub_engagement)}>{id?"Save engagement":"Create engagement"}</button>
   </form>
   {admin&&<details className="notice"><summary>Add a Clearway user</summary><p>Choose a Team Hub team member with a Clearway email. This gives them facilitator access without making them an admin.</p><div className="form-stack"><button className="button-link" disabled={busy||!hubConfigured} onClick={()=>perform(async()=>setHubMembers((await setupRequest({action:"hub_members"})).members))}>Load Clearway team</button><label>Team member<select value={member} onChange={e=>setMember(e.target.value)}><option value="">Choose a team member</option>{hubMembers.map(m=><option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}</select></label><button className="button-link" disabled={busy||!member} onClick={()=>perform(async()=>{await setupRequest({action:"add_clearway_user",member});setMessage("Clearway user added. Reload this page to choose them as a facilitator.");})}>Add Clearway user</button></div></details>}
+  {id===practiceId&&<section className="notice"><h2>Reset the practice room</h2><p>This signs out every practice phone and clears its guest list. Riverside’s fictional team stays in place.</p>{reset?<div className="actions"><button className="button-link" disabled={busy} onClick={()=>perform(async()=>{await setupRequest({action:"reset_practice",id});setReset(false);setMessage("Practice room reset. Phones can join again.");router.refresh();})}>Confirm reset</button><button className="text-link" onClick={()=>setReset(false)}>Keep the practice room</button></div>:<button className="button-link" disabled={busy} onClick={()=>setReset(true)}>Reset practice room</button>}</section>}
   <p role="status" aria-live="polite">{message}</p>
  </section>;
 }

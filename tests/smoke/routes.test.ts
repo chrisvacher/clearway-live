@@ -17,6 +17,8 @@ let expectedChallenge = "";
 const logouts: string[] = [];
 const calls: string[] = [];
 const roomId = "50000000-0000-4000-8000-000000000010";
+const practiceRoom="90000000-0000-4000-8000-000000000010";
+let practiceName="Practice guest";
 const roomAttendee = "50000000-0000-4000-8000-000000000011";
 const emails: { to: string[]; text: string }[] = [];
 const inviteBatches = new Map<string,Record<string,unknown>>();
@@ -90,7 +92,7 @@ before(async () => {
     }
     if (url.pathname === "/rest/v1/churches")return send([{id:roomId,name:"Fixture church",timezone:"America/Toronto",mission:"",purpose:"",values:[],strategy:"",leadership_rhythms:[],governance_body_name:""}]);
     if(url.pathname === "/rest/v1/engagement_facilitators")return send([{clearway_user_id:profile.id,role:"lead"}]);
-    if (url.pathname === "/rest/v1/attendees") return send((mode === "room" && roomBound) || mode === "allowed" ? [{id:roomAttendee,name:"Ann Lee",email:"ann@example.org",room_role:"participant"}] : []);
+    if (url.pathname === "/rest/v1/attendees") return send((mode === "room" && roomBound) || mode === "allowed" ? [{id:roomAttendee,name:url.searchParams.get("engagement_id")==="eq."+practiceRoom?practiceName:"Ann Lee",email:"ann@example.org",room_role:"participant"}] : []);
     if (url.pathname === "/rest/v1/device_sessions") return send([]);
     if (url.pathname === "/rest/v1/join_requests") return send([...roomJoins.values()].filter(j=>url.searchParams.has("id") ? url.searchParams.get("id") === "eq."+j.id : j.status==="pending"));
     if(url.pathname==="/emails/batch") {
@@ -120,13 +122,17 @@ before(async () => {
     }
     if (url.pathname === "/rest/v1/rpc/room_public_info") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      if(body.p_engagement===practiceRoom)return send({id:practiceRoom,title:"Practice room",type:"practice",church:"Clearway practice",closed:false,howTheRoomDecides:"We decide together.",neutral:false});
       return send(body.p_engagement===roomId ? {id:roomId,church_id:roomId,title:"Room fixture",team_hub_client_id:null,team_hub_engagement_id:null,base_year:2026,lens_names:["Congregation","Community","Leadership","Operations","Learning"],type:"wayfinding",church:"Fixture church",closed:false,howTheRoomDecides:"We decide together.",neutral:false}:null);
     }
     if (url.pathname === "/rest/v1/rpc/room_presence") return send(roomBound?[{attendee_id:roomAttendee,device_count:2,present:true}]:[]);
+    if(url.pathname==="/rest/v1/rpc/practice_guest"){
+      assert.equal(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const {p}=JSON.parse(raw);if(p.engagement!==practiceRoom)return send({status:"invalid_request"});const device=roomDevices.get(p.device);if(!device||device.proof!==p.proof)return send({status:"device_missing"});practiceName=p.name;device.approved=true;return send({status:"approved"});
+    }
     if (url.pathname === "/rest/v1/rpc/room_auth") {
       assert.equal(req.headers.apikey,tripwire);
       let raw="";for await(const chunk of req)raw+=chunk;const {p_action:action,p}=JSON.parse(raw);
-      assert.equal(p.engagement,roomId);const device=roomDevices.get(p.device);
+      assert.ok([roomId,practiceRoom].includes(p.engagement));const device=roomDevices.get(p.device);
       if(action==="init") {roomDevices.set(p.device,{proof:p.proof,code:p.device_code,approved:false});return send({status:"ready",device_code:p.device_code});}
       if(!device || device.proof!==p.proof)return send({status:"device_missing"});
       if(action==="status")return send({status:[...roomJoins.values()].find(j=>j.device===p.device)?.status||"ready",device_code:device.code,can_claim:device.approved});
@@ -470,4 +476,14 @@ test("reviewed invite snapshot sends once and retry uses its saved sent status",
  const prepared=await setupPost(jar,{...body,action:"prepare_invites"});assert.equal(prepared.data.payload.people[0].email,"ann@example.org");assert.match(prepared.data.preview,/We decide together/);assert.equal(sentBatches.length,0);
  const sent=await setupPost(jar,{...body,action:"invite"});assert.equal(sent.data.ok,true);assert.deepEqual(sentBatches,[batch]);
  const retry=await setupPost(jar,{...body,action:"invite"});assert.equal(retry.data.ok,true);assert.deepEqual(sentBatches,[batch]);
+});
+
+test("practice phones join with a name and no email, while control remains protected",async()=>{
+ const landing=await fetch(origin+"/practice",{redirect:"manual"});assert.ok(landing.headers.get("location")!.endsWith("/room/"+practiceRoom));
+ const page=await fetch(origin+"/room/"+practiceRoom);const html=await page.text();assert.match(html,/Join the practice room/);assert.doesNotMatch(html,/id="room-email"/);
+ const jar=new Map<string,string>(),before=emails.length;
+ async function post(action:string,body:Record<string,unknown>={}){const r=await fetch(`${origin}/api/room/${practiceRoom}/${action}`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify(body)});applyCookies(jar,r);return r.json();}
+ assert.equal((await post("init")).status,"ready");assert.equal((await post("practice",{name:"Practice Alex"})).status,"signed_in");assert.equal(emails.length,before);
+ const status=await (await fetch(`${origin}/api/room/${practiceRoom}/status`,{headers:{cookie:cookieHeader(jar)}})).json();assert.equal(status.name,"Practice Alex");
+ assert.equal((await fetch(origin+"/control",{headers:{cookie:cookieHeader(jar)},redirect:"manual"})).status,307);
 });

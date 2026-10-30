@@ -60,6 +60,8 @@ jobs:
         run: npm run test:auth
       - name: Test Team Hub reader against a disposable fixture only
         run: npm run test:team-hub
+      - name: Test idempotent seeds and native practice sign-in/reset
+        run: npm run test:practice
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

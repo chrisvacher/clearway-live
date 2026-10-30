@@ -9,6 +9,7 @@ import { sendEmailBatch } from "@/lib/server/email";
 import { invitationMessages,type InvitationSnapshot } from "@/lib/setup/invitation";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
 import { clearwayEmail } from "@/lib/auth/policy";
+import { practiceId } from "@/lib/room/practice";
 import { uuid } from "@/lib/room/policy";
 const answer=(data:Record<string,unknown>,status=200)=>privateResponse(NextResponse.json(data,{status}));
 export async function POST(request:NextRequest){
@@ -56,6 +57,10 @@ export async function POST(request:NextRequest){
       const e=await scoped();if(!uuid(body.attendee))return answer({ok:false},400);
       const person=action==="edit_attendee"?validatePeople([body.person]).people[0]:null;
       const {error}=await client.from("attendees").update(person?{name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}:{deleted:true}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)throw new Error("save");return answer({ok:true});
+    }
+    if(action==="reset_practice"){
+      const e=await scoped();if(e.id!==practiceId)return answer({ok:false},400);
+      return answer({ok:(await rpc("reset_practice_room",{}))===true});
     }
     if(action==="invite"||action==="prepare_invites"){
       const e=await scoped();if(!uuid(body.batch)||!Array.isArray(body.attendees)||!body.attendees.every(uuid))return answer({ok:false},400);

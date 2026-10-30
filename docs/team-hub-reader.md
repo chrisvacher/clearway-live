@@ -66,6 +66,11 @@ room sign-in or later live-room code. Runtime reads never write to Team Hub.
    this repository or chat. Keep `clearway_live_view_owner` NOLOGIN.
 4. Store the reader DSN as `TEAM_HUB_DATABASE_URL` in Live's production Vercel
    settings. The Supabase pooler is suitable when direct IPv6 is unavailable.
+   If Supabase’s certificate chain needs its database root certificate, download
+   that certificate from Database settings and set its PEM contents as
+   `TEAM_HUB_DATABASE_CA_CERT` in the same Vercel environment. Certificate and
+   hostname verification stay enabled. Do not use a private key or disable TLS
+   verification. See [Supabase database TLS](https://supabase.com/docs/guides/database/connecting-to-postgres).
 5. Deploy Live and use setup's refresh action to check the connected client,
    engagement, dates and people. Preview uses its own isolated configuration.
 
