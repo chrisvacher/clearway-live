@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
   callback.searchParams.set("next", destination(request.nextUrl.searchParams.get("next")));
   const { data, error } = await client.auth.signInWithOAuth({ provider: "google", options: {
     redirectTo: callback.toString(), skipBrowserRedirect: true,
+    // Always show the chooser. Never pass a saved email or Google account index.
     queryParams: { hd: "clearway.co", prompt: "select_account" },
   } });
   if (!error && data.url) response.headers.set("Location", data.url);

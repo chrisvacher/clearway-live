@@ -280,6 +280,9 @@ async function startLogin(next = "/setup") {
   assert.equal(target.origin, authOrigin);
   assert.equal(target.searchParams.get("provider"), "google");
   assert.equal(target.searchParams.get("hd"), "clearway.co");
+  assert.equal(target.searchParams.get("prompt"), "select_account");
+  assert.equal(target.searchParams.get("login_hint"), null);
+  assert.equal(target.searchParams.get("authuser"), null);
   assert.equal(target.searchParams.get("code_challenge_method"), "s256");
   expectedChallenge = target.searchParams.get("code_challenge")!;
   assert.ok(expectedChallenge);
@@ -486,4 +489,13 @@ test("practice phones join with a name and no email, while control remains prote
  assert.equal((await post("init")).status,"ready");assert.equal((await post("practice",{name:"Practice Alex"})).status,"signed_in");assert.equal(emails.length,before);
  const status=await (await fetch(`${origin}/api/room/${practiceRoom}/status`,{headers:{cookie:cookieHeader(jar)}})).json();assert.equal(status.name,"Practice Alex");
  assert.equal((await fetch(origin+"/control",{headers:{cookie:cookieHeader(jar)},redirect:"manual"})).status,307);
+});
+
+test("Google sign-in is labelled clearly and cannot preselect a personal account",async()=>{
+  const page=await fetch(origin+"/sign-in");const html=await page.text();
+  assert.match(html,/>Sign in with Google<\/button>/);assert.doesNotMatch(html,/Continue with Google/);
+  const response=await fetch(origin+"/auth/google?login_hint=personal%40gmail.com&authuser=0&prompt=none",{method:"POST",headers:{origin},redirect:"manual"});
+  assert.equal(response.status,303);const target=new URL(response.headers.get("location")!);
+  assert.equal(target.searchParams.get("prompt"),"select_account");assert.equal(target.searchParams.get("hd"),"clearway.co");
+  assert.equal(target.searchParams.get("login_hint"),null);assert.equal(target.searchParams.get("authuser"),null);
 });

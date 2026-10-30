@@ -17,7 +17,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
       ? "Sign-in is unavailable right now. Please try again shortly."
       : "We couldn’t sign you in. Use a Clearway Google account that has access to this app, or check with your Clearway admin."}</p></div>}
     {configured ? <form action={"/auth/google?next=" + destination(params.next)} method="post">
-      <button className="button-link" type="submit">Continue with Google</button>
+      <button className="button-link" type="submit">Sign in with Google</button>
     </form> : <div className="notice" role="status"><p>Sign-in is unavailable right now. Please try again shortly.</p></div>}
     <p className="sign-in-note">Your account must be on the Clearway user list.</p>
     <Link href="/" className="text-link"><ArrowLeft size={18} aria-hidden="true" /> Return to the start</Link>

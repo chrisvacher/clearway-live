@@ -3,7 +3,11 @@
 ## Access
 
 `/sign-in` starts Supabase Google OAuth with PKCE. The hosted-domain hint helps
-choose an account. The database independently requires a confirmed @clearway.co
+choose an account. The button reads **Sign in with Google**. Every initiation
+requests `prompt=select_account`, with no `login_hint` or `authuser` account index,
+so neither a previous browser account nor caller-supplied query parameters become
+an app-selected default. Google’s actual chooser is available after its OAuth
+client accepts Live’s registered callback URL. The database independently requires a confirmed @clearway.co
 email, a verified matching Google identity, a real unexpired Auth session with
 OAuth proof, and an active `clearway_users` record linked to a Team Hub member.
 Google must remain the only enabled external OAuth provider. Email Auth remains
