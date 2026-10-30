@@ -12,10 +12,11 @@ export default async function SetupPage() {
     <div className="eyebrow-live"><LockKeyhole size={18} aria-hidden="true" /> Only you see this</div>
     <h1>Your engagements</h1>
     <p>Signed in as {profile.name} ({profile.email}).</p>
+    {profile.is_admin && <Link className="button-link" href="/setup/new">Create an engagement</Link>}
     <div className="notice">
       <h2>{profile.is_admin ? "Clearway admin" : "Clearway facilitator"}</h2>
       {error ? <p role="status">We couldn’t load your engagements. Please try again.</p> : engagements?.length
-        ? <ul>{engagements.map(engagement => <li key={engagement.id}>{engagement.title} <Link className="text-link" href={`/setup/${engagement.id}/door`}>Open the door list</Link></li>)}</ul>
+        ? <ul>{engagements.map(engagement => <li key={engagement.id}><Link className="text-link" href={`/setup/${engagement.id}`}>Edit {engagement.title}</Link> <Link className="text-link" href={`/setup/${engagement.id}/door`}>Open the door list</Link></li>)}</ul>
         : <p>You don’t have any engagements yet. They’ll appear here when they’re ready.</p>}
     </div>
     <form action="/auth/sign-out" method="post"><button className="button-link" type="submit">Sign out</button></form>

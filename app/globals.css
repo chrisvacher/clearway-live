@@ -74,3 +74,22 @@ button:disabled { cursor: not-allowed; background: var(--cwl-surface-card); colo
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .button-link.secondary { background: var(--cwl-surface-card); color: var(--cwl-text-on-card); border: 1px solid var(--cwl-border-strong); }
 .plain-list { list-style: none; margin: 0; padding: 0; }
+
+.setup-width { max-width: var(--container-wide); padding-block: var(--space-12); }
+.setup-width h1 { font-size: var(--fs-h2); overflow-wrap: anywhere; }
+.setup-section { margin-block: var(--space-8); }
+fieldset { min-width: 0; border: 1px solid var(--cwl-border-strong); border-radius: var(--cwl-radius-card); padding: var(--space-6); display: grid; gap: var(--space-4); margin: 0; }
+legend { padding-inline: var(--space-2); font-size: var(--fs-h3); font-weight: var(--fw-bold); }
+.form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--space-4); }
+.form-stack label { display: grid; gap: var(--space-2); min-width: 0; }
+.form-stack .check-row, .check-row { display: flex; align-items: center; gap: var(--space-3); font-weight: var(--fw-regular); }
+.check-row input[type="checkbox"] { width: var(--space-6); height: var(--space-6); min-height: var(--space-6); flex-shrink: 0; }
+.roster { border: 1px solid var(--cwl-border-strong); border-radius: var(--cwl-radius-card); padding: var(--space-6); }
+.roster-heading, .roster-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-4); }
+.roster-row + .roster-row { border-top: 1px solid var(--cwl-border); }
+.roster-row .check-row { overflow-wrap: anywhere; }
+.email-preview { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; }
+.scroll-list { max-height: 30rem; overflow: auto; display: grid; gap: var(--space-4); }
+summary { cursor: pointer; min-height: var(--cwl-phone-touch); }
+button.text-link { color: inherit; background: none; border: 0; font: inherit; cursor: pointer; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } fieldset, .roster { padding: var(--space-4); } }

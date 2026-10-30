@@ -1,11 +1,7 @@
 import { createHash, createHmac, randomBytes, randomInt, randomUUID } from "node:crypto";
 
-export function normalizedEmail(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const email = value.trim().toLowerCase();
-  return email.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ? email : null;
-}
-export const uuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value);
+import { uuid } from "./identity";
+export { uuid, normalizedEmail } from "./identity";
 export const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 export const digest = (secret: string, ...parts: string[]) => createHmac("sha256", secret).update(JSON.stringify(parts)).digest("hex");
 export function newDevice() {

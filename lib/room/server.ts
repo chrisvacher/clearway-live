@@ -13,7 +13,8 @@ export type RoomInfo = { id: string; title: string; type: string; church: string
 export async function roomInfo(id: string): Promise<RoomInfo | null> {
   if (!uuid(id)) return null;
   const { data, error } = await serviceClient().rpc("room_public_info", { p_engagement: id });
-  if (error || !data) return null;
+  if (error) throw new Error("Room connection unavailable");
+  if (!data) return null;
   return data as RoomInfo;
 }
 const deviceCookie = (engagement: string) => `cw-device-${engagement}`;

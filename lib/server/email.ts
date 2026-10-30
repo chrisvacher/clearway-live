@@ -12,3 +12,13 @@ export async function sendEmail(message: { to: string; subject: string; text: st
   });
   if (!response.ok) throw new Error("Email unavailable");
 }
+
+export async function sendEmailBatch(id:string,messages:{to:string;subject:string;text:string}[]) {
+  const key=process.env.RESEND_API_KEY,from=process.env.EMAIL_FROM||process.env.RESEND_FROM_EMAIL;
+  if(!key||!from||messages.length<1||messages.length>50)throw new Error("Email unavailable");
+  const endpoint=new URL(process.env.RESEND_API_URL||"https://api.resend.com");
+  if(endpoint.protocol!=="https:" && !(endpoint.protocol==="http:" && ["localhost","127.0.0.1"].includes(endpoint.hostname)))throw new Error("Email unavailable");
+  const response=await fetch(new URL("/emails/batch",endpoint),{method:"POST",cache:"no-store",signal:AbortSignal.timeout(12000),headers:{Authorization:`Bearer ${key}`,"Content-Type":"application/json","Idempotency-Key":id},body:JSON.stringify(messages.map(m=>({...m,from,to:[m.to]})))});
+  if(!response.ok)throw new Error("Email unavailable");
+  const result=await response.json();if(!Array.isArray(result.data)||result.data.length!==messages.length)throw new Error("Email unavailable");
+}
