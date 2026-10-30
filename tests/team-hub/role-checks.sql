@@ -10,6 +10,9 @@ select ok(not has_column_privilege('clearway_live_view_owner','public.engagement
 select ok((select bool_and(not rolsuper and not rolbypassrls and not rolinherit) from pg_roles where rolname in('clearway_live_reader','clearway_live_view_owner')),'Both roles lack bypass, superuser and inherited privileges');
 select ok((select not rolcanlogin from pg_roles where rolname='clearway_live_view_owner'),'View owner cannot log in');
 select ok((select bool_and(relrowsecurity and relforcerowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname in('clients','engagements','engagement_elements','events','people','person_emails','person_organizations','team_members')),'Installer preserves existing source RLS and force flags');
+-- Disposable test transaction only: let the test administrator exercise the login role.
+-- ROLLBACK removes this membership option. The installer grants no such access.
+do $$ begin execute format('grant clearway_live_reader to %I with inherit false, set true',current_user); end $$;
 set local role clearway_live_reader;
 select is((select count(*)::integer from live_read.clients),1,'Deleted clients are hidden');
 select is((select count(*)::integer from live_read.engagements),1,'Deleted engagements are hidden');
