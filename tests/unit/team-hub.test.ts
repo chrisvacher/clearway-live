@@ -2,6 +2,18 @@ import assert from "node:assert/strict";
 import { rootCertificates } from "node:tls";
 import test from "node:test";
 import { readerConfig } from "../../lib/team-hub/config";
+import { teamHubDiagnostic } from "../../lib/team-hub/diagnostics";
+
+test("Team Hub diagnostics identify connection failures without logging sensitive details",()=>{
+  const secret="postgresql://reader:private-password@private-host/postgres";
+  for(const [code,category] of [["SELF_SIGNED_CERT_IN_CHAIN","tls_certificate"],["28P01","authentication"],["42501","permission"],["42P01","schema"],["ENOTFOUND","network"],["ETIMEDOUT","timeout"]]){
+    const result=teamHubDiagnostic(Object.assign(new Error(secret),{code,detail:secret,connectionString:secret}));
+    assert.deepEqual(result,{category,code});assert.ok(!JSON.stringify(result).includes(secret));
+  }
+  for(const error of [null,secret,{code:secret,message:secret},{code:"toString"},{code:"__proto__"}]){
+    assert.deepEqual(teamHubDiagnostic(error),{category:"unknown",code:"unknown"});
+  }
+});
 
 test("Team Hub accepts only its dedicated reader on the expected project",()=>{
   const direct=readerConfig("postgresql://clearway_live_reader:password@db.tilmrkgiwlpuflbtueen.supabase.co:5432/postgres?sslmode=disable");
