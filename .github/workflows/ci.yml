@@ -31,3 +31,24 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm run test:smoke
+
+  database:
+    name: PostgreSQL 17 schema and role isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - name: Start isolated PostgreSQL 17
+        run: supabase db start
+      - name: Replay migrations from an empty database
+        run: supabase db reset --local --no-seed
+      - name: Lint database functions
+        run: supabase db lint --local --schema public,private --fail-on warning
+      - name: Test all database roles
+        run: supabase test db --local
+      - name: Stop local database
+        if: always()
+        run: supabase stop --no-backup
