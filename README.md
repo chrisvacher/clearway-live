@@ -68,5 +68,6 @@ After starting and resetting a local Supabase stack, run `npm run db:seed` for
 the permanent practice room and Riverside’s eight fictional people. The seed
 command refuses hosted database URLs. See [practice joining and reset](docs/practice-room.md).
 
-[Milestone 1 acceptance](docs/milestone-1-acceptance.md) requires Chris’s real-phone
-checks. Milestone 2 waits for that acceptance, motion signoff and design pass 2.
+[Milestone 1 acceptance checks](docs/milestone-1-acceptance.md) passed on October 30,
+2026, including Chris’s real-phone checks. Milestone 2 still waits for motion
+prototype signoff and Claude Design pass 2.
