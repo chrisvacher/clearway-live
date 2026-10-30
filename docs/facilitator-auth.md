@@ -103,3 +103,11 @@ CORE reference is preserved in `core-reference.json`, alongside the explicit Liv
 overrides. The Supabase clients match CORE exactly: SSR 0.6.1 and supabase-js 2.50.3.
 Next's generated declaration is excluded from lint, and typechecking generates
 route types first. CI audits production dependencies. CORE itself is unchanged.
+
+## Production migration
+
+`20261030033500_facilitator_google_sign_in.sql` matches the Live database migration
+history. The identical SQL passed all 369 pgTAP assertions before application.
+The initial Chris admin profile is linked to his verified Team Hub member record,
+with its Auth binding left pending until his first Google sign-in. Other accounts
+remain unlisted. The app suite passes 28 tests.
