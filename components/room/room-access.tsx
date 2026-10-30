@@ -17,7 +17,7 @@ const messages: Record<string, string> = {
   invalid_request: "Check your details and try again.",
 };
 
-export function RoomAccess({ engagement, email: initialEmail = "", confirm }: { engagement: string; email?: string; confirm?: { challenge: string; token: string } }) {
+export function RoomAccess({ engagement, email: initialEmail = "", confirm, practice = false }: { engagement: string; practice?: boolean; email?: string; confirm?: { challenge: string; token: string } }) {
   const [state, setState] = useState<Status>({ status: "loading" });
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState("");
@@ -40,6 +40,10 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm }: { 
         const data: Status = await (await fetch(`/api/room/${engagement}/status`, { cache: "no-store" })).json();
         if (!active) return;
         if (data.status === "signed_in" || data.status === "closed" || data.status === "pending" || data.status === "declined") setState(data);
+        if (data.status === "ready") setState(previous => previous.status === "signed_in" ? data : previous);
+        if (data.status === "device_missing") {
+          const fresh=await post("init");if(active){setState(fresh);setDeviceCode(fresh.device_code||"");}
+        }
         if (data.can_claim) {
           claiming.current = true;
           try { const claimed = await post("claim"); if (active) setState(claimed); }
@@ -64,6 +68,10 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm }: { 
   if (confirm) return <section><p>Tap below to finish signing in on this device.</p>
     <form onSubmit={event => submit(event, "confirm")}><button className="button-link" disabled={busy} type="submit">Confirm sign-in</button></form>
     {messages[state.status] && <p role="status">{messages[state.status]}</p>}
+  </section>;
+  if(practice)return <section className="form-stack"><p>Join with your name to try the practice room. You won’t need an email or a sign-in code.</p>
+    <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="practice-name">Your name</label><input id="practice-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the practice room</button></form>
+    {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
   </section>;
   return <section className="form-stack">
     <p role="status" aria-live="polite">{messages[state.status] || "Use the email address on your invite."}</p>

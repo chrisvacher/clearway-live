@@ -11,7 +11,7 @@ export default async function EngagementRoom({ params, searchParams }: { params:
   if (!info) notFound();
   return <main id="main" className="page-width narrow">
     <div className="eyebrow-live">{info.church}</div><h1>{info.title}</h1>
-    {info.closed ? <p>This engagement has closed. Check with your facilitator.</p> : <RoomAccess engagement={id} email={email?.slice(0,254)} />}
+    {info.closed ? <p>This engagement has closed. Check with your facilitator.</p> : <RoomAccess engagement={id} email={email?.slice(0,254)} practice={info.type==="practice"} />}
     {info.howTheRoomDecides && <section className="notice"><h2>How the room decides</h2><p>{info.howTheRoomDecides}</p></section>}
   </main>;
 }

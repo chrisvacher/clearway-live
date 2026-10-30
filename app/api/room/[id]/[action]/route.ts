@@ -8,6 +8,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 }
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string; action: string }> }) {
   const { id, action } = await params;
-  if (!["init", "send", "verify", "confirm", "join", "claim"].includes(action)) return new NextResponse(null, { status: 404 });
+  if (!["init", "send", "verify", "confirm", "join", "claim", "practice"].includes(action)) return new NextResponse(null, { status: 404 });
   return handleRoom(request, id, action);
 }

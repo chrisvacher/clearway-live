@@ -116,6 +116,11 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
     const body = await limitedJson(request);
     const email = normalizedEmail(body.email);
     const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY!;
+    if (action === "practice" && typeof body.name === "string" && body.name.trim().length>0 && body.name.trim().length<=200) {
+      const {data,error}=await serviceClient().rpc("practice_guest",{p:{...payload,name:body.name.trim(),...rateKeys(request,engagement,device.id,"","practice")}});
+      if(error)throw new Error("Room connection unavailable");
+      return result(data.status==="approved" ? await completeClaim(request,response,payload,engagement) : data);
+    }
     if (action === "send" && email) {
       const challenge = randomUUID();
       const code = newCode();
