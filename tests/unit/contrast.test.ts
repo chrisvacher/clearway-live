@@ -37,6 +37,7 @@ for (const theme of ["light", "dark"] as const) {
       ["--cwl-text-muted", "--cwl-surface"],
       ["--cwl-text-on-card", "--cwl-surface-card"],
       ["--cwl-on-accent", "--cwl-button-primary"],
+      ["--cwl-on-callout", "--cwl-callout"],
       ["--fg-muted", "--cwl-surface-card"],
     ]) {
       const a = luminance(rgb(text, values));
