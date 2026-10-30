@@ -1,4 +1,4 @@
-import { normalizedEmail, uuid } from "../room/policy";
+import { normalizedEmail, uuid } from "../room/identity";
 
 export const consensus = "The room makes each decision by consensus. Votes and points show where the room is. We listen to each other and make space for concerns before agreeing on what we’ll do next.";
 export type ImportPerson = {name:string;email:string;role_at_church:string;room_role?:"participant"|"scribe";extra_fields:Record<string,string>;team_hub_person_id?:string};

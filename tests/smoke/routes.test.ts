@@ -19,6 +19,8 @@ const calls: string[] = [];
 const roomId = "50000000-0000-4000-8000-000000000010";
 const roomAttendee = "50000000-0000-4000-8000-000000000011";
 const emails: { to: string[]; text: string }[] = [];
+const inviteBatches = new Map<string,Record<string,unknown>>();
+const sentBatches:string[]=[];
 const roomDevices = new Map<string,{proof:string;code:string;approved:boolean;claim?:string}>();
 const roomChallenges = new Map<string,{email:string;code:string;link:string;consumed:boolean}>();
 const roomJoins = new Map<string,{id:string;device:string;email:string;name:string;status:string}>();
@@ -79,16 +81,29 @@ before(async () => {
     if (url.pathname === "/auth/v1/logout") { logouts.push(url.searchParams.get("scope") || ""); return send({}); }
     if (url.pathname === "/rest/v1/rpc/claim_clearway_access") return send(mode === "allowed");
     if (url.pathname === "/rest/v1/clearway_users") {
-      assert.equal(url.searchParams.get("auth_user_id"), "eq." + userId);
+      if(url.searchParams.has("auth_user_id"))assert.equal(url.searchParams.get("auth_user_id"), "eq." + userId);
       return send(mode === "allowed" ? [profile] : []);
     }
     if (url.pathname === "/rest/v1/engagements") {
-      if (url.searchParams.get("id") === "eq." + roomId) return send([{ id:roomId,title:"Room fixture",type:"wayfinding",status:"pre_call",how_the_room_decides:"We decide together.",settings:{neutral_join_message:false,private_note:tripwire},churches:{name:"Fixture church",deleted:false}}]);
+      if (url.searchParams.get("id") === "eq." + roomId) return send([{ id:roomId,church_id:roomId,title:"Room fixture",team_hub_client_id:null,team_hub_engagement_id:null,base_year:2026,lens_names:["Congregation","Community","Leadership","Operations","Learning"],type:"wayfinding",status:"pre_call",how_the_room_decides:"We decide together.",settings:{neutral_join_message:false,private_note:tripwire},churches:{name:"Fixture church",deleted:false}}]);
       return send([{ id: "engagement-a", title: "Assigned engagement", status: "setup" }]);
     }
+    if (url.pathname === "/rest/v1/churches")return send([{id:roomId,name:"Fixture church",timezone:"America/Toronto",mission:"",purpose:"",values:[],strategy:"",leadership_rhythms:[],governance_body_name:""}]);
+    if(url.pathname === "/rest/v1/engagement_facilitators")return send([{clearway_user_id:profile.id,role:"lead"}]);
     if (url.pathname === "/rest/v1/attendees") return send((mode === "room" && roomBound) || mode === "allowed" ? [{id:roomAttendee,name:"Ann Lee",email:"ann@example.org",room_role:"participant"}] : []);
     if (url.pathname === "/rest/v1/device_sessions") return send([]);
     if (url.pathname === "/rest/v1/join_requests") return send([...roomJoins.values()].filter(j=>url.searchParams.has("id") ? url.searchParams.get("id") === "eq."+j.id : j.status==="pending"));
+    if(url.pathname==="/emails/batch") {
+      let raw="";for await(const chunk of req)raw+=chunk;const payload=JSON.parse(raw);assert.equal(payload.length,1);assert.equal(payload[0].to[0],"ann@example.org");assert.match(payload[0].text,/We decide together/);sentBatches.push(String(req.headers["idempotency-key"]));return send({data:[{id:randomUUID()}]});
+    }
+    if(url.pathname==="/rest/v1/rpc/queue_engagement_invites") {
+      let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);if(mode!=="allowed")return send({message:"denied"},403);
+      if(!inviteBatches.has(body.p_batch))inviteBatches.set(body.p_batch,{id:body.p_batch,status:"pending",payload:{title:"Room fixture",church:"Fixture church",timezone:"America/Toronto",pre_call_at:null,retreat_start_date:null,retreat_end_date:null,consensus:"We decide together.",people:[{id:roomAttendee,name:"Ann Lee",email:"ann@example.org"}]}});return send(inviteBatches.get(body.p_batch));
+    }
+    if(url.pathname==="/rest/v1/rpc/mark_invites_sent") {
+      assert.equal(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);inviteBatches.get(body.p_batch)!.status="sent";return send(null);
+    }
+    if(url.pathname==="/rest/v1/rpc/import_attendees") {let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);assert.equal(mode,"allowed");return send(body.p_people.length);}
     if (url.pathname === "/emails") {
       let raw="";for await(const chunk of req)raw+=chunk;
       assert.equal(req.headers.authorization,"Bearer "+tripwire);emails.push(JSON.parse(raw));if(process.env.CLEARWAY_SMOKE_HOLD === "1")console.log("Fixture email: "+JSON.parse(raw).text);return send({id:randomUUID()});
@@ -105,7 +120,7 @@ before(async () => {
     }
     if (url.pathname === "/rest/v1/rpc/room_public_info") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
-      return send(body.p_engagement===roomId ? {id:roomId,title:"Room fixture",type:"wayfinding",church:"Fixture church",closed:false,howTheRoomDecides:"We decide together.",neutral:false}:null);
+      return send(body.p_engagement===roomId ? {id:roomId,church_id:roomId,title:"Room fixture",team_hub_client_id:null,team_hub_engagement_id:null,base_year:2026,lens_names:["Congregation","Community","Leadership","Operations","Learning"],type:"wayfinding",church:"Fixture church",closed:false,howTheRoomDecides:"We decide together.",neutral:false}:null);
     }
     if (url.pathname === "/rest/v1/rpc/room_presence") return send(roomBound?[{attendee_id:roomAttendee,device_count:2,present:true}]:[]);
     if (url.pathname === "/rest/v1/rpc/room_auth") {
@@ -436,4 +451,23 @@ test("room mutations reject cross-site Origin and GET sign-in attempts",async()=
     const get=await fetch(`${origin}/api/room/${roomId}/${action}`);assert.equal(get.status,405);
     const cross=await fetch(`${origin}/api/room/${roomId}/${action}`,{method:"POST",headers:{origin:"https://evil.example","Content-Type":"application/json"},body:"{}"});assert.equal(cross.status,403);
   }
+});
+
+async function setupPost(jar:Map<string,string>,body:Record<string,unknown>){const response=await fetch(origin+"/api/setup",{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify(body)});return {response,data:await response.json()};}
+test("setup API enforces facilitator identity, CSRF and admin-only Team Hub discovery",async()=>{
+ assert.equal((await setupPost(new Map(),{action:"hub_clients"})).response.status,401);
+ const {jar}=await finishLogin("allowed");assert.equal((await setupPost(jar,{action:"hub_clients"})).response.status,403);
+ const cross=await fetch(origin+"/api/setup",{method:"POST",headers:{origin:"https://evil.example",cookie:cookieHeader(jar)},body:"{}"});assert.equal(cross.status,403);
+ const page=await fetch(origin+`/setup/${roomId}`,{headers:{cookie:cookieHeader(jar)}});assert.equal(page.status,200);assert.match(await page.text(),/Review import|How the room decides/);
+});
+test("attendee import previews normalize duplicates, then save only reviewed source",async()=>{
+ const {jar}=await finishLogin("allowed");const body={id:roomId,source:"paste",text:"Ann Lee <ANN@example.org>\nOther <ann@example.org>"};
+ const preview=await setupPost(jar,{...body,action:"preview_import"});assert.equal(preview.data.people.length,1);assert.deepEqual(preview.data.duplicates,["ann@example.org"]);
+ const saved=await setupPost(jar,{...body,action:"import"});assert.equal(saved.data.count,1);
+});
+test("reviewed invite snapshot sends once and retry uses its saved sent status",async()=>{
+ const {jar}=await finishLogin("allowed"),batch=randomUUID(),body={id:roomId,batch,attendees:[roomAttendee]};
+ const prepared=await setupPost(jar,{...body,action:"prepare_invites"});assert.equal(prepared.data.payload.people[0].email,"ann@example.org");assert.match(prepared.data.preview,/We decide together/);assert.equal(sentBatches.length,0);
+ const sent=await setupPost(jar,{...body,action:"invite"});assert.equal(sent.data.ok,true);assert.deepEqual(sentBatches,[batch]);
+ const retry=await setupPost(jar,{...body,action:"invite"});assert.equal(retry.data.ok,true);assert.deepEqual(sentBatches,[batch]);
 });

@@ -95,6 +95,10 @@ begin
  select * into batch from private.invitation_batches where id=p_batch and not deleted;
  if found then
    if batch.engagement_id<>p_engagement or batch.created_at<now()-interval '23 hours' then raise check_violation; end if;
+   if batch.status='pending' and (
+      not exists(select 1 from public.engagements where id=p_engagement and not deleted and status<>'closed')
+      or exists(select 1 from jsonb_array_elements(batch.payload->'people') person where not exists(
+        select 1 from public.attendees a where a.id=(person->>'id')::uuid and a.engagement_id=p_engagement and a.email=person->>'email' and not a.deleted))) then raise check_violation using message='Review a new invite batch after changing the attendee list.'; end if;
    return jsonb_build_object('id',batch.id,'status',batch.status,'payload',batch.payload);
  end if;
  if cardinality(p_attendees) not between 1 and 50 or cardinality(p_attendees)<>(select count(distinct x) from unnest(p_attendees)x) then raise check_violation; end if;

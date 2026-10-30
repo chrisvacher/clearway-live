@@ -1,0 +1,85 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select no_plan();
+create schema tests;
+create function tests.id(n integer) returns uuid language sql immutable as $$ select ('81000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid $$;
+create function tests.payload(n integer,eng integer default 10) returns jsonb language sql immutable as $$
+  select jsonb_build_object('engagement',tests.id(eng),'device',tests.id(100+n),'proof',lpad(n::text,64,'a'),
+    'device_code',repeat('A',7)||chr(64+n),'rate_email',lpad('e'||n,64,'a'),
+    'rate_device',lpad('d'||n,64,'a'),'rate_ip',lpad('f'||n,64,'a'))
+$$;
+create function tests.login(n integer,sid integer default null) returns void language plpgsql as $$ begin
+  perform set_config('request.jwt.claims',jsonb_build_object('sub',tests.id(n),'session_id',tests.id(coalesce(sid,200+n)),'role','authenticated','user_metadata',jsonb_build_object('is_admin',true))::text,true);
+end $$;
+grant usage on schema tests to service_role,authenticated,anon;
+grant execute on all functions in schema tests to service_role,authenticated,anon;
+insert into churches(id,name,timezone) values(tests.id(20),'Room A church','America/Toronto'),(tests.id(21),'Room B church','America/Toronto');
+insert into engagements(id,church_id,title,status) values(tests.id(10),tests.id(20),'Room A','pre_call'),(tests.id(11),tests.id(21),'Room B','retreat');
+insert into auth.users(id,email,email_confirmed_at) values(tests.id(1),'ann@example.org',now()),(tests.id(2),'fac@clearway.co',now()),(tests.id(3),'other@clearway.co',now()),(tests.id(4),'unassigned@clearway.co',now());
+insert into auth.identities(user_id,provider,provider_id,identity_data)
+select id,'google',id::text,jsonb_build_object('email',email,'email_verified',true) from auth.users where id in(tests.id(2),tests.id(3),tests.id(4));
+insert into auth.sessions(id,user_id) values(tests.id(201),tests.id(1)),(tests.id(202),tests.id(2)),(tests.id(203),tests.id(3)),(tests.id(204),tests.id(4)),(tests.id(211),tests.id(1));
+insert into auth.mfa_amr_claims(id,session_id,created_at,updated_at,authentication_method)
+select gen_random_uuid(),id,now(),now(),case when user_id=tests.id(1) then 'otp' else 'oauth' end from auth.sessions where id in(tests.id(201),tests.id(202),tests.id(203),tests.id(204),tests.id(211));
+insert into clearway_users(id,auth_user_id,name,email,team_hub_team_member_id)
+select tests.id(300+n),tests.id(n),'Facilitator '||n,case n when 2 then 'fac@clearway.co' when 3 then 'other@clearway.co' else 'unassigned@clearway.co' end,tests.id(400+n) from generate_series(2,4)n;
+insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(10),tests.id(302),'lead'),(tests.id(11),tests.id(303),'lead');
+insert into attendees(id,engagement_id,name,email) values(tests.id(30),tests.id(10),'Ann Lee','ann@example.org'),(tests.id(31),tests.id(11),'Other person','other@example.org');
+
+update clearway_users set is_admin=true where id=tests.id(304);
+update engagements set how_the_room_decides='We decide by consensus.';
+select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid='private.invitation_batches'::regclass),'Invite outbox forces RLS');
+select ok(not has_table_privilege('authenticated','private.invitation_batches','select'),'Browsers cannot read outbox recipients');
+select ok(not has_table_privilege('anon','private.invitation_batches','select'),'Anonymous callers cannot read invite payloads');
+select ok(not has_function_privilege('authenticated','public.mark_invites_sent(uuid)','execute'),'Browser cannot mark unsent invites as sent');
+set local role authenticated;
+select tests.login(1);
+select throws_ok($$select public.import_attendees(tests.id(10),'[{"name":"Injected","email":"a@example.org"}]')$$,'42501',null,'Participant cannot import people');
+select throws_ok($$select public.queue_engagement_invites(tests.id(10),tests.id(601),array[tests.id(30)])$$,'42501',null,'Participant cannot queue invites or learn recipients');
+select throws_ok($$select public.save_engagement(tests.id(10),'{}','{}',null,null)$$,'42501',null,'Participant cannot save setup');
+select tests.login(3);
+select throws_ok($$select public.import_attendees(tests.id(10),'[{"name":"Injected","email":"a@example.org"}]')$$,'42501',null,'Other church facilitator cannot import people');
+select throws_ok($$select public.queue_engagement_invites(tests.id(10),tests.id(601),array[tests.id(30)])$$,'42501',null,'Other church facilitator cannot queue invites');
+select tests.login(4);
+select throws_ok($$select public.save_engagement(null,'{"name":"No link","timezone":"UTC"}','{"title":"Missing link"}',tests.id(304),null)$$,'23514',null,'New real engagements need both Team Hub links');
+select tests.login(2);
+select throws_ok($$update churches set team_hub_client_id=tests.id(999) where id=tests.id(20)$$,'42501',null,'Assigned facilitator cannot repoint the church Team Hub link');
+select throws_ok($$update churches set core_organization_id=tests.id(999) where id=tests.id(20)$$,'42501',null,'Assigned facilitator cannot repoint the church CORE link');
+select throws_ok($$update engagements set team_hub_engagement_id=tests.id(999) where id=tests.id(10)$$,'42501',null,'External engagement link is immutable in browser writes');
+select is(public.import_attendees(tests.id(10),'[{"name":"Ann updated","email":" ANN@EXAMPLE.ORG ","role_at_church":"Pastor","extra_fields":{"ministry":"Kids"},"room_role":"scribe"}]'),1,'Import normalizes and updates existing email');
+select is((select count(*)::integer from attendees where engagement_id=tests.id(10)),1,'Import creates no duplicate email');
+select is((select extra_fields->>'ministry' from attendees where id=tests.id(30)),'Kids','Import keeps additional CSV fields');
+select is(public.import_attendees(tests.id(10),'[{"name":"Ann still scribe","email":"ann@example.org"}]'),1,'Subsequent import updates the person');
+select is((select room_role::text from attendees where id=tests.id(30)),'scribe','Missing room_role preserves existing scribe');
+select throws_ok($$select public.import_attendees(tests.id(10),'[{"name":"New","email":"new@example.org"},{"name":"Bad","email":"bad"}]')$$,'23514',null,'Invalid bulk row aborts the whole import');
+select is((select count(*)::integer from attendees where email='new@example.org'),0,'A later invalid row leaves no partial import');
+select throws_ok($$select public.import_attendees(tests.id(10),'[{"name":"Forged","email":"x@example.org","auth_user_id":"81000000-0000-4000-8000-000000000001"}]')$$,'23514',null,'Import cannot bind an Auth identity');
+select throws_ok($$select public.queue_engagement_invites(tests.id(10),tests.id(601),array[tests.id(31)])$$,'23514',null,'Invite cannot include another engagement attendee');
+select is(public.queue_engagement_invites(tests.id(10),tests.id(601),array[tests.id(30)])->'payload'->>'consensus','We decide by consensus.','Invite snapshot includes saved consensus');
+select is(public.queue_engagement_invites(tests.id(10),tests.id(601),array[tests.id(30)])->>'status','pending','Retry uses the same saved batch');
+select throws_ok($$select public.queue_engagement_invites(tests.id(11),tests.id(601),array[tests.id(31)])$$,'42501',null,'Saved batch cannot be reused across engagements');
+select throws_ok($$select public.queue_engagement_invites(tests.id(10),tests.id(602),array[tests.id(30),tests.id(30)])$$,'23514',null,'Invite batch rejects duplicate recipient ids');
+select throws_ok($$select public.save_engagement(null,'{}','{}',null,null,tests.id(90),tests.id(91))$$,'42501',null,'Only an admin can create a new engagement');
+reset role;
+select is((select count(*)::integer from private.invitation_batches),1,'One immutable retry batch is stored');
+set local role service_role;
+select lives_ok($$select public.mark_invites_sent(tests.id(601))$$,'Server records provider acceptance');
+reset role;
+select is((select status from private.invitation_batches where id=tests.id(601)),'sent','Sent status persists');
+reset role;
+create function tests.church_body() returns jsonb language sql as $$ select '{"name":"Updated church","timezone":"America/Toronto","values":["Faithfulness"],"leadership_rhythms":["Weekly"]}'::jsonb $$;
+create function tests.engagement_body() returns jsonb language sql as $$ select '{"title":"Updated engagement","type":"wayfinding","status":"setup","base_year":2030,"lens_names":["Congregation","Community","Leadership","Operations","Learning"],"how_the_room_decides":"We listen and decide by consensus.","settings":{"room_size":"very_small"}}'::jsonb $$;
+grant execute on function tests.church_body(),tests.engagement_body() to authenticated;
+set local role authenticated;
+select tests.login(2);
+select is(public.save_engagement(tests.id(10),tests.church_body(),tests.engagement_body(),tests.id(302),null),tests.id(10),'Lead atomically saves their own church and engagement');
+select is((select name from churches where id=tests.id(20)),'Updated church','Church changes persist with engagement');
+select is((select base_year::integer from engagements where id=tests.id(10)),2030,'Explicit base year override persists');
+select throws_ok($$select public.save_engagement(tests.id(10),tests.church_body(),tests.engagement_body(),tests.id(303),null)$$,'42501',null,'Non-admin cannot change the lead facilitator');
+select tests.login(4);
+select is(public.save_engagement(null,tests.church_body(),tests.engagement_body(),tests.id(304),tests.id(302),tests.id(90),tests.id(91)) is not null,true,'Admin creates a linked church, engagement, lead and co-facilitator together');
+select is((select count(*)::integer from engagements where team_hub_client_id=tests.id(90) and team_hub_engagement_id=tests.id(91)),1,'New engagement stores both Team Hub links');
+select is((select core_organization_id from churches where team_hub_client_id=tests.id(90)),null::uuid,'New church leaves CORE unlinked');
+select * from finish();
+rollback;
