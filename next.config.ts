@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ] }, { source: "/auth/:path*", headers: [
       { key: "Referrer-Policy", value: "no-referrer" },
+    ] }, { source: "/room/:id/confirm", headers: [
+      { key: "Referrer-Policy", value: "strict-origin" },
+      { key: "Cache-Control", value: "private, no-store" },
+    ] }, { source: "/room/:path*", headers: [
+      { key: "Cache-Control", value: "private, no-store" },
     ] }];
   },
 };

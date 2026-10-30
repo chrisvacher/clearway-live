@@ -17,4 +17,4 @@ export async function middleware(request: NextRequest) {
   return privateResponse(response);
 }
 
-export const config = { runtime: "nodejs", matcher: ["/sign-in", "/setup/:path*", "/control/:path*"] };
+export const config = { runtime: "nodejs", matcher: ["/sign-in", "/setup/:path*", "/control/:path*", "/api/facilitator/:path*"] };

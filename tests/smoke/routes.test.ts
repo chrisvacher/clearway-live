@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { readdir, readFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { createServer as createHttpServer, type Server } from "node:http";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { after, before, test } from "node:test";
@@ -16,12 +16,20 @@ let authOrigin: string;
 let expectedChallenge = "";
 const logouts: string[] = [];
 const calls: string[] = [];
+const roomId = "50000000-0000-4000-8000-000000000010";
+const roomAttendee = "50000000-0000-4000-8000-000000000011";
+const emails: { to: string[]; text: string }[] = [];
+const roomDevices = new Map<string,{proof:string;code:string;approved:boolean;claim?:string}>();
+const roomChallenges = new Map<string,{email:string;code:string;link:string;consumed:boolean}>();
+const roomJoins = new Map<string,{id:string;device:string;email:string;name:string;status:string}>();
+let roomAuthCalls = 0;
+let roomBound = false;
 const userId = "50000000-0000-4000-8000-000000000001";
 const user = (mode: string) => ({ id: userId, aud: "authenticated", role: "authenticated",
-  email: mode === "external" ? "person@example.org" : "facilitator@clearway.co",
+  email: mode === "external" ? "person@example.org" : mode === "room" ? "ann@example.org" : "facilitator@clearway.co",
   email_confirmed_at: "2026-10-01T00:00:00Z", identities: [], app_metadata: {}, user_metadata: {} });
 function token(mode: string) {
-  return [Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url"), Buffer.from(JSON.stringify({ sub: userId, exp: Math.floor(Date.now()/1000)+3600, mode })).toString("base64url"), "c2lnbmF0dXJl"].join(".");
+  return [Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url"), Buffer.from(JSON.stringify({ sub: userId, session_id:"50000000-0000-4000-8000-000000000003", exp: Math.floor(Date.now()/1000)+3600, mode })).toString("base64url"), "c2lnbmF0dXJl"].join(".");
 }
 function modeOf(authorization: string | undefined) {
   try { return JSON.parse(Buffer.from((authorization || "").split(".")[1], "base64url").toString()).mode as string; }
@@ -47,6 +55,11 @@ before(async () => {
     res.setHeader("Content-Type", "application/json");
     const send = (value: unknown, status = 200) => { res.statusCode = status; res.end(JSON.stringify(value)); };
     const mode = modeOf(req.headers.authorization);
+    if (url.pathname === "/auth/v1/authorize") {
+      expectedChallenge=url.searchParams.get("code_challenge")!;
+      const callback=new URL(url.searchParams.get("redirect_to")!);callback.searchParams.set("code","allowed");
+      res.statusCode=303;res.setHeader("Location",callback.toString());return res.end();
+    }
     if (url.pathname === "/auth/v1/token") {
       let raw = "";
       for await (const chunk of req) raw += chunk;
@@ -69,7 +82,61 @@ before(async () => {
       assert.equal(url.searchParams.get("auth_user_id"), "eq." + userId);
       return send(mode === "allowed" ? [profile] : []);
     }
-    if (url.pathname === "/rest/v1/engagements") return send([{ id: "engagement-a", title: "Assigned engagement", status: "setup" }]);
+    if (url.pathname === "/rest/v1/engagements") {
+      if (url.searchParams.get("id") === "eq." + roomId) return send([{ id:roomId,title:"Room fixture",type:"wayfinding",status:"pre_call",how_the_room_decides:"We decide together.",settings:{neutral_join_message:false,private_note:tripwire},churches:{name:"Fixture church",deleted:false}}]);
+      return send([{ id: "engagement-a", title: "Assigned engagement", status: "setup" }]);
+    }
+    if (url.pathname === "/rest/v1/attendees") return send((mode === "room" && roomBound) || mode === "allowed" ? [{id:roomAttendee,name:"Ann Lee",email:"ann@example.org",room_role:"participant"}] : []);
+    if (url.pathname === "/rest/v1/device_sessions") return send([]);
+    if (url.pathname === "/rest/v1/join_requests") return send([...roomJoins.values()].filter(j=>url.searchParams.has("id") ? url.searchParams.get("id") === "eq."+j.id : j.status==="pending"));
+    if (url.pathname === "/emails") {
+      let raw="";for await(const chunk of req)raw+=chunk;
+      assert.equal(req.headers.authorization,"Bearer "+tripwire);emails.push(JSON.parse(raw));if(process.env.CLEARWAY_SMOKE_HOLD === "1")console.log("Fixture email: "+JSON.parse(raw).text);return send({id:randomUUID()});
+    }
+    if (url.pathname === "/auth/v1/admin/generate_link") {
+      roomAuthCalls++;let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      assert.equal(req.headers.apikey,tripwire);assert.equal(body.email,"ann@example.org");
+      return send({action_link:"unused",email_otp:"unused",hashed_token:"server-only-magic-token",verification_type:"magiclink",id:userId,email:body.email});
+    }
+    if (url.pathname === "/auth/v1/verify") {
+      let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      assert.equal(body.token_hash,"server-only-magic-token");
+      return send({access_token:token("room"),refresh_token:"refresh-room",expires_in:3600,token_type:"bearer",user:user("room")});
+    }
+    if (url.pathname === "/rest/v1/rpc/room_public_info") {
+      let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      return send(body.p_engagement===roomId ? {id:roomId,title:"Room fixture",type:"wayfinding",church:"Fixture church",closed:false,howTheRoomDecides:"We decide together.",neutral:false}:null);
+    }
+    if (url.pathname === "/rest/v1/rpc/room_presence") return send(roomBound?[{attendee_id:roomAttendee,device_count:2,present:true}]:[]);
+    if (url.pathname === "/rest/v1/rpc/room_auth") {
+      assert.equal(req.headers.apikey,tripwire);
+      let raw="";for await(const chunk of req)raw+=chunk;const {p_action:action,p}=JSON.parse(raw);
+      assert.equal(p.engagement,roomId);const device=roomDevices.get(p.device);
+      if(action==="init") {roomDevices.set(p.device,{proof:p.proof,code:p.device_code,approved:false});return send({status:"ready",device_code:p.device_code});}
+      if(!device || device.proof!==p.proof)return send({status:"device_missing"});
+      if(action==="status")return send({status:[...roomJoins.values()].find(j=>j.device===p.device)?.status||"ready",device_code:device.code,can_claim:device.approved});
+      if(action==="send") {
+        if(p.email!=="ann@example.org")return send({status:"not_listed"});
+        roomChallenges.set(p.challenge,{email:p.email,code:p.code_hash,link:p.link_hash,consumed:false});return send({status:"sent",name:"Ann Lee"});
+      }
+      if(action==="verify") {
+        const challenge=p.challenge ? roomChallenges.get(p.challenge) : [...roomChallenges.values()].reverse().find(c=>c.email===p.email);
+        if(!challenge || challenge.consumed || !(challenge.code===p.code_hash || challenge.link===p.link_hash))return send({status:"invalid_code"});
+        challenge.consumed=true;device.approved=true;return send({status:"approved"});
+      }
+      if(action==="prepare_claim") {
+        if(!device.approved)return send({status:"waiting"});device.claim=randomUUID();return send({status:"claim",claim:device.claim,email:"ann@example.org",attendee:roomAttendee});
+      }
+      if(action==="bind") {assert.equal(p.claim,device.claim);assert.equal(p.user,userId);device.approved=false;roomBound=true;return send({status:"signed_in"});}
+      if(action==="join") {const id=randomUUID();roomJoins.set(id,{id,device:p.device,email:p.email,name:p.name,status:"pending"});return send({status:"pending"});}
+      return send({status:"waiting"});
+    }
+    if(url.pathname === "/rest/v1/rpc/decide_room_join" || url.pathname === "/rest/v1/rpc/sign_in_room_device") {
+      let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      if(mode!=="allowed")return send(false);
+      if(body.p_request) {const j=roomJoins.get(body.p_request);if(!j)return send(false);j.status=body.p_approve?"approved":"declined";roomDevices.get(j.device)!.approved=body.p_approve;return send(true);}
+      const d=[...roomDevices.values()].find(d=>d.code===body.p_code.replaceAll(" ",""));if(d && body.p_engagement===roomId && body.p_attendee===roomAttendee) {d.approved=true;return send(true);}return send(false);
+    }
     return send({ message: "Unexpected fixture route" }, 404);
   });
   await new Promise<void>(resolve => authServer.listen(0, "127.0.0.1", resolve));
@@ -77,7 +144,7 @@ before(async () => {
   assert.ok(authAddress && typeof authAddress !== "string");
   authOrigin = `http://127.0.0.1:${authAddress.port}`;
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)], {
-    env: { ...process.env, APP_ORIGIN: origin, SUPABASE_URL: authOrigin, SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture", SUPABASE_SERVICE_ROLE_KEY: tripwire, TEAM_HUB_DATABASE_URL: tripwire, RESEND_API_KEY: tripwire },
+    env: { ...process.env, APP_ORIGIN: origin, SUPABASE_URL: authOrigin, SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture", SUPABASE_SERVICE_ROLE_KEY: tripwire, TEAM_HUB_DATABASE_URL: tripwire, RESEND_API_KEY: tripwire, EMAIL_FROM: "Clearway <hello@clearway.co>", RESEND_API_URL: authOrigin },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout?.on("data", chunk => { output += chunk; });
@@ -92,6 +159,10 @@ before(async () => {
   throw new Error(`Production server did not become ready: ${output}`);
 }, { timeout: 30000 });
 after(async () => {
+  if (process.env.CLEARWAY_SMOKE_HOLD === "1") {
+    console.log(`Browser fixture ready at ${origin}; room /room/${roomId}`);
+    await new Promise<void>(resolve => process.once("SIGTERM", resolve));
+  }
   if (server && server.exitCode === null) {
     const exited = new Promise<void>(resolve => server.once("exit", () => resolve()));
     server.kill("SIGTERM");
@@ -311,4 +382,58 @@ test("unsolicited callback errors do not sign out an existing facilitator", asyn
   assert.equal(logouts.length, before);
   const page = await fetch(origin + "/setup", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
   assert.equal(page.status, 200);
+});
+
+
+async function roomPost(action: string, jar: Map<string,string>, data: Record<string,unknown> = {}) {
+  const response=await fetch(`${origin}/api/room/${roomId}/${action}`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify(data),redirect:"manual"});
+  applyCookies(jar,response);return {response,data:await response.json()};
+}
+test("phone room projects only public fields and confirmation GET never signs anyone in",async()=>{
+  const page=await fetch(`${origin}/room/${roomId}`);assert.equal(page.status,200);const html=await page.text();
+  assert.match(html,/Fixture church/);assert.match(html,/Send me a sign-in code/);assert.ok(!html.includes(tripwire));assert.ok(!html.includes("private_note"));
+  const jar=new Map<string,string>();const init=await roomPost("init",jar);assert.match(init.data.device_code,/^[A-HJ-NP-Z2-9]{8}$/);
+  const sent=await roomPost("send",jar,{email:" Ann@Example.org "});assert.equal(sent.data.status,"sent");
+  const email=emails.at(-1)!;assert.deepEqual(email.to,["ann@example.org"]);assert.match(email.text,/\n\n/);assert.doesNotMatch(email.text,/\\n/);
+  const link=email.text.match(/http[^\s]+\/confirm[^\s]+/)![0];const before=roomAuthCalls;
+  for(let n=0;n<2;n++){const confirm=await fetch(link);assert.equal(confirm.status,200);assert.equal(confirm.headers.get("referrer-policy"),"strict-origin");assert.match(confirm.headers.get("cache-control")!,/no-store/);assert.match(await confirm.text(),/Confirm sign-in/);}
+  assert.equal(roomAuthCalls,before);assert.equal(roomChallenges.get(new URL(link).searchParams.get("challenge")!)!.consumed,false);
+});
+test("six-digit code works on a second device and issues only its own room cookie",async()=>{
+  const email=emails.at(-1)!;const code=email.text.match(/code is (\d{6})/)![1];const jar=new Map<string,string>();await roomPost("init",jar);
+  const wrong=await roomPost("verify",jar,{email:"ann@example.org",code:code==="000000"?"999999":"000000"});assert.equal(wrong.data.status,"invalid_code");
+  const before=roomAuthCalls;const result=await roomPost("verify",jar,{email:"ann@example.org",code});assert.equal(result.data.status,"signed_in");assert.equal(roomAuthCalls,before+1);
+  assert.ok([...jar.keys()].some(k=>k.startsWith("cw-room-")));assert.ok(![...jar.keys()].some(k=>k.startsWith("cw-facilitator")));
+  assert.match(result.response.headers.get("set-cookie")!,/HttpOnly/);assert.ok(!JSON.stringify(result.data).includes("access_token"));
+  const status=await fetch(`${origin}/api/room/${roomId}/status`,{headers:{cookie:cookieHeader(jar)}});const own=await status.json();assert.equal(own.name,"Ann Lee");
+  const privatePage=await fetch(origin+"/setup",{headers:{cookie:cookieHeader(jar)},redirect:"manual"});assert.equal(privatePage.status,307);
+  const denied=await fetch(`${origin}/api/facilitator/${roomId}/door`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify({action:"manual",attendee:roomAttendee,code:"AAAAAAAA"})});assert.equal(denied.status,401);
+});
+test("tap confirmation consumes a fresh link only after a POST",async()=>{
+  const jar=new Map<string,string>();await roomPost("init",jar);await roomPost("send",jar,{email:"ann@example.org"});
+  const link=new URL(emails.at(-1)!.text.match(/http[^\s]+\/confirm[^\s]+/)![0]);const before=roomAuthCalls;
+  const confirm={challenge:link.searchParams.get("challenge"),token:link.searchParams.get("token")};
+  const result=await roomPost("confirm",jar,confirm);assert.equal(result.data.status,"signed_in");assert.equal(roomAuthCalls,before+1);
+  assert.equal((await roomPost("confirm",jar,confirm)).data.status,"invalid_code");
+});
+test("unlisted people can ask to join and approval lets their device in",async()=>{
+  const jar=new Map<string,string>();const init=await roomPost("init",jar);const before=emails.length;
+  assert.equal((await roomPost("send",jar,{email:"guest@example.org"})).data.status,"not_listed");assert.equal(emails.length,before);
+  assert.equal((await roomPost("join",jar,{email:"guest@example.org",name:"A guest"})).data.status,"pending");
+  const waiting=await (await fetch(`${origin}/api/room/${roomId}/status`,{headers:{cookie:cookieHeader(jar)}})).json();assert.equal(waiting.status,"pending");assert.equal(waiting.device_code,init.data.device_code);assert.ok(!("email" in waiting));
+  const {jar:facilitator}=await finishLogin("allowed");const join=[...roomJoins.values()].at(-1)!;
+  const approval=await fetch(`${origin}/api/facilitator/${roomId}/door`,{method:"POST",headers:{origin,cookie:cookieHeader(facilitator),"Content-Type":"application/json"},body:JSON.stringify({action:"approve",request:join.id})});assert.equal((await approval.json()).ok,true);
+  const approved=await (await fetch(`${origin}/api/room/${roomId}/status`,{headers:{cookie:cookieHeader(jar)}})).json();assert.equal(approved.can_claim,true);
+  assert.equal((await roomPost("claim",jar)).data.status,"signed_in");
+});
+test("manual sign-in by device code requires the facilitator session",async()=>{
+  const jar=new Map<string,string>();const init=await roomPost("init",jar);const {jar:facilitator}=await finishLogin("allowed");
+  const response=await fetch(`${origin}/api/facilitator/${roomId}/door`,{method:"POST",headers:{origin,cookie:cookieHeader(facilitator),"Content-Type":"application/json"},body:JSON.stringify({action:"manual",attendee:roomAttendee,code:init.data.device_code})});assert.equal((await response.json()).ok,true);
+  assert.equal((await roomPost("claim",jar)).data.status,"signed_in");
+});
+test("room mutations reject cross-site Origin and GET sign-in attempts",async()=>{
+  for(const action of ["init","send","verify","join","claim","confirm"]){
+    const get=await fetch(`${origin}/api/room/${roomId}/${action}`);assert.equal(get.status,405);
+    const cross=await fetch(`${origin}/api/room/${roomId}/${action}`,{method:"POST",headers:{origin:"https://evil.example","Content-Type":"application/json"},body:"{}"});assert.equal(cross.status,403);
+  }
 });
