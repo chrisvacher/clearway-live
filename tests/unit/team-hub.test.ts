@@ -3,6 +3,21 @@ import { rootCertificates } from "node:tls";
 import test from "node:test";
 import { readerConfig } from "../../lib/team-hub/config";
 import { teamHubDiagnostic } from "../../lib/team-hub/diagnostics";
+import { teamHubLogoAddress } from "../../lib/team-hub/logo";
+import { setupInput,consensus } from "../../lib/setup/policy";
+
+test("Team Hub logo filenames become usable HTTPS addresses before setup validation",()=>{
+ const client="ec25f663-314c-91ba-b768-dbf7c9cd952d";
+ const base="https://tilmrkgiwlpuflbtueen.supabase.co/storage/v1/object/public/logos/";
+ const address=base+client+"/logo-1757464695795.jpeg";
+ assert.equal(teamHubLogoAddress(client,"logo-1757464695795.jpeg"),address);
+ assert.equal(teamHubLogoAddress(client,client+"/logo-1757464695795.jpeg"),address);
+ assert.equal(teamHubLogoAddress(client,"https://example.org/logo.png"),"https://example.org/logo.png");
+ assert.equal(teamHubLogoAddress(client,"folder/logo #1.png"),base+"folder/logo%20%231.png");
+ for(const logo of [null,"","javascript:alert(1)","http://example.org/logo.png","https://user:password@example.org/logo.png","//example.org/logo.png","../logo.png","folder/../logo.png","folder\\logo.png"])assert.equal(teamHubLogoAddress(client,logo),null);
+ const input=setupInput({church:{name:"Linked church",timezone:"America/Toronto",logo_url:teamHubLogoAddress(client,"logo-1757464695795.jpeg")},engagement:{title:"Linked engagement",type:"wayfinding",status:"setup",start_date:"2026-11-01",end_date:"2027-09-01",base_year:"",lens_names:["Congregation","Community","Leadership","Operations","Learning"],how_the_room_decides:consensus}});
+ assert.equal(input.church.logo_url,address);assert.equal(input.engagement.base_year,2026);
+});
 
 test("Team Hub diagnostics identify connection failures without logging sensitive details",()=>{
   const secret="postgresql://reader:private-password@private-host/postgres";
