@@ -99,3 +99,7 @@ Vercel deployment. No Team Hub or CORE migration is authorized by this permissio
 
 References: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 and [database testing](https://supabase.com/docs/guides/local-development/testing/overview).
+
+The initial production migration is `20261030025957_foundation_schema.sql`.
+Its version matches the migration history recorded by Supabase. The identical
+SQL passed 315 pgTAP assertions in CI before application.
