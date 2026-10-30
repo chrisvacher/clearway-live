@@ -2,6 +2,7 @@ import "server-only";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { readerRole } from "./config";
 import { teamHubDiagnostic } from "./diagnostics";
+import { teamHubLogoAddress } from "./logo";
 
 export type HubClient = {id:string;name:string;logo:string|null;timezone:string|null;address_line1:string|null;address_line2:string|null;city:string|null;state_province:string|null;postal_code:string|null;country:string|null;website:string|null;status:string|null};
 export type HubEngagement = {id:string;client_id:string;title:string;engagement_type:string;status:string;start_date:string|null;end_date:string|null;assigned_consultant_id:string|null;coordinator_id:string|null};
@@ -14,6 +15,7 @@ const engagementColumns="e.id,e.client_id,e.title,e.engagement_type,e.status,e.s
 const uuid=(v:string)=>/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(v);
 function id(value:string){if(!uuid(value))throw new Error("Invalid linked record");return value;}
 const wildcard=(value:string)=>`%${value.trim().slice(0,200).replace(/[\\%_]/g,"\\$&")}%`;
+const clientLogo=(client:HubClient):HubClient=>({...client,logo:teamHubLogoAddress(client.id,client.logo)});
 
 // The caller supplies only validated ids/search values. No arbitrary SQL, columns
 // or schema names can be supplied by a browser or configuration setting.
@@ -34,10 +36,10 @@ export class TeamHubReader {
       throw error;
     }finally{client?.release();}
   }
-  searchClients(search="",after:string|null=null,limit=50){
-    return this.read<HubClient>(`select ${clientColumns} from live_read.clients where name ilike $1 and ($2::uuid is null or id>$2) order by id limit $3`,[wildcard(search),after?id(after):null,Math.min(100,Math.max(1,Math.trunc(limit)||50))]);
+  async searchClients(search="",after:string|null=null,limit=50){
+    return (await this.read<HubClient>(`select ${clientColumns} from live_read.clients where name ilike $1 and ($2::uuid is null or id>$2) order by id limit $3`,[wildcard(search),after?id(after):null,Math.min(100,Math.max(1,Math.trunc(limit)||50))])).map(clientLogo);
   }
-  async client(clientId:string){return (await this.read<HubClient>(`select ${clientColumns} from live_read.clients where id=$1`,[id(clientId)]))[0]||null;}
+  async client(clientId:string){const client=(await this.read<HubClient>(`select ${clientColumns} from live_read.clients where id=$1`,[id(clientId)]))[0];return client?clientLogo(client):null;}
   engagements(clientId:string){return this.read<HubEngagement>(`select ${engagementColumns} from live_read.engagements e join live_read.clients c on c.id=e.client_id where e.client_id=$1 order by e.id`,[id(clientId)]);}
   async engagement(engagementId:string,clientId:string){return (await this.read<HubEngagement>(`select ${engagementColumns} from live_read.engagements e join live_read.clients c on c.id=e.client_id where e.id=$1 and e.client_id=$2`,[id(engagementId),id(clientId)]))[0]||null;}
   async people(clientId:string){
