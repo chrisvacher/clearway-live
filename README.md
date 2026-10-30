@@ -30,8 +30,8 @@ npm run test:smoke
 `npm run check` runs all five in order. Unit tests use CORE's `tsx` and Node's test
 runner. Smoke tests start and stop a real production server and verify routes,
 headers, styles and fonts. They require `npm run build` first. The same commands
-run in GitHub Actions on every pull request and push to main. PR 2 adds database
-migrations and real RLS tests, with a local Supabase instance in CI.
+run in GitHub Actions on every pull request and push to main. Database migrations and real pgTAP RLS tests also run against isolated Postgres 17
+in CI. See [database access and local checks](docs/database.md).
 
 ## Structure
 

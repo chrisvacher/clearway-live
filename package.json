@@ -13,7 +13,12 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/unit/*.test.ts",
     "test:smoke": "node --import tsx --test tests/smoke/*.test.ts",
-    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:smoke"
+    "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:smoke",
+    "db:start": "supabase db start",
+    "db:reset": "supabase db reset --local --no-seed",
+    "db:lint": "supabase db lint --local --schema public,private --fail-on warning",
+    "test:db": "supabase test db --local",
+    "check:db": "npm run db:lint && npm run test:db"
   },
   "dependencies": {
     "next": "15.3.6",
