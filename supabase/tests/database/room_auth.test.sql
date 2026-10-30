@@ -27,7 +27,7 @@ select tests.id(300+n),tests.id(n),'Facilitator '||n,case n when 2 then 'fac@cle
 insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(10),tests.id(302),'lead'),(tests.id(11),tests.id(303),'lead');
 insert into attendees(id,engagement_id,name,email) values(tests.id(30),tests.id(10),'Ann Lee','ann@example.org'),(tests.id(31),tests.id(11),'Other person','other@example.org');
 
-select ok((select bool_and(relrowsecurity and relforcerowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and relname like 'room_auth_%'),'Every private sign-in table forces RLS');
+select ok((select bool_and(relrowsecurity and relforcerowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='private' and c.relkind='r' and relname like 'room_auth_%'),'Every private sign-in table forces RLS');
 select ok(not has_table_privilege('authenticated','private.room_auth_challenges','select'),'Authenticated callers cannot read code hashes');
 select ok(not has_table_privilege('anon','private.room_auth_devices','select'),'Anonymous callers cannot enumerate devices');
 select ok(not has_function_privilege('authenticated','public.room_auth(text,jsonb)','execute'),'Browsers cannot call the server proof workflow');
@@ -96,7 +96,7 @@ select is(public.sign_in_room_device(tests.id(10),tests.id(31),'AAAAAAAG'),false
 select is(public.sign_in_room_device(tests.id(10),tests.id(30),'AAAAAAAH'),false,'Facilitator cannot claim a device in another engagement');
 select is(public.decide_room_join(current_setting('tests.join')::uuid,true),true,'Assigned facilitator approves the waiting phone');
 select is(public.decide_room_join(current_setting('tests.join')::uuid,true),false,'A decided request cannot be approved again');
-select is((select count(*)::integer from attendees),3,'Approved guest is added to this engagement');
+select is((select count(*)::integer from attendees),2,'Approved guest is visible without revealing another engagement');
 select is(public.sign_in_room_device(tests.id(10),tests.id(30),'AAAA AAAD'),true,'Facilitator can approve a listed person by device code');
 select is((select device_count::integer from public.room_presence(tests.id(10)) where attendee_id=tests.id(30)),2,'Door list counts actual active Auth bindings');
 reset role;

@@ -70,7 +70,7 @@ button.button-link { border: 0; cursor: pointer; }
 .form-stack form { margin-bottom: var(--space-6); }
 .form-stack label { font-weight: var(--fw-semibold); }
 .device-code { font-size: var(--cwl-fs-phone-prompt); font-weight: var(--fw-bold); letter-spacing: 0.1em; }
-button:disabled { cursor: wait; background: var(--cwl-border-strong); color: var(--cwl-text); }
+button:disabled { cursor: not-allowed; background: var(--cwl-surface-card); color: var(--cwl-text-on-card); }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .button-link.secondary { background: var(--cwl-surface-card); color: var(--cwl-text-on-card); border: 1px solid var(--cwl-border-strong); }
 .plain-list { list-style: none; margin: 0; padding: 0; }
