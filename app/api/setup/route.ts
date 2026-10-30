@@ -9,9 +9,18 @@ import { sendEmailBatch } from "@/lib/server/email";
 import { invitationMessages,type InvitationSnapshot } from "@/lib/setup/invitation";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
 import { clearwayEmail } from "@/lib/auth/policy";
-import { practiceId } from "@/lib/room/practice";
+import { fictionalEmail, practiceId } from "@/lib/room/practice";
 import { uuid } from "@/lib/room/policy";
 const answer=(data:Record<string,unknown>,status=200)=>privateResponse(NextResponse.json(data,{status}));
+type InviteBatch={id:string;status:string;payload:InvitationSnapshot};
+async function deliverInvites(engagement:string,batch:InviteBatch,origin:string){
+  if(batch.status!=="sent"){
+    await sendEmailBatch(batch.id,invitationMessages(engagement,batch.payload,origin));
+    const {error}=await serviceClient().rpc("mark_invites_sent",{p_batch:batch.id});
+    if(error)throw new Error("save");
+  }
+  return batch.payload.people.length;
+}
 export async function POST(request:NextRequest){
   const config=authConfig();if(!config||!sameOrigin(request,config.origin))return answer({ok:false},403);
   const fac=await getFacilitator();if(!fac)return answer({ok:false},401);
@@ -41,16 +50,27 @@ export async function POST(request:NextRequest){
       if(action==="hub_people")return answer({ok:true,people:await hub.people(e.team_hub_client_id)});
       const [c,linked,elements,events]=await Promise.all([hub.client(e.team_hub_client_id),hub.engagement(e.team_hub_engagement_id,e.team_hub_client_id),hub.elements(e.team_hub_engagement_id,e.team_hub_client_id),hub.events(e.team_hub_engagement_id,e.team_hub_client_id)]);return answer({ok:true,client:c,engagement:linked,elements,events});
     }
-    if(action==="preview_import"||action==="import"){
+    if(action==="preview_import"||action==="import"||action==="import_and_invite"){
       const e=await scoped();let preview;
-      if(body.source==="csv"&&typeof body.text==="string")preview=parseCsv(body.text);
+      if(body.source==="person")preview=validatePeople([body.person]);
+      else if(body.source==="csv"&&typeof body.text==="string")preview=parseCsv(body.text);
       else if(body.source==="paste"&&typeof body.text==="string")preview=parsePasted(body.text);
       else if(body.source==="hub"){
         if(!e.team_hub_client_id||!e.team_hub_engagement_id||!Array.isArray(body.ids)||body.ids.length>500||!body.ids.every(uuid))return answer({ok:false},400);
         const hub=teamHubReader();if(!await hub.engagement(e.team_hub_engagement_id,e.team_hub_client_id))return answer({ok:false},404);
-        const chosen=new Set(body.ids);preview=validatePeople((await hub.people(e.team_hub_client_id)).filter(p=>chosen.has(p.id)).map(p=>({name:[p.first_name,p.last_name].filter(Boolean).join(" "),email:p.email,role_at_church:p.organization_role||p.role||"",team_hub_person_id:p.id})));if(preview.people.length!==chosen.size)return answer({ok:false,message:"Choose people with a name and email."},400);
+        const chosen=new Set(body.ids),people=(await hub.people(e.team_hub_client_id)).filter(p=>chosen.has(p.id));
+        if(people.length!==chosen.size)return answer({ok:false,message:"Choose people with a name and email."},400);
+        preview=validatePeople(people.map(p=>({name:[p.first_name,p.last_name].filter(Boolean).join(" "),email:p.email,role_at_church:p.organization_role||p.role||"",team_hub_person_id:p.id})));
       }else return answer({ok:false},400);
       if(action==="preview_import")return answer({ok:true,...preview});
+      if(action==="import_and_invite"){
+        if(!uuid(body.batch))return answer({ok:false},400);
+        if(!preview.people.length||preview.people.length>50)throw new Error("Choose up to 50 people to add and invite at once.");
+        if(preview.people.some(p=>fictionalEmail(p.email)))throw new Error("Use real email addresses to send invites.");
+        const batch=await rpc("import_and_queue_invites",{p_engagement:e.id,p_batch:body.batch,p_people:preview.people}) as InviteBatch;
+        const count=await deliverInvites(e.id,batch,config.origin);
+        return answer({ok:true,count,duplicates:preview.duplicates});
+      }
       const count=await rpc("import_attendees",{p_engagement:e.id,p_people:preview.people});return answer({ok:true,count,duplicates:preview.duplicates});
     }
     if(action==="edit_attendee"||action==="remove_attendee"){
@@ -64,19 +84,15 @@ export async function POST(request:NextRequest){
     }
     if(action==="invite"||action==="prepare_invites"){
       const e=await scoped();if(!uuid(body.batch)||!Array.isArray(body.attendees)||!body.attendees.every(uuid))return answer({ok:false},400);
-      const batch=await rpc("queue_engagement_invites",{p_engagement:e.id,p_batch:body.batch,p_attendees:body.attendees}) as {id:string;status:string;payload:InvitationSnapshot};
+      const batch=await rpc("queue_engagement_invites",{p_engagement:e.id,p_batch:body.batch,p_attendees:body.attendees}) as InviteBatch;
       if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,config.origin)[0]?.text});
-      if(batch.status!=="sent"){
-        await sendEmailBatch(batch.id,invitationMessages(e.id,batch.payload,config.origin));
-        const {error}=await serviceClient().rpc("mark_invites_sent",{p_batch:batch.id});
-        if(error)throw new Error("save");
-      }return answer({ok:true,count:batch.payload.people.length});
+      return answer({ok:true,count:await deliverInvites(e.id,batch,config.origin)});
     }
     return answer({ok:false},400);
   }catch(error){
     const message=error instanceof Error?error.message:"";
     if(message==="denied")return answer({ok:false},403);if(message==="missing")return answer({ok:false},404);
     const allowed=/^(Use |Choose |Check |Each |The (end|CSV)|Give |Add a CSV|Close every|Import up to|Paste up to|Name all|That local|Keep the)/.test(message);
-    return answer({ok:false,message:allowed?message:"We couldn’t finish that. Check the connection and try again. Your invite batch is kept for retrying."},allowed?400:503);
+    return answer({ok:false,message:allowed?message:"We couldn’t finish that. Check the connection and try again."},allowed?400:503);
   }
 }

@@ -23,6 +23,7 @@ const roomAttendee = "50000000-0000-4000-8000-000000000011";
 const emails: { to: string[]; text: string }[] = [];
 const inviteBatches = new Map<string,Record<string,unknown>>();
 const sentBatches:string[]=[];
+let failedInviteBatch:string|null=null,combinedImports=0;
 const roomDevices = new Map<string,{proof:string;code:string;approved:boolean;claim?:string}>();
 const roomChallenges = new Map<string,{email:string;code:string;link:string;consumed:boolean}>();
 const roomJoins = new Map<string,{id:string;device:string;email:string;name:string;status:string}>();
@@ -96,11 +97,21 @@ before(async () => {
     if (url.pathname === "/rest/v1/device_sessions") return send([]);
     if (url.pathname === "/rest/v1/join_requests") return send([...roomJoins.values()].filter(j=>url.searchParams.has("id") ? url.searchParams.get("id") === "eq."+j.id : j.status==="pending"));
     if(url.pathname==="/emails/batch") {
-      let raw="";for await(const chunk of req)raw+=chunk;const payload=JSON.parse(raw);assert.equal(payload.length,1);assert.equal(payload[0].to[0],"ann@example.org");assert.match(payload[0].text,/We decide together/);sentBatches.push(String(req.headers["idempotency-key"]));return send({data:[{id:randomUUID()}]});
+      let raw="";for await(const chunk of req)raw+=chunk;const payload=JSON.parse(raw);assert.equal(payload.length,1);assert.equal(payload[0].to[0],"ann@example.org");assert.match(payload[0].text,/We decide together/);
+      if(req.headers["idempotency-key"]===failedInviteBatch){failedInviteBatch=null;return send({message:"Temporary fixture failure"},500);}
+      sentBatches.push(String(req.headers["idempotency-key"]));return send({data:[{id:randomUUID()}]});
     }
     if(url.pathname==="/rest/v1/rpc/queue_engagement_invites") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);if(mode!=="allowed")return send({message:"denied"},403);
       if(!inviteBatches.has(body.p_batch))inviteBatches.set(body.p_batch,{id:body.p_batch,status:"pending",payload:{title:"Room fixture",church:"Fixture church",timezone:"America/Toronto",pre_call_at:null,retreat_start_date:null,retreat_end_date:null,consensus:"We decide together.",people:[{id:roomAttendee,name:"Ann Lee",email:"ann@example.org"}]}});return send(inviteBatches.get(body.p_batch));
+    }
+    if(url.pathname==="/rest/v1/rpc/import_and_queue_invites"){
+      let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);if(mode!=="allowed")return send({message:"denied"},403);
+      if(!inviteBatches.has(body.p_batch)){
+        combinedImports++;
+        inviteBatches.set(body.p_batch,{id:body.p_batch,status:"pending",payload:{title:"Room fixture",church:"Fixture church",timezone:"America/Toronto",pre_call_at:null,retreat_start_date:null,retreat_end_date:null,consensus:"We decide together.",people:body.p_people.map((p:{name:string;email:string})=>({id:roomAttendee,name:p.name,email:p.email}))}});
+      }
+      return send(inviteBatches.get(body.p_batch));
     }
     if(url.pathname==="/rest/v1/rpc/mark_invites_sent") {
       assert.equal(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);inviteBatches.get(body.p_batch)!.status="sent";return send(null);
@@ -504,6 +515,20 @@ test("reviewed invite snapshot sends once and retry uses its saved sent status",
  const prepared=await setupPost(jar,{...body,action:"prepare_invites"});assert.equal(prepared.data.payload.people[0].email,"ann@example.org");assert.match(prepared.data.preview,/We decide together/);assert.equal(sentBatches.length,0);
  const sent=await setupPost(jar,{...body,action:"invite"});assert.equal(sent.data.ok,true);assert.deepEqual(sentBatches,[batch]);
  const retry=await setupPost(jar,{...body,action:"invite"});assert.equal(retry.data.ok,true);assert.deepEqual(sentBatches,[batch]);
+});
+test("one add-and-invite request saves recipients and safely retries a failed delivery",async()=>{
+ const {jar}=await finishLogin("allowed"),batch=randomUUID(),before=combinedImports;
+ const body={action:"import_and_invite",id:roomId,batch,source:"person",person:{name:"Ann Lee",email:" ANN@EXAMPLE.ORG "}};
+ assert.equal((await setupPost(new Map(),body)).response.status,401);
+ failedInviteBatch=batch;
+ assert.equal((await setupPost(jar,body)).response.status,503);assert.equal(combinedImports,before+1);assert.equal(inviteBatches.get(batch)!.status,"pending");
+ const retry=await setupPost(jar,body);assert.equal(retry.data.ok,true);assert.equal(retry.data.count,1);assert.equal(combinedImports,before+1);
+ assert.equal((await setupPost(jar,body)).data.ok,true);assert.equal(sentBatches.filter(id=>id===batch).length,1);
+ const blocked=await setupPost(jar,{...body,batch:randomUUID(),person:{name:"Fictional",email:"person@riverside.example"}});assert.equal(blocked.response.status,400);assert.equal(combinedImports,before+1);
+ const sentBefore=sentBatches.length;
+ const saved=await setupPost(jar,{action:"import",id:roomId,source:"person",person:{name:"Ann Lee",email:"ann@example.org"}});assert.equal(saved.data.count,1);assert.equal(sentBatches.length,sentBefore);
+ const page=await fetch(origin+`/setup/${roomId}`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
+ assert.match(html,/Add and invite/);assert.match(html,/Add without inviting/);assert.match(html,/Send invite/);assert.doesNotMatch(html,/Review import|Save people/);
 });
 
 test("practice phones join with a name and no email, while control remains protected",async()=>{
