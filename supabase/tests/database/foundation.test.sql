@@ -42,7 +42,15 @@ insert into auth.sessions(id,user_id,not_after) values
   (tests.sid(55),tests.uid(5),null), (tests.sid(105),tests.uid(5),null),
   (tests.sid(205),tests.uid(5),null), (tests.sid(305),tests.uid(5),null),
   (tests.sid(405),tests.uid(5),null), (tests.sid(505),tests.uid(5),null),
-  (tests.sid(605),tests.uid(5),null);
+  (tests.sid(605),tests.uid(5),null), (tests.sid(16),tests.uid(2),null),
+  (tests.sid(17),tests.uid(2),null), (tests.sid(18),tests.uid(2),null);
+-- Actual login proof is server-owned Auth data, independent of account provider metadata.
+insert into auth.mfa_amr_claims(id,session_id,created_at,updated_at,authentication_method)
+select gen_random_uuid(),s.id,now(),now(),case
+  when s.id=tests.sid(17) then 'otp'
+  when s.user_id in (select tests.uid(n) from unnest(array[1,2,3,4,8,9,10,11,14]) n) then 'oauth'
+  else 'otp' end
+from auth.sessions s where s.id <> tests.sid(18);
 
 insert into churches(id,name,timezone,team_hub_client_id) values
   (tests.id(101),'Church A','America/Toronto',tests.id(1001)),
@@ -669,6 +677,30 @@ select is((select count(*) from engagement_facilitators),0::bigint,'Deleted chur
 select is((select count(*) from attendees),0::bigint,'Deleted church device: no attendees');
 select is((select count(*) from join_requests),0::bigint,'Deleted church device: no join_requests');
 select is((select count(*) from device_sessions),0::bigint,'Deleted church device: no device_sessions');
+reset role; select tests.login(2,'email',16); set local role authenticated;
+select results_eq('select id from churches order by id','values (tests.id(101))','Google OAuth with an original email provider: exact churches');
+select results_eq('select id from engagements order by id','values (tests.id(201)),(tests.id(203))','Google OAuth with an original email provider: exact engagements');
+select results_eq('select id from clearway_users order by id','values (tests.id(301)),(tests.id(302)),(tests.id(303)),(tests.id(304)),(tests.id(309)),(tests.id(310)),(tests.id(313)),(tests.id(314))','Google OAuth with an original email provider: exact clearway_users');
+select results_eq('select id from engagement_facilitators order by id','values (tests.id(701)),(tests.id(702)),(tests.id(704)),(tests.id(707))','Google OAuth with an original email provider: exact engagement_facilitators');
+select results_eq('select id from attendees order by id','values (tests.id(401)),(tests.id(402)),(tests.id(405)),(tests.id(407))','Google OAuth with an original email provider: exact attendees');
+select results_eq('select id from join_requests order by id','values (tests.id(601)),(tests.id(602)),(tests.id(604))','Google OAuth with an original email provider: exact join_requests');
+select results_eq('select id from device_sessions order by id','values (tests.id(501)),(tests.id(502)),(tests.id(504)),(tests.id(505)),(tests.id(507)),(tests.id(508)),(tests.id(512))','Google OAuth with an original email provider: exact device_sessions');
+reset role; select tests.login(2,'google',17); set local role authenticated;
+select results_eq('select id from churches order by id','select null::uuid where false','Email OTP with Google account metadata: exact churches');
+select results_eq('select id from engagements order by id','select null::uuid where false','Email OTP with Google account metadata: exact engagements');
+select results_eq('select id from clearway_users order by id','select null::uuid where false','Email OTP with Google account metadata: exact clearway_users');
+select results_eq('select id from engagement_facilitators order by id','select null::uuid where false','Email OTP with Google account metadata: exact engagement_facilitators');
+select results_eq('select id from attendees order by id','select null::uuid where false','Email OTP with Google account metadata: exact attendees');
+select results_eq('select id from join_requests order by id','select null::uuid where false','Email OTP with Google account metadata: exact join_requests');
+select results_eq('select id from device_sessions order by id','select null::uuid where false','Email OTP with Google account metadata: exact device_sessions');
+reset role; select tests.login(2,'google',18); set local role authenticated;
+select results_eq('select id from churches order by id','select null::uuid where false','Session without OAuth login proof: exact churches');
+select results_eq('select id from engagements order by id','select null::uuid where false','Session without OAuth login proof: exact engagements');
+select results_eq('select id from clearway_users order by id','select null::uuid where false','Session without OAuth login proof: exact clearway_users');
+select results_eq('select id from engagement_facilitators order by id','select null::uuid where false','Session without OAuth login proof: exact engagement_facilitators');
+select results_eq('select id from attendees order by id','select null::uuid where false','Session without OAuth login proof: exact attendees');
+select results_eq('select id from join_requests order by id','select null::uuid where false','Session without OAuth login proof: exact join_requests');
+select results_eq('select id from device_sessions order by id','select null::uuid where false','Session without OAuth login proof: exact device_sessions');
 reset role; set local role anon;
 
 select throws_ok('select * from public.churches', '42501', null, 'Anonymous cannot read churches');

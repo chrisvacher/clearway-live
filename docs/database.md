@@ -25,8 +25,10 @@ private. No public views or exposed definer RPCs are introduced here.
 
 Clearway access requires a listed, active account linked to a Team Hub team
 member, a confirmed matching @clearway.co Auth email, a verified Google identity,
-a Google-provider token, and an existing, unexpired Auth session belonging to
-that caller. Admin status and assignments come from database records, never
+OAuth proof on the current Auth session, and an existing, unexpired Auth
+session belonging to that caller. PR 3 enables Google as the only external
+provider for facilitator sign-in. The account's provider metadata alone is not
+login-method proof: a Google-linked account signing in by email remains denied. Admin status and assignments come from database records, never
 user-editable metadata. Deleting an assignment, removing the Google identity,
 disabling the account, banning the user or signing out immediately removes the
 relevant access, even before an old JWT expires.
