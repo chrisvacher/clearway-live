@@ -1,15 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
+import { authConfig, destination } from "@/lib/auth/policy";
 
 export const metadata: Metadata = { title: "Clearway sign-in" };
+export const dynamic = "force-dynamic";
 
-export default function SignInPage() {
+export default async function SignInPage({ searchParams }: { searchParams: Promise<{ error?: string; next?: string }> }) {
+  const params = await searchParams;
+  const configured = Boolean(authConfig());
   return <main id="main" className="page-width narrow">
     <div className="eyebrow-live"><LockKeyhole size={18} aria-hidden="true" /> For Clearway facilitators</div>
     <h1>Prepare the room.</h1>
-    <p>This is where your Clearway account will open engagement setup.</p>
-    <div className="notice"><p>Google sign-in is being prepared. Your facilitator will let you know when it’s ready.</p></div>
+    <p>Sign in with your @clearway.co Google account to open your engagements.</p>
+    {params.error && <div className="notice" role="status"><p>{params.error === "unavailable"
+      ? "Sign-in is unavailable right now. Please try again shortly."
+      : "We couldn’t sign you in. Use a Clearway Google account that has access to this app, or check with your Clearway admin."}</p></div>}
+    {configured ? <form action={"/auth/google?next=" + destination(params.next)} method="post">
+      <button className="button-link" type="submit">Continue with Google</button>
+    </form> : <div className="notice" role="status"><p>Sign-in is unavailable right now. Please try again shortly.</p></div>}
+    <p className="sign-in-note">Your account must be on the Clearway user list.</p>
     <Link href="/" className="text-link"><ArrowLeft size={18} aria-hidden="true" /> Return to the start</Link>
   </main>;
 }
