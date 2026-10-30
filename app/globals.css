@@ -61,3 +61,6 @@ a:hover { color: inherit; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+button.button-link { border: 0; cursor: pointer; }
+.sign-in-note { margin-top: var(--space-6); font-size: var(--fs-small); }

@@ -13,15 +13,16 @@ async function files(folder: string): Promise<string[]> {
     ? files(join(folder, entry.name)) : [join(folder, entry.name)]))).flat();
 }
 
-test("CORE's resolved package versions stay pinned, including its lint toolchain", async () => {
+test("CORE versions stay pinned except the approved Live security updates", async () => {
   const pkg = JSON.parse(await read("package.json"));
   const baseline = JSON.parse(await read("docs/core-reference.json"));
   const lock = JSON.parse(await read("package-lock.json"));
   assert.equal(pkg.engines.node, "22.x");
   for (const group of ["dependencies", "devDependencies"]) {
     for (const [name, version] of Object.entries(baseline[group])) {
-      assert.equal(pkg[group][name], version, name);
-      assert.equal(lock.packages[`node_modules/${name}`].version, version, name);
+      const expected = baseline.securityOverrides?.[group]?.[name] ?? version;
+      assert.equal(pkg[group][name], expected, name);
+      assert.equal(lock.packages[`node_modules/${name}`].version, expected, name);
     }
   }
 });

@@ -12,10 +12,10 @@ npm ci
 npm run dev
 ```
 
-PR 1 runs without any credentials or external database access. Open
-http://localhost:3000 for the app shell, `/sign-in` for the facilitator signed-out
-shell, and `/room` for the phone shell. Sign-in and data entry are intentionally
-unavailable until their implementation PRs.
+The public shell builds without credentials. Open http://localhost:3000,
+`/sign-in` for facilitator Google sign-in, or `/room` for the phone shell.
+Facilitator access requires an isolated Supabase project with Google configured
+and an approved Clearway user. See [facilitator authentication](docs/facilitator-auth.md).
 
 ## Checks
 
@@ -36,7 +36,7 @@ in CI. See [database access and local checks](docs/database.md).
 ## Structure
 
 - `app/(public)`: public entry page.
-- `app/(facilitator)`: signed-out control shell; protected setup comes in PR 3.
+- `app/(facilitator)`: sign-in and protected setup/control pages.
 - `app/(room)`: phone pages, with no facilitator providers or integration code.
 - `app/(display)` and `app/(remote)`: reserved route boundaries for milestone 2.
 - `components/ui`, `components/layout`: shared server components.
