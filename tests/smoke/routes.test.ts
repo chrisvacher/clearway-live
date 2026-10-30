@@ -119,6 +119,7 @@ before(async () => {
     if(url.pathname==="/rest/v1/rpc/import_attendees") {let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);assert.equal(mode,"allowed");return send(body.p_people.length);}
     if (url.pathname === "/emails") {
       let raw="";for await(const chunk of req)raw+=chunk;
+      if(process.env.CLEARWAY_SMOKE_HOLD === "1")await delay(2000);
       assert.equal(req.headers.authorization,"Bearer "+tripwire);emails.push(JSON.parse(raw));if(process.env.CLEARWAY_SMOKE_HOLD === "1")console.log("Fixture email: "+JSON.parse(raw).text);return send({id:randomUUID()});
     }
     if (url.pathname === "/auth/v1/admin/generate_link") {
