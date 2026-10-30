@@ -74,3 +74,8 @@ This mode is test-only and no fixture route is shipped in the app.
 
 Sources: [Supabase generateLink](https://supabase.com/docs/reference/javascript/auth-admin-generatelink),
 [Resend send email](https://resend.com/docs/api-reference/emails/send-email).
+
+Production migration `20261030041545_room_sign_in.sql` matches Supabase history.
+The identical SQL passed all 444 database assertions, 38 application checks and
+the real native Auth two-device test before being applied to Live. No Team Hub
+or CORE migration was run.
