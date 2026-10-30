@@ -28,7 +28,7 @@ Before starting:
 
 1. Open the invite on phone A and tap **Send me a sign-in code**. Enter the six-digit code on phone B. B joins as the right person.
 2. Request a fresh code. Open the confirmation link without tapping. It stays on **Confirm sign-in** and does not add a signed-in device. Tap to join phone A.
-3. Keep both devices open. Both remain signed in. Refresh each and check they keep their places. Presence and signed-in counts come from device sessions.
+3. Keep both devices open. Both remain signed in. Refresh each and check the room appears directly, without the email, code or name sign-in form appearing first. Presence and signed-in counts come from device sessions.
 4. Try a consumed code, a code after ten minutes, and five wrong attempts followed by a correct attempt. None can sign in. Repeated sends eventually ask you to wait, and manual sign-in remains available.
 5. On another phone/browser, use an email outside the list, ask to join and approve it in the facilitator’s door list. The waiting phone joins automatically.
 6. On another phone/browser, show its device code. Enter it beside the intended person on the door list. That phone joins without email. Try this from a participant session and confirm setup/control remain inaccessible.

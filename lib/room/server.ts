@@ -1,5 +1,5 @@
 import "server-only";
-import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { authConfig, sameOrigin } from "@/lib/auth/policy";
@@ -8,6 +8,8 @@ import { serviceClient } from "@/lib/server/supabase";
 import { sendEmail } from "@/lib/server/email";
 import { limitedJson } from "@/lib/server/request";
 import { digest, hash, newCode, newDevice, newLink, normalizedEmail, parseDevice, sessionId, uuid } from "./policy";
+import { hasRoomCookie, participantClient } from "./client";
+import type { RoomAccessStatus } from "./access";
 
 export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean };
 export async function roomInfo(id: string): Promise<RoomInfo | null> {
@@ -18,18 +20,11 @@ export async function roomInfo(id: string): Promise<RoomInfo | null> {
   return data as RoomInfo;
 }
 const deviceCookie = (engagement: string) => `cw-device-${engagement}`;
-const roomCookie = (engagement: string) => `cw-room-${engagement}`;
 export function roomClient(request: NextRequest, response: NextResponse, engagement: string) {
-  const config = authConfig();
-  if (!config) throw new Error("Sign-in unavailable");
-  return createServerClient(config.url, config.key, {
-    cookieOptions: { name: roomCookie(engagement), httpOnly: true, sameSite: "lax", path: "/", secure: config.secure },
-    cookies: {
+  return participantClient({
       getAll: () => request.cookies.getAll(),
       setAll: values => { for (const { name, value, options } of values) { request.cookies.set(name, value); response.cookies.set(name, value, options); } },
-    },
-    global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
-  });
+  },engagement);
 }
 export async function roomRpc(action: string, payload: Record<string, unknown>) {
   const { data, error } = await serviceClient().rpc("room_auth", { p_action: action, p: payload });
@@ -67,11 +62,28 @@ async function completeClaim(request: NextRequest, response: NextResponse, paylo
     return { status: "unavailable" };
   }
 }
-async function signedIn(request: NextRequest, response: NextResponse, engagement: string) {
-  const client = roomClient(request, response, engagement);
+async function currentAttendee(client:ReturnType<typeof participantClient>,engagement:string){
   const { data: { user }, error } = await client.auth.getUser();
-  if (error || !user) return null;
-  const { data: attendee } = await client.from("attendees").select("id,name,room_role").eq("engagement_id", engagement).eq("auth_user_id", user.id).eq("deleted", false).maybeSingle();
+  if(error&&(!error.status||error.status>=500))throw new Error("Room connection unavailable");
+  if(error||!user)return null;
+  const { data: attendee,error:denied } = await client.from("attendees").select("id,name,room_role").eq("engagement_id", engagement).eq("auth_user_id", user.id).eq("deleted", false).maybeSingle();
+  if(denied)throw new Error("Room connection unavailable");
+  return attendee;
+}
+export async function initialRoomAccess(engagement:string):Promise<RoomAccessStatus>{
+  const jar=await cookies();
+  if(!hasRoomCookie(jar,engagement))return {status:"ready"};
+  try{
+    // Middleware persists refreshed cookies. This read uses native Auth and RLS,
+    // and never creates a device, exchanges a proof or records presence on GET.
+    const attendee=await currentAttendee(participantClient({getAll:()=>jar.getAll(),setAll:()=>{}},engagement),engagement);
+    return attendee?{status:"signed_in",name:attendee.name,role:attendee.room_role}:{status:"ready"};
+  }catch{return {status:"loading"};}
+}
+async function signedIn(request: NextRequest, response: NextResponse, engagement: string) {
+  if(!hasRoomCookie(request.cookies,engagement))return null;
+  const client = roomClient(request, response, engagement);
+  const attendee=await currentAttendee(client,engagement);
   if (!attendee) return null;
   const { data: { session } } = await client.auth.getSession();
   const id = session ? sessionId(session.access_token) : null;
@@ -93,7 +105,7 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
       for (const cookie of response.cookies.getAll()) out.cookies.set(cookie);
       return out;
     };
-    if (action === "status") {
+    if (action === "status" || action === "init") {
       const attendee = await signedIn(request, response, engagement);
       if (attendee) return result({ status: "signed_in", ...attendee });
     }

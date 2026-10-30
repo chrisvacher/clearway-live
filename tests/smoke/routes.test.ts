@@ -69,11 +69,11 @@ before(async () => {
       for await (const chunk of req) raw += chunk;
       const body = JSON.parse(raw);
       if (url.searchParams.get("grant_type") === "refresh_token") {
-        if (body.refresh_token !== "refresh-allowed") return send({ message: "Invalid refresh token" }, 400);
+        if (!["refresh-allowed","refresh-room"].includes(body.refresh_token)) return send({ message: "Invalid refresh token" }, 400);
       } else if (!body.code_verifier || createHash("sha256").update(body.code_verifier).digest("base64url") !== expectedChallenge || body.auth_code === "invalid") {
         return send({ message: "Invalid PKCE code" }, 400);
       }
-      const loginMode = body.auth_code || "allowed";
+      const loginMode = body.auth_code || (body.refresh_token==="refresh-room"?"room":"allowed");
       return send({ access_token: token(loginMode), refresh_token: "refresh-" + loginMode,
         expires_in: 3600, token_type: "bearer", user: user(loginMode),
         provider_token: "unused-google-provider-secret" + "p".repeat(5000), provider_refresh_token: "unused-google-refresh-secret" });
@@ -432,6 +432,30 @@ test("six-digit code works on a second device and issues only its own room cooki
   const status=await fetch(`${origin}/api/room/${roomId}/status`,{headers:{cookie:cookieHeader(jar)}});const own=await status.json();assert.equal(own.name,"Ann Lee");
   const privatePage=await fetch(origin+"/setup",{headers:{cookie:cookieHeader(jar)},redirect:"manual"});assert.equal(privatePage.status,307);
   const denied=await fetch(`${origin}/api/facilitator/${roomId}/door`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify({action:"manual",attendee:roomAttendee,code:"AAAAAAAA"})});assert.equal(denied.status,401);
+  const authBefore=roomAuthCalls,readsBefore=calls.length;
+  const restored=await fetch(`${origin}/room/${roomId}`,{headers:{cookie:cookieHeader(jar)}});
+  const html=await restored.text();assert.match(html,/You’re in, Ann Lee\./);
+  assert.doesNotMatch(html,/<input[^>]+id="(?:room-email|room-code|practice-name)"/);
+  assert.match(restored.headers.get("cache-control")!,/private/);assert.match(restored.headers.get("cache-control")!,/no-store/);
+  assert.equal(roomAuthCalls,authBefore);assert.ok(!calls.slice(readsBefore).includes("/rest/v1/device_sessions"));
+  const initialized=await roomPost("init",jar);assert.equal(initialized.data.status,"signed_in");assert.equal(initialized.data.name,"Ann Lee");
+});
+test("room refresh renews its own cookie and server-renders the room before JavaScript",async()=>{
+  const name=`cw-room-${roomId}`,jar=new Map<string,string>();
+  jar.set(name,"base64-"+Buffer.from(JSON.stringify({access_token:token("room"),refresh_token:"refresh-room",expires_at:Math.floor(Date.now()/1000)-100,user:user("room")})).toString("base64url"));
+  const refreshed=await fetch(`${origin}/room/${roomId}`,{headers:{cookie:cookieHeader(jar)},redirect:"manual"});
+  assert.equal(refreshed.status,200);assert.match(refreshed.headers.get("set-cookie")!,new RegExp(name+"="));
+  assert.match(refreshed.headers.get("set-cookie")!,/HttpOnly/);assert.doesNotMatch(refreshed.headers.get("set-cookie")!,/cw-facilitator/);
+  const html=await refreshed.text();assert.match(html,/You’re in, Ann Lee\./);assert.doesNotMatch(html,/<input[^>]+id="room-email"/);
+  applyCookies(jar,refreshed);assert.equal((await roomPost("init",jar)).data.status,"signed_in");
+  for(const [cookieName,mode] of [[name,"revoked"],["cw-facilitator","allowed"],[`cw-room-${practiceRoom}`,"room"]]){
+    const session={access_token:token(mode),refresh_token:`refresh-${mode}`,expires_at:Math.floor(Date.now()/1000)+3600,user:user(mode)};
+    const denied=await fetch(`${origin}/room/${roomId}`,{headers:{cookie:cookieName+"=base64-"+Buffer.from(JSON.stringify(session)).toString("base64url")}});
+    const deniedHtml=await denied.text();assert.doesNotMatch(deniedHtml,/You’re in, Ann Lee\./);assert.match(deniedHtml,/id="room-email"/);
+  }
+  const before=calls.length;
+  const confirm=await fetch(`${origin}/room/${roomId}/confirm?challenge=${randomUUID()}&token=${"a".repeat(64)}`,{headers:{cookie:cookieHeader(jar)}});
+  assert.match(await confirm.text(),/Confirm sign-in/);assert.ok(!calls.slice(before).some(path=>path.startsWith("/auth/")||path==="/rest/v1/rpc/room_auth"));
 });
 test("tap confirmation consumes a fresh link only after a POST",async()=>{
   const jar=new Map<string,string>();await roomPost("init",jar);await roomPost("send",jar,{email:"ann@example.org"});
@@ -488,6 +512,9 @@ test("practice phones join with a name and no email, while control remains prote
  async function post(action:string,body:Record<string,unknown>={}){const r=await fetch(`${origin}/api/room/${practiceRoom}/${action}`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify(body)});applyCookies(jar,r);return r.json();}
  assert.equal((await post("init")).status,"ready");assert.equal((await post("practice",{name:"Practice Alex"})).status,"signed_in");assert.equal(emails.length,before);
  const status=await (await fetch(`${origin}/api/room/${practiceRoom}/status`,{headers:{cookie:cookieHeader(jar)}})).json();assert.equal(status.name,"Practice Alex");
+ const restored=await fetch(origin+"/room/"+practiceRoom,{headers:{cookie:cookieHeader(jar)}});const restoredHtml=await restored.text();
+ assert.match(restoredHtml,/You’re in, Practice Alex\./);assert.doesNotMatch(restoredHtml,/<input[^>]+id="practice-name"/);
+ assert.equal((await post("init")).status,"signed_in");
  assert.equal((await fetch(origin+"/control",{headers:{cookie:cookieHeader(jar)},redirect:"manual"})).status,307);
 });
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
-type Status = { status: string; device_code?: string; can_claim?: boolean; name?: string; role?: string };
+import type { RoomAccessStatus as Status } from "@/lib/room/access";
 const messages: Record<string, string> = {
   sent: "Check your email for a 6-digit code or a sign-in link.",
   invalid_code: "That code couldn’t be used. Check it or ask for a new one.",
@@ -17,13 +17,13 @@ const messages: Record<string, string> = {
   invalid_request: "Check your details and try again.",
 };
 
-export function RoomAccess({ engagement, email: initialEmail = "", confirm, practice = false }: { engagement: string; practice?: boolean; email?: string; confirm?: { challenge: string; token: string } }) {
-  const [state, setState] = useState<Status>({ status: "loading" });
+export function RoomAccess({ engagement, email: initialEmail = "", confirm, practice = false, initial }: { engagement: string; practice?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string } }) {
+  const [state, setState] = useState<Status>(initial||{ status: "loading" });
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [deviceCode, setDeviceCode] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(!confirm);
   const claiming = useRef(false);
   const post = useCallback(async (action: string, data: Record<string, unknown> = {}): Promise<Status> => {
     const response = await fetch(`/api/room/${engagement}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data), cache: "no-store" });
@@ -31,11 +31,15 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
   }, [engagement]);
   useEffect(() => {
     let active = true;
+    let initialized=false;
     // Confirm links do not initialize or exchange anything on GET, even with JS.
     if (confirm) { setState({ status: "ready" }); return; }
-    post("init").then(data => { if (active) { setState(data); setDeviceCode(data.device_code || ""); } }).catch(() => { if (active) setState({ status: "unavailable" }); });
+    post("init").then(data => { if (active) {
+      setState(previous=>data.status==="unavailable"&&previous.status==="signed_in"?previous:data);
+      setDeviceCode(data.device_code || "");
+    } }).catch(() => { if (active) setState(previous=>previous.status==="signed_in"?previous:{ status: "unavailable" }); }).finally(()=>{initialized=true;if(active)setBusy(false);});
     const interval = setInterval(async () => {
-      if (claiming.current) return;
+      if (!initialized || claiming.current) return;
       try {
         const data: Status = await (await fetch(`/api/room/${engagement}/status`, { cache: "no-store" })).json();
         if (!active) return;
@@ -69,6 +73,7 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
     <form onSubmit={event => submit(event, "confirm")}><button className="button-link" disabled={busy} type="submit">Confirm sign-in</button></form>
     {messages[state.status] && <p role="status">{messages[state.status]}</p>}
   </section>;
+  if(state.status==="loading")return <p role="status" aria-live="polite">Reconnecting</p>;
   if(practice)return <section className="form-stack"><p>Join with your name to try the practice room. You won’t need an email or a sign-in code.</p>
     <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="practice-name">Your name</label><input id="practice-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the practice room</button></form>
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}

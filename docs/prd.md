@@ -280,6 +280,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 - The code works on any device, for when the link opens in the wrong browser or the email is slow (PRE-01 to PRE-04).
 - People sign in at the pre-call, so retreat morning needs only a scan of the QR code (D1-01, D1-02).
 - A signed-in device stays signed in until the engagement closes. Signing in on a new phone is allowed and keeps the old one signed in.
+- Refreshing a signed-in phone opens the room directly, with no sign-in form flashing while the session is restored. The server validates the session before rendering the page. (Oct 30)
 - The attendee list is built from Team Hub people, a CSV (name, email, role at the church, plus any other columns as fields), or a pasted list ("Ann Lee <ann@example.org>" per line), and is de-duplicated by email.
 - An email not on the list can ask to join. The request appears on the door list (SET-03, FAC-01) and a facilitator approves it with one tap. That phone is let in without another step (PRE-05, FAIL-07).
 - Telling someone their email isn't on the list reveals who is attending, so the message is gentle and the facilitator can switch it to a neutral "Check with your facilitator".
