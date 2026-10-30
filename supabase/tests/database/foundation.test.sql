@@ -754,6 +754,14 @@ select throws_ok($$insert into join_requests(engagement_id,name,email,device_id,
 select throws_ok($$insert into engagement_facilitators(engagement_id,clearway_user_id,role) values (tests.id(201),tests.id(310),'lead')$$, '23505', null, 'An engagement has only one active lead');
 select throws_ok($$insert into attendees(engagement_id,auth_user_id,name,email) values (tests.id(201),tests.uid(5),'Duplicate identity','different@example.org')$$, '23505', null, 'One auth identity cannot become two active attendees in one room');
 
+-- Harmless roster email formatting keeps the same verified identity and devices.
+reset role; select tests.login(3,'google'); set local role authenticated;
+select lives_ok($$update attendees set email='  PARTICIPANT@EXAMPLE.ORG  ' where id=tests.id(401)$$,'Formatting-only email correction succeeds');
+select ok((select verified_at is not null from attendees where id=tests.id(401)),'Formatting-only email correction keeps verification');
+reset role; select tests.login(5); set local role authenticated;
+select results_eq('select id from attendees','values (tests.id(401))','Formatting-only correction keeps the phone signed in');
+reset role;
+
 -- Stale JWTs must lose access when the database identity/session is revoked.
 update auth.sessions set not_after=now()-interval '1 second' where id=tests.sid(5);
 select tests.login(5); set local role authenticated;

@@ -36,7 +36,8 @@ binding to that caller's attendee record. A second device does not replace the
 first. No fixed app timeout is imposed before engagement closure. Supabase Auth
 refresh and expiry remain enforced. Closing or soft-deleting an engagement
 revokes its devices; reopening does not resurrect them. Changing a roster email
-clears verification and revokes old devices. Auth sign-out preserves audit rows.
+clears verification and revokes old devices. A case or whitespace correction
+keeps the same verified identity and sign-in. Auth sign-out preserves audit rows.
 
 ## Writes and integrity
 
