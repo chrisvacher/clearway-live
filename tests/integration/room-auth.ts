@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { digest, hash, newDevice, sessionId } from "../../lib/room/policy";
 
+async function main() {
 // The only accepted endpoint is the disposable local stack started by CI.
 const status = execFileSync("supabase", ["status", "-o", "env"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
 const env=Object.fromEntries([...status.matchAll(/^([A-Z_]+)="(.*)"$/gm)].map(m=>[m[1],m[2]]));
@@ -50,3 +51,6 @@ await result(admin.from("engagements").update({status:"closed"}).eq("id",room));
 assert.deepEqual(await result(phone.from("attendees").select("id").eq("engagement_id",room)),[]);
 assert.deepEqual(await result(secondPhone.from("attendees").select("id").eq("engagement_id",room)),[]);
 console.log("Native Supabase Auth: new attendee, OTP proof, two devices, private-data isolation, replay and closure passed.");
+
+}
+void main().catch(error => { console.error(error); process.exitCode = 1; });
