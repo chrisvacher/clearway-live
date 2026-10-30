@@ -24,7 +24,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: npm
       - run: npm ci
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
@@ -46,7 +45,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22.x
-          cache: npm
       - run: npm ci
       - name: Start isolated PostgreSQL 17 and Auth
         run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
