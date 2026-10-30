@@ -1,6 +1,10 @@
+import { X509Certificate } from "node:crypto";
+
 export const readerRole = "clearway_live_reader";
 const hubProject = "tilmrkgiwlpuflbtueen";
-export function readerConfig(connectionString: string) {
+export function readerConfig(connectionString: string, certificate?: string) {
+  const ca=certificate?.trim();
+  if(ca){if(ca.length>65536 || ca.includes("PRIVATE KEY"))throw new Error("Use the database root certificate");new X509Certificate(ca);}
   const url = new URL(connectionString);
   if (!["postgres:","postgresql:"].includes(url.protocol)) throw new Error("Use the Team Hub reader connection");
   const user=decodeURIComponent(url.username);
@@ -10,7 +14,7 @@ export function readerConfig(connectionString: string) {
   if ((!local && !direct && !pooled) || (local && user!==readerRole)) throw new Error("Use the restricted Team Hub reader role");
   // Pass explicit fields so a DSN's sslmode query cannot disable certificate checks.
   return {host:url.hostname,port:Number(url.port||5432),user,password:decodeURIComponent(url.password),
-    database:decodeURIComponent(url.pathname.slice(1)||"postgres"),ssl:local?false:{rejectUnauthorized:true},
+    database:decodeURIComponent(url.pathname.slice(1)||"postgres"),ssl:local?false:{rejectUnauthorized:true,...(ca?{ca}:{})},
     max:2,idleTimeoutMillis:10000,connectionTimeoutMillis:5000,query_timeout:6000,
     application_name:"clearway-live-reader"};
 }
