@@ -110,6 +110,7 @@ for (const [route, heading, surface] of [
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.match(response.headers.get("x-robots-tag") ?? "", /noindex/);
+    if (route === "/sign-in") assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin", "Native POST forms must preserve their same-origin Origin header");
     const html = await response.text();
     assert.ok(html.includes(heading));
     assert.ok(html.includes(`data-surface="${surface}"`));

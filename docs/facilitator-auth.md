@@ -64,8 +64,10 @@ sessions. They are host-only, HttpOnly, SameSite=Lax, and Secure on HTTPS. Token
 never enter browser props or JavaScript. Google provider credentials from the
 OAuth exchange are discarded before issuing the final application session cookie. Supabase handles PKCE and refresh token
 rotation. Middleware preserves refreshed cookies on the response and request.
-Auth and private responses are dynamic, private and no-store. Referrers are
-suppressed so callback codes are not forwarded.
+Auth and private responses are dynamic, private and no-store. Auth endpoints use
+no-referrer so callback codes are not forwarded. Sign-in and protected pages use
+strict-origin-when-cross-origin, preserving the Origin header on native POST forms
+for the same-origin CSRF check.
 
 Google initiation and sign-out are POST-only and require an exact Origin match.
 The callback exchanges its one-time code, checks the verified user and claims
