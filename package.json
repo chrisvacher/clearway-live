@@ -19,7 +19,8 @@
     "db:lint": "supabase db lint --local --schema public,private --fail-on warning",
     "test:db": "supabase test db --local",
     "check:db": "npm run db:lint && npm run test:db",
-    "test:auth": "node --import tsx tests/integration/room-auth.ts"
+    "test:auth": "node --import tsx tests/integration/room-auth.ts",
+    "test:team-hub": "node --conditions=react-server --import tsx tests/integration/team-hub-reader.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.6.1",
@@ -28,6 +29,7 @@
     "clsx": "2.1.1",
     "lucide-react": "0.511.0",
     "next": "15.5.28",
+    "pg": "8.23.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "server-only": "0.0.1",
@@ -36,6 +38,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "3.3.1",
     "@types/node": "20.19.9",
+    "@types/pg": "8.23.1",
     "@types/react": "19.1.8",
     "@types/react-dom": "19.1.6",
     "autoprefixer": "10.4.21",
