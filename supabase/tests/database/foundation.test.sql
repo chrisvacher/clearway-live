@@ -738,6 +738,10 @@ select is((select core_organization_id from churches where id=tests.id(110)),nul
 select is((select cardinality(lens_names) from engagements where id=tests.id(210)),5,'Engagement starts with five lens names');
 select throws_ok($$insert into churches(name,timezone) values ('Invalid timezone','No/Such_Zone')$$, '23514', null, 'Invalid time zone is rejected');
 select throws_ok($$insert into clearway_users(name,email,team_hub_team_member_id) values ('Outside','outside@example.org',tests.id(9999))$$, '23514', null, 'Allowlist cannot contain a non-Clearway email');
+with added as (insert into engagements(church_id,title,start_date,retreat_start_date) values (tests.id(110),'Future retreat','2026-11-01','2032-02-01') returning base_year)
+select is((select base_year::integer from added),2032,'Horizon base year defaults to the retreat year, not engagement creation or start');
+with added as (insert into engagements(church_id,title,retreat_start_date,base_year) values (tests.id(110),'Explicit horizon year','2032-02-01',2029) returning base_year)
+select is((select base_year::integer from added),2029,'An explicit horizon year overrides the retreat-year default');
 select throws_ok($$update engagements set base_year=9999 where id=tests.id(201)$$, '23514', null, 'Base year leaves room for the 10-year Future');
 select throws_ok($$update engagements set lens_names=array['Only one'] where id=tests.id(201)$$, '23514', null, 'Engagement must have five lens names');
 select throws_ok($$update engagements set start_date='2026-11-05',end_date='2026-11-04' where id=tests.id(201)$$, '23514', null, 'End date cannot precede start date');

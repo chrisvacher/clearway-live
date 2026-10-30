@@ -55,7 +55,9 @@ unique indexes permit archived records while deduplicating active emails and
 assignments. Emails normalize to lowercase with whitespace trimmed. Device and
 join bindings must refer to an attendee in the same engagement. Each engagement
 stores both Team Hub ids, with its client id checked against its church. CORE
-organization ids remain empty until linked.
+organization ids remain empty until linked. Pre-call and retreat dates are stored
+separately from engagement dates. The horizon base year defaults to the retreat
+year when provided, and an explicit base year is preserved.
 
 Authorization helpers live in an unexposed `private` schema. The narrowly scoped
 security-definer lookups avoid recursive RLS, use an empty search path, bind all
