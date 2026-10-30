@@ -20,7 +20,10 @@ await result(admin.from("attendees").insert({id:attendee,engagement_id:room,name
 const publicInfo=await result(admin.rpc("room_public_info",{p_engagement:room}));assert.equal(publicInfo.church,"Disposable Auth test");assert.ok(!JSON.stringify(publicInfo).includes("must-not-be-in-public-room"));
 const device=newDevice();const p={engagement:room,device:device.id,proof:hash(device.secret),device_code:device.code,
   rate_ip:digest("fixture","ip",device.id),rate_device:digest("fixture","device",device.id),rate_email:digest("fixture","email",email)};
-async function rpc(action:string,payload:Record<string,unknown>=p){return await result(admin.rpc("room_auth",{p_action:action,p:payload}));}
+async function rpc(action:string,payload:Record<string,unknown>=p){
+  const rateKeys={rate_ip:digest("fixture","rate",action,"ip"),rate_device:digest("fixture","rate",action,String(payload.device)),rate_email:digest("fixture","rate",action,String(payload.email||email))};
+  return await result(admin.rpc("room_auth",{p_action:action,p:{...payload,...rateKeys}}));
+}
 assert.equal((await rpc("init")).status,"ready");
 const challenge=randomUUID();const codeHash=digest(env.SERVICE_ROLE_KEY,"code",email,"123456");
 assert.equal((await rpc("send",{...p,email,challenge,code_hash:codeHash,link_hash:hash("native-link")})).status,"sent");
@@ -39,8 +42,8 @@ assert.equal((await rpc("verify",{...p,email,code_hash:codeHash})).status,"inval
 // Independent device, same Auth identity: sign-in does not revoke the first session.
 const second=newDevice();const p2={...p,device:second.id,proof:hash(second.secret),device_code:second.code,rate_device:digest("fixture","device",second.id)};
 assert.equal((await rpc("init",p2)).status,"ready");
-const challenge2=randomUUID();await rpc("send",{...p2,email,challenge:challenge2,code_hash:codeHash,link_hash:hash("native-link-2")});
-await rpc("verify",{...p2,email,code_hash:codeHash});const claim2=await rpc("prepare_claim",p2);
+const challenge2=randomUUID();assert.equal((await rpc("send",{...p2,email,challenge:challenge2,code_hash:codeHash,link_hash:hash("native-link-2")})).status,"sent");
+assert.equal((await rpc("verify",{...p2,email,code_hash:codeHash})).status,"approved");const claim2=await rpc("prepare_claim",p2);assert.equal(claim2.status,"claim");
 const generated2=await admin.auth.admin.generateLink({type:"magiclink",email});assert.equal(generated2.error,null);
 const secondPhone=createClient(origin,env.ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
 const verified2=await secondPhone.auth.verifyOtp({token_hash:generated2.data.properties!.hashed_token,type:"magiclink"});assert.equal(verified2.error,null);
