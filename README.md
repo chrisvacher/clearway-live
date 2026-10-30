@@ -13,7 +13,8 @@ npm run dev
 ```
 
 The public shell builds without credentials. Open http://localhost:3000,
-`/sign-in` for facilitator Google sign-in, or `/room` for the phone shell.
+`/sign-in` for facilitator Google sign-in, `/room` for room-link help,
+or `/practice` to join the seeded practice room with a name.
 Facilitator access requires an isolated Supabase project with Google configured
 and an approved Clearway user. See [facilitator authentication](docs/facilitator-auth.md).
 
@@ -42,7 +43,7 @@ in CI. See [database access and local checks](docs/database.md).
 - `components/ui`, `components/layout`: shared server components.
 - `lib`, `hooks`, `utils`, `types`: CORE's root-level conventions.
 - `design`: authoritative base and Clearway Live tokens and reference material.
-- `supabase/team-hub`: review-only SQL draft. Never run against Team Hub.
+- `supabase/team-hub`: reviewed reader installer. Chris reviews and runs it in Team Hub himself.
 
 ## Styles
 
@@ -55,3 +56,17 @@ OS reduced-motion and text-size preferences remain enabled.
 
 See [foundation notes](docs/foundation.md) for CORE parity, assets, preview setup
 and the PR 1 practice-room checks.
+
+## Foundation workflows
+
+Facilitators manage engagements at `/setup`, including church details, dates,
+settings, attendee imports, invitation review and the door list. See
+[engagement setup](docs/engagement-setup.md), [room sign-in](docs/room-sign-in.md)
+and the [restricted Team Hub reader](docs/team-hub-reader.md).
+
+After starting and resetting a local Supabase stack, run `npm run db:seed` for
+the permanent practice room and Riverside’s eight fictional people. The seed
+command refuses hosted database URLs. See [practice joining and reset](docs/practice-room.md).
+
+[Milestone 1 acceptance](docs/milestone-1-acceptance.md) requires Chris’s real-phone
+checks. Milestone 2 waits for that acceptance, motion signoff and design pass 2.
