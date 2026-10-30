@@ -1,6 +1,7 @@
 import "server-only";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 import { readerRole } from "./config";
+import { teamHubDiagnostic } from "./diagnostics";
 
 export type HubClient = {id:string;name:string;logo:string|null;timezone:string|null;address_line1:string|null;address_line2:string|null;city:string|null;state_province:string|null;postal_code:string|null;country:string|null;website:string|null;status:string|null};
 export type HubEngagement = {id:string;client_id:string;title:string;engagement_type:string;status:string;start_date:string|null;end_date:string|null;assigned_consultant_id:string|null;coordinator_id:string|null};
@@ -19,14 +20,19 @@ const wildcard=(value:string)=>`%${value.trim().slice(0,200).replace(/[\\%_]/g,"
 export class TeamHubReader {
   constructor(private readonly pool: Pick<Pool,"connect">) {}
   private async read<T extends QueryResultRow>(query:string,values:unknown[]=[]):Promise<T[]> {
-    const client:PoolClient=await this.pool.connect();
+    let client:PoolClient|undefined;
     try {
+      client=await this.pool.connect();
       await client.query("begin read only");
       await client.query("set local statement_timeout='5s';set local lock_timeout='1s'");
       const {rows}=await client.query("select current_user as role,current_setting('transaction_read_only') as readonly");
       if(rows[0]?.role!==readerRole || rows[0]?.readonly!=="on")throw new Error("Restricted reader connection required");
       const result=await client.query<T>(query,values);await client.query("commit");return result.rows;
-    }catch(error){await client.query("rollback").catch(()=>{});throw error;}finally{client.release();}
+    }catch(error){
+      console.error("Team Hub read failed",teamHubDiagnostic(error));
+      if(client)await client.query("rollback").catch(()=>{});
+      throw error;
+    }finally{client?.release();}
   }
   searchClients(search="",after:string|null=null,limit=50){
     return this.read<HubClient>(`select ${clientColumns} from live_read.clients where name ilike $1 and ($2::uuid is null or id>$2) order by id limit $3`,[wildcard(search),after?id(after):null,Math.min(100,Math.max(1,Math.trunc(limit)||50))]);
