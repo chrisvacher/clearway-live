@@ -55,7 +55,9 @@ async function completeClaim(request: NextRequest, response: NextResponse, paylo
     if (!session) throw new Error("Sign-in unavailable");
     const bound = await roomRpc("bind", { ...payload, claim: claim.claim, user: verified.user.id, session });
     if (bound.status !== "signed_in") throw new Error("Sign-in unavailable");
-    return { status: "signed_in" };
+    const attendee=await currentAttendee(client,engagement);
+    if(!attendee||attendee.id!==claim.attendee)throw new Error("Sign-in unavailable");
+    return { status: "signed_in",name:attendee.name as string,role:attendee.room_role as string };
   } catch {
     await client.auth.signOut({ scope: "local" });
     await roomRpc("release_claim", { ...payload, claim: claim.claim });

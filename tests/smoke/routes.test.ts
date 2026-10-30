@@ -427,6 +427,7 @@ test("six-digit code works on a second device and issues only its own room cooki
   const email=emails.at(-1)!;const code=email.text.match(/code is (\d{6})/)![1];const jar=new Map<string,string>();await roomPost("init",jar);
   const wrong=await roomPost("verify",jar,{email:"ann@example.org",code:code==="000000"?"999999":"000000"});assert.equal(wrong.data.status,"invalid_code");
   const before=roomAuthCalls;const result=await roomPost("verify",jar,{email:"ann@example.org",code});assert.equal(result.data.status,"signed_in");assert.equal(roomAuthCalls,before+1);
+  assert.equal(result.data.name,"Ann Lee");assert.equal(result.data.role,"participant");
   assert.ok([...jar.keys()].some(k=>k.startsWith("cw-room-")));assert.ok(![...jar.keys()].some(k=>k.startsWith("cw-facilitator")));
   assert.match(result.response.headers.get("set-cookie")!,/HttpOnly/);assert.ok(!JSON.stringify(result.data).includes("access_token"));
   const status=await fetch(`${origin}/api/room/${roomId}/status`,{headers:{cookie:cookieHeader(jar)}});const own=await status.json();assert.equal(own.name,"Ann Lee");
@@ -510,7 +511,9 @@ test("practice phones join with a name and no email, while control remains prote
  const page=await fetch(origin+"/room/"+practiceRoom);const html=await page.text();assert.match(html,/Join the practice room/);assert.doesNotMatch(html,/id="room-email"/);
  const jar=new Map<string,string>(),before=emails.length;
  async function post(action:string,body:Record<string,unknown>={}){const r=await fetch(`${origin}/api/room/${practiceRoom}/${action}`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify(body)});applyCookies(jar,r);return r.json();}
- assert.equal((await post("init")).status,"ready");assert.equal((await post("practice",{name:"Practice Alex"})).status,"signed_in");assert.equal(emails.length,before);
+ assert.equal((await post("init")).status,"ready");
+ const joined=await post("practice",{name:"Practice Alex"});
+ assert.deepEqual(joined,{status:"signed_in",name:"Practice Alex",role:"participant"});assert.equal(emails.length,before);
  const status=await (await fetch(`${origin}/api/room/${practiceRoom}/status`,{headers:{cookie:cookieHeader(jar)}})).json();assert.equal(status.name,"Practice Alex");
  const restored=await fetch(origin+"/room/"+practiceRoom,{headers:{cookie:cookieHeader(jar)}});const restoredHtml=await restored.text();
  assert.match(restoredHtml,/You’re in, Practice Alex\./);assert.doesNotMatch(restoredHtml,/<input[^>]+id="practice-name"/);
