@@ -798,6 +798,12 @@ reset role; select tests.login(5); set local role authenticated;
 select results_eq('select id from attendees','values (tests.id(401))','Formatting-only correction keeps the phone signed in');
 reset role;
 
+-- Physical Auth removal invalidates access while preserving the soft-deleted attendee audit.
+reset role;
+select lives_ok($$delete from auth.users where id=tests.uid(12)$$,'Auth user deletion is not blocked by attendee verification');
+select ok((select auth_user_id is null and verified_at is null from attendees where id=tests.id(406)),'Auth deletion clears identity and verification without removing attendee');
+select is((select count(*) from device_sessions where id=tests.id(512) and revoked_at is not null),1::bigint,'Auth deletion revokes and preserves the device audit row');
+
 -- Stale JWTs must lose access when the database identity/session is revoked.
 update auth.sessions set not_after=now()-interval '1 second' where id=tests.sid(5);
 select tests.login(5); set local role authenticated;
