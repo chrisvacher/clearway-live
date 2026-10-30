@@ -9,13 +9,22 @@ export async function GET(request: NextRequest) {
   let accepted = false;
   let createdSession = false;
   if (code && !request.nextUrl.searchParams.has("error")) {
-    const { error } = await client.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data: exchanged, error } = await client.auth.exchangeCodeForSession(code);
+    if (!error && exchanged.session) {
       createdSession = true;
       const { data: { user }, error: invalid } = await client.auth.getUser();
       if (!invalid && user && clearwayEmail(user.email)) {
         const { data, error: denied } = await client.rpc("claim_clearway_access");
         accepted = !denied && data === true;
+        if (accepted) {
+          // Supabase's OAuth exchange also returns Google's provider credentials.
+          // Persist only the app session. This flow does not use Google API tokens.
+          const { error: failed } = await client.auth.setSession({
+            access_token: exchanged.session.access_token,
+            refresh_token: exchanged.session.refresh_token,
+          });
+          accepted = !failed;
+        }
       }
     }
   }

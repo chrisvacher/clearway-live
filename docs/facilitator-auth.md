@@ -61,7 +61,8 @@ The application does not silently reassign it by matching email.
 
 Facilitator cookies use the `cw-facilitator` namespace, separate from future room
 sessions. They are host-only, HttpOnly, SameSite=Lax, and Secure on HTTPS. Tokens
-never enter browser props or JavaScript. Supabase handles PKCE and refresh token
+never enter browser props or JavaScript. Google provider credentials from the
+OAuth exchange are discarded before issuing the final application session cookie. Supabase handles PKCE and refresh token
 rotation. Middleware preserves refreshed cookies on the response and request.
 Auth and private responses are dynamic, private and no-store. Referrers are
 suppressed so callback codes are not forwarded.

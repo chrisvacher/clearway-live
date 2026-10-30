@@ -21,7 +21,7 @@ const user = (mode: string) => ({ id: userId, aud: "authenticated", role: "authe
   email: mode === "external" ? "person@example.org" : "facilitator@clearway.co",
   email_confirmed_at: "2026-10-01T00:00:00Z", identities: [], app_metadata: {}, user_metadata: {} });
 function token(mode: string) {
-  return ["header", Buffer.from(JSON.stringify({ sub: userId, exp: Math.floor(Date.now()/1000)+3600, mode })).toString("base64url"), "signature"].join(".");
+  return [Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url"), Buffer.from(JSON.stringify({ sub: userId, exp: Math.floor(Date.now()/1000)+3600, mode })).toString("base64url"), "c2lnbmF0dXJl"].join(".");
 }
 function modeOf(authorization: string | undefined) {
   try { return JSON.parse(Buffer.from((authorization || "").split(".")[1], "base64url").toString()).mode as string; }
@@ -58,7 +58,8 @@ before(async () => {
       }
       const loginMode = body.auth_code || "allowed";
       return send({ access_token: token(loginMode), refresh_token: "refresh-" + loginMode,
-        expires_in: 3600, token_type: "bearer", user: user(loginMode) });
+        expires_in: 3600, token_type: "bearer", user: user(loginMode),
+        provider_token: "unused-google-provider-secret" + "p".repeat(5000), provider_refresh_token: "unused-google-refresh-secret" });
     }
     if (url.pathname === "/auth/v1/user") return mode === "invalid" || mode === "revoked"
       ? send({ message: "Invalid session" }, 401) : send(user(mode));
@@ -218,6 +219,11 @@ test("OAuth uses PKCE, then a verified allowlist claim opens setup and control",
   assert.match(response.headers.get("cache-control")!, /no-store/);
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.ok(![...jar.keys()].some(k => k.includes("code-verifier")));
+  const appCookie = decodeURIComponent(jar.get("cw-facilitator")!);
+  assert.ok(appCookie.startsWith("base64-"));
+  const sessionJson = Buffer.from(appCookie.slice(7), "base64url").toString();
+  assert.doesNotMatch(sessionJson, /provider_token|provider_refresh_token|unused-google/);
+  assert.ok(![...jar.keys()].some(k => /^cw-facilitator\.\d+$/.test(k)), "Old provider-token chunks are removed");
   for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Prepare your engagement."]]) {
     const page = await fetch(origin + path, { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
     assert.equal(page.status, 200);
