@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 
 import type { RoomAccessStatus as Status } from "@/lib/room/access";
 const messages: Record<string, string> = {
-  sent: "Check your email for a 6-digit code or a sign-in link.",
+  sent: "Your code is on its way. Check your email for a 6-digit code or a sign-in link.",
   invalid_code: "That code couldn’t be used. Check it or ask for a new one.",
   rate_limited: "Please wait a few minutes before trying again. Your facilitator can also sign you in.",
   not_listed: "Your email isn’t on the list yet. You can ask your facilitator to let you in.",
@@ -24,6 +24,8 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
   const [code, setCode] = useState("");
   const [deviceCode, setDeviceCode] = useState("");
   const [busy, setBusy] = useState(!confirm);
+  const [submitting, setSubmitting] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const claiming = useRef(false);
   const post = useCallback(async (action: string, data: Record<string, unknown> = {}): Promise<Status> => {
     const response = await fetch(`/api/room/${engagement}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data), cache: "no-store" });
@@ -58,14 +60,17 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
     return () => { active = false; clearInterval(interval); };
   }, [engagement, post, confirm]);
   async function submit(event: FormEvent, action: string) {
-    event.preventDefault(); setBusy(true);
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true); setSubmitting(action);
     try {
       if (action === "confirm") await post("init");
       const data = await post(action, action === "confirm" ? confirm : { email, code, name });
+      if (action === "send") setSentTo(data.status === "sent" ? email.trim().toLowerCase() : null);
       setState(data);
       if (data.status === "signed_in" && confirm) location.replace(`/room/${engagement}`);
-    } catch { setState({ status: "unavailable" }); }
-    finally { setBusy(false); }
+    } catch { if (action === "send") setSentTo(null); setState({ status: "unavailable" }); }
+    finally { setBusy(false); setSubmitting(null); }
   }
   if (state.status === "signed_in") return <section aria-live="polite"><h2>{state.name ? `You’re in, ${state.name}.` : "You’re in."}</h2><p>{state.role === "scribe" ? "You’re joining as the scribe." : "Your place in the room is ready."}</p><p>Your facilitator will let you know what happens next.</p></section>;
   if (state.status === "closed") return <p role="status">{messages.closed}</p>;
@@ -79,10 +84,10 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
   </section>;
   return <section className="form-stack">
-    <p role="status" aria-live="polite">{messages[state.status] || "Use the email address on your invite."}</p>
+    <p role="status" aria-live="polite">{submitting === "send" ? "Sending your code. This may take a moment." : messages[state.status] || "Use the email address on your invite."}</p>
     <form className="form-stack" onSubmit={event => submit(event, "send")}>
-      <label htmlFor="room-email">Your email</label><input id="room-email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required maxLength={254} />
-      <button className="button-link" disabled={busy || state.status === "loading"} type="submit">Send me a sign-in code</button>
+      <label htmlFor="room-email">Your email</label><input id="room-email" type="email" autoComplete="email" value={email} disabled={busy} onChange={e => { setEmail(e.target.value); setSentTo(null); if (state.status === "sent") setState({ status: "ready" }); }} required maxLength={254} />
+      <button className="button-link" disabled={busy || state.status === "loading"} aria-busy={submitting === "send"} type="submit">{submitting === "send" ? "Sending your code…" : sentTo === email.trim().toLowerCase() ? "Send a new code" : "Send me a sign-in code"}</button>
     </form>
     <form className="form-stack" onSubmit={event => submit(event, "verify")}>
       <label htmlFor="room-code">Your 6-digit code</label><input id="room-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ""))} required />
