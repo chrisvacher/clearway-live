@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
 import { requireFacilitator } from "@/lib/server/facilitator";
 
@@ -14,7 +15,7 @@ export default async function SetupPage() {
     <div className="notice">
       <h2>{profile.is_admin ? "Clearway admin" : "Clearway facilitator"}</h2>
       {error ? <p role="status">We couldn’t load your engagements. Please try again.</p> : engagements?.length
-        ? <ul>{engagements.map(engagement => <li key={engagement.id}>{engagement.title}</li>)}</ul>
+        ? <ul>{engagements.map(engagement => <li key={engagement.id}>{engagement.title} <Link className="text-link" href={`/setup/${engagement.id}/door`}>Open the door list</Link></li>)}</ul>
         : <p>You don’t have any engagements yet. They’ll appear here when they’re ready.</p>}
     </div>
     <form action="/auth/sign-out" method="post"><button className="button-link" type="submit">Sign out</button></form>

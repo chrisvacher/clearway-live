@@ -43,14 +43,21 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.72.7
-      - name: Start isolated PostgreSQL 17
-        run: supabase db start
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+      - run: npm ci
+      - name: Start isolated PostgreSQL 17 and Auth
+        run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Replay migrations from an empty database
         run: supabase db reset --local --no-seed
       - name: Lint database functions
         run: supabase db lint --local --schema public,private --fail-on warning
       - name: Test all database roles
         run: supabase test db --local
+      - name: Test native Auth session binding
+        run: npm run test:auth
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup
