@@ -11,7 +11,8 @@ async function main(){
   const root=new Pool({connectionString:source.toString()});
   await root.query("create database clearway_team_hub_reader_test template template0");await root.end();
   source.pathname="/clearway_team_hub_reader_test";
-  function sqlFile(file:string){return execFileSync("psql",[source.toString(),"-X","-q","-v","ON_ERROR_STOP=1","-f",file],{encoding:"utf8",stdio:["ignore","pipe","pipe"]});}
+  const administratorUrl=source.toString();
+  function sqlFile(file:string){return execFileSync("psql",[administratorUrl,"-X","-q","-v","ON_ERROR_STOP=1","-f",file],{encoding:"utf8",stdio:["ignore","pipe","pipe"]});}
   sqlFile("tests/team-hub/fixture.sql");sqlFile("supabase/team-hub/live_reader.sql");
   const tap=sqlFile("tests/team-hub/role-checks.sql");assert.doesNotMatch(tap,/not ok|Looks like you failed/);console.log("Team Hub reader role: 28 isolated privilege/column/RLS assertions passed.");
   const admin=new Pool({connectionString:source.toString()});
