@@ -19,10 +19,10 @@ Before starting:
 
 ## Attendees and invitations
 
-1. Open Riverside’s fictional engagement. There are eight fictional people and one scribe. Replace one attendee email with your own real test email, or add a new person with that email.
-2. Review a pasted list containing the same email in different case. Only the first appears. Save and verify no duplicate.
-3. Review a CSV with `name,email,role,notes`. Check a quoted comma/newline and the additional notes field. Existing scribe status stays unless `room_role` explicitly changes it.
-4. Select your real test email and review the invite. Check dates, time zone, prefilled room link and the exact saved consensus wording. Send it, then open the received email.
+1. Open Riverside’s fictional engagement. There are eight fictional people and one scribe. Enter your name and real test email under Add people, then choose **Add and invite**. The recipient preview appears while you type. Verify that the person is saved and the invitation arrives without selecting them again or opening another review step.
+2. Choose Pasted list and enter the same email in different case. The preview keeps the first and identifies the duplicate. Choose **Add without inviting** and verify no duplicate person or email is created.
+3. Choose CSV with `name,email,role,notes`. Check the automatic preview of a quoted comma/newline and the additional notes field. Existing scribe status stays unless `room_role` explicitly changes it.
+4. An existing attendee has **Send invite** beside their name. Sending a selected group is one **Send invites** action. The optional **Preview email** shows dates, time zone, prefilled room link and the exact saved consensus wording.
 
 ## Sign-in on two phones or browsers
 
