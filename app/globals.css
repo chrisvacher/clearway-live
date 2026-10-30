@@ -45,6 +45,10 @@ a:hover { color: inherit; }
 .narrow p { margin-bottom: var(--space-6); }
 .notice { padding: var(--space-6); border: 1px solid var(--cwl-border-strong); border-radius: var(--cwl-radius-card); margin-block: var(--space-8); }
 .notice p:last-child { margin-bottom: 0; }
+.room-alert { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-4); border: 2px solid var(--cwl-callout); border-radius: var(--cwl-radius-card); background: var(--cwl-callout); color: var(--cwl-on-callout); }
+.room-alert svg { width: var(--space-6); height: var(--space-6); flex-shrink: 0; }
+.room-alert h2 { margin: 0; color: var(--cwl-on-callout); font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-bold); }
+.room-alert p { margin: var(--space-2) 0 0; color: var(--cwl-on-callout); }
 .skip-link { position: absolute; left: var(--space-4); top: var(--space-4); z-index: 10; transform: translateY(-200%); }
 .skip-link:focus { transform: translateY(0); }
 @media (max-width: 640px) {

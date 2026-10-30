@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { CircleAlert } from "lucide-react";
 
 import type { RoomAccessStatus as Status } from "@/lib/room/access";
 const messages: Record<string, string> = {
@@ -26,6 +27,7 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
   const [busy, setBusy] = useState(!confirm);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const needsFacilitator = submitting !== "send" && ["not_listed", "check_facilitator", "declined"].includes(state.status);
   const claiming = useRef(false);
   const post = useCallback(async (action: string, data: Record<string, unknown> = {}): Promise<Status> => {
     const response = await fetch(`/api/room/${engagement}/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data), cache: "no-store" });
@@ -84,9 +86,12 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
   </section>;
   return <section className="form-stack">
-    <p role="status" aria-live="polite">{submitting === "send" ? "Sending your code. This may take a moment." : messages[state.status] || "Use the email address on your invite."}</p>
+    {needsFacilitator ? <div className="room-alert" role="alert" id="room-access-message">
+      <CircleAlert aria-hidden="true" focusable="false" />
+      <div><h2>{state.status === "not_listed" ? "Not on the list yet" : "Check with your facilitator"}</h2><p>{messages[state.status]}</p></div>
+    </div> : <p id="room-access-message" role="status" aria-live="polite">{submitting === "send" ? "Sending your code. This may take a moment." : messages[state.status] || "Use the email address on your invite."}</p>}
     <form className="form-stack" onSubmit={event => submit(event, "send")}>
-      <label htmlFor="room-email">Your email</label><input id="room-email" type="email" autoComplete="email" value={email} disabled={busy} onChange={e => { setEmail(e.target.value); setSentTo(null); if (state.status === "sent") setState({ status: "ready" }); }} required maxLength={254} />
+      <label htmlFor="room-email">Your email</label><input id="room-email" type="email" autoComplete="email" value={email} disabled={busy} aria-describedby="room-access-message" aria-invalid={state.status === "not_listed" && submitting !== "send"} onChange={e => { setEmail(e.target.value); setSentTo(null); if (["sent", "not_listed", "check_facilitator", "declined"].includes(state.status)) setState({ status: "ready" }); }} required maxLength={254} />
       <button className="button-link" disabled={busy || state.status === "loading"} aria-busy={submitting === "send"} type="submit">{submitting === "send" ? "Sending your code…" : sentTo === email.trim().toLowerCase() ? "Send a new code" : "Send me a sign-in code"}</button>
     </form>
     <form className="form-stack" onSubmit={event => submit(event, "verify")}>
