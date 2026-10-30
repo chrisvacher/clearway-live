@@ -1,0 +1,28 @@
+{
+  "repository": "chrisvacher/clearway-core",
+  "commit": "ea0a669c066e20589c7bcec0094672925e1d11ac",
+  "dependencies": {
+    "next": "15.3.6",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "lucide-react": "0.511.0",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.3.1",
+    "class-variance-authority": "0.7.1",
+    "server-only": "0.0.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.1",
+    "@types/node": "20.19.9",
+    "@types/react": "19.1.8",
+    "@types/react-dom": "19.1.6",
+    "autoprefixer": "10.4.21",
+    "eslint": "9.30.1",
+    "eslint-config-next": "15.3.1",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.17",
+    "tailwindcss-animate": "1.0.7",
+    "tsx": "4.20.3",
+    "typescript": "5.8.3"
+  }
+}
