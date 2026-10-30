@@ -61,5 +61,28 @@ select is(public.room_auth('bind',tests.practice_payload()||jsonb_build_object('
 select is(public.practice_guest(tests.practice_payload())->>'status','device_missing','Old device secret cannot rejoin after reset');
 reset role;
 select is((select count(*)::integer from auth.sessions),5,'Reset leaves unrelated Auth sessions intact');
+reset role;
+update clearway_users set is_admin=true where id=tests.id(304);
+update attendees set auth_user_id=tests.id(1),verified_at=now() where id=tests.id(30);
+insert into device_sessions(engagement_id,attendee_id,auth_session_id) values(tests.id(10),tests.id(30),tests.id(201));
+set local role service_role;
+select is(public.room_auth('init',tests.payload(2,11))->>'status','ready','Another engagement gets a manual-sign-in device');
+select is(public.room_auth('join',tests.payload(2,11)||jsonb_build_object('name','Admin-approved guest','email','admin-guest@example.org'))->>'status','pending','Another engagement gets a join request');
+reset role;
+select set_config('tests.admin_join',(select id::text from join_requests where device_id=tests.id(102)),true);
+set local role authenticated;
+select tests.login(4);
+select is(public.sign_in_room_device(tests.id(11),tests.id(31),'AAAAAAAB'),true,'Clearway admin can use manual sign-in without assignment');
+-- Manual sign-in already resolves that request, so submit a second request below.
+reset role;
+set local role service_role;
+select is(public.room_auth('join',tests.payload(2,11)||jsonb_build_object('name','Admin-approved guest','email','admin-guest@example.org'))->>'status','pending','A fresh request waits for an admin');
+reset role;
+select set_config('tests.admin_join',(select id::text from join_requests where device_id=tests.id(102) and status='pending'),true);
+set local role authenticated;
+select tests.login(4);
+select is(public.decide_room_join(current_setting('tests.admin_join')::uuid,true),true,'Clearway admin can approve a door request without assignment');
+select is((select device_count::integer from public.room_presence(tests.id(10)) where attendee_id=tests.id(30)),1,'Clearway admin can read presence without assignment');
+reset role;
 select * from finish();
 rollback;

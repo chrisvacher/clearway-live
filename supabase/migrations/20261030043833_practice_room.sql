@@ -157,4 +157,62 @@ begin
 end $$;
 revoke all on function private.check_invite_recipients() from public,anon,authenticated;
 create trigger check_invite_recipients before insert on private.invitation_batches for each row execute function private.check_invite_recipients();
+
+-- Clearway admins retain the PRD’s full door-list access without assignment.
+create or replace function private.decide_room_join(p_request uuid,p_approve boolean) returns boolean
+language plpgsql security definer set search_path='' as $$
+declare r public.join_requests%rowtype; person uuid;
+begin
+  select * into r from public.join_requests where id=p_request and not deleted;
+  if not found or not ((select private.is_admin()) or private.can_facilitate(r.engagement_id)) or not private.room_is_open(r.engagement_id) then return false; end if;
+  -- Use the same device-then-request lock order as a phone submitting a request.
+  perform 1 from private.room_auth_devices where id=r.device_id and engagement_id=r.engagement_id
+    and not deleted and revoked_at is null for update;
+  if not found then return false; end if;
+  select * into r from public.join_requests where id=p_request and not deleted for update;
+  if not found or r.status<>'pending' then return false; end if;
+  if p_approve then
+    insert into public.attendees(engagement_id,name,email) values(r.engagement_id,r.name,r.email)
+      on conflict(engagement_id,lower(email)) where not deleted do update set name=attendees.name
+      returning id into person;
+    update private.room_auth_devices set attendee_id=person,verified_email=r.email,granted_at=now(),claim_id=null,claim_started_at=null
+      where id=r.device_id and engagement_id=r.engagement_id and not deleted and revoked_at is null;
+    if not found then return false; end if;
+  else
+    update private.room_auth_devices set granted_at=null,claim_id=null,claim_started_at=null where id=r.device_id;
+  end if;
+  update public.join_requests set status=case when p_approve then 'approved'::public.join_request_status else 'declined'::public.join_request_status end,
+    decided_at=now(),decided_by=private.clearway_user_id(),attendee_id=person where id=r.id;
+  return true;
+end $$;
+create or replace function private.sign_in_room_device(p_engagement uuid,p_attendee uuid,p_code text) returns boolean
+language plpgsql security definer set search_path='' as $$
+declare person public.attendees%rowtype;
+begin
+  if not ((select private.is_admin()) or private.can_facilitate(p_engagement)) or not private.room_is_open(p_engagement) then return false; end if;
+  select * into person from public.attendees where id=p_attendee and engagement_id=p_engagement and not deleted;
+  if not found then return false; end if;
+  update private.room_auth_devices set attendee_id=person.id,verified_email=person.email,granted_at=now(),claim_id=null,claim_started_at=null
+    where engagement_id=p_engagement and device_code=upper(replace(p_code,' ','')) and not deleted and revoked_at is null;
+  if not found then return false; end if;
+  update public.join_requests j set status=case when j.email=person.email then 'approved'::public.join_request_status else 'declined'::public.join_request_status end,
+    decided_at=now(),decided_by=private.clearway_user_id(),attendee_id=case when j.email=person.email then person.id else null end
+    where j.engagement_id=p_engagement and j.device_id in(select id from private.room_auth_devices where engagement_id=p_engagement and device_code=upper(replace(p_code,' ','')))
+      and j.status='pending' and not j.deleted;
+  return true;
+end $$;
+create or replace function private.room_presence(p_engagement uuid)
+returns table(attendee_id uuid,device_count bigint,present boolean)
+language plpgsql stable security definer set search_path='' as $$
+begin
+  if not ((select private.is_admin()) or private.can_facilitate(p_engagement)) or not private.room_is_open(p_engagement) then return; end if;
+  return query select d.attendee_id,count(*),bool_or(d.last_seen_at>now()-interval '45 seconds')
+    from public.device_sessions d join public.attendees a on a.id=d.attendee_id
+    join auth.sessions s on s.id=d.auth_session_id and s.user_id=a.auth_user_id
+    join auth.users u on u.id=s.user_id
+    where d.engagement_id=p_engagement and not d.deleted and d.revoked_at is null and not a.deleted
+      and a.verified_at is not null and lower(u.email)=a.email and u.deleted_at is null
+      and (u.banned_until is null or u.banned_until<now()) and (s.not_after is null or s.not_after>now())
+    group by d.attendee_id;
+end $$;
 commit;

@@ -17,3 +17,5 @@ Guest grants and every practice proof/claim operation share a database advisory 
 # Acceptance
 
 `docs/milestone-1-acceptance.md` is Chris’s real-phone acceptance script. Passing automated tests and desktop emulation does not substitute for that acceptance. Milestone 2 implementation waits for this acceptance, Chris’s motion-prototype signoff and design pass 2.
+
+Foundation review also checks Clearway admin access to door-list approvals, manual sign-in and presence, even when the admin is not assigned to that engagement. These actions still require the real current Google session and the active Clearway allowlist.
