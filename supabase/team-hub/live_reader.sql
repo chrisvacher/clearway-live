@@ -49,7 +49,7 @@ grant usage,create on schema live_read to clearway_live_view_owner;
 -- Permit ownership transfer/replacement inside this transaction, then restore
 -- administrative-only membership before committing. No app role gains membership.
 do $$ begin
-  execute format('grant clearway_live_view_owner to %I with admin true, inherit true, set true',current_user);
+  execute format('grant clearway_live_view_owner to %I with inherit true, set true',current_user);
 end $$;
 grant usage on schema live_read to clearway_live_reader;
 grant usage on schema public to clearway_live_view_owner;
@@ -190,7 +190,7 @@ grant select on live_read.team_members to clearway_live_reader;
 
 revoke create on schema live_read from clearway_live_view_owner;
 do $$ begin
-  execute format('grant clearway_live_view_owner to %I with admin true, inherit false, set false',current_user);
+  execute format('grant clearway_live_view_owner to %I with inherit false, set false',current_user);
 end $$;
 revoke all on all tables in schema live_read from public,anon,authenticated;
 
