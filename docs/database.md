@@ -109,3 +109,11 @@ and [database testing](https://supabase.com/docs/guides/local-development/testin
 The initial production migration is `20261030025957_foundation_schema.sql`.
 Its version matches the migration history recorded by Supabase. The identical
 SQL passed 315 pgTAP assertions in CI before application.
+
+The completed suite passes **344 database assertions**, plus the existing 16
+application tests. Production has all seven tables with RLS enabled and forced,
+no anonymous read grants or browser hard-delete grants, and no security adviser
+findings. Follow-up migrations preserve formatting-only email corrections,
+choose horizon years from retreat dates, require actual OAuth session proof,
+and retain attendee/device audit records when Auth users are removed. Each
+migration filename matches its deployed Supabase history version.
