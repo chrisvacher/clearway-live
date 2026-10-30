@@ -49,6 +49,9 @@ a:hover { color: inherit; }
 .room-alert svg { width: var(--space-6); height: var(--space-6); flex-shrink: 0; }
 .room-alert h2 { margin: 0; color: var(--cwl-on-callout); font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-bold); }
 .room-alert p { margin: var(--space-2) 0 0; color: var(--cwl-on-callout); }
+.room-waiting { padding: var(--space-6); border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); scroll-margin-block: var(--space-6); }
+.room-waiting h2 { margin: 0; color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-prompt); font-weight: var(--fw-bold); }
+.room-waiting p { margin: var(--space-4) 0 0; color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-input); }
 .skip-link { position: absolute; left: var(--space-4); top: var(--space-4); z-index: 10; transform: translateY(-200%); }
 .skip-link:focus { transform: translateY(0); }
 @media (max-width: 640px) {
