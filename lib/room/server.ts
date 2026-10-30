@@ -6,6 +6,7 @@ import { authConfig, sameOrigin } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { serviceClient } from "@/lib/server/supabase";
 import { sendEmail } from "@/lib/server/email";
+import { signInEmail } from "@/lib/email/sign-in";
 import { limitedJson } from "@/lib/server/request";
 import { digest, hash, newCode, newDevice, newLink, normalizedEmail, parseDevice, sessionId, uuid } from "./policy";
 import { hasRoomCookie, participantClient } from "./client";
@@ -145,8 +146,7 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
       const link = new URL(`/room/${engagement}/confirm`, config.origin);
       link.searchParams.set("challenge", challenge); link.searchParams.set("token", token);
       try {
-        await sendEmail({ to: email, id: challenge, subject: `Your sign-in code for ${info.church}`,
-          text: `Your Clearway sign-in code is ${code}.\n\nIt expires in 10 minutes and allows 5 attempts. You can use the code on another device.\n\nOr open this link and tap Confirm sign-in:\n${link}\n\nIf you didn’t ask for this code, you can ignore this email.` });
+        await sendEmail({ to: email, id: challenge, ...signInEmail({ code, church: info.church, link: link.toString() }) });
       } catch {
         await roomRpc("cancel_mail", { ...payload, challenge });
         return result({ status: "email_unavailable" });

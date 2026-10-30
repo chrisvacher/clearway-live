@@ -20,7 +20,7 @@ const roomId = "50000000-0000-4000-8000-000000000010";
 const practiceRoom="90000000-0000-4000-8000-000000000010";
 let practiceName="Practice guest";
 const roomAttendee = "50000000-0000-4000-8000-000000000011";
-const emails: { to: string[]; text: string }[] = [];
+const emails: { to: string[]; text: string; html: string }[] = [];
 const inviteBatches = new Map<string,Record<string,unknown>>();
 const sentBatches:string[]=[];
 let failedInviteBatch:string|null=null,combinedImports=0;
@@ -430,13 +430,14 @@ test("phone room projects only public fields and confirmation GET never signs an
   assert.match(html,/Fixture church/);assert.match(html,/Send me a sign-in code/);assert.ok(!html.includes(tripwire));assert.ok(!html.includes("private_note"));
   const jar=new Map<string,string>();const init=await roomPost("init",jar);assert.match(init.data.device_code,/^[A-HJ-NP-Z2-9]{8}$/);
   const sent=await roomPost("send",jar,{email:" Ann@Example.org "});assert.equal(sent.data.status,"sent");
-  const email=emails.at(-1)!;assert.deepEqual(email.to,["ann@example.org"]);assert.match(email.text,/\n\n/);assert.doesNotMatch(email.text,/\\n/);
+  const email=emails.at(-1)!;assert.deepEqual(email.to,["ann@example.org"]);assert.match(email.text,/\n\n\d{6}\n\n/);assert.doesNotMatch(email.text,/\d{6}\./);assert.doesNotMatch(email.text,/\\n/);
+  const digits=email.text.match(/\n\n(\d{6})\n\n/)![1];assert.ok(email.html.includes(`>${digits}</p>`));assert.match(email.html,/font-size:48px/);assert.doesNotMatch(email.html,/<script|onclick=|var\(--/i);
   const link=email.text.match(/http[^\s]+\/confirm[^\s]+/)![0];const before=roomAuthCalls;
   for(let n=0;n<2;n++){const confirm=await fetch(link);assert.equal(confirm.status,200);assert.equal(confirm.headers.get("referrer-policy"),"strict-origin");assert.match(confirm.headers.get("cache-control")!,/no-store/);assert.match(await confirm.text(),/Confirm sign-in/);}
   assert.equal(roomAuthCalls,before);assert.equal(roomChallenges.get(new URL(link).searchParams.get("challenge")!)!.consumed,false);
 });
 test("six-digit code works on a second device and issues only its own room cookie",async()=>{
-  const email=emails.at(-1)!;const code=email.text.match(/code is (\d{6})/)![1];const jar=new Map<string,string>();await roomPost("init",jar);
+  const email=emails.at(-1)!;const code=email.text.match(/\n\n(\d{6})\n\n/)![1];const jar=new Map<string,string>();await roomPost("init",jar);
   const wrong=await roomPost("verify",jar,{email:"ann@example.org",code:code==="000000"?"999999":"000000"});assert.equal(wrong.data.status,"invalid_code");
   const before=roomAuthCalls;const result=await roomPost("verify",jar,{email:"ann@example.org",code});assert.equal(result.data.status,"signed_in");assert.equal(roomAuthCalls,before+1);
   assert.equal(result.data.name,"Ann Lee");assert.equal(result.data.role,"participant");
