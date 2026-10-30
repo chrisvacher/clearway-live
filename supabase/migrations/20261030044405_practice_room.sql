@@ -126,19 +126,19 @@ grant execute on function private.practice_guest(jsonb),public.practice_guest(js
 
 create function private.reset_practice_room() returns boolean
 language plpgsql security definer set search_path='' as $$
-declare eng uuid:='90000000-0000-4000-8000-000000000010'; sessions uuid[];
+declare eng uuid:='90000000-0000-4000-8000-000000000010'::uuid; target_sessions uuid[];
 begin
  if not ((select private.is_admin()) or private.can_facilitate(eng)) then return false; end if;
  perform pg_advisory_xact_lock(hashtextextended(eng::text,7));
  if not exists(select 1 from public.engagements where id=eng and type='practice' and not deleted) then return false; end if;
- select array_agg(distinct auth_session_id) into sessions from public.device_sessions where engagement_id=eng;
+ select array_agg(distinct auth_session_id) into target_sessions from public.device_sessions where engagement_id=eng;
  update public.device_sessions set revoked_at=coalesce(revoked_at,now()) where engagement_id=eng;
  update private.room_auth_devices set revoked_at=coalesce(revoked_at,now()),granted_at=null,claim_id=null,claim_started_at=null,deleted=true where engagement_id=eng;
  update private.room_auth_challenges set consumed_at=coalesce(consumed_at,now()),deleted=true where engagement_id=eng;
  update public.join_requests set deleted=true where engagement_id=eng;
  update public.attendees set deleted=true where engagement_id=eng;
  -- Preserve device audit rows, while invalidating JWT access and refresh immediately.
- delete from auth.sessions where id=any(coalesce(sessions,array[]::uuid[]));
+ delete from auth.sessions where id=any(coalesce(target_sessions,array[]::uuid[]));
  update public.engagements set status='setup' where id=eng;
  return true;
 end $$;
