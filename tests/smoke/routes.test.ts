@@ -650,3 +650,12 @@ test("run of show paginates beyond 1000 sessions and retries a changed list with
     const show=await response.json();assert.equal(show.sessions.length,1205);assert.equal(new Set(show.sessions.map((s:{id:string})=>s.id)).size,1205);assert.equal(showReadPages,5);
   } finally {showPaging=false;}
 });
+
+
+test("a long editing session refreshes its facilitator cookie on the run-of-show API",async()=>{
+  const stale={access_token:token("allowed"),refresh_token:"refresh-allowed",expires_at:Math.floor(Date.now()/1000)-100,user:user("allowed")};
+  const cookie="cw-facilitator=base64-"+Buffer.from(JSON.stringify(stale)).toString("base64url");
+  const response=await fetch(origin+`/api/run-of-show/${roomId}`,{headers:{cookie}});
+  assert.equal(response.status,200);assert.match(response.headers.get("set-cookie")!,/cw-facilitator=/);
+  assert.match(response.headers.get("set-cookie")!,/HttpOnly/);assert.match(response.headers.get("cache-control")!,/no-store/);
+});
