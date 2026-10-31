@@ -92,6 +92,8 @@ select tests.login(7);
 select is((select count(*)::integer from private.session_notes),1,'Clearway admin reads notes');
 reset role;
 
+select throws_ok($$select private.live_send(null,'room','{}'::jsonb)$$,'P0001','Room broadcast unavailable','Missing broadcast insertion cannot silently succeed');
+
 -- Failure after state/broadcast work rolls back answer, version and message together.
 create function tests.fail_log() returns trigger language plpgsql as $$ begin raise exception 'test failure'; end $$;
 create trigger fail_log before insert on private.latency_logs for each row execute function tests.fail_log();

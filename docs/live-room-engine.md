@@ -27,7 +27,8 @@ revision, action (`submit`, `change`, `withdraw`), text and timing measurements.
 It requires the matching participant cookie and same-origin request. One database
 transaction locks the room row, validates current access/session/limits, stores
 the answer, computes results, advances the version, inserts the private Realtime
-message and records server latency timestamps. A failed transaction rolls all of
+message and records server latency timestamps. The wrapper verifies that the
+message was inserted, since `realtime.send()` can report failures as warnings. A failed transaction rolls all of
 these back. Retrying the same id/revision returns a duplicate result without a new
 answer, event, version or latency row. Conflicting ownership/revisions are refused.
 

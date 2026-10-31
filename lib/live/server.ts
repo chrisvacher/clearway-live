@@ -30,8 +30,14 @@ export async function handleLive(request: NextRequest, engagement: string) {
     : participantClient(jar, engagement);
   if (!client) return result({ status: "denied" }, 403);
   try {
+    // Presence is only an early unsigned-request guard. Database RPCs still check
+    // the current native session and role; getSession is never authorization.
+    const { data: { session }, error: sessionError } = await client.auth.getSession();
+    if (sessionError || !session) return result({ status: "denied" }, 403);
     if (request.method === "POST") {
-      const input = submissionRequest(await limitedJson(request));
+      let body: Record<string, unknown>;
+      try { body = await limitedJson(request); } catch { return result({ status: "invalid_request" }, 422); }
+      const input = submissionRequest(body);
       if (!input) return result({ status: "invalid_request" }, 422);
       const { data, error } = await client.rpc("live_submit", { p_engagement: engagement, p_id: input.id, p_session: input.session, p_revision: input.revision,
         p_action: input.action, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt || null, p_uncertainty: input.uncertaintyMs || 0 });
@@ -60,8 +66,6 @@ export async function handleLive(request: NextRequest, engagement: string) {
       if (changed || !snapshot) continue;
       snapshot.next = null;
       if (request.nextUrl.searchParams.get("transport") === "1") {
-        const { data: { session }, error } = await client.auth.getSession();
-        if (error || !session) return result({ status: "denied" }, 403);
         // The caller's own current token is kept in browser memory for receive-only
         // Realtime. Authorization was performed above by native Auth-bound RLS.
         return result({ ...snapshot, connection: { url: config.url, key: config.key, token: session.access_token } });

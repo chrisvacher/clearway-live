@@ -220,6 +220,21 @@ begin
 end $$;
 create trigger live_version before update on public.room_states for each row execute function private.live_version();
 
+-- realtime.send reports some insertion failures as warnings. Assert that its
+-- message exists in this transaction, otherwise roll back the entire room write.
+create function private.live_send(p_topic text,p_event text,p_payload jsonb) returns void
+language plpgsql security invoker set search_path='' as $$
+declare marker uuid:=gen_random_uuid();
+begin
+  perform realtime.send(p_payload||jsonb_build_object('_clearway_message',marker),p_event,p_topic,true);
+  if not exists(select 1 from realtime.messages m where m.topic=p_topic and m.event=p_event and m.extension='broadcast'
+    and m.inserted_at >= (transaction_timestamp() at time zone 'UTC')-interval '1 second'
+    and m.payload->>'_clearway_message'=marker::text) then
+    raise exception 'Room broadcast unavailable';
+  end if;
+end $$;
+revoke all on function private.live_send(text,text,jsonb) from public,anon,authenticated;
+
 create function private.live_broadcast() returns trigger
 language plpgsql security definer set search_path='' as $$
 declare t private.room_transport; fingerprint text; topic text;
@@ -227,11 +242,11 @@ begin
   select * into t from private.room_transport where engagement_id=new.engagement_id for update;
   fingerprint:=private.live_fingerprint(new.engagement_id);
   if t.access_fingerprint<>fingerprint or new.deleted then
-    perform realtime.send(jsonb_build_object('engagement',new.engagement_id,'version',new.version),'rekey','live:'||new.engagement_id||':'||t.channel_id,true);
+    perform private.live_send('live:'||new.engagement_id||':'||t.channel_id,'rekey',jsonb_build_object('engagement',new.engagement_id,'version',new.version));
     update private.room_transport set channel_id=gen_random_uuid(),access_fingerprint=fingerprint where engagement_id=new.engagement_id returning * into t;
   end if;
   topic:='live:'||new.engagement_id||':'||t.channel_id;
-  perform realtime.send(private.live_public_state(new.engagement_id)||jsonb_build_object('answer',nullif(current_setting('clearway.live_answer',true),'')::jsonb),'room',topic,true);
+  perform private.live_send(topic,'room',private.live_public_state(new.engagement_id)||jsonb_build_object('answer',nullif(current_setting('clearway.live_answer',true),'')::jsonb));
   return new;
 end $$;
 create trigger live_broadcast after update on public.room_states for each row execute function private.live_broadcast();
