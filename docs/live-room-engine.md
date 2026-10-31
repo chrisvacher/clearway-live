@@ -94,6 +94,11 @@ disposable PostgreSQL 17/Auth/Realtime stack, runs role/transaction/paging tests
 and `npm run test:live`. That native test exercises actual private WebSocket
 delivery, 50 simultaneous submissions, ordering, deduplication, sender denial,
 1256-row paging, timing receipts and revocation while a subscriber stays connected.
+Closing an engagement revokes its TV bindings and clears its live display;
+reopening requires new pairing. Practice reset clears its submissions and live
+state under the same advisory lock used by the submission worker, preserving
+other engagements and pairing records.
+
 The integration script refuses non-loopback database/API URLs. It sends no email
 and touches neither Team Hub nor CORE.
 

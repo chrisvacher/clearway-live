@@ -53,6 +53,7 @@ async function main() {
     const events: Record<string, unknown>[] = [], revokedEvents: Record<string, unknown>[] = []; let rekeys = 0;
     await joined(tv.client, initial.data.topic, event => events.push(event), () => { rekeys++; });
     const phoneChannel = await joined(phone.client, initial.data.topic, event => revokedEvents.push(event));
+    await assert.rejects(() => joined(outsider.client, initial.data.topic, () => {}), /denied|timed out/);
     const payload = { p_engagement: room, p_session: session, p_revision: 0, p_action: "submit", p_text: "Hope", p_sent: new Date().toISOString(), p_uncertainty: 1 };
     const send = async (id: string) => { const r = await phone.client.rpc("live_submit", { ...payload, p_id: id }); assert.equal(r.error, null); return r.data; };
     const firstId = randomUUID(), accepted = await send(firstId); assert.equal(accepted.status, "accepted");

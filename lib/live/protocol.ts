@@ -7,6 +7,8 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   if (version <= current.version) return { kind: "same", value: current };
   if (version !== current.version + 1 || event.state.live_session_id !== current.state.live_session_id) return { kind: "snapshot", value: current };
   const answers = new Map(current.answers.map(answer => [answer.id, answer]));
+  const hidden = Array.isArray(event.state.hidden_ids) ? event.state.hidden_ids : [];
+  for (const id of hidden) answers.delete(id);
   const patch = event.answer;
   if (patch && patch.session_id === event.state.live_session_id) {
     if (patch.withdrawn || patch.hidden) answers.delete(patch.id);

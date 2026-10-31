@@ -62,7 +62,8 @@ export class RoomStream {
         const next = await this.options.read(refresh);
         if (this.stopped) return;
         const before = this.value;
-        this.value = adoptSnapshot(this.value, next);
+        const frame = { ...next }; delete frame.connection;
+        this.value = adoptSnapshot(this.value, frame);
         if (this.value.version < this.wantedVersion) this.dirty = true;
         if (this.value !== before) this.options.render(this.value);
         if (refresh) {

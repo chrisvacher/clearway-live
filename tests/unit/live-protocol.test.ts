@@ -16,6 +16,7 @@ test("room events are atomic, ordered, deduplicated and never rewind after a sna
   assert.equal(adoptSnapshot(applied.value, first), applied.value);
   assert.equal(applyLiveEvent(first, { ...event, state: { ...event.state, engagement_id: "other" } }).kind, "snapshot");
   assert.equal(applyLiveEvent(first, { ...event, state: { ...event.state, live_session_id: "other" } }).kind, "snapshot");
+  assert.equal(applyLiveEvent(applied.value, { ...snapshot(3), state: { ...snapshot(3).state, hidden_ids: ["answer"] } }).value.answers.length, 0);
   assert.equal(applyLiveEvent(applied.value, { ...snapshot(3), answer: { ...event.answer!, withdrawn: true } }).value.answers.length, 0);
 });
 test("submissions reject invalid ids, revisions, timestamps and non-finite clock measurements", () => {

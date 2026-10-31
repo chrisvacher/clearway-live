@@ -189,7 +189,7 @@ using (extension='broadcast' and (select private.can_receive_live(realtime.topic
 
 create function private.live_public_state(p_engagement uuid) returns jsonb
 language sql stable security definer set search_path='' as $$
-  select jsonb_build_object('state',to_jsonb(r),'session',case when s.id is not null then jsonb_build_object(
+  select jsonb_build_object('state',jsonb_build_object('engagement_id',r.engagement_id,'live_session_id',r.live_session_id,'tv_content',r.tv_content,'phones_down',r.phones_down,'burst_ends_at',r.burst_ends_at,'spotlight_id',r.spotlight_id,'hidden_ids',r.hidden_ids,'remote_holder_id',r.remote_holder_id,'team_led_block_id',r.team_led_block_id,'show_tv_on_phones',r.show_tv_on_phones,'phone_refresh_version',r.phone_refresh_version,'results',r.results,'version',r.version),'session',case when s.id is not null then jsonb_build_object(
     'id',s.id,'title',s.title,'interaction',s.interaction,'prompt',s.prompt,'state',s.state,
     'max_sends',s.max_sends,'max_characters',s.max_characters,'max_words',s.max_words) end)
   from public.room_states r left join public.sessions s on s.id=r.live_session_id and not s.deleted
@@ -265,15 +265,17 @@ end $$;
 
 create function private.live_submit(p_engagement uuid,p_id uuid,p_session uuid,p_revision integer,p_action text,p_text text,p_sent timestamptz,p_queued timestamptz,p_uncertainty double precision) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r public.room_states; s public.sessions; previous public.submissions; who uuid; parts text[]; item text; key text; words text[]; answers jsonb:='[]'; received timestamptz:=clock_timestamp();
+declare r public.room_states; s public.sessions; previous public.submissions; who uuid; parts text[]; item text; key text; words text[]; answers jsonb:='[]'::jsonb; received timestamptz:=clock_timestamp();
 begin
-  if private.live_role(p_engagement)<>'participant' or private.live_role(p_engagement) is null then return jsonb_build_object('status','denied'); end if;
-  select id into who from public.attendees where engagement_id=p_engagement and id in(select private.room_attendee_ids());
+  -- Same lock order as practice reset. Recheck access after waiting for the room.
+  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
   select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
+  if private.live_role(p_engagement) is distinct from 'participant' then return jsonb_build_object('status','denied'); end if;
+  select id into who from public.attendees where engagement_id=p_engagement and id in(select private.room_attendee_ids());
   select * into s from public.sessions where id=p_session and engagement_id=p_engagement and not deleted;
   if not found or s.interaction not in ('word_cloud','wall') then return jsonb_build_object('status','invalid_session'); end if;
-  if p_action not in ('submit','change','withdraw') or p_revision is null or p_revision<0 or p_revision>1000000 or p_id is null
-    or p_sent is null or p_uncertainty is null or p_uncertainty not between 0 and 60000 or p_uncertainty='NaN'::float8
+  if p_action is null or p_action not in ('submit','change','withdraw') or p_revision is null or p_revision<0 or p_revision>1000000 or p_id is null
+    or p_sent is null or not isfinite(p_sent) or (p_queued is not null and not isfinite(p_queued)) or p_uncertainty is null or p_uncertainty not between 0 and 60000 or p_uncertainty='NaN'::float8
     or p_sent>received+interval '1 minute' or p_queued>received+interval '1 minute' then return jsonb_build_object('status','invalid_request'); end if;
   select * into previous from public.submissions where id=p_id;
   if found then
@@ -355,5 +357,47 @@ create function public.live_ack(p_engagement uuid,p_version bigint,p_received ti
 language sql security invoker set search_path='' as $$ select private.live_ack(p_engagement,p_version,p_received,p_uncertainty,p_answers) $$;
 revoke all on function private.live_ack(uuid,bigint,timestamptz,double precision,jsonb),public.live_ack(uuid,bigint,timestamptz,double precision,jsonb) from public,anon,authenticated;
 grant execute on function private.live_ack(uuid,bigint,timestamptz,double precision,jsonb),public.live_ack(uuid,bigint,timestamptz,double precision,jsonb) to authenticated;
+
+create function private.close_live_engagement() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+  if (new.status='closed' and old.status<>'closed') or (new.deleted and not old.deleted) then
+    update private.live_tv_sessions set revoked_at=coalesce(revoked_at,clock_timestamp()) where engagement_id=new.id;
+    update public.sessions set state='closed',closed_at=coalesce(closed_at,clock_timestamp()) where engagement_id=new.id and state in ('live','phones_down','open');
+    update public.room_states set live_session_id=null,tv_content='holding',phones_down=false,burst_ends_at=null,spotlight_id=null,
+      hidden_ids=array[]::uuid[],remote_holder_id=null,team_led_block_id=null,show_tv_on_phones=false,
+      results='{"total":0,"people":0,"words":[]}',deleted=new.deleted where engagement_id=new.id;
+  end if;
+  return new;
+end $$;
+revoke all on function private.close_live_engagement() from public,anon,authenticated;
+create trigger live_engagement_closed after update of status,deleted on public.engagements for each row execute function private.close_live_engagement();
+
+-- Keep reset atomic with the new submission worker and clear practice input.
+create or replace function private.reset_practice_room() returns boolean
+language plpgsql security definer set search_path='' as $$
+declare eng uuid:='90000000-0000-4000-8000-000000000010'::uuid; target_sessions uuid[];
+begin
+ if not ((select private.is_admin()) or private.can_facilitate(eng)) then return false; end if;
+ perform pg_advisory_xact_lock(hashtextextended(eng::text,7));
+ if not exists(select 1 from public.engagements where id=eng and type='practice' and not deleted) then return false; end if;
+ perform 1 from public.room_states where engagement_id=eng for update;
+ update public.submissions set deleted=true where engagement_id=eng and not deleted;
+ update private.latency_logs set deleted=true where engagement_id=eng and not deleted;
+ update public.sessions set state='ready',closed_at=null where engagement_id=eng and not deleted and state in ('live','phones_down','closed','open');
+ select array_agg(distinct auth_session_id) into target_sessions from public.device_sessions where engagement_id=eng;
+ update public.device_sessions set revoked_at=coalesce(revoked_at,now()) where engagement_id=eng;
+ update private.room_auth_devices set revoked_at=coalesce(revoked_at,now()),granted_at=null,claim_id=null,claim_started_at=null,deleted=true where engagement_id=eng;
+ update private.room_auth_challenges set consumed_at=coalesce(consumed_at,now()),deleted=true where engagement_id=eng;
+ update public.join_requests set deleted=true where engagement_id=eng;
+ update public.attendees set deleted=true where engagement_id=eng;
+ -- Preserve device audit rows, while invalidating JWT access and refresh immediately.
+ delete from auth.sessions where id=any(coalesce(target_sessions,array[]::uuid[]));
+ update public.engagements set status='setup' where id=eng;
+ update public.room_states set live_session_id=null,tv_content='holding',phones_down=false,burst_ends_at=null,spotlight_id=null,
+   hidden_ids=array[]::uuid[],remote_holder_id=null,team_led_block_id=null,show_tv_on_phones=false,
+   results='{"total":0,"people":0,"words":[]}' where engagement_id=eng;
+ return true;
+end $$;
 
 commit;
