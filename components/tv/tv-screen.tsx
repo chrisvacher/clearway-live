@@ -91,7 +91,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={frame?.state.tv_content === "screen_check" || frame?.state.tv_content === "session" ? "content" : "holding"} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} reconnecting={["offline", "fallback", "connecting"].includes(mode)} /></div>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} reconnecting={mode === "offline" || status.status === "paired" && ["fallback", "connecting"].includes(mode)} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

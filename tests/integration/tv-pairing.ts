@@ -67,7 +67,7 @@ async function main() {
   for(let n=0;n<30&&!ready;n++){await db.query("select private.live_send($1,'test_ready',$2::jsonb)",[frame.topic,JSON.stringify({marker})]);await delay(100);}assert.ok(ready);
   const views:LiveSnapshot[][]=[[],[]],modes=["",""],receipts=new Map<string,string>();
   for(const [index,tv] of [one,two].entries()) {
-   const stream=new RoomStream({read:async()=>({...await rpc(tv.client,"live_snapshot",{p_engagement:room}),connection:{url:env.API_URL,key:env.ANON_KEY,token:tv.auth.access_token}} as LiveRead),render:value=>views[index].push(value),mode:value=>{modes[index]=value;},received:(event,at)=>{if(index===1&&event.answer)receipts.set(event.answer.id,new Date(at).toISOString());}});streams.push(stream);stream.start();
+   const stream=new RoomStream({read:async()=>{const data=await rpc(tv.client,"live_snapshot",{p_engagement:room});if(data.status!=="ok")throw new Error(data.status==="denied"?"denied":"unavailable");return {...data,connection:{url:env.API_URL,key:env.ANON_KEY,token:tv.auth.access_token}} as LiveRead;},render:value=>views[index].push(value),mode:value=>{modes[index]=value;},received:(event,at)=>{if(index===1&&event.answer)receipts.set(event.answer.id,new Date(at).toISOString());}});streams.push(stream);stream.start();
   }
   await until(()=>modes.every(m=>m==="realtime"),"Both production TV receivers joined");
   assert.equal((await manage("screen",{content:"join"})).status,"ok");await until(()=>views.every(v=>v.at(-1)?.state.tv_content==="join"),"Both TVs show the selected join screen");
