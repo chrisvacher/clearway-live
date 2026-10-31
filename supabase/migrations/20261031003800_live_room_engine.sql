@@ -24,7 +24,7 @@ create table public.sessions (
   deleted boolean not null default false,
   unique(id,engagement_id)
 );
-create index sessions_engagement_order_idx on public.sessions(engagement_id,position,id) where not deleted;
+create index sessions_engagement_order_idx on public.sessions(engagement_id,position,id);
 create unique index sessions_one_live_idx on public.sessions(engagement_id) where state in ('live','phones_down') and not deleted;
 
 create table public.room_states (
@@ -70,11 +70,11 @@ create table public.submissions (
   foreign key(session_id,engagement_id) references public.sessions(id,engagement_id),
   foreign key(attendee_id,engagement_id) references public.attendees(id,engagement_id)
 );
-create index submissions_session_page_idx on public.submissions(engagement_id,session_id,id) where not deleted;
-create index room_states_session_idx on public.room_states(live_session_id,engagement_id) where live_session_id is not null;
-create index room_states_remote_idx on public.room_states(remote_holder_id,engagement_id) where remote_holder_id is not null;
+create index submissions_session_page_idx on public.submissions(engagement_id,session_id,id);
+create index room_states_session_idx on public.room_states(live_session_id,engagement_id);
+create index room_states_remote_idx on public.room_states(remote_holder_id,engagement_id);
 create index submissions_session_fk_idx on public.submissions(session_id,engagement_id);
-create index submissions_author_idx on public.submissions(attendee_id,session_id) where not deleted;
+create index submissions_author_idx on public.submissions(attendee_id,session_id);
 
 create table private.session_notes (
   session_id uuid primary key,
