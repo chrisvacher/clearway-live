@@ -1,0 +1,19 @@
+# TV page and pairing
+
+Milestone 2, PR 3 implements FAC-04 and the D1-01 join screen. Open `/tv` on the separate screen computer. In an engagement's setup or run of show, choose **Pair a TV**, enter its six-digit code and name the screen. Each code expires in five minutes and is consumed on approval. Multiple TVs can be paired independently.
+
+The TV has its own persistent HttpOnly device proof and `cw-tv` Auth cookie. Facilitator and participant cookies are never used for TV access. Approval requires the current native Google session, Clearway allowlist and engagement assignment. A server-only, no-email token exchange creates a native identity solely for the approved device and binds its native session to that engagement. Browser clients cannot call that exchange. Pair attempts and anonymous initialization are rate limited, and code hashes remain private.
+
+Reopening the TV page resumes its existing native session. If an expired session must be restored, the device proof can restore only its still-approved pairing. Unpairing or engagement closure revokes the binding and native refresh session, clears pending claims, retires its private topic and requires a fresh approval. Reopening the engagement cannot restore the old TV. A TV cannot read another room, roster emails, attendee identifiers, phone depth, planning fields or presenter notes.
+
+The persistent Navy shell scales a 1920 by 1080 stage uniformly, preserves full screen while following room state, requests screen wake lock where supported and toggles full screen with F. The cursor and up-close controls disappear after inactivity. The browser may require a user gesture for full screen or decline a wake lock. HDMI, mirroring, OS display settings and reading from the farthest seat remain physical acceptance checks.
+
+Preparation controls select holding, join or screen check for all paired TVs. They do not interrupt a live session. Saved room size, Navy/Off-White theme, texture and reduced-motion settings use the shared versioned state. The screen check has overscan corners, safe edges, a true circle and a fixed type ladder. The approved filled Clearway mark is used as texture, and a church logo tile or church-name fallback appears after pairing.
+
+The join screen encodes a public short room alias in a QR code. It redirects to the existing room sign-in flow and grants no access. Only first names appear, at most 14 plus a remaining count. Multiple devices for one attendee count once. Participant arrival notifications run after the identity transaction commits, avoiding a device-to-room lock inversion. TV heartbeats reconcile missed arrival notifications. Matching presence checks do not increment the room version.
+
+The TV uses the existing private Realtime stream, five-second snapshots and 1.5-second fallback. On disconnect it keeps its last frame and shows the quiet Reconnecting mark. Names fade in and existing positions ease from their current position. Acknowledgements follow committed TV versions, with original per-answer receive times retained through serial/batched retries. No token or room data is stored in browser local storage. Full word-cloud and wall renderers remain in PR 6, and live-session controls remain in PR 4.
+
+## Verification
+
+`npm run check` covers application checks. CI replays and lints the migration, runs the role matrix, and executes `npm run test:tv` against disposable loopback Auth, Postgres and private Realtime. The TV integration verifies code expiry, approval, two screens, browser-client resume, first-name arrivals, duplicate-device counting, private data isolation, per-answer timestamps, cached-channel revocation, display settings and closure/reopen. HTTP tests exercise the real SSR SDK cookie namespaces and code-exchange endpoints. Native fixture clocks and transport probes do not establish venue latency acceptance. No production TV pairing, Auth session, attendee or email is created by automated checks.

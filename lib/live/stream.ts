@@ -7,6 +7,7 @@ export type StreamOptions = {
   read: (transport: boolean) => Promise<LiveRead>;
   render: (snapshot: LiveSnapshot) => void;
   mode: (mode: Mode) => void;
+  received?: (event: LiveEvent, receivedAt: number) => void;
   subscribe?: (read: LiveRead, event: (event: LiveEvent) => void, rekey: () => void, status: (connected: boolean) => void) => () => void;
 };
 
@@ -52,7 +53,7 @@ export class RoomStream {
     if (!this.value) { void this.recover(); return; }
     const next = applyLiveEvent(this.value, event);
     if (next.kind === "snapshot") { void this.recover(); return; }
-    if (next.kind === "applied") { this.value = next.value; this.options.render(this.value); }
+    if (next.kind === "applied") { this.options.received?.(event, Date.now()); this.value = next.value; this.options.render(this.value); }
   };
   private async recover(transport = false) {
     if (this.stopped) return;

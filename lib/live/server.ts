@@ -1,7 +1,7 @@
 import "server-only";
-import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { tvClient } from "@/lib/tv/client";
 import { facilitatorClient } from "@/lib/auth/client";
 import { privateResponse } from "@/lib/auth/response";
 import { participantClient } from "@/lib/room/client";
@@ -26,7 +26,7 @@ export async function handleLive(request: NextRequest, engagement: string) {
     for (const { name, value, options } of values) { request.cookies.set(name, value); response.cookies.set(name, value, options); }
   } };
   const client = surface === "control" ? facilitatorClient(jar) : surface === "tv"
-    ? createServerClient(config.url, config.key, { cookies: jar, cookieOptions: { name: "cw-tv", httpOnly: true, sameSite: "lax", path: "/", secure: config.secure } })
+    ? tvClient(jar)
     : participantClient(jar, engagement);
   if (!client) return result({ status: "denied" }, 403);
   try {
