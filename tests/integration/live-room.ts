@@ -29,12 +29,21 @@ async function main() {
   const subscriptions: (() => void)[] = [];
   async function joined(client: SupabaseClient, topic: string, room: (value: Record<string, unknown>) => void, rekey: () => void = () => {}) {
     await client.realtime.setAuth();
-    const channel = client.channel(topic, { config: { private: true, broadcast: { ack: true } } }).on("broadcast", { event: "room" }, event => room(event.payload)).on("broadcast", { event: "rekey" }, rekey);
+    const marker=randomUUID();let ready=false;
+    const channel = client.channel(topic, { config: { private: true, broadcast: { ack: true } } }).on("broadcast", { event: "room" }, event => room(event.payload)).on("broadcast", { event: "rekey" }, rekey).on("broadcast",{event:"test_ready"},event=>{if(event.payload.marker===marker)ready=true;});
     channels.push(channel);
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("Private Realtime subscription timed out")), 15000);
       channel.subscribe((value,error) => { if (value === "SUBSCRIBED") { clearTimeout(timer); resolve(); } else if (value === "CHANNEL_ERROR") { clearTimeout(timer); reject(new Error("Private Realtime subscription denied: "+(error?.message||"no reason"))); } });
     });
+    // Fresh CI services can acknowledge a join before their database-broadcast
+    // worker is ready. Probe the transport, without submitting an app answer or
+    // advancing a room version. Application delivery assertions still send once.
+    for(let attempt=0;attempt<30&&!ready;attempt++) {
+      await db.query("select private.live_send($1,'test_ready',$2::jsonb)",[topic,JSON.stringify({marker})]);
+      await delay(100);
+    }
+    assert.ok(ready,"Private Realtime database-broadcast delivery is ready");
     return channel;
   }
   async function until(check: () => boolean, message: string) {
