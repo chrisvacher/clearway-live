@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { Pool } from "pg";
 import { createClient, type RealtimeChannel, type SupabaseClient } from "@supabase/supabase-js";
+import { subscribeLive } from "../../lib/live/stream";
 import type { LiveSnapshot } from "../../lib/live/types";
 import { sessionId } from "../../lib/room/policy";
 
@@ -22,15 +23,17 @@ async function main() {
     const type = generated.data.properties!.verification_type; assert.ok(type === "magiclink" || type === "signup");
     const verified = await client.auth.verifyOtp({ token_hash: generated.data.properties!.hashed_token, type });
     assert.equal(verified.error, null); assert.ok(verified.data.session); assert.ok(verified.data.user);
-    return { client, user: verified.data.user, session: sessionId(verified.data.session.access_token)! };
+    return { client, user: verified.data.user, session: sessionId(verified.data.session.access_token)!, token: verified.data.session.access_token };
   }
   const channels: RealtimeChannel[] = [];
+  const subscriptions: (() => void)[] = [];
   async function joined(client: SupabaseClient, topic: string, room: (value: Record<string, unknown>) => void, rekey: () => void = () => {}) {
+    await client.realtime.setAuth();
     const channel = client.channel(topic, { config: { private: true, broadcast: { ack: true } } }).on("broadcast", { event: "room" }, event => room(event.payload)).on("broadcast", { event: "rekey" }, rekey);
     channels.push(channel);
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("Private Realtime subscription timed out")), 15000);
-      channel.subscribe(value => { if (value === "SUBSCRIBED") { clearTimeout(timer); resolve(); } else if (value === "CHANNEL_ERROR") { clearTimeout(timer); reject(new Error("Private Realtime subscription denied")); } });
+      channel.subscribe((value,error) => { if (value === "SUBSCRIBED") { clearTimeout(timer); resolve(); } else if (value === "CHANNEL_ERROR") { clearTimeout(timer); reject(new Error("Private Realtime subscription denied: "+(error?.message||"no reason"))); } });
     });
     return channel;
   }
@@ -88,10 +91,18 @@ async function main() {
     const renewed = await tv.client.rpc("live_snapshot", { p_engagement: room }); assert.equal(renewed.error, null); assert.notEqual(renewed.data.topic, initial.data.topic);
     assert.equal((await phone.client.rpc("live_snapshot", { p_engagement: room })).data.status, "denied");
     const restored: Record<string, unknown>[] = []; await joined(tv.client, renewed.data.topic, event => restored.push(event));
+    const adapterEvents: Record<string, unknown>[] = [];
+    await new Promise<void>((resolve,reject)=>{
+      const timer=setTimeout(()=>reject(new Error("Production receive adapter timed out")),15000);
+      subscriptions.push(subscribeLive({...renewed.data,connection:{url:env.API_URL,key:env.ANON_KEY,token:tv.token}},
+        event=>{if(event.state.version>renewed.data.version)adapterEvents.push(event);},()=>{},connected=>{if(connected){clearTimeout(timer);resolve();}}));
+    });
     await db.query("update public.room_states set phones_down=false where engagement_id=$1", [room]);
     await until(() => restored.length === 1, "Active TV resumed on the rotated private channel");
+    await until(() => adapterEvents.length === 1, "Production receive adapter authenticated before joining");
     console.log("Native live engine: private WebSocket delivery, 50 concurrent writes, ordered versions, deduplication, anti-spoofing, anonymous payloads, 1256-row pagination, latency receipts and revocation rotation passed. This is not the venue latency acceptance test.");
   } finally {
+    for(const stop of subscriptions)stop();
     await Promise.all(clients.map(client => client.removeAllChannels()));
     await db.end();
   }

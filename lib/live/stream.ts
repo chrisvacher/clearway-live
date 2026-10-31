@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
 import { adoptSnapshot, applyLiveEvent, retryDelay, snapshotDelay } from "./protocol";
 import type { LiveEvent, LiveRead, LiveSnapshot, SubmissionRequest } from "./types";
 
@@ -15,11 +15,17 @@ export function subscribeLive(read: LiveRead, event: (event: LiveEvent) => void,
   if (!read.connection) throw new Error("Missing connection");
   const { url, key, token } = read.connection;
   const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, realtime: { accessToken: async () => token } });
-  const channel = client.channel(read.topic, { config: { private: true } })
-    .on("broadcast", { event: "room" }, message => event(message.payload as LiveEvent))
-    .on("broadcast", { event: "rekey" }, rekey)
-    .subscribe(value => status(value === "SUBSCRIBED"));
-  return () => { void client.removeChannel(channel); };
+  let channel: RealtimeChannel | undefined, stopped = false;
+  // supabase-js 2.50 starts with the API key as Realtime's token. Joining first
+  // would authorize as anon; set the caller's token before the initial join.
+  void client.realtime.setAuth(token).then(() => {
+    if (stopped) return;
+    channel = client.channel(read.topic, { config: { private: true } })
+      .on("broadcast", { event: "room" }, message => event(message.payload as LiveEvent))
+      .on("broadcast", { event: "rekey" }, rekey)
+      .subscribe(value => { if (!stopped) status(value === "SUBSCRIBED"); });
+  }).catch(() => { if (!stopped) status(false); });
+  return () => { stopped = true; if (channel) void client.removeChannel(channel); };
 }
 
 export class RoomStream {
