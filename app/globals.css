@@ -165,7 +165,7 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .show-print-actions { display: flex; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-8); }
 .show-print h2 { margin: var(--space-8) 0 var(--space-4); }
 .show-print p { color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
-.show-print table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--cwl-fs-app-micro); }
+.show-print table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--cwl-fs-app-table); }
 .show-print th, .show-print td { text-align: left; vertical-align: top; padding: var(--space-3); border-bottom: 1px solid var(--cwl-app-border); overflow-wrap: anywhere; }
 .show-print th { background: var(--cwl-app-sunken); }
 .show-print th:first-child { width: 15%; }
@@ -200,3 +200,7 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
   .show-parts, .show-panel { height: auto; }
   .show-form { overflow: visible; }
 }
+
+.show-panel-foot { flex-wrap: wrap; }
+.show-panel-feedback { flex-basis: 100%; padding: var(--space-3); border-radius: var(--cwl-radius-button); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); }
+.show-panel-feedback.is-error { background: var(--cwl-app-error-bg); border: 1px solid var(--cwl-app-error); }

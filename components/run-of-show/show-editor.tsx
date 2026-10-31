@@ -24,7 +24,7 @@ export function ShowEditor({ initial }: { initial: RunOfShow }) {
     const response = await fetch(endpoint, { cache: "no-store" }); if (!response.ok) throw new Error("load");
     const next = await response.json() as RunOfShow; setShow(next); return next;
   }
-  const close = () => { setEditing(null); returnFocus.current?.focus(); };
+  const close = () => { setEditing(null); requestAnimationFrame(() => returnFocus.current?.focus()); };
   async function mutate(action: string, input: unknown) {
     setBusy(true); setMessage(""); setError(false);
     try {
@@ -65,7 +65,7 @@ export function ShowEditor({ initial }: { initial: RunOfShow }) {
         <button className="show-button is-primary" disabled={busy || Boolean(editing) || reloadNeeded || show.context.closed} onClick={e => open(e.currentTarget, newSession(show.context.id), true)}><Plus size={18} aria-hidden="true" />Add session</button>
       </div></header>
       <div className="show-toolbar"><span>Times in {show.context.timezone}</span><button className="show-button" disabled={busy} onClick={() => void reload()}>Reload run of show</button></div>
-      {message && <div className={`show-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</div>}
+      {message && !editing && <div className={`show-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</div>}
       {show.context.closed && <p className="show-message">This engagement has closed. You can read and print its run of show.</p>}
       <div className={`show-body${editing ? " has-panel" : ""}`}>
         <div className="show-parts">{parts.map(part => {
@@ -78,7 +78,7 @@ export function ShowEditor({ initial }: { initial: RunOfShow }) {
             </li>)}</ol> : <p className="show-empty">No sessions yet.</p>}
           </section>;
         })}</div>
-        {editing && <SessionForm key={editing.session.id} {...editing} context={show.context} busy={busy} blocked={reloadNeeded} onSave={async (value: SessionInput) => mutate("save", value)} onClose={close} onRemove={() => void mutate("remove", { id: editing.session.id, revision: editing.session.revision })} />}
+        {editing && <SessionForm key={editing.session.id} {...editing} context={show.context} busy={busy} blocked={reloadNeeded} feedback={message} failed={error} onSave={async (value: SessionInput) => mutate("save", value)} onClose={close} onRemove={() => void mutate("remove", { id: editing.session.id, revision: editing.session.revision })} />}
       </div>
     </div>
   </main>;

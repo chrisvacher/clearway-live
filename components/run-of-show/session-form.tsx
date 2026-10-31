@@ -5,8 +5,8 @@ import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { parts, type SessionInput, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
 
-type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void };
-export function SessionForm({ session, fresh, context, busy, blocked, onSave, onClose, onRemove }: Props) {
+type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; feedback: string; failed: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void };
+export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove }: Props) {
   const [value, setValue] = useState(session);
   const [start, setStart] = useState(() => localTime(session.planned_start, context.timezone));
   const [opens, setOpens] = useState(() => localTime(session.opens_at, context.timezone));
@@ -63,8 +63,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, onSave, on
           <label className="is-full" htmlFor="session-state">State<select id="session-state" disabled={running} value={value.state} onChange={e => change("state", e.target.value)}>{running ? <option value={session.state}>{session.state.replaceAll("_", " ")}</option> : <><option value="draft">Draft</option><option value="ready">Ready</option></>}</select></label>
         </div>
       </fieldset>
-      {timeError && <p className="show-message is-error" role="alert">{timeError}</p>}
-      <div className="show-panel-foot"><span className="show-help">Edits go out when you save.</span><button className="show-button" type="button" disabled={busy} onClick={close}>Cancel</button><button className="show-button is-primary" type="submit" disabled={busy || blocked || context.closed}>{busy ? "Saving..." : "Save"}</button></div>
+      <div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}<span className="show-help">Edits go out when you save.</span><button className="show-button" type="button" disabled={busy} onClick={close}>Cancel</button><button className="show-button is-primary" type="submit" disabled={busy || blocked || context.closed}>{busy ? "Saving..." : "Save"}</button></div>
       {!fresh && !running && !context.closed && <button className="show-remove" type="button" disabled={busy || blocked} onClick={() => { if (window.confirm(`Remove ${session.title} from the run of show?`)) onRemove(); }}>Remove session</button>}
     </form>
   </aside>;
