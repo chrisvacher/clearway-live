@@ -112,3 +112,4 @@ Open questions for Chris
 Both are needed by design pass 2. Codex builds each as a setting; the default waits for Chris.
 • Default TV screen: dark (Navy), light (Off-White), or chosen per room.
 • The church on the TV: the church's name only, its logo beside Clearway's, or Clearway only.
+Handoff update, October 30, 2026: milestone 1 passed and is merged. Chris supplied design pass 2, approved motion, and confirmed the export’s filled-mark textures and LIVE pill, Navy default TV theme, and church logo beside Clearway’s. The entry gates and the two design questions above are resolved. See docs/design-pass-2-handoff.md and the updated PRD.

@@ -1,0 +1,216 @@
+/* ================================================================
+   CLEARWAY LIVE · DESIGN PASS 2 (milestone 2: the live room)
+   Additions on top of live_tokens.css and components/bundle.css.
+   Every value is a --cwl-* or base --cw-* token, or a layout length.
+   No raw hex values. No facilitator-only token outside [data-surface="control"].
+   No Sunrise, callout or texture on app surfaces.
+   ================================================================ */
+
+/* ---------- TV: persistent stage parts ---------- */
+.p2-layer { transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.p2-layer.is-entering { opacity: 0; }
+.p2-layer.is-leaving { opacity: 0; pointer-events: none; }
+[data-motion="reduced"] .p2-layer { transition-duration: var(--cwl-dur-reduced); }
+.p2-host { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.p2-host .cwl-cloud { flex: 1; }
+.p2-note { font-size: var(--cwl-fs-tv-floor); font-weight: 600; color: var(--cwl-text-muted); min-height: 1.4em; margin-top: 16px; transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-arrive); }
+.p2-note:empty { opacity: 0; }
+.p2-right { display: inline-flex; align-items: center; gap: 32px; }
+.p2-marker-slot { display: inline-grid; justify-items: end; }
+.p2-marker-slot > * { grid-area: 1 / 1; transition: opacity var(--cwl-dur-phones-dim) var(--cwl-ease-signature); }
+.p2-marker-slot > .is-off { opacity: 0; }
+[data-motion="reduced"] .p2-marker-slot > * { transition-duration: 0ms; }
+.p2-reconnect { transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.p2-reconnect.is-off { opacity: 0; }
+[data-motion="reduced"] .p2-reconnect { transition-duration: 0ms; }
+.p2-reconnect .cwl-icon { width: 24px; height: 24px; }
+
+/* Spotlight outranks the leader: while a spotlight is on, the leading word and bar use their normal colors */
+.cwl-tv.has-spot .cwl-word.is-leader { color: var(--cwl-word-repeated); }
+.cwl-tv.has-spot .cwl-bar-row.is-leader .cwl-bar-fill { background: var(--cwl-bar); }
+.cwl-tv.has-spot .cwl-bar-row.is-leader .cwl-bar-value { color: var(--cwl-on-accent); }
+.cwl-spot-eyebrow { font-size: var(--cwl-fs-tv-floor); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+
+/* ---------- TV: pairing code (FAC-04) ---------- */
+.p2-pair { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; height: 100%; gap: 40px; }
+.p2-pair-code { display: flex; gap: 24px; }
+.p2-pair-code span { width: 200px; height: 240px; display: grid; place-items: center; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-tv-display); font-weight: 700; font-variant-numeric: tabular-nums; }
+.p2-pair-code .p2-sep { width: 48px; background: transparent; color: var(--cwl-text-muted); }
+.p2-pair-steps { font-size: var(--cwl-fs-tv-body); font-weight: 500; line-height: 1.4; color: var(--cwl-text); max-width: 1500px; }
+.p2-pair-steps strong { font-weight: 700; }
+
+/* ---------- TV: screen check ---------- */
+.p2-check { position: absolute; inset: 0; z-index: 1; }
+.p2-check-safe { position: absolute; inset: var(--cwl-tv-safe-y) var(--cwl-tv-safe-x); outline: 4px solid var(--cwl-text); }
+.p2-check-edge { position: absolute; inset: 0; outline: 4px dashed var(--cwl-text-muted); outline-offset: -4px; }
+.p2-check-corner { position: absolute; width: 64px; height: 64px; border: 0 solid var(--cwl-live); }
+.p2-check-corner.tl { left: var(--cwl-tv-safe-x); top: var(--cwl-tv-safe-y); border-top-width: 8px; border-left-width: 8px; }
+.p2-check-corner.tr { right: var(--cwl-tv-safe-x); top: var(--cwl-tv-safe-y); border-top-width: 8px; border-right-width: 8px; }
+.p2-check-corner.bl { left: var(--cwl-tv-safe-x); bottom: var(--cwl-tv-safe-y); border-bottom-width: 8px; border-left-width: 8px; }
+.p2-check-corner.br { right: var(--cwl-tv-safe-x); bottom: var(--cwl-tv-safe-y); border-bottom-width: 8px; border-right-width: 8px; }
+.p2-check-circle { position: absolute; width: 640px; height: 640px; left: 50%; top: 50%; transform: translate(-50%, -50%); border-radius: 50%; border: 6px solid var(--cwl-accent); }
+.p2-check-cross { position: absolute; left: 50%; top: 50%; width: 2px; height: 1080px; transform: translate(-50%, -50%); background: var(--cwl-border); }
+.p2-check-cross.is-h { width: 1920px; height: 2px; }
+.p2-ladder { position: absolute; left: 96px; top: 120px; display: flex; flex-direction: column; gap: 10px; z-index: 2; }
+.p2-ladder div { display: flex; align-items: baseline; gap: 24px; font-weight: 600; color: var(--cwl-text); line-height: 1.1; }
+.p2-ladder small { font-size: 24px; font-weight: 600; color: var(--cwl-text-muted); width: 260px; flex: none; }
+.p2-check-label { position: absolute; right: 96px; top: 120px; z-index: 2; text-align: right; max-width: 760px; }
+
+/* ---------- Phone: pass 2 states ---------- */
+.p2-ph-typing { min-height: var(--cwl-phone-touch-lg); }
+.p2-ph-typing.is-typing::after { content: ""; display: inline-block; width: 2px; height: 1.1em; margin-left: 2px; vertical-align: -3px; background: var(--cwl-text-on-card); }
+.p2-ph-list { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.p2-ph-down { transition: opacity var(--cwl-dur-phones-dim) var(--cwl-ease-signature); }
+.p2-ph-down.is-off { opacity: 0; height: 0; padding: 0; border-width: 0; overflow: hidden; }
+[data-motion="reduced"] .p2-ph-down { transition-duration: 0ms; }
+.cwl-phone .cwl-btn[disabled] { opacity: 1; }
+.p2-ph-banner { display: flex; align-items: flex-start; gap: 8px; border-radius: var(--cwl-radius-card); padding: 12px 14px; font-size: var(--cwl-fs-phone-label); font-weight: 600; line-height: 1.4; color: var(--cwl-text); box-shadow: inset 0 0 0 2px var(--cwl-border-strong); }
+.p2-ph-code { display: flex; gap: 8px; }
+.p2-ph-code span { flex: 1; height: 56px; display: grid; place-items: center; border-radius: var(--cwl-radius-button); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-headline); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- App surfaces: control surface layout (FAC-01) ---------- */
+.p2-fac { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+.p2-fac-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px var(--cwl-app-gutter); border-bottom: 1px solid var(--cwl-app-border); background: var(--cwl-app-card); min-width: 0; }
+.p2-fac-head .who { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.p2-fac-head .mk { width: 28px; height: 28px; color: var(--cwl-app-text); flex: none; }
+.p2-fac-cols { display: grid; grid-template-columns: 290px minmax(0, 1fr) 360px; min-height: 0; }
+.p2-fac-col { min-height: 0; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.p2-fac-col + .p2-fac-col { border-left: 1px solid var(--cwl-app-border); }
+.p2-fac-col.is-center { background: var(--cwl-app-page); }
+.p2-run { display: flex; flex-direction: column; }
+.p2-run-part { font-size: var(--cwl-fs-app-micro); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cwl-app-text-muted); padding: 10px 4px 6px; }
+.p2-run-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: var(--cwl-app-row-h); padding: 6px 8px; border-radius: 8px; font-size: var(--cwl-fs-app-table); }
+.p2-run-row .t { font-variant-numeric: tabular-nums; color: var(--cwl-app-text-muted); font-weight: 600; }
+.p2-run-row.is-current { background: var(--cwl-app-selected); }
+.p2-run-row.is-next { box-shadow: inset 0 0 0 1px var(--cwl-app-border-strong); }
+.p2-run-row .ttl { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p2-run-row .sub { color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-micro); font-weight: 600; }
+.p2-ctrl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.p2-ctrl .cwl-a-btn { width: 100%; padding: 0 8px; }
+.p2-ctrl .is-wide { grid-column: span 2; }
+.p2-stat { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.p2-stat div { background: var(--cwl-app-card); border-radius: 8px; padding: 10px 12px; }
+.p2-stat b { display: block; font-size: var(--cwl-fs-app-section-title); font-variant-numeric: tabular-nums; }
+.p2-notes { font-size: var(--cwl-fs-app-table); line-height: 1.55; }
+.p2-mirror { border-radius: 8px; overflow: hidden; outline: 1px solid var(--cwl-app-border); }
+.p2-phones-mini { display: flex; gap: 10px; align-items: center; }
+.p2-phones-mini .cwl-a-avatar { width: 24px; height: 24px; font-size: 11px; }
+.p2-remote-holder { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text-muted); }
+
+/* "Only you see this" on panels other than the alignment signal: same band, same ground */
+[data-surface="control"] .cwl-private-band .cwl-icon { width: 16px; height: 16px; }
+[data-surface="control"] .cwl-private .cwl-a-list { border-color: transparent; }
+[data-surface="control"] .p2-stat div { background: var(--cwl-fac-signal-card); }
+
+/* Remote extras */
+.p2-r-countdown { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); }
+.p2-r-countdown b { font-size: 28px; font-variant-numeric: tabular-nums; }
+.p2-r-countdown .cwl-progress { flex: 1; }
+.p2-r-countdown .cwl-progress > i { background: var(--cwl-live); }
+.p2-r-preview { border: 2px dashed var(--cwl-app-border-strong); border-radius: var(--cwl-radius-card); padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Run of show setup (SET-07) */
+.p2-ros { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--cwl-app-gap); }
+.p2-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.p2-form .is-full { grid-column: 1 / -1; }
+.p2-textarea { width: 100%; min-height: 76px; padding: 10px 12px; border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-table); resize: vertical; line-height: 1.5; }
+.p2-textarea:focus { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+
+/* Print sheet (FAIL-10) */
+.p2-print { background: var(--cwl-app-card); color: var(--cwl-app-text); padding: 32px 40px; font-size: 13px; line-height: 1.5; }
+.p2-print h3 { margin: 18px 0 6px; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
+.p2-print table { width: 100%; border-collapse: collapse; }
+.p2-print td, .p2-print th { text-align: left; vertical-align: top; padding: 8px 6px; border-bottom: 1px solid var(--cwl-app-border); }
+.p2-print th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
+.p2-print .tnum { font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* ---------- Nesting guard ----------
+   A TV or phone drawn inside an app surface (the TV mirror on the control surface, the remote's mirror,
+   these review pages) must keep its own theme and its live-only colors. App surfaces set Sunrise to
+   initial and light pages set light values, and custom properties inherit, so the room's surfaces
+   re-declare their own semantic tokens from base values here. */
+:root { --cwl-p2-sunrise: var(--cwl-sunrise); --cwl-p2-royal-deep: var(--cwl-royal-deep); }
+[data-surface="tv"], [data-surface="phone"] {
+  --cwl-sunrise: var(--cwl-p2-sunrise); --cwl-royal-deep: var(--cwl-p2-royal-deep);
+  --cwl-callout: var(--cwl-sunrise); --cwl-bar-leader: var(--cwl-sunrise); --cwl-word-leader: var(--cwl-sunrise);
+}
+[data-surface="tv"][data-theme="dark"], [data-surface="phone"][data-theme="dark"] {
+  --cwl-surface: var(--cw-navy); --cwl-surface-card: var(--cw-off-white);
+  --cwl-text: var(--cw-off-white); --cwl-text-muted: var(--cw-sky-blue);
+  --cwl-bar-track: var(--cwl-bar-track-ink); --cwl-bar-label: var(--cw-off-white); --cwl-cut-line: var(--cw-off-white);
+  --cwl-word-single: var(--cw-sky-blue); --cwl-word-repeated: var(--cw-off-white); --cwl-word-new: var(--cw-lime);
+  --cwl-border: var(--cwl-border-dark-ink); --cwl-border-strong: var(--cw-sky-blue); --cwl-focus-ring: var(--cw-sky-blue);
+  --cwl-presence: var(--cw-sky-blue); --cwl-scrim: var(--cwl-scrim-ink);
+}
+[data-surface="tv"][data-theme="light"], [data-surface="phone"][data-theme="light"] { --cwl-word-leader: var(--cw-navy); }
+.cwl-phone *, .cwl-tv * { box-sizing: border-box; }
+
+/* A dark TV drawn inside a light app surface (control mirror, remote mirror) keeps its dark-screen look:
+   the base light-theme rules are written [data-surface][data-theme="light"] .x and would otherwise match the ancestor. */
+[data-surface][data-theme="dark"] .cwl-texture { display: block; }
+[data-surface="tv"][data-theme="dark"] .cwl-word.is-leader, [data-surface="tv"][data-theme="dark"] .cwl-word.is-new { background: none; padding: 0; border-radius: 0; }
+[data-surface="tv"][data-theme="dark"] .cwl-word.is-leader { color: var(--cwl-word-leader); }
+[data-surface="tv"][data-theme="dark"] .cwl-word.is-new { color: var(--cwl-word-new); }
+[data-surface="tv"][data-theme="dark"] .cwl-card { box-shadow: var(--cwl-shadow-tv); }
+[data-surface="tv"][data-theme="dark"] .cwl-card.is-newest { box-shadow: 0 0 0 5px var(--cwl-surface), 0 0 0 11px var(--cwl-live); }
+[data-surface="tv"][data-theme="dark"] .cwl-card.is-newest::before { content: none; }
+.cwl-tv[data-surface="tv"].has-spot .cwl-word.is-leader { color: var(--cwl-word-repeated); background: none; padding: 0; }
+.p2-join-link { font-size: var(--cwl-fs-tv-headline); font-weight: 700; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+
+/* Plus Jakarta Sans ships 300 to 700 here: keep <strong> at 700 so no missing 800 face is requested. */
+strong, b { font-weight: 700; }
+i[data-lucide] { font-style: normal; }
+
+/* ---------- The church on the TV (decided Oct 30: the church's logo beside Clearway's) ----------
+   The church's logo sits on an Off-White tile at the Clearway mark's 56px height, so any logo color reads on Navy.
+   No logo on file: the church's name sits in the tile instead. Shown on every TV screen after pairing. */
+.p2-lockup { display: inline-flex; align-items: center; gap: 24px; min-width: 0; }
+.p2-lockup .cwl-tv-logo { flex: none; }
+.p2-lockup-rule { width: 2px; height: 44px; background: var(--cwl-border); flex: none; }
+.p2-church-logo { height: 56px; display: inline-flex; align-items: center; gap: 12px; padding: 0 20px 0 8px; border-radius: 12px; background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: 26px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; flex: none; }
+.p2-church-logo .mono { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--cwl-text-on-card); color: var(--cwl-surface-card); font-size: 22px; letter-spacing: 0; }
+[data-surface="tv"][data-theme="light"] .p2-church-logo { box-shadow: inset 0 0 0 2px var(--cwl-border); }
+
+/* Word cloud swell: the size changes in layout at once and the swell is drawn with a scale from the top-left,
+   so a growing word and its neighbours never overlap mid-move. Color still eases over cwl-dur-swell. */
+.p2-cloud .cwl-word { transition: color var(--cwl-dur-swell) var(--cwl-ease-signature); transform-origin: 0 0; }
+.p2-cloud .cwl-word.is-settling { transition: color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+[data-motion="reduced"] .p2-cloud .cwl-word { transition-duration: 0ms; }
+
+/* Morph (pass 2): words and cards are moved, sized and faded by springs in live-room.js, so their CSS size
+   transitions are off and every transform scales from the top-left. Color still eases. */
+.p2-wall .cwl-card { transition: box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); transform-origin: 0 0; will-change: transform, opacity; }
+.p2-cloud .cwl-word { will-change: transform, opacity; }
+
+/* ---------- Response wall (decided Oct 30): AI groups in the main area, answers in a column on the right ----------
+   Every group label shares one fill (Royal, Off-White text at 36px bold or larger), so color carries no meaning;
+   size shows how many answers a group holds. Answers scroll in the right column, newest first, fading out at the foot. */
+.p2-wallsplit { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 600px; gap: 56px; }
+.p2-groups { position: relative; display: flex; flex-direction: column; gap: 28px; min-width: 0; min-height: 0; }
+.p2-groups-head { display: flex; align-items: center; gap: 20px; }
+.p2-groups-hint { font-size: var(--cwl-fs-tv-floor); font-weight: 600; color: var(--cwl-text-muted); }
+.p2-group-list { position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 24px; min-height: 0; }
+.p2-group { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.3em 0.5em; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; transform-origin: 0 0; will-change: transform, opacity; }
+.p2-group .n { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; padding: 0 0.35em; border-radius: var(--cwl-radius-pill); font-size: max(var(--cwl-fs-tv-floor), 0.5em); background: var(--cwl-surface); color: var(--cwl-text); font-variant-numeric: tabular-nums; }
+.p2-groups-empty { font-size: var(--cwl-fs-tv-body); font-weight: 500; color: var(--cwl-text-muted); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.p2-groups-empty.is-off { opacity: 0; position: absolute; pointer-events: none; }
+.p2-feed { display: flex; flex-direction: column; min-height: 0; padding-left: 40px; border-left: 2px solid var(--cwl-border); }
+.p2-feed-head { font-size: var(--cwl-fs-tv-floor); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-text-muted); padding-bottom: 12px; }
+.p2-feed-list { position: relative; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent); mask-image: linear-gradient(to bottom, black 75%, transparent); }
+.p2-feed-row { position: relative; flex: none; font-size: var(--cwl-fs-tv-floor); font-weight: 600; line-height: 1.3; color: var(--cwl-text); padding: 14px 0 14px 24px; border-bottom: 1px solid var(--cwl-border); transform-origin: 0 0; will-change: transform, opacity; overflow-wrap: anywhere; }
+.p2-feed-row::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 6px; border-radius: 3px; background: transparent; transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.p2-feed-row.is-newest::before { background: var(--cwl-live); }
+.p2-feed-track { display: flex; flex-direction: column; will-change: transform; }
+.p2-feed-row { overflow: hidden; }
+.p2-ghost { z-index: 0; }
+
+/* ---------- Field layout (Oct 30): word cloud anchors and the wall's group labels keep their own places ---------- */
+.p2-field { position: relative; flex: 1; min-height: 0; }
+.p2-field .cwl-word, .p2-group-list .p2-group { will-change: transform, opacity; }
+.p2-group-list { display: block; flex: 1; min-height: 0; }
+.p2-chips { justify-content: flex-start; -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+.p2-chips-track { display: flex; flex: none; align-items: center; gap: 40px; will-change: transform; }
+.p2-chips .cwl-word { flex: none; }
+/* Give the field a definite size in every browser: the split's single row fills the space it is given. */
+.p2-wallsplit { grid-template-rows: minmax(0, 1fr); }
+.p2-groups, .p2-feed { height: 100%; }

@@ -110,7 +110,7 @@ insert into join_requests(id,engagement_id,name,email,device_id,status,decided_a
   (tests.id(605),tests.id(201),'Deleted request','deletedrequest@example.org',tests.id(8005),'pending',null,null,null);
 update join_requests set deleted=true where id=tests.id(605);
 
-select tables_are('public', array['churches','engagements','clearway_users','engagement_facilitators','attendees','join_requests','device_sessions'], 'Only the seven milestone 1 tables are created');
+select has_table('public',t,'Foundation table remains: '||t) from unnest(array['churches','engagements','clearway_users','engagement_facilitators','attendees','join_requests','device_sessions']) t;
 
 select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid='public.churches'::regclass), 'churches: RLS enabled and forced');
 select col_not_null('public','churches','created_at','churches: created time is mandatory');

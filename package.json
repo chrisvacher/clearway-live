@@ -22,7 +22,8 @@
     "test:auth": "node --import tsx tests/integration/room-auth.ts",
     "test:team-hub": "node --conditions=react-server --import tsx tests/integration/team-hub-reader.ts",
     "db:seed": "node --import tsx scripts/seed-local.ts",
-    "test:practice": "node --import tsx tests/integration/practice-room.ts"
+    "test:practice": "node --import tsx tests/integration/practice-room.ts",
+    "test:live": "node --import tsx tests/integration/live-room.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.6.1",

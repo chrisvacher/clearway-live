@@ -1,0 +1,309 @@
+/* ================================================================
+   CLEARWAY LIVE: live_tokens.css
+   The Clearway Live layer: every surface of live.clearway.co (TV, phones,
+   control surface and remote, setup, scribe console, overnight review).
+   Load AFTER the base: Clearway Design System colors_and_type.css.
+   This file never redefines a --cw-* base value. It reads them, with the
+   base value as a fallback only, and adds --cwl-* tokens on top.
+   Source: tokens.json (generated together). Codex: generate app styles from here.
+   ================================================================ */
+
+/* ---------- Surfaces ----------
+   <html data-surface="tv|phone|control|setup|scribe|review" data-theme="dark|light" data-motion="full|reduced">
+   Components read --cwl-* tokens only. App-surface tokens (--cwl-app-*, --cwl-core-*, --cwl-run-*)
+   exist only under control, setup, scribe and review; Sunrise is unset there.
+   Facilitator-only tokens exist ONLY under [data-surface="control"]. */
+
+:root {
+  /* ---------- Live-only primitives (new; not in the base) ---------- */
+  --cwl-sunrise: #FFC845; /* Live-only. Sunrise: look here. Never in the base system, never on the facilitator or scribe views. */
+  --cwl-royal-deep: #3868D4; /* Live-only. Deeper Royal for small text on blue (4.9:1 with Off-White; Off-White on Royal is 4.3:1). */
+  --cwl-sky-pale: color-mix(in srgb, var(--cw-sky-blue, #99C5FE) 25%, #FFFFFF); /* Tint: Sky Blue 25% (75% toward white). Group 9.  (= #E6F0FF) */
+  --cwl-sky-light: color-mix(in srgb, var(--cw-sky-blue, #99C5FE) 50%, #FFFFFF); /* Tint: Sky Blue 50% toward white. Group 7.  (= #CCE2FE) */
+  --cwl-sky-deep: color-mix(in srgb, var(--cw-sky-blue, #99C5FE) 80%, var(--cw-navy, #03294E)); /* Shade: Sky Blue 20% toward Navy. Group 4.  (= #7BA6DB) */
+  --cwl-soft-lime-deep: color-mix(in srgb, var(--cw-soft-lime, #E6FFA8) 84%, var(--cw-navy, #03294E)); /* Shade: Soft Lime 16% toward Navy. Group 5.  (= #C2DD9A) */
+  --cwl-soft-lime-shade: color-mix(in srgb, var(--cw-soft-lime, #E6FFA8) 70%, var(--cw-navy, #03294E)); /* Shade: Soft Lime 30% toward Navy. Group 10.  (= #A2BF8D) */
+  --cwl-bar-track-ink: color-mix(in srgb, var(--cw-navy, #03294E) 78%, var(--cw-royal-blue, #3F72DE)); /* Navy 22% toward Royal. Empty bar track on Navy.  (= #10396E) */
+  --cwl-border-dark-ink: rgba(249, 249, 251, 0.15); /* Off-White at 15%: the base dark-variant border. */
+  --cwl-glow-ink: rgba(63, 114, 222, 0.45); /* Royal Blue at 45%: centre of the corner glow. */
+  --cwl-scrim-ink: rgba(3, 41, 78, 0.88); /* Navy at 88%: spotlight scrim on dark screens. */
+  --cwl-scrim-light-ink: rgba(249, 249, 251, 0.9); /* Off-White at 90%: spotlight scrim on light screens. */
+  --cwl-app-scrim-ink: rgba(3, 41, 78, 0.4); /* Navy at 40%: behind modals and side panels on app surfaces. */
+
+  /* ---------- Semantic color, dark theme (default) ---------- */
+  --cwl-surface: var(--cw-navy, #03294E); /* Screen background. Dark: every TV and phone screen. Light: light screens only. */
+  --cwl-surface-panel: var(--cw-royal-blue, #3F72DE); /* Highlighted panels, headers and large color blocks. Large text only on it (Off-White 4.3:1). */
+  --cwl-surface-panel-small: var(--cwl-royal-deep); /* Blue panels that carry small text (Off-White 4.9:1). */
+  --cwl-surface-card: var(--cw-off-white, #F9F9FB); /* Light cards on the wall and phone answer surfaces. */
+  --cwl-text: var(--cw-off-white, #F9F9FB); /* Main text on cwl-surface. */
+  --cwl-text-muted: var(--cw-sky-blue, #99C5FE); /* Secondary text, counts, sources on cwl-surface. */
+  --cwl-text-on-card: var(--cw-navy, #03294E); /* Text on cwl-surface-card, group cards, lens fills, Lime and Sunrise blocks. */
+  --cwl-text-on-panel: var(--cw-off-white, #F9F9FB); /* Text on cwl-surface-panel (large only) and cwl-surface-panel-small (any size). */
+  --cwl-accent: var(--cw-royal-blue, #3F72DE); /* Primary buttons, bars, active outlines. Shapes and large text only on Navy (3.3:1). */
+  --cwl-button-primary: var(--cwl-royal-deep); /* Primary button fill (Send, Join). Deeper Royal, so a 16px label passes. */
+  --cwl-on-accent: var(--cw-off-white, #F9F9FB); /* Label on cwl-button-primary (any size) or on cwl-accent (large only). */
+  --cwl-live: var(--cw-lime, #D2FF71); /* LIVE: the LIVE marker, current session, confirm buttons, confirmed items, newest arrival, progress. One moment per screen. */
+  --cwl-on-live: var(--cw-navy, #03294E); /* Text and icons on a cwl-live fill. */
+  --cwl-callout: var(--cwl-sunrise); /* LOOK HERE: spotlit item, key number, leading answer. One moment per screen. Never beside cwl-live. */
+  --cwl-on-callout: var(--cw-navy, #03294E); /* Text and icons on a cwl-callout fill. */
+  --cwl-bar: var(--cw-royal-blue, #3F72DE); /* Poll, ranking and 100-point bars. */
+  --cwl-bar-leader: var(--cwl-sunrise); /* The leading bar (ties share it). This is the screen's Sunrise moment. */
+  --cwl-bar-track: var(--cwl-bar-track-ink); /* The empty track behind a bar. */
+  --cwl-bar-label: var(--cw-off-white, #F9F9FB); /* Bar labels and values beside the bar. */
+  --cwl-cut-line: var(--cw-off-white, #F9F9FB); /* The cut line across bars ("top five"). */
+  --cwl-word-single: var(--cw-sky-blue, #99C5FE); /* Word cloud: one mention. Word clouds run on dark screens. */
+  --cwl-word-repeated: var(--cw-off-white, #F9F9FB); /* Word cloud: repeated answers (anchors). */
+  --cwl-word-leader: var(--cwl-sunrise); /* Word cloud: the leader, ties share it. Light screens: Navy text on a cwl-callout block. */
+  --cwl-word-new: var(--cw-lime, #D2FF71); /* Word cloud: a new word for its Lime moment (1200ms), then it settles. Light: Navy on a cwl-live block. */
+  --cwl-border: var(--cwl-border-dark-ink); /* Hairlines and card edges that carry no meaning. */
+  --cwl-border-strong: var(--cw-sky-blue, #99C5FE); /* Input outlines and edges that must be seen (3:1). */
+  --cwl-focus-ring: var(--cw-sky-blue, #99C5FE); /* Keyboard and assistive focus on phones. 3px solid, 2px offset. */
+  --cwl-presence: var(--cw-sky-blue, #99C5FE); /* Names arriving on the join screen and presence counts. */
+  --cwl-texture-ink: var(--cw-royal-blue, #3F72DE); /* Ink of the mark texture. Always at a cwl-tex opacity, dark screens only. */
+  --cwl-glow: var(--cwl-glow-ink); /* The soft Royal corner glow. Dark screens only. */
+  --cwl-scrim: var(--cwl-scrim-ink); /* Behind a spotlit item. Items under it are hidden, not read. */
+
+  /* ---------- Group palette (cards and groups on the wall; up to 10; Navy text) ---------- */
+  --cwl-group-1: var(--cw-sky-blue, #99C5FE);
+  --cwl-group-2: var(--cw-soft-lime, #E6FFA8);
+  --cwl-group-3: var(--cw-off-white, #F9F9FB);
+  --cwl-group-4: var(--cwl-sky-deep);
+  --cwl-group-5: var(--cwl-soft-lime-deep);
+  --cwl-group-6: var(--cw-gray-300, #D1D5DB);
+  --cwl-group-7: var(--cwl-sky-light);
+  --cwl-group-8: var(--cw-gray-400, #9CA3AF);
+  --cwl-group-9: var(--cwl-sky-pale);
+  --cwl-group-10: var(--cwl-soft-lime-shade);
+
+  /* ---------- Five Lenses (fixed on every surface and in the report) ---------- */
+  --cwl-lens: var(--cw-royal-blue, #3F72DE); /* One color for every lens heading */
+  --cwl-on-lens: var(--cw-off-white, #F9F9FB); /* Heading text and icon; 20px bold or larger */
+  /* Headings: Congregation (lucide users), Community (lucide map-pin), Leadership (lucide compass), Operations (lucide settings), Learning (lucide book-open) */
+
+  /* ---------- Type: TV ramp at 1920x1080, scaled by the room size ---------- */
+  --cwl-room-scale: 1.5;   /* set from the room size setting: one of the --cwl-room-* values */
+  --cwl-fit-scale: 1;      /* 1 down to the floor; the fit step shrinks the whole ramp evenly */
+  --cwl-tv-scale: max(1, calc(var(--cwl-room-scale) * var(--cwl-fit-scale)));
+  --cwl-fs-tv-display: calc(144px * var(--cwl-tv-scale)); /* Key numbers, the scale average. 13% of height. */
+  --cwl-fs-tv-headline-xl: calc(96px * var(--cwl-tv-scale)); /* One-idea headline screens. Light 300 with a bold 700 phrase. */
+  --cwl-fs-tv-headline: calc(64px * var(--cwl-tv-scale)); /* Session headlines and prompts. Light 300 with a bold 700 phrase. */
+  --cwl-fs-tv-main: calc(56px * var(--cwl-tv-scale)); /* Main content: wall card text, bar labels at full size, word anchors at minimum. */
+  --cwl-fs-tv-body: calc(44px * var(--cwl-tv-scale)); /* Main content when crowded; Scripture body. */
+  --cwl-fs-tv-floor: calc(36px * var(--cwl-tv-scale)); /* Room minimum (3.3% of height). Counts, labels, sources. Nothing the room must read goes smaller. */
+  --cwl-fs-tv-eyebrow: calc(36px * var(--cwl-tv-scale)); /* Eyebrows above headlines, uppercase via CSS, base tracking. */
+  --cwl-fs-tv-upclose: 24px; /* Up close only: Reconnecting, the corner room link. Never room content. (not scaled) */
+
+  /* ---------- Type: phone ramp from 360px (base scale) ---------- */
+  --cwl-fs-phone-headline: 28px; /* Base mobile H1. State titles. */
+  --cwl-fs-phone-prompt: 24px; /* Base H3. The prompt. */
+  --cwl-fs-phone-input: 20px; /* Base lead. Answer input text (never under 16px, so iOS never zooms). */
+  --cwl-fs-phone-body: 16px; /* Base body. Depth, sources, Scripture. */
+  --cwl-fs-phone-button: 16px; /* Base button: uppercase, 0.05em tracking. */
+  --cwl-fs-phone-label: 14px; /* Base small. Status lines, counts. */
+  --cwl-fs-phone-micro: 12px; /* Base micro. Markers and footnotes only. */
+
+  /* ---------- Room size multipliers ---------- */
+  --cwl-room-very-small: 1.5; /* Room size "very small screen": largest type. Default for a U-shape of about 8. */
+  --cwl-room-small: 1.35; /* Room size "small screen". */
+  --cwl-room-medium: 1.2; /* Room size "medium screen". */
+  --cwl-room-large: 1.1; /* Room size "large screen". */
+  --cwl-room-very-large: 1.0; /* Room size "very large screen": the floor ramp. Type never scales below this. */
+
+  /* ---------- Spacing and layout ---------- */
+  --cwl-tv-safe-x: 28px; /* TV safe margin left and right (1.5% of 1920). Nothing crosses it. */
+  --cwl-tv-safe-y: 16px; /* TV safe margin top and bottom (1.5% of 1080). */
+  --cwl-tv-gutter: 96px; /* TV content inset from the edge, base space-24. */
+  --cwl-tv-gap: 32px; /* Gap between TV items, base space-8. */
+  --cwl-tv-card-pad: 32px; /* Padding inside a TV wall card, base space-8. */
+  --cwl-tv-moment-gap: 48px; /* Minimum distance between a Lime and a Sunrise element, base space-12. */
+  --cwl-phone-gutter: 16px; /* Phone side gutter, base space-4. */
+  --cwl-phone-stack: 24px; /* Phone vertical rhythm, base space-6. */
+  --cwl-phone-touch: 44px; /* Minimum touch target. */
+  --cwl-phone-touch-lg: 56px; /* Primary phone buttons (Send, Confirm). */
+  --cwl-app-sidebar-w: 248px; /* App shell sidebar width. */
+  --cwl-app-header-h: 64px; /* App page header height. */
+  --cwl-app-panel-w: 480px; /* Side panel width (slides in from the right). */
+  --cwl-app-control-h: 40px; /* Buttons, inputs and selects on laptop views. */
+  --cwl-app-row-h: 44px; /* Table and list rows: dense, never cramped. */
+  --cwl-app-gutter: 24px; /* Page padding on app surfaces, base space-6. */
+  --cwl-app-gap: 16px; /* Gap between app blocks, base space-4. */
+  --cwl-remote-control-h: 64px; /* Phone remote primary controls. */
+
+  /* ---------- Radii (base values) ---------- */
+  --cwl-radius-button: 6px; /* Phone buttons and inputs, base radius-md. */
+  --cwl-radius-card: 12px; /* Phone cards, base radius-lg. */
+  --cwl-radius-tv-card: 16px; /* TV wall cards and panels, base radius-xl. */
+  --cwl-radius-pill: 9999px; /* LIVE marker, markers, chips, bars' ends. */
+
+  /* ---------- Elevation ---------- */
+  --cwl-shadow-tv: none; /* No shadow on the TV: it reads cleanly at a distance. */
+  --cwl-shadow-phone: 0 4px 6px -1px rgb(3 41 78 / 0.07), 0 2px 4px -2px rgb(3 41 78 / 0.05); /* Phone cards on light screens, base shadow-md. */
+  --cwl-shadow-app-card: 0 1px 2px 0 rgb(3 41 78 / 0.05); /* App cards that float, base shadow-sm. Most cards use a border only. */
+  --cwl-shadow-app-overlay: 0 20px 40px rgb(3 41 78 / 0.12); /* Side panels, popovers, toasts, base shadow-dropdown. */
+  --cwl-shadow-app-modal: 0 20px 25px -5px rgb(3 41 78 / 0.08), 0 8px 10px -6px rgb(3 41 78 / 0.05); /* Modals, base shadow-xl. */
+
+  /* ---------- Motion: durations ---------- */
+  --cwl-dur-arrive: 500ms; /* Arriving: a new item fades and settles where it lands. */
+  --cwl-dur-make-room: 700ms; /* Making room: neighbours glide aside (FLIP). */
+  --cwl-dur-swell: 400ms; /* Swelling: a repeated word grows and shifts color. */
+  --cwl-dur-new-hold: 1200ms; /* How long the newest arrival keeps its Lime moment. */
+  --cwl-dur-settle-color: 600ms; /* A color settling back after its moment. */
+  --cwl-dur-bar-grow: 600ms; /* Bars growing from their previous value. */
+  --cwl-dur-bar-trade: 700ms; /* Bars trading places with a smooth slide. */
+  --cwl-dur-cut-line: 700ms; /* The cut line sliding, locked to the bar trade. */
+  --cwl-dur-regroup: 1200ms; /* Drifting into groups: slower, calmer. */
+  --cwl-dur-label-grow: 600ms; /* Group labels growing as groups gather. */
+  --cwl-dur-count: 400ms; /* A count ticking to its new value. */
+  --cwl-dur-phones-dim: 300ms; /* Phones dimming for phones down, base dur-slow. */
+  --cwl-dur-spotlight-on: 600ms; /* Spotlight on: the item lifts, the scrim rises. */
+  --cwl-dur-spotlight-off: 500ms; /* Spotlight off: base dur-mochary. */
+  --cwl-dur-hide: 400ms; /* Hide: the item fades and shrinks away. */
+  --cwl-dur-reduced: 150ms; /* Reduced motion: the still equivalent's fade, base dur-fast. */
+  --cwl-dur-app-hover: 200ms; /* App surfaces: hover and press, base dur-base. */
+  --cwl-dur-panel: 300ms; /* App surfaces: side panel sliding in from the right, base dur-slow. */
+  --cwl-dur-modal: 200ms; /* App surfaces: modal and toast entrance. */
+  --cwl-dur-toast-hold: 5000ms; /* App surfaces: how long a toast stays; paused on hover and focus. */
+  --cwl-dur-sync-after: 2000ms; /* Show Syncing when the TV hasn't confirmed within this time. */
+
+  /* ---------- Motion: easing ---------- */
+  --cwl-ease-signature: cubic-bezier(0.25, 0.1, 0.25, 1); /* Base signature easing. Default for every movement. */
+  --cwl-ease-arrive: cubic-bezier(0, 0, 0.25, 1); /* Decelerate only, for arrivals and labels growing. */
+  --cwl-ease-calm: cubic-bezier(0.45, 0, 0.25, 1); /* Gentle in and out, for regrouping and spotlight. */
+  --cwl-ease-exit: cubic-bezier(0.4, 0, 1, 1); /* Accelerate out, for hide. */
+
+  /* ---------- Motion: delay rules ---------- */
+  --cwl-delay-stagger: 120ms; /* Steady flow: spacing between arrivals when many land at once. */
+  --cwl-delay-stagger-min: 30ms; /* The tightest spacing the flow compresses to. */
+  --cwl-delay-max-hold: 1500ms; /* No answer is held longer than this after receipt. */
+  --cwl-delay-regroup-step: 40ms; /* Cascade between cards drifting into groups, max 12 steps. */
+  --cwl-delay-label-after-drift: 600ms; /* Labels start growing halfway through the drift. */
+  --cwl-delay-make-room-after-hide: 200ms; /* Neighbours close the gap this long after a hide starts. */
+  --cwl-delay-swell-color: 0ms; /* Color shift starts with the swell. */
+
+  /* ---------- Opacity ---------- */
+  --cwl-tex-solid: 0.10; /* Solid mark texture opacity over Navy. */
+  --cwl-tex-outline: 0.22; /* Outline mark texture opacity over Navy. */
+  --cwl-tex-strip: 0.35; /* Edge strip marks (not the live one). */
+  --cwl-spotlight-recede: 0.12; /* Items behind a spotlight recede to this (hidden, not read). */
+  --cwl-arrive-from: 0; /* Arriving items start from this opacity. */
+
+  --cwl-font: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif);
+}
+
+/* ---------- Light screens ---------- */
+[data-theme="light"] {
+  --cwl-surface: var(--cw-off-white, #F9F9FB);
+  --cwl-surface-card: var(--cw-white, #FFFFFF);
+  --cwl-text: var(--cw-navy, #03294E);
+  --cwl-text-muted: var(--cw-gray-600, #4B5563);
+  --cwl-bar-track: var(--cw-gray-200, #E5E7EB);
+  --cwl-bar-label: var(--cw-navy, #03294E);
+  --cwl-cut-line: var(--cw-navy, #03294E);
+  --cwl-word-single: var(--cw-gray-600, #4B5563);
+  --cwl-word-repeated: var(--cw-navy, #03294E);
+  --cwl-word-leader: var(--cw-navy, #03294E);
+  --cwl-word-new: var(--cw-navy, #03294E);
+  --cwl-border: var(--cw-gray-200, #E5E7EB);
+  --cwl-border-strong: var(--cw-gray-500, #6B7280);
+  --cwl-focus-ring: var(--cw-royal-blue, #3F72DE);
+  --cwl-presence: var(--cw-gray-600, #4B5563);
+  --cwl-scrim: var(--cwl-scrim-light-ink);
+}
+
+/* ---------- Reduced motion: every movement has a still equivalent ----------
+   Phones follow the OS setting; the TV has its own setting (data-motion="reduced"). */
+@media (prefers-reduced-motion: reduce) { :root:not([data-motion="full"]) { --cwl-motion: reduced; } }
+[data-motion="reduced"] { --cwl-motion: reduced; }
+:root { --cwl-motion: full; }
+
+/* ---------- App surfaces: control, setup, scribe, review (light by default) ---------- */
+[data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"] {
+  --cwl-app-page: var(--cw-off-white, #F9F9FB); /* App surfaces: the page. */
+  --cwl-app-card: var(--cw-white, #FFFFFF); /* App surfaces: cards, tables, panels, modals, inputs. */
+  --cwl-app-sunken: var(--cw-gray-100, #F3F4F6); /* App surfaces: table headers, pinned footers, skeletons, disabled fills. */
+  --cwl-app-text: var(--cw-navy, #03294E); /* App surfaces: main text on page, card and sunken. */
+  --cwl-app-text-muted: var(--cw-gray-600, #4B5563); /* App surfaces: secondary text and help text. */
+  --cwl-app-text-subtle: var(--cw-gray-500, #6B7280); /* App surfaces: meta, placeholders, disabled labels. */
+  --cwl-app-border: var(--cw-gray-200, #E5E7EB); /* App surfaces: hairlines, card and table borders. */
+  --cwl-app-border-strong: var(--cw-gray-500, #6B7280); /* App surfaces: input, checkbox and toggle edges (3:1). */
+  --cwl-app-primary: var(--cwl-royal-deep); /* App surfaces: primary buttons. Deeper Royal so 14px labels pass. */
+  --cwl-app-primary-hover: var(--cw-navy, #03294E); /* App surfaces: primary button hover (base sweep ends on Navy). */
+  --cwl-app-on-primary: var(--cw-white, #FFFFFF); /* App surfaces: label on primary buttons. */
+  --cwl-app-link: var(--cwl-royal-deep); /* App surfaces: links and ghost buttons (Royal at text size fails on white; Deeper Royal passes). */
+  --cwl-app-focus: var(--cw-royal-blue, #3F72DE); /* App surfaces: focus ring, 2px solid, 2px offset (3:1 on white and Off-White). */
+  --cwl-app-hover: var(--cw-gray-100, #F3F4F6); /* App surfaces: row, nav and ghost-button hover. */
+  --cwl-app-selected: var(--cwl-sky-pale); /* App surfaces: selected rows, active nav item. */
+  --cwl-app-avatar: var(--cwl-sky-light); /* App surfaces: initials avatars (Navy text). */
+  --cwl-app-warning: var(--cw-warning, #D97706); /* App surfaces only: Warning icon and disc fill. Never as text. Never on the TV or phones. */
+  --cwl-app-warning-bg: var(--cw-warning-light, #FEF3C7); /* App surfaces only: Warning banners and chips (Navy text). */
+  --cwl-app-on-warning: var(--cw-navy, #03294E); /* App surfaces only: glyph on a Warning disc. */
+  --cwl-app-error: var(--cw-error, #DC2626); /* App surfaces only: Error text, input edges, icons, destructive buttons. Never on the TV or phones. */
+  --cwl-app-error-bg: var(--cw-error-light, #FEE2E2); /* App surfaces only: Error banners and chips (Navy text). */
+  --cwl-app-on-error: var(--cw-white, #FFFFFF); /* App surfaces only: label on a destructive button or Error disc. */
+  --cwl-app-success: var(--cw-success, #059669); /* App surfaces: success icon and disc fill. Never as text. */
+  --cwl-app-success-bg: var(--cw-success-light, #D1FAE5); /* App surfaces: success chips (Navy text). */
+  --cwl-app-info: var(--cw-info, #2563EB); /* App surfaces: info icon and disc fill. */
+  --cwl-app-info-bg: var(--cw-info-light, #DBEAFE); /* App surfaces: info banners and Ready chips (Navy text). */
+  --cwl-app-team: var(--cw-navy, #03294E); /* App surfaces: Team-led chip fill (Off-White text). */
+  --cwl-app-on-team: var(--cw-off-white, #F9F9FB); /* App surfaces: text on cwl-app-team. */
+  --cwl-app-scrim: var(--cwl-app-scrim-ink); /* App surfaces: behind modals and side panels. */
+  --cwl-core-not-started: var(--cw-gray-100, #F3F4F6); --cwl-core-not-started-disc: var(--cw-gray-500, #6B7280); --cwl-core-not-started-glyph: var(--cw-white, #FFFFFF); /* Not started · lucide circle-dashed */
+  --cwl-core-on-track: var(--cw-success-light, #D1FAE5); --cwl-core-on-track-disc: var(--cw-success, #059669); --cwl-core-on-track-glyph: var(--cw-white, #FFFFFF); /* On track · lucide check */
+  --cwl-core-at-risk: var(--cw-warning-light, #FEF3C7); --cwl-core-at-risk-disc: var(--cw-warning, #D97706); --cwl-core-at-risk-glyph: var(--cw-navy, #03294E); /* At risk · lucide triangle-alert */
+  --cwl-core-off-track: var(--cw-error-light, #FEE2E2); --cwl-core-off-track-disc: var(--cw-error, #DC2626); --cwl-core-off-track-glyph: var(--cw-white, #FFFFFF); /* Off track · lucide x */
+  --cwl-core-completed: var(--cwl-sky-pale); --cwl-core-completed-disc: var(--cwl-royal-deep); --cwl-core-completed-glyph: var(--cw-white, #FFFFFF); /* Completed · lucide flag */
+  --cwl-run-draft: var(--cw-gray-100, #F3F4F6); --cwl-on-run-draft: var(--cw-gray-700, #374151); /* Draft · lucide pencil-line */
+  --cwl-run-ready: var(--cw-info-light, #DBEAFE); --cwl-on-run-ready: var(--cw-navy, #03294E); /* Ready · lucide circle-check */
+  --cwl-run-live: var(--cw-lime, #D2FF71); --cwl-on-run-live: var(--cw-navy, #03294E); /* Live · lucide radio */
+  --cwl-run-done: var(--cw-gray-200, #E5E7EB); --cwl-on-run-done: var(--cw-gray-700, #374151); /* Done · lucide check-check */
+  --cwl-run-team-led: var(--cw-navy, #03294E); --cwl-on-run-team-led: var(--cw-off-white, #F9F9FB); /* Team-led · lucide users */
+  --cwl-fs-app-page-title: 24px; /* Base H3. Page titles in the app header. */
+  --cwl-fs-app-section-title: 20px; /* Base H4. Section and panel titles. */
+  --cwl-fs-app-body: 16px; /* Base body. Paragraphs, review text. */
+  --cwl-fs-app-table: 14px; /* Base small. Table cells, inputs, dense lists. */
+  --cwl-fs-app-label: 14px; /* Base small, 600. Field labels, nav, buttons (uppercase 700). */
+  --cwl-fs-app-micro: 12px; /* Base micro. Chips, table headers (uppercase), meta. */
+  /* Sunrise never appears on app surfaces */
+  --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial;
+}
+/* Warning and Error live only on app surfaces: they do not exist on the TV or phones */
+[data-surface="tv"], [data-surface="phone"] { --cwl-app-warning: initial; --cwl-app-warning-bg: initial; --cwl-app-error: initial; --cwl-app-error-bg: initial; }
+
+/* ---------- FACILITATOR ONLY: defined on the control surface and nowhere else ---------- */
+[data-surface="control"] {
+  --cwl-fac-private-surface: var(--cw-gray-100, #F3F4F6); /* FACILITATOR ONLY. Background of anything only the facilitator sees. */
+  --cwl-fac-private-band: var(--cw-navy, #03294E); /* FACILITATOR ONLY. The 32px band that heads every private panel. */
+  --cwl-fac-private-band-text: var(--cw-off-white, #F9F9FB); /* FACILITATOR ONLY. "Only you see this" label on the band. */
+  --cwl-fac-private-text: var(--cw-navy, #03294E); /* FACILITATOR ONLY. Text inside a private panel. */
+  --cwl-fac-signal-aligned: var(--cw-success, #059669); /* FACILITATOR ONLY. Aligned: icon disc fill. Icon circle-check, label "Aligned". */
+  --cwl-fac-signal-divergent: var(--cw-warning, #D97706); /* FACILITATOR ONLY. Divergent: icon disc fill. Icon split, label "Divergent". */
+  --cwl-fac-signal-silent: var(--cw-info, #2563EB); /* FACILITATOR ONLY. Silent: icon disc fill. Icon volume-x, label "Silent". */
+  --cwl-fac-signal-thin: var(--cw-gray-500, #6B7280); /* FACILITATOR ONLY. Thin data: icon disc fill. Icon circle-dashed, label "Thin data". */
+  --cwl-fac-signal-card: var(--cw-white, #FFFFFF); /* FACILITATOR ONLY. Ground of every signal card: the disc carries the color. */
+  --cwl-fac-signal-glyph: var(--cw-white, #FFFFFF); /* FACILITATOR ONLY. The icon drawn inside every signal disc. */
+  --cwl-fac-band-h: 32px; /* FACILITATOR ONLY. Height of the private band. */
+}
+
+/* ---------- Type classes (mirror the base's element styles) ---------- */
+.cwl-tv-display { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-display); line-height: 1.0; font-weight: 700; letter-spacing: -0.02em; }
+.cwl-tv-headline-xl { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-headline-xl); line-height: 1.05; font-weight: 300; letter-spacing: -0.01em; }
+.cwl-tv-headline { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-headline); line-height: 1.1; font-weight: 300; letter-spacing: -0.01em; }
+.cwl-tv-main { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-main); line-height: 1.2; font-weight: 600; letter-spacing: 0; }
+.cwl-tv-body { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-body); line-height: 1.3; font-weight: 500; letter-spacing: 0; }
+.cwl-tv-floor { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-floor); line-height: 1.3; font-weight: 600; letter-spacing: 0; }
+.cwl-tv-eyebrow { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-eyebrow); line-height: 1.2; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.cwl-tv-upclose { font-family: var(--cwl-font); font-size: var(--cwl-fs-tv-upclose); line-height: 1.3; font-weight: 500; letter-spacing: 0; }
+.cwl-phone-headline { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-headline); line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; }
+.cwl-phone-prompt { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-prompt); line-height: 1.3; font-weight: 600; letter-spacing: 0; }
+.cwl-phone-input { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-input); line-height: 1.4; font-weight: 500; letter-spacing: 0; }
+.cwl-phone-body { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-body); line-height: 1.6; font-weight: 400; letter-spacing: 0; }
+.cwl-phone-button { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-button); line-height: 1.0; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.cwl-phone-label { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-label); line-height: 1.4; font-weight: 600; letter-spacing: 0; }
+.cwl-phone-micro { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-micro); line-height: 1.4; font-weight: 500; letter-spacing: 0; }
+.cwl-app-page-title { font-family: var(--cwl-font); font-size: var(--cwl-fs-app-page-title); line-height: 1.3; font-weight: 700; letter-spacing: -0.01em; }
+.cwl-app-section-title { font-family: var(--cwl-font); font-size: var(--cwl-fs-app-section-title); line-height: 1.35; font-weight: 600; letter-spacing: 0; }
+.cwl-app-body { font-family: var(--cwl-font); font-size: var(--cwl-fs-app-body); line-height: 1.5; font-weight: 400; letter-spacing: 0; }
+.cwl-app-table { font-family: var(--cwl-font); font-size: var(--cwl-fs-app-table); line-height: 1.43; font-weight: 400; letter-spacing: 0; }
+.cwl-app-label { font-family: var(--cwl-font); font-size: var(--cwl-fs-app-label); line-height: 1.43; font-weight: 600; letter-spacing: 0; }
+.cwl-app-micro { font-family: var(--cwl-font); font-size: var(--cwl-fs-app-micro); line-height: 1.33; font-weight: 600; letter-spacing: 0; }
+.cwl-tv-headline strong, .cwl-tv-headline-xl strong { font-weight: 700; }

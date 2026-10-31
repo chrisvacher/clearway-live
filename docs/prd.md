@@ -179,8 +179,10 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 **Look and feel** (Oct 29)
 
 - The design system is built in Claude Design, starting from the existing Clearway design system and customized for the live app. Chris confirmed the Clearway Design System already exists (now an artifact at https://claude.ai/artifact/HWe33WYnnbNRusJmQ8LZTA). Clearway Live, the live app's own design system built on it, is used on every surface, including the facilitator's, for one cohesive experience.
+- Design pass 2 and motion approved by Chris on October 30. Filled-mark textures and a TV LIVE pill replace the earlier outline/edge-strip treatment. The default TV theme is Navy, and the church’s logo sits beside Clearway’s with its name as the fallback.
+- The approved wall/word-cloud motion preserves item positions and velocity while retargeting, batches arriving answers and uses the calmer continuous spring reference in the pass 2 motion spec. The wall shows individual answers in its right column in milestone 2; simulated AI groups in the reference wait until milestone 3.
 - The live app is brighter than the rest of Clearway. Royal Blue is the main live brand color. Navy is every dark screen background. Lime means live, confirm and active. Sunrise (#FFC845) is a new brand color just for the live app, for callouts and attention.
-- Dark screens carry texture from the Clearway mark (circle and arrow). Chris is considering the outline version of the mark.
+- Dark screens carry texture from the Clearway mark (circle and arrow). Chris confirmed the filled-mark treatment in design pass 2 (October 30).
 - The TV shows popularity by size and color, especially for 1 to 3 word answers, and shows polls and rankings as live horizontal bars.
 
 **From the retreat flow Chris has reviewed** (written into the flow and narrative, not separately decided, and Chris can change them)
@@ -1115,8 +1117,8 @@ Claude Design builds the app's design system before the first high-fidelity scre
 **Texture on dark screens** (Decided: a quiet texture from the Clearway mark. Treatment Open)
 
 - Every Navy screen carries a still texture drawn from the Clearway mark, behind content, so text contrast is unchanged and it never competes with live motion. The mark keeps its shape and is never stretched, rotated or skewed.
-- Chris is considering the outline version of the mark (the circle and arrow drawn as a line). If chosen, the Brain's logo entry needs the outline variant added. The Clearway Design System's rule that the mark is a logo, not a texture, gets a live-app exception (Decided October 29): on dark TV and phone screens only, the mark may be used as a texture. Everywhere else, including the control surface, documents and the website, the rule stands.
-- Decided October 29: the outline mark throughout, with a texture set automatically by screen type (see Clearway Live). Join, welcome, breaks and Nothing live: oversized mark with glow. Section openers: offset pattern with glow. Live input screens: edge strip, whose first mark turns Lime as the LIVE marker. Headline with depth, Scripture and prayer: glow only. Phones waiting or phones down: offset pattern. Phones answering or reading: plain Navy.
+- Chris confirmed the filled mark in design pass 2 on October 30, replacing the earlier outline proposal. The Clearway Design System's rule that the mark is a logo, not a texture, gets a live-app exception (Decided October 29): on dark TV and phone screens only, the mark may be used as a texture. Everywhere else, including the control surface, documents and the website, the rule stands.
+- Decided October 30, superseding the October 29 mark decision: use design pass 2’s filled-mark textures and TV LIVE pill. Chris confirmed the exported treatment during handoff. Screen-type textures and motion follow the approved pass 2 files. The base Clearway system remains unchanged.
 
 **How the TV shows popularity**
 
@@ -1396,8 +1398,8 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 
 | Question | Options | Needed by |
 | --- | --- | --- |
-| Default TV screen | Dark (Navy), light (Off-White), or chosen per room. Royal stays the main color either way | Design pass 2 |
-| The church on the TV | Church name only, the church's logo beside Clearway's, or Clearway only | Design pass 2 |
+| Default TV screen | Decided October 30: dark (Navy), retained as an engagement setting | Resolved |
+| The church on the TV | Decided October 30: the church’s logo beside Clearway’s; use its name when no logo is available | Resolved |
 | Mentimeter coverage | Confirm the ten general interactions cover Clearway's uses, or add quizzes, predictions or a statements vote | Milestone 3 |
 | Scripture text | The facilitator pastes passages (the Default), or a Bible text service, keeping in mind that many translations limit display | Milestone 3 |
 | Names in free text sent to AI | Send free text and photos as written (the Default), or add a step that removes names first | Milestone 3 |

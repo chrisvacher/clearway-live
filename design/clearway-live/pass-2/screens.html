@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clearway Live Milestone 2 Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="design-system/clearway-base/colors_and_type.css">
+<link rel="stylesheet" href="design-system/clearway-live/live_tokens.css">
+<link rel="stylesheet" href="design-system/clearway-live/components/bundle.css">
+<link rel="stylesheet" href="pass-2/pass2.css">
+<style>
+/* Layout: a single review column of boards, each a screen ID with its frames side by side, stacking at phone width. */
+:root { color-scheme: light; }
+body { margin: 0; background: var(--cw-off-white); color: var(--cw-navy); font-family: var(--cwl-font); }
+.sc { padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.sc-top h1 { margin: 4px 0 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+.sc-top p { margin: 6px 0 0; max-width: 72ch; font-size: 14px; line-height: 1.55; color: var(--cw-gray-600); }
+.sc-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cw-gray-600); }
+#toc { display: flex; flex-wrap: wrap; gap: 6px; }
+#toc a { font-size: 13px; font-weight: 600; color: var(--cw-navy); text-decoration: none; background: var(--cw-white); border: 1px solid var(--cw-gray-300); border-radius: 9999px; padding: 5px 12px; }
+#toc a:hover { border-color: var(--cw-navy); }
+#toc a:focus-visible { outline: 2px solid var(--cw-royal-blue); outline-offset: 2px; }
+.sc-board { background: var(--cw-white); border: 1px solid var(--cw-gray-200); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; }
+.sc-head h2 { margin: 6px 0 0; font-size: 20px; font-weight: 600; text-wrap: balance; }
+.sc-ids { display: flex; flex-wrap: wrap; gap: 6px; }
+.sc-id { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; background: var(--cw-navy); color: var(--cw-off-white); border-radius: 6px; padding: 2px 8px; }
+.sc-note { margin: 0; max-width: 90ch; font-size: 14px; line-height: 1.6; color: var(--cw-gray-700); }
+.sc-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.sc-row { display: grid; gap: 18px; align-items: start; min-width: 0; }
+.sc-row.is-1 { grid-template-columns: minmax(0, 1fr); }
+.sc-row.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sc-row.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sc-row.is-holding { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 200px; }
+.sc-row.is-tv1 { grid-template-columns: minmax(0, 1fr) 200px 200px; }
+.sc-row.is-phones { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.sc-row.is-print { grid-template-columns: minmax(0, 560px); }
+.sc-frame { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sc-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--cw-gray-600); }
+.sc-box { min-width: 0; }
+.sc-frame.is-tv .sc-box { border-radius: 8px; overflow: hidden; }
+.sc-frame.is-phone .sc-box { max-width: 240px; }
+.sc-cap { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cw-gray-700); }
+.sc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.sc-tabs { margin: 0; }
+.sc-rules { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--cw-gray-700); }
+.sc-table { overflow-x: auto; border: 1px solid var(--cw-gray-200); border-radius: 12px; }
+.sc-table td:first-child { white-space: nowrap; }
+.sc-table td { vertical-align: top; padding-block: 10px; line-height: 1.5; }
+@media (max-width: 900px) {
+  .sc-row.is-2, .sc-row.is-3, .sc-row.is-holding, .sc-row.is-tv1 { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<main class="sc">
+  <header class="sc-top">
+    <div class="sc-eyebrow">Clearway Live · Design pass 2 · Milestone 2: the live room</div>
+    <h1>Milestone 2 screens</h1>
+    <p>Every screen in the milestone 2 brief, built from the Clearway Live design system with Riverside Church's seed data. Screen IDs match the wireframes. Motion lives in the motion review; these frames show layout, content and states.</p>
+  </header>
+  <nav id="toc" aria-label="Screens"><a href="motion-review.html">Motion review</a></nav>
+  <div id="boards" class="sc-body" style="gap:28px"></div>
+</main>
+<script src="vendor/lucide.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="design-system/clearway-live/components/bundle.js"></script>
+<script src="pass-2/live-room.js"></script>
+<script src="pass-2/screens.js"></script>
+</body>
+</html>

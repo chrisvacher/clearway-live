@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clearway Live Motion Review</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="design-system/clearway-base/colors_and_type.css">
+<link rel="stylesheet" href="design-system/clearway-live/live_tokens.css">
+<link rel="stylesheet" href="design-system/clearway-live/components/bundle.css">
+<link rel="stylesheet" href="pass-2/pass2.css">
+<style>
+/* Layout: the review chrome is an app surface (light, calm); the TV and phone inside it are the room's surfaces. */
+:root { color-scheme: light; }
+body { margin: 0; background: var(--cw-off-white); color: var(--cw-navy); font-family: var(--cwl-font); }
+.mr { padding-block: 16px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1480px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.mr-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; }
+.mr-head h1 { margin: 4px 0 0; font-size: var(--cwl-fs-app-page-title); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+.mr-head p { margin: 6px 0 0; max-width: 64ch; font-size: var(--cwl-fs-app-table); line-height: 1.55; color: var(--cwl-app-text-muted); }
+.mr-stage { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+.mr-frame-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cw-gray-600); margin-bottom: 6px; display: flex; justify-content: space-between; gap: 8px; }
+.mr-tv { border-radius: 10px; overflow: hidden; }
+.mr-panel { background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.mr-panel h2 { margin: 0; font-size: var(--cwl-fs-app-section-title); font-weight: 600; }
+.mr-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px 20px; }
+.mr-group { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mr-group .cwl-a-btn { justify-content: flex-start; width: 100%; white-space: normal; height: auto; min-height: var(--cwl-app-control-h); padding-block: 8px; text-align: left; line-height: 1.25; }
+.mr-group .cwl-a-btn[aria-pressed="true"] { background: var(--cwl-app-text); color: var(--cwl-app-card); border-color: var(--cwl-app-text); }
+.mr-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); overflow: hidden; }
+.mr-seg button { all: unset; box-sizing: border-box; height: var(--cwl-app-control-h); display: grid; place-items: center; font-size: var(--cwl-fs-app-label); font-weight: 700; cursor: pointer; color: var(--cwl-app-text); }
+.mr-seg button[aria-pressed="true"] { background: var(--cwl-app-text); color: var(--cwl-app-card); }
+.mr-seg button:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -3px; }
+.mr-switch { display: flex; align-items: center; gap: 10px; font-size: var(--cwl-fs-app-label); font-weight: 600; min-height: var(--cwl-app-control-h); }
+.mr-caption { font-size: var(--cwl-fs-app-body); line-height: 1.55; min-height: 3.1em; border-left: 3px solid var(--cwl-app-focus); padding: 2px 0 2px 12px; }
+.mr-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 20px; align-items: start; }
+.mr-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.mr-stat { background: var(--cwl-app-sunken); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+.mr-stat b { display: block; font-size: var(--cwl-fs-app-section-title); font-variant-numeric: tabular-nums; }
+.mr-stat span { font-size: var(--cwl-fs-app-micro); font-weight: 600; color: var(--cwl-app-text-muted); }
+.mr-chart { position: relative; height: 120px; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--cwl-app-border-strong); padding-top: 18px; }
+.mr-chart i { flex: 1; min-width: 2px; background: var(--cwl-app-primary); border-radius: 2px 2px 0 0; transition: height var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+.mr-limit { position: absolute; left: 0; right: 0; top: 18px; border-top: 2px dashed var(--cwl-app-text-muted); }
+.mr-limit span { position: absolute; right: 0; top: -18px; font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text-muted); background: var(--cwl-app-card); padding-left: 6px; }
+.mr-axis { display: flex; justify-content: space-between; font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mr-small { font-size: var(--cwl-fs-app-table); line-height: 1.55; color: var(--cwl-app-text-muted); }
+.mr-layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 20px; align-items: start; }
+.mr-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.mr-side { position: sticky; top: max(12px, env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); overflow-y: auto; background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); padding: 14px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mr-side-head h2 { margin: 0; font-size: var(--cwl-fs-app-section-title); font-weight: 600; }
+.mr-side-head p { margin: 4px 0 0; font-size: var(--cwl-fs-app-table); line-height: 1.5; color: var(--cwl-app-text-muted); }
+.mr-demos { display: flex; flex-direction: column; gap: 8px; }
+.mr-demo { border: 1px solid var(--cwl-app-border); border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; background: var(--cwl-app-card); min-width: 0; }
+.mr-demo.is-running { box-shadow: inset 0 0 0 2px var(--cwl-app-focus); }
+.mr-demo h3 { margin: 0; font-size: var(--cwl-fs-app-label); font-weight: 700; }
+.mr-demo p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--cwl-app-text-muted); }
+.mr-demo code { font-size: 12px; color: var(--cwl-app-text); background: var(--cwl-app-sunken); border-radius: 4px; padding: 1px 4px; }
+.mr-demo .cwl-a-row { gap: 8px; }
+.mr-demo .cwl-a-btn { height: 32px; padding: 0 10px; font-size: 12px; }
+.mr-note { font-size: var(--cwl-fs-app-table); color: var(--cwl-app-text-muted); line-height: 1.55; max-width: 90ch; }
+@media (max-width: 1100px) {
+  .mr-layout { grid-template-columns: minmax(0, 1fr); }
+  .mr-side { position: static; max-height: none; }
+}
+@media (max-width: 860px) {
+  .mr-stage { grid-template-columns: minmax(0, 1fr); }
+  .mr-phone-wrap { max-width: 260px; }
+  .mr-layout { grid-template-columns: minmax(0, 1fr); }
+  .mr-side { position: static; max-height: none; }
+}
+</style>
+</head>
+<body>
+<div class="mr" id="chrome">
+  <header class="mr-head" data-surface="setup" data-theme="light">
+    <div>
+      <div class="cwl-a-eyebrow">Clearway Live · Design pass 2 · Milestone 2</div>
+      <h1>Motion review</h1>
+      <p>The live room on the TV and one participant's phone at Riverside Church. Every control changes the room state, and the TV animates from what it is showing now. It never blanks, refreshes, jumps or rebuilds.</p>
+    </div>
+    <span class="cwl-a-chip is-info">Motion simulation, not network latency</span>
+  </header>
+
+  <div class="mr-layout">
+  <div class="mr-main">
+  <section class="mr-stage" aria-label="TV and phone">
+    <div>
+      <div class="mr-frame-label"><span>TV · 1920 by 1080, dark theme, room size very large (type floor)</span><span id="kindLabel">D1-03 word cloud</span></div>
+      <div class="mr-tv" id="tvBox"></div>
+    </div>
+    <div class="mr-phone-wrap">
+      <div class="mr-frame-label"><span>This phone</span></div>
+      <div id="phoneBox"></div>
+    </div>
+  </section>
+
+  <section class="mr-panel" aria-label="Controls" data-surface="setup" data-theme="light">
+    <div class="mr-caption" id="caption" aria-live="polite">Pick a control. The caption says what moved, and which motion token drove it.</div>
+    <div class="mr-controls">
+      <div class="mr-group">
+        <div class="cwl-a-eyebrow">Session on the TV</div>
+        <div class="mr-seg" role="group" aria-label="Session">
+          <button type="button" id="goCloud" aria-pressed="true">Word cloud</button>
+          <button type="button" id="goWall" aria-pressed="false">Response wall</button>
+        </div>
+        <button type="button" class="cwl-a-btn is-secondary" id="resetRoom"><i data-lucide="rotate-ccw" class="cwl-icon"></i><span>Reset room</span></button>
+      </div>
+      <div class="mr-group">
+        <div class="cwl-a-eyebrow">Answers</div>
+        <button type="button" class="cwl-a-btn is-primary" id="addOne"><i data-lucide="send" class="cwl-icon"></i><span>Add one answer</span></button>
+        <button type="button" class="cwl-a-btn is-secondary" id="add50"><i data-lucide="users" class="cwl-icon"></i><span>Simulate 50 simultaneous answers</span></button>
+        <button type="button" class="cwl-a-btn is-secondary" id="repeat"><i data-lucide="repeat" class="cwl-icon"></i><span>Repeat an answer</span></button>
+      </div>
+      <div class="mr-group">
+        <div class="cwl-a-eyebrow">Facilitator</div>
+        <button type="button" class="cwl-a-btn is-secondary" id="spot" aria-pressed="false"><i data-lucide="sun" class="cwl-icon"></i><span>Spotlight an item</span></button>
+        <button type="button" class="cwl-a-btn is-secondary" id="hide"><i data-lucide="eye-off" class="cwl-icon"></i><span>Hide an item</span></button>
+        <button type="button" class="cwl-a-btn is-ghost" id="unhide"><i data-lucide="eye" class="cwl-icon"></i><span>Unhide the last hidden item</span></button>
+      </div>
+      <div class="mr-group">
+        <div class="cwl-a-eyebrow">Room</div>
+        <button type="button" class="cwl-a-btn is-secondary" id="down" aria-pressed="false"><i data-lucide="smartphone" class="cwl-icon"></i><span>Phones down</span></button>
+        <button type="button" class="cwl-a-btn is-secondary" id="offline" aria-pressed="false"><i data-lucide="wifi-off" class="cwl-icon"></i><span>Simulate reconnecting</span></button>
+        <div class="mr-switch"><button type="button" class="cwl-a-toggle" id="reduced" role="switch" aria-checked="false" aria-labelledby="reducedLbl"></button><span id="reducedLbl">Reduced motion</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mr-panel" aria-labelledby="mTitle" data-surface="setup" data-theme="light">
+      <h2 id="mTitle">Arrival holds</h2>
+      <p class="mr-small" style="margin:0">How long the TV held each answer after receiving it before showing it. The flow spaces arrivals 120ms apart, compressing toward 30ms, and must never hold one past 1.5 seconds.</p>
+      <div class="mr-stats">
+        <div class="mr-stat"><b id="sMax">-</b><span>Longest hold</span></div>
+        <div class="mr-stat"><b id="sP95">-</b><span>95th percentile</span></div>
+        <div class="mr-stat"><b id="sMed">-</b><span>Median</span></div>
+        <div class="mr-stat"><b id="sFlow">-</b><span>50 shown within</span></div>
+        <div class="mr-stat"><b id="sFrame">-</b><span>Longest frame</span></div>
+        <div class="mr-stat"><b id="sLong">-</b><span>Frames over 34ms</span></div>
+      </div>
+      <div>
+        <div class="mr-chart" id="chart" aria-label="Hold per answer, 50 answers"><div class="mr-limit"><span>1,500ms limit</span></div></div>
+        <div class="mr-axis"><span>Answer 1</span><span>Answer 50</span></div>
+      </div>
+      <div class="cwl-a-row"><span id="verdict" class="cwl-a-chip">Run the 50-answer demonstration</span><span class="mr-small" id="lastHold">Last single answer: none yet</span></div>
+  </section>
+
+  <p class="mr-note" data-surface="setup" data-theme="light">This page simulates the TV's motion in this browser. It measures how long the TV holds each answer after receipt, not how long an answer takes to travel from a phone. The 1-second phone-to-TV target is proven from the latency log on real phones and the practice-room TV computer in milestone 2. Run this page on that computer for motion sign-off.</p>
+  </div>
+  <aside class="mr-side" aria-labelledby="dTitle" data-surface="setup" data-theme="light">
+    <div class="mr-side-head"><h2 id="dTitle">Demonstrations</h2><p>Each plays from what the TV shows now. Reset and replay starts from a fresh session.</p></div>
+    <div class="mr-demos" id="demos"></div>
+  </aside>
+  </div>
+</div>
+
+<script src="vendor/lucide.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="design-system/clearway-live/components/bundle.js"></script>
+<script src="pass-2/live-room.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CL = window.ClearwayLive, P2 = window.ClearwayLivePass2;
+  var $ = function (id) { return document.getElementById(id); };
+  var caption = $("caption");
+  function say(t) { if (t) caption.textContent = t; }
+
+  var phone = new P2.PhoneView($("phoneBox"));
+  var room = new P2.LiveRoom($("tvBox"), phone, {
+    session: "cloud",
+    onCaption: say,
+    onHold: function (d) { if (!d.batch) $("lastHold").textContent = "Last single answer: shown " + Math.round(d.hold) + "ms after the TV received it"; },
+    onBatchStart: function () {
+      ["sMax", "sP95", "sMed", "sFlow", "sFrame", "sLong"].forEach(function (k) { $(k).textContent = "..."; });
+      var chart = $("chart"); chart.querySelectorAll("i").forEach(function (e) { e.remove(); });
+      for (var i = 0; i < 50; i++) { var b = document.createElement("i"); b.style.height = "0%"; chart.appendChild(b); }
+      $("verdict").className = "cwl-a-chip"; $("verdict").textContent = "Running";
+    },
+    onBatchDone: function (s) {
+      var f = function (n) { return Math.round(n).toLocaleString() + "ms"; };
+      $("sMax").textContent = f(s.max); $("sP95").textContent = f(s.p95); $("sMed").textContent = f(s.median);
+      $("sFlow").textContent = f(s.flowMs); $("sFrame").textContent = f(s.worstFrame); $("sLong").textContent = s.longFrames;
+      var bars = $("chart").querySelectorAll("i");
+      s.holds.forEach(function (hd, i) { if (bars[i]) bars[i].style.height = Math.min(100, hd / s.limit * 100) + "%"; });
+      var v = $("verdict");
+      v.className = "cwl-a-chip " + (s.pass ? "is-success" : "is-warning");
+      v.innerHTML = '<i data-lucide="' + (s.pass ? "check" : "triangle-alert") + '" class="cwl-icon"></i><span>' + (s.pass ? "Pass" : (s.max >= s.limit ? "Check: hold at limit" : "Check: slow frames")) + "</span>";
+      CL.icons();
+      say("50 answers shown. Longest hold " + f(s.max) + " against the 1,500ms limit. Every answer faded in where it landed and its neighbours made room; nothing redrew.");
+    }
+  });
+
+  /* ---------- Controls ---------- */
+  var spotBtn = $("spot"), downBtn = $("down"), offBtn = $("offline");
+  function syncButtons() {
+    var st = room.state;
+    $("goCloud").setAttribute("aria-pressed", room.kind === "cloud"); $("goWall").setAttribute("aria-pressed", room.kind === "wall");
+    $("kindLabel").textContent = room.kind === "cloud" ? "D1-03 word cloud" : "Response wall (open text)";
+    spotBtn.setAttribute("aria-pressed", !!room.spot); spotBtn.querySelector("span").textContent = room.spot ? "Clear spotlight" : "Spotlight an item";
+    downBtn.setAttribute("aria-pressed", st.phonesDown); downBtn.querySelector("span").textContent = st.phonesDown ? "Open phones" : "Phones down";
+    offBtn.setAttribute("aria-pressed", st.offline); offBtn.querySelector("span").textContent = st.offline ? "Restore the connection" : "Simulate reconnecting";
+    $("repeat").disabled = room.kind !== "cloud";
+    $("repeat").title = room.kind !== "cloud" ? "Repeat applies to the word cloud" : "";
+    ["addOne", "add50", "repeat"].forEach(function (id) { if (st.phonesDown) $(id).disabled = true; else if (id !== "repeat" || room.kind === "cloud") $(id).disabled = false; });
+    $("add50").disabled = st.phonesDown || st.offline;
+    $("unhide").disabled = !room.hiddenStack.length;
+  }
+  function act(fn) { return function () { stopDemo(); fn(); syncButtons(); }; }
+  $("goCloud").onclick = act(function () { if (room.kind !== "cloud") room.go("cloud"); });
+  $("goWall").onclick = act(function () { if (room.kind !== "wall") room.go("wall"); });
+  $("resetRoom").onclick = act(function () { room.reset(); say("Reset: a fresh copy of the session cross-faded in over the current one, the way Go live moves between sessions. The TV never blanked."); });
+  $("addOne").onclick = act(function () { room.addOne(true); say("This phone typed and sent an answer. The phone shows Sent at once; the TV fades the answer in where it lands over cwl-dur-arrive (500ms) and the rest make room by FLIP over cwl-dur-make-room (700ms). The newest arrival keeps Lime for 1.2s while the LIVE marker steps back to its outline."); });
+  $("add50").onclick = act(function () { room.burst50(); });
+  $("repeat").onclick = act(function () { room.repeat(); });
+  spotBtn.onclick = act(function () { room.toggleSpotlight(); });
+  $("hide").onclick = act(function () { room.hide(); });
+  $("unhide").onclick = act(function () { room.unhide(); });
+  downBtn.onclick = act(function () { room.setPhonesDown(!room.state.phonesDown); });
+  offBtn.onclick = act(function () { room.setOffline(!room.state.offline); });
+  $("reduced").onclick = function () {
+    var on = this.getAttribute("aria-checked") !== "true";
+    this.setAttribute("aria-checked", on);
+    room.setReduced(on); $("chrome").setAttribute("data-motion", on ? "reduced" : "full");
+    say(on ? "Reduced motion on: every movement uses its still equivalent. Arrivals fade in place over 150ms; swells, glides and dimming change instantly." : "Reduced motion off: full motion.");
+  };
+
+  /* ---------- Demonstrations: play from the current state, or reset and replay ---------- */
+  var run = 0;
+  function stopDemo() { run++; document.querySelectorAll(".mr-demo.is-running").forEach(function (d) { d.classList.remove("is-running"); }); }
+  function wait(msec, token) { return new Promise(function (res, rej) { setTimeout(function () { token === run ? res() : rej("stopped"); }, msec); }); }
+  function needKind(kind, token) { if (room.kind === kind) return Promise.resolve(); room.go(kind); syncButtons(); return wait(900, token); }
+  function clean(token) {
+    var p = Promise.resolve();
+    if (room.spot) { room.toggleSpotlight(); p = wait(550, token); }
+    if (room.state.phonesDown) room.setPhonesDown(false, true);
+    if (room.state.offline) room.setOffline(false, true);
+    syncButtons();
+    return p;
+  }
+  var DEMOS = [
+    { t: "Arriving", d: "One answer from this phone fades in where it lands; the rest make room.", tok: "cwl-dur-arrive · cwl-dur-make-room", kind: null,
+      play: function (k) { room.addOne(true); return wait(10, k); } },
+    { t: "Swelling", d: "The runner-up word is sent three more times. It grows, turns Sunrise as it takes the lead, and neighbours ease aside.", tok: "cwl-dur-swell", kind: "cloud",
+      play: function (k) { room.repeat(); syncButtons(); return wait(1300, k).then(function () { room.repeat(); return wait(1300, k); }).then(function () { room.repeat(); }); } },
+    { t: "50 at once", d: "50 phones send in the same instant. The TV releases a steady flow and measures every hold.", tok: "cwl-delay-stagger · cwl-delay-max-hold", kind: null,
+      play: function (k) { room.burst50(); return wait(10, k); } },
+    { t: "Spotlight", d: "The leading answer lifts in Sunrise over a Navy scrim for three seconds, then settles back.", tok: "cwl-dur-spotlight-on · -off", kind: null,
+      play: function (k) { room.toggleSpotlight(); syncButtons(); return wait(3000, k).then(function () { room.toggleSpotlight(); syncButtons(); }); } },
+    { t: "Hide and unhide", d: "An item fades away and its neighbours close the gap. Two seconds later it comes back.", tok: "cwl-dur-hide · cwl-ease-exit", kind: null,
+      play: function (k) { room.hide(); syncButtons(); return wait(2400, k).then(function () { room.unhide(); syncButtons(); }); } },
+    { t: "Phones down and back", d: "The TV holds still while phones dim and lock. Then phones open again.", tok: "cwl-dur-phones-dim", kind: null,
+      play: function (k) { room.setPhonesDown(true); syncButtons(); return wait(2800, k).then(function () { room.setPhonesDown(false); syncButtons(); }); } },
+    { t: "Reconnecting and restore", d: "Wifi drops. This phone saves an answer, others queue. On restore the TV animates to the current state in one pass.", tok: "tv-upclose · replay exempt", kind: null,
+      play: function (k) { room.setOffline(true); syncButtons(); return wait(700, k).then(function () { room.addOne(true); return wait(3400, k); }).then(function () { room.setOffline(false); syncButtons(); }); } },
+    { t: "Wall: 50 answers", d: "50 sentences flow into the answer column on the right. The AI's theme labels form and grow in the main area as they arrive.", tok: "answer column · AI groups", kind: "wall",
+      play: function (k) { room.burst50(); return wait(10, k); } },
+    { t: "Session change", d: "Go live on the other session. It is prepared behind the current one and cross-fades in.", tok: "cwl-dur-make-room", kind: null,
+      play: function (k) { room.go(room.kind === "cloud" ? "wall" : "cloud"); syncButtons(); return wait(10, k); } }
+  ];
+  var host = $("demos");
+  DEMOS.forEach(function (dm, i) {
+    var el = document.createElement("article"); el.className = "mr-demo";
+    el.innerHTML = '<h3></h3><p></p><div class="cwl-a-row"><button type="button" class="cwl-a-btn is-primary"><i data-lucide="play" class="cwl-icon"></i><span>Play</span></button><button type="button" class="cwl-a-btn is-secondary"><i data-lucide="rotate-ccw" class="cwl-icon"></i><span>Reset and replay</span></button></div>';
+    el.querySelector("h3").textContent = dm.t; el.querySelector("p").textContent = dm.d; el.title = dm.tok;
+    var btns = el.querySelectorAll("button");
+    function start(withReset) {
+      stopDemo(); var k = run; el.classList.add("is-running");
+      var p = clean(k);
+      if (withReset) p = p.then(function () { room.reset(); syncButtons(); return wait(900, k); });
+      if (dm.kind) p = p.then(function () { return needKind(dm.kind, k); });
+      p.then(function () { return dm.play(k); }).then(function () { return wait(dm.t === "50 at once" || dm.t === "Wall: 50 answers" ? 3500 : 1200, k); }).then(function () { el.classList.remove("is-running"); syncButtons(); }, function () { el.classList.remove("is-running"); syncButtons(); });
+    }
+    btns[0].onclick = function () { start(false); };
+    btns[1].onclick = function () { start(true); };
+    host.appendChild(el);
+  });
+  syncButtons(); CL.icons();
+})();
+</script>
+</body>
+</html>

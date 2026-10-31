@@ -69,5 +69,6 @@ the permanent practice room and Riverside’s eight fictional people. The seed
 command refuses hosted database URLs. See [practice joining and reset](docs/practice-room.md).
 
 [Milestone 1 acceptance checks](docs/milestone-1-acceptance.md) passed on October 30,
-2026, including Chris’s real-phone checks. Milestone 2 still waits for motion
-prototype signoff and Claude Design pass 2.
+2026, including Chris’s real-phone checks. Chris supplied design pass 2 and
+approved motion on October 30. See the [design handoff](docs/design-pass-2-handoff.md)
+and [milestone 2 room engine](docs/live-room-engine.md).

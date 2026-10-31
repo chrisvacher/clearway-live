@@ -27,6 +27,7 @@ let failedInviteBatch:string|null=null,combinedImports=0;
 const roomDevices = new Map<string,{proof:string;code:string;approved:boolean;claim?:string}>();
 const roomChallenges = new Map<string,{email:string;code:string;link:string;consumed:boolean}>();
 const roomJoins = new Map<string,{id:string;device:string;email:string;name:string;status:string}>();
+let livePages=0,liveRestart=false;
 let roomAuthCalls = 0;
 let roomBound = false;
 const userId = "50000000-0000-4000-8000-000000000001";
@@ -82,6 +83,19 @@ before(async () => {
     if (url.pathname === "/auth/v1/user") return mode === "invalid" || mode === "revoked"
       ? send({ message: "Invalid session" }, 401) : send(user(mode));
     if (url.pathname === "/auth/v1/logout") { logouts.push(url.searchParams.get("scope") || ""); return send({}); }
+    if (url.pathname === "/rest/v1/rpc/live_snapshot") {
+      assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);livePages++;
+      if(!["allowed","room"].includes(mode)||body.p_engagement!==roomId)return send({status:"denied"});
+      if(body.p_after&&liveRestart){liveRestart=false;return send({status:"changed",version:42});}
+      const start=body.p_after?Number(body.p_after.slice(-12)):0;
+      const id=(n:number)=>"56000000-0000-4000-8000-"+String(n).padStart(12,"0");
+      const answers=Array.from({length:Math.min(500,1205-start)},(_,i)=>({id:id(start+i+1),session_id:roomId,text:"Hope",answers:[{text:"Hope",key:"hope"}],revision:0}));
+      return send({status:"ok",role:mode==="allowed"?"facilitator":"participant",version:42,topic:"live:fixture",server_time:new Date().toISOString(),phone_depth:"Phone-only depth",session:null,state:{engagement_id:roomId,live_session_id:roomId,version:42},answers,next:start+500<1205?id(start+500):null});
+    }
+    if(url.pathname==="/rest/v1/rpc/live_submit"){
+      assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      return send(mode==="room"&&body.p_engagement===roomId?{status:"accepted",id:body.p_id,revision:body.p_revision,version:43}:{status:"denied"});
+    }
     if (url.pathname === "/rest/v1/rpc/claim_clearway_access") return send(mode === "allowed");
     if (url.pathname === "/rest/v1/clearway_users") {
       if(url.searchParams.has("auth_user_id"))assert.equal(url.searchParams.get("auth_user_id"), "eq." + userId);
@@ -555,4 +569,29 @@ test("Google sign-in is labelled clearly and cannot preselect a personal account
   assert.equal(response.status,303);const target=new URL(response.headers.get("location")!);
   assert.equal(target.searchParams.get("prompt"),"select_account");assert.equal(target.searchParams.get("hd"),"clearway.co");
   assert.equal(target.searchParams.get("login_hint"),null);assert.equal(target.searchParams.get("authuser"),null);
+});
+
+
+test("live snapshots page past 1000, restart on version changes and protect transport credentials",async()=>{
+  const session={access_token:token("room"),refresh_token:"refresh-room",expires_at:Math.floor(Date.now()/1000)+3600,user:user("room")};
+  const cookie=`cw-room-${roomId}=base64-`+Buffer.from(JSON.stringify(session)).toString("base64url");
+  liveRestart=true;livePages=0;
+  const response=await fetch(`${origin}/api/live/${roomId}?transport=1`,{headers:{cookie}});
+  assert.equal(response.status,200);assert.match(response.headers.get("cache-control")!,/private.*no-store/);
+  const data=await response.json();assert.equal(data.answers.length,1205);assert.equal(new Set(data.answers.map((x:{id:string})=>x.id)).size,1205);assert.equal(livePages,5);
+  assert.equal(data.connection.token,session.access_token);assert.notEqual(data.connection.key,tripwire);assert.ok(!JSON.stringify(data).includes(tripwire));
+  const normal=await (await fetch(`${origin}/api/live/${roomId}`,{headers:{cookie}})).json();assert.equal(normal.connection,undefined);
+  assert.equal((await fetch(`${origin}/api/live/${roomId}`)).status,403);
+  assert.equal((await fetch(`${origin}/api/live/${roomId}?surface=control`,{headers:{cookie}})).status,403);
+  assert.equal((await fetch(`${origin}/api/live/${practiceRoom}`,{headers:{cookie}})).status,403);
+});
+test("live submissions require their participant cookie, origin and valid immutable identity",async()=>{
+  const session={access_token:token("room"),refresh_token:"refresh-room",expires_at:Math.floor(Date.now()/1000)+3600,user:user("room")};
+  const cookie=`cw-room-${roomId}=base64-`+Buffer.from(JSON.stringify(session)).toString("base64url");
+  const body={id:randomUUID(),session:roomId,revision:0,action:"submit",text:"Hope",sentAt:new Date().toISOString()};
+  const post=(from:string,value:Record<string,unknown>,auth=cookie)=>fetch(`${origin}/api/live/${roomId}`,{method:"POST",headers:{origin:from,cookie:auth,"Content-Type":"application/json"},body:JSON.stringify(value)});
+  const accepted=await post(origin,body);assert.equal(accepted.status,200);assert.equal((await accepted.json()).id,body.id);
+  assert.equal((await post("https://other.invalid",body)).status,403);
+  assert.equal((await post(origin,body,"")).status,403);
+  assert.equal((await post(origin,{...body,id:"invalid"})).status,422);
 });
