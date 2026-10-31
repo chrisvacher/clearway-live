@@ -71,6 +71,9 @@ create table public.submissions (
   foreign key(attendee_id,engagement_id) references public.attendees(id,engagement_id)
 );
 create index submissions_session_page_idx on public.submissions(engagement_id,session_id,id) where not deleted;
+create index room_states_session_idx on public.room_states(live_session_id,engagement_id) where live_session_id is not null;
+create index room_states_remote_idx on public.room_states(remote_holder_id,engagement_id) where remote_holder_id is not null;
+create index submissions_session_fk_idx on public.submissions(session_id,engagement_id);
 create index submissions_author_idx on public.submissions(attendee_id,session_id) where not deleted;
 
 create table private.session_notes (
@@ -92,6 +95,8 @@ create table private.live_tv_sessions (
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   deleted boolean not null default false
 );
+create index session_notes_engagement_idx on private.session_notes(engagement_id);
+create index live_tv_sessions_user_idx on private.live_tv_sessions(auth_user_id);
 create index live_tv_sessions_room_idx on private.live_tv_sessions(engagement_id) where not deleted and revoked_at is null;
 create table private.room_transport (
   engagement_id uuid primary key references public.engagements(id),
@@ -117,6 +122,7 @@ create table private.latency_logs (
   unique(submission_id,revision,tv_session_id)
 );
 create unique index latency_accept_unique on private.latency_logs(submission_id,revision) where tv_session_id is null;
+create index latency_logs_tv_idx on private.latency_logs(tv_session_id) where tv_session_id is not null;
 create index latency_logs_room_idx on private.latency_logs(engagement_id,room_version);
 
 -- New tables use different primary-key column names, unlike the M1 tables.
