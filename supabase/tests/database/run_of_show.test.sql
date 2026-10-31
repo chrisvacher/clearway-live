@@ -44,8 +44,21 @@ select ok(not has_table_privilege('authenticated','public.sessions','update'),'N
 select ok(not has_table_privilege('authenticated','private.session_notes','update'),'No unguarded notes updates');
 select ok(not (select prosecdef from pg_proc where oid='public.show_write(uuid,text,jsonb)'::regprocedure),'Public write wrapper is invoker');
 set local role authenticated;
-select tests.login(n),is(public.show_read(tests.id(100))->>'status','denied','Non-facilitator role cannot read planning or notes'),
- is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','denied','Non-facilitator role cannot edit') from unnest(array[3,4,5,6,8])n;
+select tests.login(3);
+select is(public.show_read(tests.id(100))->>'status','denied','Role 3 cannot read planning or notes');
+select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','denied','Role 3 cannot edit');
+select tests.login(4);
+select is(public.show_read(tests.id(100))->>'status','denied','Role 4 cannot read planning or notes');
+select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','denied','Role 4 cannot edit');
+select tests.login(5);
+select is(public.show_read(tests.id(100))->>'status','denied','Role 5 cannot read planning or notes');
+select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','denied','Role 5 cannot edit');
+select tests.login(6);
+select is(public.show_read(tests.id(100))->>'status','denied','Role 6 cannot read planning or notes');
+select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','denied','Role 6 cannot edit');
+select tests.login(8);
+select is(public.show_read(tests.id(100))->>'status','denied','Role 8 cannot read planning or notes');
+select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','denied','Role 8 cannot edit');
 select tests.login(1);
 select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','ok','Lead saves session and private notes');
 select is(public.show_write(tests.id(100),'save',tests.input(310))->>'status','conflict','Retry cannot create a second session');

@@ -131,7 +131,7 @@ grant execute on function private.show_read(uuid,uuid,text),private.show_write(u
 
 -- Known horizon placeholders only, rendered on the server, no HTML evaluation.
 create function private.fill_years(p_text text,p_base integer) returns text language sql immutable security invoker set search_path='' as $$
- select replace(replace(replace(replace(replace(replace(replace(p_text,'{base year + 10}',(p_base+10)::text),'{base year+10}',(p_base+10)::text),'{base year + 3}',(p_base+3)::text),'{base year+3}',(p_base+3)::text),'{base year + 1}',(p_base+1)::text),'{base year+1}',(p_base+1)::text),'{base year}',p_base::text)
+ select replace(regexp_replace(regexp_replace(regexp_replace(p_text,'\{base year\s*\+\s*10\}',(p_base+10)::text,'g'),'\{base year\s*\+\s*3\}',(p_base+3)::text,'g'),'\{base year\s*\+\s*1\}',(p_base+1)::text,'g'),'{base year}',p_base::text)
 $$;
 revoke all on function private.fill_years(text,integer) from public,anon,authenticated;
 create or replace function private.live_public_state(p_engagement uuid) returns jsonb
