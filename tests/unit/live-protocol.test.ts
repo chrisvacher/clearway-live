@@ -44,3 +44,12 @@ test("stream recovers a version gap and ignores an older snapshot arriving after
   assert.equal(reads, 2); receive(snapshot(2)); release(snapshot(1)); await new Promise(resolve => setImmediate(resolve));
   assert.equal(views.at(-1)!.version, 3); assert.equal(reads, 3); stream.stop(); assert.equal(stopCount, 1);
 });
+
+test("saving phone depth triggers immediate private recovery without broadcasting depth to TVs", () => {
+  const sessionValue = { id: session, title: "Prompt", interaction: "word_cloud" as const, prompt: "Hello", state: "live", max_sends: 3, max_characters: 28, max_words: 3, revision: 0 };
+  const current = { ...snapshot(), role: "participant" as const, phone_depth: "Before", session: sessionValue };
+  const event = { ...snapshot(2), session: { ...sessionValue, revision: 1, prompt: "Saved" } };
+  assert.equal(applyLiveEvent(current, event).kind, "snapshot");
+  assert.equal(applyLiveEvent({ ...current, role: "tv" }, event).value.session?.prompt, "Saved");
+  assert.equal(applyLiveEvent(current, { ...event, session: sessionValue }).kind, "applied");
+});

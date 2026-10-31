@@ -18,7 +18,7 @@ async function main() {
   const clients: SupabaseClient[] = [];
   async function identity(label: string) {
     const client = createClient(env.API_URL, env.ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } }); clients.push(client);
-    const generated = await admin.auth.admin.generateLink({ type: "magiclink", email: `live-${label}-${randomUUID()}@example.org` });
+    const generated = await admin.auth.admin.generateLink({ type: "magiclink", email: `live-${label}-${randomUUID()}@${label === "fac" ? "clearway.co" : "example.org"}` });
     assert.equal(generated.error, null);
     const type = generated.data.properties!.verification_type; assert.ok(type === "magiclink" || type === "signup");
     const verified = await client.auth.verifyOtp({ token_hash: generated.data.properties!.hashed_token, type });
@@ -29,12 +29,21 @@ async function main() {
   const subscriptions: (() => void)[] = [];
   async function joined(client: SupabaseClient, topic: string, room: (value: Record<string, unknown>) => void, rekey: () => void = () => {}) {
     await client.realtime.setAuth();
-    const channel = client.channel(topic, { config: { private: true, broadcast: { ack: true } } }).on("broadcast", { event: "room" }, event => room(event.payload)).on("broadcast", { event: "rekey" }, rekey);
+    const marker=randomUUID();let ready=false;
+    const channel = client.channel(topic, { config: { private: true, broadcast: { ack: true } } }).on("broadcast", { event: "room" }, event => room(event.payload)).on("broadcast", { event: "rekey" }, rekey).on("broadcast",{event:"test_ready"},event=>{if(event.payload.marker===marker)ready=true;});
     channels.push(channel);
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error("Private Realtime subscription timed out")), 15000);
       channel.subscribe((value,error) => { if (value === "SUBSCRIBED") { clearTimeout(timer); resolve(); } else if (value === "CHANNEL_ERROR") { clearTimeout(timer); reject(new Error("Private Realtime subscription denied: "+(error?.message||"no reason"))); } });
     });
+    // Fresh CI services can acknowledge a join before their database-broadcast
+    // worker is ready. Probe the transport, without submitting an app answer or
+    // advancing a room version. Application delivery assertions still send once.
+    for(let attempt=0;attempt<30&&!ready;attempt++) {
+      await db.query("select private.live_send($1,'test_ready',$2::jsonb)",[topic,JSON.stringify({marker})]);
+      await delay(100);
+    }
+    assert.ok(ready,"Private Realtime database-broadcast delivery is ready");
     return channel;
   }
   async function until(check: () => boolean, message: string) {
@@ -100,6 +109,54 @@ async function main() {
     await db.query("update public.room_states set phones_down=false where engagement_id=$1", [room]);
     await until(() => restored.length === 1, "Active TV resumed on the rotated private channel");
     await until(() => adapterEvents.length === 1, "Production receive adapter authenticated before joining");
+    // Native authorizations and a real WebSocket verify explicit Save reaches the room.
+    const facilitator=await identity("fac"),facId=randomUUID();
+    await db.query("insert into auth.identities(user_id,provider,provider_id,identity_data) values($1::uuid,'google',$1::uuid::text,jsonb_build_object('email',$2::text,'email_verified',true))",[facilitator.user.id,facilitator.user.email]);
+    await db.query("insert into auth.mfa_amr_claims(id,session_id,created_at,updated_at,authentication_method) values(gen_random_uuid(),$1,now(),now(),'oauth')",[facilitator.session]);
+    await db.query("insert into public.clearway_users(id,auth_user_id,name,email,team_hub_team_member_id) values($1,$2,'Native facilitator',$3,gen_random_uuid())",[facId,facilitator.user.id,facilitator.user.email]);
+    await db.query("insert into public.engagement_facilitators(engagement_id,clearway_user_id,role) values($1,$2,'lead')",[room,facId]);
+    await db.query("update public.device_sessions set revoked_at=null where auth_session_id=$1",[phone.session]);
+    await db.query("update public.room_states set phones_down=false where engagement_id=$1",[room]);
+    const saveStart=await tv.client.rpc("live_snapshot",{p_engagement:room});assert.equal(saveStart.error,null);
+    const savedEvents:Record<string,unknown>[]=[];await joined(tv.client,saveStart.data.topic,event=>savedEvents.push(event));
+    const show=await facilitator.client.rpc("show_read",{p_engagement:room});assert.equal(show.error,null);assert.equal(show.data.status,"ok");
+    const edit={...show.data.sessions[0],prompt:"Saved {base year + 10}",phone_depth:"Depth {base year + 3}",notes:"SAVED-NOTES-SECRET"};
+    const started=Date.now();
+    const saved=await facilitator.client.rpc("show_write",{p_engagement:room,p_action:"save",p_input:edit});assert.equal(saved.error,null);assert.equal(saved.data.status,"ok");
+    await until(()=>savedEvents.length===1,"Saved prompt reached native private WebSocket");
+    const deliveryMs=Date.now()-started;
+    assert.equal((savedEvents[0].session as {prompt:string}).prompt,"Saved 2036");assert.ok(!JSON.stringify(savedEvents).includes("SAVED-NOTES-SECRET"));assert.ok(!JSON.stringify(savedEvents).includes("Depth 2029"));
+    const depth=await phone.client.rpc("live_snapshot",{p_engagement:room});assert.equal(depth.data.phone_depth,"Depth 2029");
+    assert.equal((await tv.client.rpc("show_read",{p_engagement:room})).data.status,"denied");
+    const conflicts=await Promise.all([1,2].map(n=>facilitator.client.rpc("show_write",{p_engagement:room,p_action:"save",p_input:{...edit,revision:edit.revision+1,title:"Concurrent edit "+n}})));
+    assert.deepEqual(conflicts.map(x=>x.data.status).sort(),["conflict","ok"]);
+    await db.query("insert into public.sessions(engagement_id,title,position) select $1,'Planning row '||n,n from generate_series(1,1205)n",[room]);
+    let showAfter:string|null=null,showVersion:string|null=null,showCount=0;
+    do {const page: {data:{status:string;sessions:unknown[];next:string|null;version:string}|null;error:unknown}=await facilitator.client.rpc("show_read",{p_engagement:room,p_after:showAfter,p_version:showVersion});assert.equal(page.error,null);assert.ok(page.data);assert.equal(page.data.status,"ok");showCount+=page.data.sessions.length;showAfter=page.data.next;showVersion=page.data.version;}while(showAfter);
+    assert.equal(showCount,1206);
+    // Deterministic lock race: closing starts while an edit owns the room lock.
+    // Closing must wait before locking sessions, otherwise editor/close deadlock.
+    const editorConnection=await db.connect(),closingConnection=await db.connect();
+    let closeInProgress: Promise<unknown> | undefined;
+    try {
+      await editorConnection.query("begin");
+      await editorConnection.query("select 1 from public.room_states where engagement_id=$1 for update",[room]);
+      const closingPid=(await closingConnection.query("select pg_backend_pid() as pid")).rows[0].pid;
+      closeInProgress=closingConnection.query("update public.engagements set status='closed' where id=$1",[room]);
+      let closingWaits=false;
+      for(let i=0;i<30;i++) {closingWaits=(await db.query("select wait_event_type='Lock' as waiting from pg_stat_activity where pid=$1",[closingPid])).rows[0]?.waiting===true;if(closingWaits)break;await delay(20);}
+      assert.ok(closingWaits,"Closing waits behind the active editor's room lock");
+      const claims=JSON.parse(Buffer.from(facilitator.token.split(".")[1],"base64url").toString());
+      await editorConnection.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(claims)]);
+      await editorConnection.query("set local role authenticated");
+      // The target can be past page one after the 1206-session paging test.
+      const currentRevision=(await editorConnection.query("select revision from public.sessions where id=$1",[session])).rows[0].revision;
+      const finalSave=await editorConnection.query("select public.show_write($1,'save',$2) as value",[room,JSON.stringify({...edit,revision:currentRevision,title:"Saved while closing"})]);
+      assert.equal(finalSave.rows[0].value.status,"ok");await editorConnection.query("commit");await closeInProgress;
+      assert.equal((await db.query("select status from public.engagements where id=$1",[room])).rows[0].status,"closed");
+      assert.equal((await facilitator.client.rpc("show_write",{p_engagement:room,p_action:"save",p_input:edit})).data.status,"closed");
+    } finally {await editorConnection.query("rollback");try {await closeInProgress;} finally {editorConnection.release();closingConnection.release();}}
+    console.log(`Native run of show: Save broadcast received in ${deliveryMs} ms on loopback, anonymous TV projection, private phone depth, concurrent-save/close protection and 1206-session paging passed. Venue acceptance remains separate.`);
     console.log("Native live engine: private WebSocket delivery, 50 concurrent writes, ordered versions, deduplication, anti-spoofing, anonymous payloads, 1256-row pagination, latency receipts and revocation rotation passed. This is not the venue latency acceptance test.");
   } finally {
     for(const stop of subscriptions)stop();

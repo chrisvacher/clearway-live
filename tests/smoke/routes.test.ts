@@ -27,6 +27,11 @@ let failedInviteBatch:string|null=null,combinedImports=0;
 const roomDevices = new Map<string,{proof:string;code:string;approved:boolean;claim?:string}>();
 const roomChallenges = new Map<string,{email:string;code:string;link:string;consumed:boolean}>();
 const roomJoins = new Map<string,{id:string;device:string;email:string;name:string;status:string}>();
+let showVersion=1,showReadPages=0,showPaging=false,showRestart=false;
+const showSessions = new Map<string,Record<string,unknown>>();
+const fixtureSession = (id:string, position=0) => ({id,engagement_id:roomId,title:position ? "Five Lenses: Congregation" : "Celebration",part:"Day 1",position,planned_start:"2026-11-14T14:00:00Z",planned_minutes:20,mode:"live",opens_at:null,closes_at:null,interaction:position ? "wall" : "word_cloud",prompt:"It is {base year + 10}. Describe our Congregation.",phone_depth:"Phone-only planning depth",settings:{anonymous:true,burst_minutes:4,join_strip:false},notes:"PRIVATE-PRINT-NOTES",lands_in:"10-year Future",state:"ready",max_sends:3,max_characters:position ? 280 : 28,max_words:position ? 50 : 3,revision:0});
+showSessions.set(roomAttendee,fixtureSession(roomAttendee));
+showSessions.set(roomId,fixtureSession(roomId,1));
 let livePages=0,liveRestart=false;
 let roomAuthCalls = 0;
 let roomBound = false;
@@ -83,6 +88,26 @@ before(async () => {
     if (url.pathname === "/auth/v1/user") return mode === "invalid" || mode === "revoked"
       ? send({ message: "Invalid session" }, 401) : send(user(mode));
     if (url.pathname === "/auth/v1/logout") { logouts.push(url.searchParams.get("scope") || ""); return send({}); }
+    if(url.pathname==="/rest/v1/rpc/show_read") {
+      assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);showReadPages++;
+      if(mode!=="allowed"||body.p_engagement!==roomId)return send({status:"denied"});
+      if(body.p_after&&showRestart){showRestart=false;showVersion++;return send({status:"changed"});}
+      if(body.p_version&&body.p_version!==String(showVersion))return send({status:"changed"});
+      const id=(n:number)=>"57000000-0000-4000-8000-"+String(n).padStart(12,"0");
+      const start=body.p_after?Number(body.p_after.slice(-12)):0;
+      return send({status:"ok",version:String(showVersion),context:{id:roomId,title:"Riverside Church Wayfinding",church:"Riverside Church",timezone:"America/Toronto",base_year:2026,closed:false},sessions:showPaging?Array.from({length:Math.min(500,1205-start)},(_,i)=>fixtureSession(id(start+i+1),start+i)): [...showSessions.values()],next:showPaging&&start+500<1205?id(start+500):null});
+    }
+    if(url.pathname==="/rest/v1/rpc/show_write") {
+      assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      if(mode!=="allowed"||body.p_engagement!==roomId)return send({status:"denied"});
+      const input=body.p_input, previous=showSessions.get(input.id);
+      if(body.p_action==="save"){
+        if(previous&&previous.revision!==input.revision)return send({status:"conflict"});
+        showSessions.set(input.id,{...input,engagement_id:roomId,position:previous?.position??showSessions.size,revision:previous?Number(previous.revision)+1:0});
+      } else if(body.p_action==="remove")showSessions.delete(input.id);
+      else if(body.p_action==="reorder") input.order.forEach((v:{id:string},i:number)=>{const row=showSessions.get(v.id)!;showSessions.set(v.id,{...row,position:i,revision:Number(row.revision)+1});});
+      showVersion++;return send({status:"ok",id:input.id});
+    }
     if (url.pathname === "/rest/v1/rpc/live_snapshot") {
       assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);livePages++;
       if(!["allowed","room"].includes(mode)||body.p_engagement!==roomId)return send({status:"denied"});
@@ -594,4 +619,43 @@ test("live submissions require their participant cookie, origin and valid immuta
   assert.equal((await post("https://other.invalid",body)).status,403);
   assert.equal((await post(origin,body,"")).status,403);
   assert.equal((await post(origin,{...body,id:"invalid"})).status,422);
+});
+
+
+test("run of show and printable notes require a facilitator session and stay private",async()=>{
+  for(const path of [`/setup/${roomId}/run-of-show`,`/setup/${roomId}/run-of-show/print`]) {
+    const unsigned=await fetch(origin+path,{redirect:"manual"});assert.equal(unsigned.status,307);assert.doesNotMatch(await unsigned.text(),/PRIVATE-PRINT-NOTES/);
+  }
+  assert.equal((await fetch(origin+`/api/run-of-show/${roomId}`)).status,401);
+  const {jar}=await finishLogin("allowed"),headers={cookie:cookieHeader(jar)};
+  const page=await fetch(origin+`/setup/${roomId}/run-of-show`,{headers});assert.equal(page.status,200);assert.match(await page.text(),/Add session|Print run of show/);
+  const print=await fetch(origin+`/setup/${roomId}/run-of-show/print`,{headers});const html=await print.text();assert.equal(print.status,200);assert.match(html,/PRIVATE-PRINT-NOTES/);assert.match(html,/It is 2036/);assert.match(html,/Phone-only planning depth/);assert.match(print.headers.get("cache-control")!,/no-store/);
+  assert.equal((await fetch(origin+`/api/run-of-show/${practiceRoom}`,{headers})).status,403);
+});
+test("run of show writes validate origin and input and never use a service key",async()=>{
+  const {jar}=await finishLogin("allowed"),headers={origin,cookie:cookieHeader(jar),"Content-Type":"application/json"};
+  const post=(value:unknown,from=origin)=>fetch(origin+`/api/run-of-show/${roomId}`,{method:"POST",headers:{...headers,origin:from},body:JSON.stringify(value)});
+  assert.equal((await post({action:"save"},"https://evil.example")).status,403);
+  assert.equal((await post({action:"save",input:{title:"Missing fields"}})).status,422);
+  const input={...fixtureSession(randomUUID()),revision:null};
+  assert.equal((await post({action:"save",input})).status,200);
+  assert.equal((await post({action:"save",input:{...input,title:"Stale overwrite"}})).status,409);
+  const current=await (await fetch(origin+`/api/run-of-show/${roomId}`,{headers})).json();assert.equal(current.sessions.find((s:{id:string})=>s.id===input.id).title,input.title);
+  assert.equal((await post({action:"remove",input:{id:input.id,revision:0}})).status,200);
+});
+test("run of show paginates beyond 1000 sessions and retries a changed list without mixing pages",async()=>{
+  const {jar}=await finishLogin("allowed");showPaging=true;showRestart=true;showReadPages=0;
+  try {
+    const response=await fetch(origin+`/api/run-of-show/${roomId}`,{headers:{cookie:cookieHeader(jar)}});assert.equal(response.status,200);
+    const show=await response.json();assert.equal(show.sessions.length,1205);assert.equal(new Set(show.sessions.map((s:{id:string})=>s.id)).size,1205);assert.equal(showReadPages,5);
+  } finally {showPaging=false;}
+});
+
+
+test("a long editing session refreshes its facilitator cookie on the run-of-show API",async()=>{
+  const stale={access_token:token("allowed"),refresh_token:"refresh-allowed",expires_at:Math.floor(Date.now()/1000)-100,user:user("allowed")};
+  const cookie="cw-facilitator=base64-"+Buffer.from(JSON.stringify(stale)).toString("base64url");
+  const response=await fetch(origin+`/api/run-of-show/${roomId}`,{headers:{cookie}});
+  assert.equal(response.status,200);assert.match(response.headers.get("set-cookie")!,/cw-facilitator=/);
+  assert.match(response.headers.get("set-cookie")!,/HttpOnly/);assert.match(response.headers.get("cache-control")!,/no-store/);
 });

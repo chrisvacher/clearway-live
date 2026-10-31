@@ -6,6 +6,9 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   if (!Number.isSafeInteger(version) || event.state.engagement_id !== current.state.engagement_id) return { kind: "snapshot", value: current };
   if (version <= current.version) return { kind: "same", value: current };
   if (version !== current.version + 1 || event.state.live_session_id !== current.state.live_session_id) return { kind: "snapshot", value: current };
+  // A content revision also covers private phone depth. Fetch its guarded snapshot
+  // before advancing a phone; depth never travels on the shared TV channel.
+  if (current.role === "participant" && (event.session?.revision !== current.session?.revision || event.session?.base_year !== current.session?.base_year)) return { kind: "snapshot", value: current };
   const answers = new Map(current.answers.map(answer => [answer.id, answer]));
   const hidden = Array.isArray(event.state.hidden_ids) ? event.state.hidden_ids : [];
   for (const id of hidden) answers.delete(id);
