@@ -12,6 +12,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   const [status, setStatus] = useState<TvStatus>(initial || { status: "opening" });
   const [frame, setFrame] = useState<LiveSnapshot | null>(null), [mode, setMode] = useState("connecting"), [awake, setAwake] = useState(true);
   const [nameLimit, setNameLimit] = useState(14);
+  const [syncOffline, setSyncOffline] = useState(false);
   const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), sync = useRef<() => void>(() => {});
   const receipt = useRef<TvReceipts | null>(null), clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
   const boxes = useRef(new Map<string, DOMRect>());
@@ -27,8 +28,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
         if (next.status === "unavailable" || next.status === "limited" || !response.ok) throw new Error("unavailable");
         paired = next.status === "paired";
         setStatus(before => JSON.stringify(before) === JSON.stringify(next) ? before : next);
-        if (!paired) setFrame(null); failures = 0;
-      } catch { if (!stopped) { setMode("offline"); failures++; } }
+        if (!paired) setFrame(null); setSyncOffline(false); failures = 0;
+      } catch { if (!stopped) { setSyncOffline(true); failures++; } }
       finally { running = false; if (!stopped) { if (again) { again = false; void poll(); } else timer = setTimeout(() => void poll(), failures ? retryDelay(failures) : paired ? 5000 : 1000); } }
     }
     sync.current = () => void poll(); void poll();
@@ -112,7 +113,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={frame?.state.tv_content === "screen_check" || frame?.state.tv_content === "session" ? "content" : "holding"} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} nameLimit={nameLimit} reconnecting={mode === "offline" || status.status === "paired" && ["fallback", "connecting"].includes(mode)} /></div>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "fallback", "connecting"].includes(mode)} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }
