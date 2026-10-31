@@ -245,6 +245,8 @@ begin
     perform private.live_send('live:'||new.engagement_id||':'||t.channel_id,'rekey',jsonb_build_object('engagement',new.engagement_id,'version',new.version));
     update private.room_transport set channel_id=gen_random_uuid(),access_fingerprint=fingerprint where engagement_id=new.engagement_id returning * into t;
   end if;
+  -- A deleted room has no readable snapshot. Retire its topic without data.
+  if new.deleted then return new; end if;
   topic:='live:'||new.engagement_id||':'||t.channel_id;
   perform private.live_send(topic,'room',private.live_public_state(new.engagement_id)||jsonb_build_object('answer',nullif(current_setting('clearway.live_answer',true),'')::jsonb));
   return new;
