@@ -60,7 +60,22 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   }, [engagement, binding]);
   useLayoutEffect(() => {
     if (!frame || !stage.current) return;
-    const el = stage.current, style = getComputedStyle(el), scale = el.getBoundingClientRect().width / 1920;
+    const el = stage.current;
+    // Fit the entire token ramp evenly, stopping at its 1080p type floor.
+    // The screen-check ladder deliberately keeps its calibration sizes.
+    const scene = el.querySelector<HTMLElement>(".tv-scene.is-active"), viewport = root.current!;
+    viewport.style.setProperty("--cwl-fit-scale", "1");
+    if (scene) {
+      const roomScale = parseFloat(getComputedStyle(viewport).getPropertyValue("--cwl-room-scale")) || 1;
+      const fits = () => {
+        const area = scene.getBoundingClientRect(), children = [...scene.children].map(child => child.getBoundingClientRect());
+        return !children.length || Math.max(...children.map(child => child.bottom)) - Math.min(...children.map(child => child.top)) <= area.height + 1
+          && scene.scrollWidth <= scene.clientWidth + 1;
+      };
+      let fit = 1;
+      while (!fits() && fit > 1 / roomScale) { fit = Math.max(1 / roomScale, fit - 0.05); viewport.style.setProperty("--cwl-fit-scale", String(fit)); }
+    }
+    const style = getComputedStyle(el), scale = el.getBoundingClientRect().width / 1920;
     const duration = frame.display?.reduced_motion || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : parseFloat(style.getPropertyValue("--cwl-dur-make-room"));
     el.querySelectorAll<HTMLElement>("[data-name-key]").forEach(name => {
       const before = boxes.current.get(name.dataset.nameKey!), after = name.getBoundingClientRect();

@@ -250,8 +250,9 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .tv-qr-ground { fill: var(--cw-white); }
 .tv-qr-ink { fill: var(--cw-navy); }
 .tv-join-link { margin-block: var(--space-4) !important; font-size: var(--cwl-fs-tv-headline); line-height: 1.15; font-weight: var(--fw-bold); overflow-wrap: anywhere; }
+.tv-join-link span { display: block; white-space: nowrap; }
 .tv-names { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8); margin-top: var(--space-10); font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); color: var(--cwl-presence); }
-.tv-names span { display: inline-block; animation: tv-name-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
+.tv-names span { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; animation: tv-name-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
 @keyframes tv-name-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .tv-check { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); z-index: 1; }
 .tv-check-safe { position: absolute; inset: var(--cwl-tv-safe-y) var(--cwl-tv-safe-x); outline: 4px solid var(--cwl-text); }
