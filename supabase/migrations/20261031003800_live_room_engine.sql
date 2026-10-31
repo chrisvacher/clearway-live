@@ -119,13 +119,24 @@ create table private.latency_logs (
 create unique index latency_accept_unique on private.latency_logs(submission_id,revision) where tv_session_id is null;
 create index latency_logs_room_idx on private.latency_logs(engagement_id,room_version);
 
-do $$ declare t text; begin
+-- New tables use different primary-key column names, unlike the M1 tables.
+create function private.touch_live_record() returns trigger
+language plpgsql security invoker set search_path='' as $$
+begin
+  new:=jsonb_populate_record(new,jsonb_build_object(TG_ARGV[0],to_jsonb(old)->TG_ARGV[0],
+    'created_at',old.created_at,'updated_at',clock_timestamp()));
+  return new;
+end $$;
+revoke all on function private.touch_live_record() from public,anon,authenticated;
+
+do $$ declare t text; pk text; begin
   foreach t in array array['public.sessions','public.room_states','public.submissions','private.session_notes','private.live_tv_sessions','private.room_transport','private.latency_logs'] loop
     execute format('alter table %s enable row level security',t);
     execute format('alter table %s force row level security',t);
     execute format('revoke all on %s from public,anon,authenticated',t);
     execute format('grant select,insert,update,delete on %s to service_role',t);
-    execute format('create trigger touch_record before update on %s for each row execute function private.touch_record()',t);
+    pk:=case when t in ('public.room_states','private.room_transport') then 'engagement_id' when t='private.session_notes' then 'session_id' else 'id' end;
+    execute format('create trigger touch_record before update on %s for each row execute function private.touch_live_record(%L)',t,pk);
   end loop;
 end $$;
 grant select on public.sessions,public.room_states,public.submissions to authenticated;

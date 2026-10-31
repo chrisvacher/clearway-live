@@ -51,7 +51,7 @@ async function main() {
     await db.query("update public.room_states set live_session_id=$1,tv_content='session' where engagement_id=$2", [session, room]);
     const initial = await tv.client.rpc("live_snapshot", { p_engagement: room }); assert.equal(initial.error, null); assert.equal(initial.data.role, "tv");
     const events: Record<string, unknown>[] = [], revokedEvents: Record<string, unknown>[] = []; let rekeys = 0;
-    await joined(tv.client, initial.data.topic, event => events.push(event), () => { rekeys++; });
+    await joined(tv.client, initial.data.topic, event => { if ((event.state as {version:number}).version>initial.data.version) events.push(event); }, () => { rekeys++; });
     const phoneChannel = await joined(phone.client, initial.data.topic, event => revokedEvents.push(event));
     await assert.rejects(() => joined(outsider.client, initial.data.topic, () => {}), /denied|timed out/);
     const payload = { p_engagement: room, p_session: session, p_revision: 0, p_action: "submit", p_text: "Hope", p_sent: new Date().toISOString(), p_uncertainty: 1 };

@@ -28,9 +28,7 @@ Riverside is reopened in **pre call**. Guest check was removed during the revoca
 
 ## Milestone 2 entry gates
 
-The foundation implementation and acceptance checks are complete. The PRD and milestone 2 brief still require Chris's motion-prototype signoff on the TV computer in the practice room, plus Claude Design pass 2, before implementation starts. Neither is recorded as complete.
-
-The repository currently includes Clearway Live tokens and shared `bundle.js`/`bundle.css` helpers. The complete pass 2 screen and motion-prototype exports are not present. The required handoff covers TV themes/type/texture, motion specifications and prototypes, remote and facilitator views, wall card, word cloud, offline/reconnecting states and private-view treatment. This acceptance record does not authorize skipping that gate.
+Complete on October 30, 2026: Chris supplied the full design pass 2 ZIP and explicitly approved motion. During handoff he confirmed the filled-mark/LIVE-pill treatment, Navy default theme and church logo beside Clearway’s. See `docs/design-pass-2-handoff.md` and the updated PRD. Milestone 2 implementation can proceed in the brief’s PR order.
 
 ## Repeatable test script
 
