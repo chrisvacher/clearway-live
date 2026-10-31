@@ -9,6 +9,7 @@ import { uuid } from "@/lib/room/policy";
 import { limitedJson } from "@/lib/server/request";
 import { submissionRequest } from "./protocol";
 import type { LiveSnapshot } from "./types";
+import { roomMutation } from "./mutation";
 
 export async function handleLive(request: NextRequest, engagement: string) {
   const config = authConfig();
@@ -39,8 +40,8 @@ export async function handleLive(request: NextRequest, engagement: string) {
       try { body = await limitedJson(request); } catch { return result({ status: "invalid_request" }, 422); }
       const input = submissionRequest(body);
       if (!input) return result({ status: "invalid_request" }, 422);
-      const { data, error } = await client.rpc("live_submit", { p_engagement: engagement, p_id: input.id, p_session: input.session, p_revision: input.revision,
-        p_action: input.action, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt || null, p_uncertainty: input.uncertaintyMs || 0 });
+      const { data, error } = await roomMutation(client, engagement, () => client.rpc("live_submit", { p_engagement: engagement, p_id: input.id, p_session: input.session, p_revision: input.revision,
+        p_action: input.action, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt || null, p_uncertainty: input.uncertaintyMs || 0 }));
       if (error) throw error;
       return result(data, ["accepted", "duplicate"].includes(data.status) ? 200 : data.status === "denied" ? 403 : ["closed", "conflict"].includes(data.status) ? 409 : 422);
     }

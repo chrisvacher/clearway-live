@@ -5,6 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { Pool } from "pg";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { RoomStream } from "../../lib/live/stream";
+import { roomMutation } from "../../lib/live/mutation";
 import { sessionId } from "../../lib/room/policy";
 import type { LiveRead, LiveSnapshot } from "../../lib/live/types";
 
@@ -12,6 +13,7 @@ async function main() {
  const raw=execFileSync("supabase",["status","-o","env"],{encoding:"utf8",stdio:["ignore","pipe","ignore"]});
  const env=Object.fromEntries([...raw.matchAll(/^([A-Z_]+)="(.*)"$/gm)].map(m=>[m[1],m[2]]));
  assert.equal(new URL(env.API_URL).hostname,"127.0.0.1");assert.equal(new URL(env.DB_URL).hostname,"127.0.0.1");
+ process.env.SUPABASE_URL=env.API_URL;process.env.SUPABASE_ANON_KEY=env.ANON_KEY;
  const db=new Pool({connectionString:env.DB_URL,max:4}),clients:SupabaseClient[]=[],streams:RoomStream[]=[];
  const admin=createClient(env.API_URL,env.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const hash=(v:string)=>createHash("sha256").update(v).digest("hex");
@@ -45,7 +47,24 @@ async function main() {
   assert.equal((await manage("pair",{code_hash:first.code_hash,label:"Front TV"})).status,"invalid_code");
   first.code_hash=hash(randomUUID());assert.equal((await rpc(admin,"tv_device",{p_action:"sync",p:first})).status,"pair");
   async function pair(d:ReturnType<typeof device>,label:string) {
-   await rpc(admin,"tv_device",{p_action:"sync",p:d});assert.equal((await manage("pair",{code_hash:d.code_hash,label})).status,"ok");
+   await rpc(admin,"tv_device",{p_action:"sync",p:d});
+   if(d===first){
+    // The sequence survives a rolled-back transaction, unlike a table flag.
+    // Inject the exact hosted cold-start failure, prove approval rolls back,
+    // then exercise the real authenticated socket recovery and single retry.
+    const original=(await db.query("select pg_get_functiondef('private.live_send(text,text,jsonb)'::regprocedure) as body")).rows[0].body as string;
+    assert.match(original,/\nbegin\n/i);
+    await db.query("create sequence private.tv_cold_start_fixture");
+    await db.query(original.replace(/\nbegin\n/i,"\nbegin\n if nextval('private.tv_cold_start_fixture')=1 then raise exception 'Room broadcast unavailable'; end if;\n"));
+    let attempts=0;
+    try {
+     const result=await roomMutation(fac.client,room,async()=>{
+      attempts++;const outcome=await fac.client.rpc("tv_manage",{p_engagement:room,p_action:"pair",p:{code_hash:d.code_hash,label}});
+      if(attempts===1){assert.equal(outcome.error?.message,"Room broadcast unavailable");assert.equal((await db.query("select engagement_id from private.tv_devices where id=$1",[d.device])).rows[0].engagement_id,null,"Failed broadcast cannot leave approval half committed");}
+      return outcome;
+     });assert.equal(result.error,null);assert.equal(result.data.status,"ok");assert.equal(attempts,2);
+    } finally {await db.query(original);await db.query("drop sequence private.tv_cold_start_fixture");}
+   }else assert.equal((await manage("pair",{code_hash:d.code_hash,label})).status,"ok");
    assert.equal((await manage("pair",{code_hash:d.code_hash,label})).status,"invalid_code");
    const claim=await rpc(admin,"tv_device",{p_action:"prepare",p:d});assert.equal(claim.status,"claim");
    const tv=await identity(claim.email);const bound=await rpc(admin,"tv_device",{p_action:"bind",p:{...d,claim:claim.claim,user:tv.user.id,session:tv.sid}});assert.equal(bound.status,"paired");
@@ -92,7 +111,7 @@ async function main() {
   assert.equal((await manage("display",{room_size:"medium",theme:"light",texture:false,reduced_motion:true})).status,"ok");await until(()=>views[1].at(-1)?.display?.theme==="light","Remaining TV resubscribes after access rotation and receives display settings");
   const code=(await fac.client.from("engagements").select("room_code").eq("id",room).single()).data!.room_code;assert.equal(await rpc(admin,"tv_room_link",{p_code:code}),room);
   await db.query("update public.engagements set status='closed' where id=$1",[room]);assert.ok((await two.client.auth.refreshSession()).error);await db.query("update public.engagements set status='pre_call' where id=$1",[room]);assert.equal((await rpc(admin,"tv_device",{p_action:"sync",p:{...second,code_hash:hash(randomUUID())}})).status,"pair");
-  console.log("Native TV: expiring one-use codes, facilitator approval, two TVs, browser-client resume, native role isolation, first-name arrivals, duplicate-device counting, per-answer receipt times, cached-channel unpair/rekey, display settings and closure/reopen revocation passed. No production services or venue hardware used.");
+  console.log("Native TV: cold-start rollback/private-socket recovery, expiring one-use codes, facilitator approval, two TVs, browser-client resume, native role isolation, first-name arrivals, duplicate-device counting, per-answer receipt times, cached-channel unpair/rekey, display settings and closure/reopen revocation passed. No production services or venue hardware used.");
  } finally {streams.forEach(s=>s.stop());await Promise.all(clients.map(c=>c.removeAllChannels()));await db.end();}
 }
 void main().catch(error=>{console.error(error);process.exitCode=1;});

@@ -7,6 +7,7 @@ import { uuid } from "@/lib/room/identity";
 import { sessionInput } from "@/lib/run-of-show/policy";
 import { readShow } from "@/lib/run-of-show/server";
 import { parts } from "@/lib/run-of-show/types";
+import { roomMutation } from "@/lib/live/mutation";
 
 export const dynamic = "force-dynamic";
 const answer = (data: unknown, status = 200) => privateResponse(NextResponse.json(data, { status }));
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     } else throw new Error("Choose a session action.");
   } catch (error) { return answer({ status: "invalid_request", message: error instanceof Error ? error.message : "Check the session details." }, 422); }
   try {
-    const { data, error } = await fac.client.rpc("show_write", { p_engagement: id, p_action: action, p_input: input });
+    const { data, error } = await roomMutation(fac.client, id, () => fac.client.rpc("show_write", { p_engagement: id, p_action: action, p_input: input }));
     if (error) throw new Error("save");
     return answer(data, data.status === "ok" ? 200 : data.status === "denied" ? 403 : ["conflict", "running", "closed"].includes(data.status) ? 409 : 422);
   } catch { return answer({ status: "unavailable" }, 503); }

@@ -5,6 +5,7 @@ import { privateResponse } from "@/lib/auth/response";
 import { limitedJson } from "@/lib/server/request";
 import { digest, uuid } from "@/lib/room/policy";
 import { pairingCode } from "@/lib/tv/policy";
+import { roomMutation } from "@/lib/live/mutation";
 export const dynamic = "force-dynamic";
 const answer = (data: unknown, status = 200) => privateResponse(NextResponse.json(data, { status }));
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     else if (action === "display" && ["very_small", "small", "medium", "large", "very_large"].includes(String(body.room_size)) && ["dark", "light"].includes(String(body.theme)) && typeof body.texture === "boolean" && typeof body.reduced_motion === "boolean") p = { room_size: body.room_size, theme: body.theme, texture: body.texture, reduced_motion: body.reduced_motion };
     else return answer({ status: "invalid_request" }, 422);
   } catch { return answer({ status: "invalid_request" }, 422); }
-  const { data, error } = await fac.client.rpc("tv_manage", { p_engagement: id, p_action: action, p });
+  const { data, error } = await roomMutation(fac.client, id, () => fac.client.rpc("tv_manage", { p_engagement: id, p_action: action, p }));
+  if (error) console.error("TV settings unavailable", { code: error.code });
   return error ? answer({ status: "unavailable" }, 503) : answer(data, data.status === "ok" ? 200 : ["denied"].includes(data.status) ? 403 : data.status === "limited" ? 429 : 409);
 }
