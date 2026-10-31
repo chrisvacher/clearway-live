@@ -170,4 +170,18 @@ begin
 end $$;
 revoke all on function private.show_year_changed() from public,anon,authenticated;
 create trigger show_year_changed after update of base_year on public.engagements for each row execute function private.show_year_changed();
+create or replace function private.close_live_engagement() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+  if (new.status='closed' and old.status<>'closed') or (new.deleted and not old.deleted) then
+    -- Match the editor: room before sessions, so closing cannot deadlock a Save.
+    perform 1 from public.room_states where engagement_id=new.id for update;
+    update private.live_tv_sessions set revoked_at=coalesce(revoked_at,clock_timestamp()) where engagement_id=new.id;
+    update public.sessions set state='closed',closed_at=coalesce(closed_at,clock_timestamp()) where engagement_id=new.id and state in ('live','phones_down','open');
+    update public.room_states set live_session_id=null,tv_content='holding',phones_down=false,burst_ends_at=null,spotlight_id=null,
+      hidden_ids=array[]::uuid[],remote_holder_id=null,team_led_block_id=null,show_tv_on_phones=false,
+      results='{"total":0,"people":0,"words":[]}',deleted=new.deleted where engagement_id=new.id;
+  end if;
+  return new;
+end $$;
 commit;

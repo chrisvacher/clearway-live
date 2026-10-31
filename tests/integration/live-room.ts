@@ -125,7 +125,27 @@ async function main() {
     let showAfter:string|null=null,showVersion:string|null=null,showCount=0;
     do {const page: {data:{status:string;sessions:unknown[];next:string|null;version:string}|null;error:unknown}=await facilitator.client.rpc("show_read",{p_engagement:room,p_after:showAfter,p_version:showVersion});assert.equal(page.error,null);assert.ok(page.data);assert.equal(page.data.status,"ok");showCount+=page.data.sessions.length;showAfter=page.data.next;showVersion=page.data.version;}while(showAfter);
     assert.equal(showCount,1206);
-    console.log(`Native run of show: Save broadcast received in ${deliveryMs} ms on loopback, anonymous TV projection, private phone depth, concurrent-save protection and 1206-session paging passed. Venue acceptance remains separate.`);
+    // Deterministic lock race: closing starts while an edit owns the room lock.
+    // Closing must wait before locking sessions, otherwise editor/close deadlock.
+    const editorConnection=await db.connect(),closingConnection=await db.connect();
+    try {
+      await editorConnection.query("begin");
+      await editorConnection.query("select 1 from public.room_states where engagement_id=$1 for update",[room]);
+      const closingPid=(await closingConnection.query("select pg_backend_pid() as pid")).rows[0].pid;
+      const closeInProgress=closingConnection.query("update public.engagements set status='closed' where id=$1",[room]);
+      let closingWaits=false;
+      for(let i=0;i<30;i++) {closingWaits=(await db.query("select wait_event_type='Lock' as waiting from pg_stat_activity where pid=$1",[closingPid])).rows[0]?.waiting===true;if(closingWaits)break;await delay(20);}
+      assert.ok(closingWaits,"Closing waits behind the active editor's room lock");
+      const claims=JSON.parse(Buffer.from(facilitator.token.split(".")[1],"base64url").toString());
+      await editorConnection.query("select set_config('request.jwt.claims',$1,true)",[JSON.stringify(claims)]);
+      await editorConnection.query("set local role authenticated");
+      const currentEdit=(await editorConnection.query("select public.show_read($1) as value",[room])).rows[0].value.sessions.find((s:{id:string})=>s.id===session);
+      const finalSave=await editorConnection.query("select public.show_write($1,'save',$2) as value",[room,JSON.stringify({...currentEdit,title:"Saved while closing"})]);
+      assert.equal(finalSave.rows[0].value.status,"ok");await editorConnection.query("commit");await closeInProgress;
+      assert.equal((await db.query("select status from public.engagements where id=$1",[room])).rows[0].status,"closed");
+      assert.equal((await facilitator.client.rpc("show_write",{p_engagement:room,p_action:"save",p_input:edit})).data.status,"closed");
+    } finally {await editorConnection.query("rollback");editorConnection.release();closingConnection.release();}
+    console.log(`Native run of show: Save broadcast received in ${deliveryMs} ms on loopback, anonymous TV projection, private phone depth, concurrent-save/close protection and 1206-session paging passed. Venue acceptance remains separate.`);
     console.log("Native live engine: private WebSocket delivery, 50 concurrent writes, ordered versions, deduplication, anti-spoofing, anonymous payloads, 1256-row pagination, latency receipts and revocation rotation passed. This is not the venue latency acceptance test.");
   } finally {
     for(const stop of subscriptions)stop();

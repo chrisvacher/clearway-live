@@ -6,7 +6,7 @@ The editor follows the approved pass 2 white app shell and 480px private panel. 
 
 Save commits the session, its notes, one room version and its verified private broadcast together. It never starts a session. Current live/closed states remain under live-room controls. Mode or interaction cannot change while running or after answers exist. Removing a session is a soft delete and is refused for a current/live/open session.
 
-A per-session revision prevents lost edits. Reordering validates the complete part with each revision under the room lock, so concurrent additions or edits cannot be dropped. The run of show reloads explicitly and preserves an open editor's unsaved text. On a conflict, reload, close the editor and reopen the session to use the latest saved version.
+A per-session revision prevents lost edits. Reordering validates the complete part with each revision under the room lock, so concurrent additions or edits cannot be dropped. Closing an engagement follows the same room-before-session lock order, tested with a deterministic concurrent Save/close race. The run of show reloads explicitly and preserves an open editor's unsaved text. On a conflict, reload, close the editor and reopen the session to use the latest saved version.
 
 Presenter notes are stored only in `private.session_notes`. Both read and write RPCs validate the current native Google session, Clearway allowlist and engagement assignment (or admin role). Public wrappers are invokers. No browser has direct session/note write grants. Participants, scribes, unrelated facilitators and TVs cannot call the planning reader. Its UUID paging and list version prevent truncation above 1,000 sessions or mixed concurrent versions.
 
