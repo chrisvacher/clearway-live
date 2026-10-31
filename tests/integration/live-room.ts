@@ -104,7 +104,7 @@ async function main() {
     const facilitator=await identity("fac"),facId=randomUUID();
     await db.query("insert into auth.identities(user_id,provider,provider_id,identity_data) values($1::uuid,'google',$1::uuid::text,jsonb_build_object('email',$2::text,'email_verified',true))",[facilitator.user.id,facilitator.user.email]);
     await db.query("insert into auth.mfa_amr_claims(id,session_id,created_at,updated_at,authentication_method) values(gen_random_uuid(),$1,now(),now(),'oauth')",[facilitator.session]);
-    await db.query("insert into public.clearway_users(id,auth_user_id,name,email) values($1,$2,'Native facilitator',$3)",[facId,facilitator.user.id,facilitator.user.email]);
+    await db.query("insert into public.clearway_users(id,auth_user_id,name,email,team_hub_team_member_id) values($1,$2,'Native facilitator',$3,gen_random_uuid())",[facId,facilitator.user.id,facilitator.user.email]);
     await db.query("insert into public.engagement_facilitators(engagement_id,clearway_user_id,role) values($1,$2,'lead')",[room,facId]);
     await db.query("update public.device_sessions set revoked_at=null where auth_session_id=$1",[phone.session]);
     await db.query("update public.room_states set phones_down=false where engagement_id=$1",[room]);
