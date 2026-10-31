@@ -24,6 +24,7 @@ export default function HomePage() {
           <ButtonLink href="/room">Find your room link</ButtonLink>
         </article>
       </section>
+      <section className="notice"><h2>Set up the TV</h2><p>Open this screen on the computer connected to your TV or projector.</p><ButtonLink href="/tv">Open the TV screen</ButtonLink></section>
       <section className="notice"><h2>Try the practice room</h2><p>Join on your phone with your name. No email sign-in is needed.</p><ButtonLink href="/practice">Join the practice room</ButtonLink></section>
     </main>
     <footer className="footer page-width"><span>Clearway Church Solutions</span><span>Listen. Discern. Decide together.</span></footer>

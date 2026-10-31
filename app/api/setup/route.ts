@@ -76,7 +76,7 @@ export async function POST(request:NextRequest){
     if(action==="edit_attendee"||action==="remove_attendee"){
       const e=await scoped();if(!uuid(body.attendee))return answer({ok:false},400);
       const person=action==="edit_attendee"?validatePeople([body.person]).people[0]:null;
-      const {error}=await client.from("attendees").update(person?{name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}:{deleted:true}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)throw new Error("save");return answer({ok:true});
+      const {error}=await client.from("attendees").update(person?{name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}:{deleted:true}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)throw new Error("save");const notice=await serviceClient().rpc("tv_presence_sync",{p_engagement:e.id});if(notice.error)console.error("TV roster notification unavailable",{code:notice.error.code});return answer({ok:true});
     }
     if(action==="reset_practice"){
       const e=await scoped();if(e.id!==practiceId)return answer({ok:false},400);

@@ -36,17 +36,23 @@ let livePages=0,liveRestart=false;
 let roomAuthCalls = 0;
 let roomBound = false;
 const userId = "50000000-0000-4000-8000-000000000001";
-const user = (mode: string) => ({ id: userId, aud: "authenticated", role: "authenticated",
-  email: mode === "external" ? "person@example.org" : mode === "room" ? "ann@example.org" : "facilitator@clearway.co",
+const user = (mode: string) => ({ id: mode.startsWith("tv:")?mode.slice(3):userId, aud: "authenticated", role: "authenticated",
+  email: mode.startsWith("tv:")?mode.slice(3)+"@tv.clearway.invalid":mode === "external" ? "person@example.org" : mode === "room" ? "ann@example.org" : "facilitator@clearway.co",
   email_confirmed_at: "2026-10-01T00:00:00Z", identities: [], app_metadata: {}, user_metadata: {} });
 function token(mode: string) {
-  return [Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url"), Buffer.from(JSON.stringify({ sub: userId, session_id:"50000000-0000-4000-8000-000000000003", exp: Math.floor(Date.now()/1000)+3600, mode })).toString("base64url"), "c2lnbmF0dXJl"].join(".");
+  return [Buffer.from('{"alg":"HS256","typ":"JWT"}').toString("base64url"), Buffer.from(JSON.stringify({ sub: mode.startsWith("tv:")?mode.slice(3):userId, session_id:"50000000-0000-4000-8000-000000000003", exp: Math.floor(Date.now()/1000)+3600, mode })).toString("base64url"), "c2lnbmF0dXJl"].join(".");
 }
 function modeOf(authorization: string | undefined) {
   try { return JSON.parse(Buffer.from((authorization || "").split(".")[1], "base64url").toString()).mode as string; }
   catch { return "invalid"; }
 }
 const profile = { id: "50000000-0000-4000-8000-000000000002", name: "Test facilitator", email: "facilitator@clearway.co", is_admin: false };
+const tvDevices=new Map<string,{proof:string;code_hash:string|null;expires_at:string;engagement?:string;label?:string;binding?:string;claim?:string}>();
+let tvContent="holding",tvVersion=42;
+let tvDisplay={church:"Riverside Church",title:"Riverside Church Wayfinding",logo_url:null,room_code:"ABCDEF12",theme:"dark",room_size:"very_small",texture:true,reduced_motion:false};
+const tvPresence=process.env.CLEARWAY_SMOKE_CROWDED_TV==="1"
+  ? {count:50,names:Array.from({length:14},(_,i)=>({key:`crowded-${i}`,name:"Alexandertheverylongname".repeat(6)}))}
+  : {count:2,names:[{key:"ann",name:"Ann"},{key:"ben",name:"Ben"}]};
 const tripwire = "foundation-server-secret-must-never-ship";
 
 before(async () => {
@@ -76,11 +82,11 @@ before(async () => {
       for await (const chunk of req) raw += chunk;
       const body = JSON.parse(raw);
       if (url.searchParams.get("grant_type") === "refresh_token") {
-        if (!["refresh-allowed","refresh-room"].includes(body.refresh_token)) return send({ message: "Invalid refresh token" }, 400);
+        if (!["refresh-allowed","refresh-room"].includes(body.refresh_token)&&!body.refresh_token.startsWith("refresh-tv:")) return send({ message: "Invalid refresh token" }, 400);
       } else if (!body.code_verifier || createHash("sha256").update(body.code_verifier).digest("base64url") !== expectedChallenge || body.auth_code === "invalid") {
         return send({ message: "Invalid PKCE code" }, 400);
       }
-      const loginMode = body.auth_code || (body.refresh_token==="refresh-room"?"room":"allowed");
+      const loginMode = body.auth_code || (body.refresh_token.startsWith("refresh-tv:")?body.refresh_token.slice(8):body.refresh_token==="refresh-room"?"room":"allowed");
       return send({ access_token: token(loginMode), refresh_token: "refresh-" + loginMode,
         expires_in: 3600, token_type: "bearer", user: user(loginMode),
         provider_token: "unused-google-provider-secret" + "p".repeat(5000), provider_refresh_token: "unused-google-refresh-secret" });
@@ -88,6 +94,31 @@ before(async () => {
     if (url.pathname === "/auth/v1/user") return mode === "invalid" || mode === "revoked"
       ? send({ message: "Invalid session" }, 401) : send(user(mode));
     if (url.pathname === "/auth/v1/logout") { logouts.push(url.searchParams.get("scope") || ""); return send({}); }
+    if(url.pathname==="/rest/v1/rpc/tv_device") {
+      assert.equal(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const {p_action:action,p}=JSON.parse(raw);
+      let d=tvDevices.get(p.device);if(!d&&action==="sync"){d={proof:p.proof,code_hash:p.code_hash,expires_at:new Date(Date.now()+300000).toISOString()};tvDevices.set(p.device,d);}
+      if(!d||d.proof!==p.proof)return send({status:"denied"});
+      if(!d.engagement){if(action!=="sync")return send({status:"denied"});if(!d.code_hash||Date.parse(d.expires_at)<Date.now()){d.code_hash=p.code_hash;d.expires_at=new Date(Date.now()+300000).toISOString();}return send({status:"pair",code_hash:d.code_hash,expires_at:d.expires_at});}
+      if(action==="prepare"){d.claim=randomUUID();return send({status:"claim",claim:d.claim,engagement:d.engagement,email:p.device+"@tv.clearway.invalid"});}
+      if(action==="bind"){assert.equal(p.claim,d.claim);d.binding=randomUUID();tvVersion++;return send({status:"paired",tv:d.binding,engagement:d.engagement});}
+      if(action==="release"){delete d.claim;return send({status:"released"});}
+      return send({status:"approved",engagement:d.engagement});
+    }
+    if(url.pathname==="/rest/v1/rpc/tv_current") {const d=tvDevices.get(mode.slice(3));return send(mode.startsWith("tv:")&&d?.engagement&&d.binding?{status:"paired",engagement:d.engagement,tv:d.binding,label:d.label}:null);}
+    if(url.pathname==="/rest/v1/rpc/tv_heartbeat")return send(mode.startsWith("tv:")&&Boolean(tvDevices.get(mode.slice(3))?.binding));
+    if(url.pathname==="/rest/v1/rpc/tv_presence_sync"){assert.equal(req.headers.apikey,tripwire);return send(true);}
+    if(url.pathname==="/rest/v1/rpc/tv_room_link"){assert.equal(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;return send(JSON.parse(raw).p_code==="ABCDEF12"?roomId:null);}
+    if(url.pathname==="/rest/v1/rpc/tv_manage") {
+      assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const {p_action:action,p_engagement:engagement,p}=JSON.parse(raw);
+      if(mode!=="allowed"||engagement!==roomId)return send({status:"denied"});
+      if(action==="list")return send({status:"ok",server_time:new Date().toISOString(),screens:[...tvDevices.entries()].filter(([,d])=>d.engagement===roomId).map(([id,d])=>({id,label:d.label,browser:"Fixture browser",paired_at:new Date().toISOString(),last_seen_at:d.binding?new Date().toISOString():null,confirmed_version:d.binding?tvVersion:0})),display:tvDisplay,tv_content:tvContent,closed:false});
+      if(action==="pair"){const row=[...tvDevices.values()].find(d=>d.code_hash===p.code_hash&&!d.engagement);if(!row)return send({status:"invalid_code"});row.engagement=roomId;row.label=p.label;row.code_hash=null;}
+      if(action==="unpair"){const row=tvDevices.get(p.device)!;delete row.engagement;delete row.binding;row.code_hash=null;}
+      if(action==="screen")tvContent=p.content;
+      if(action==="display")tvDisplay={...tvDisplay,...p};
+      tvVersion++;return send({status:"ok"});
+    }
+    if(url.pathname==="/rest/v1/rpc/live_ack"){assert.notEqual(req.headers.apikey,tripwire);return send(mode.startsWith("tv:")&&Boolean(tvDevices.get(mode.slice(3))?.binding));}
     if(url.pathname==="/rest/v1/rpc/show_read") {
       assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);showReadPages++;
       if(mode!=="allowed"||body.p_engagement!==roomId)return send({status:"denied"});
@@ -110,12 +141,12 @@ before(async () => {
     }
     if (url.pathname === "/rest/v1/rpc/live_snapshot") {
       assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);livePages++;
-      if(!["allowed","room"].includes(mode)||body.p_engagement!==roomId)return send({status:"denied"});
+      if((!["allowed","room"].includes(mode)&&!(mode.startsWith("tv:")&&tvDevices.get(mode.slice(3))?.binding))||body.p_engagement!==roomId)return send({status:"denied"});
       if(body.p_after&&liveRestart){liveRestart=false;return send({status:"changed",version:42});}
       const start=body.p_after?Number(body.p_after.slice(-12)):0;
       const id=(n:number)=>"56000000-0000-4000-8000-"+String(n).padStart(12,"0");
       const answers=Array.from({length:Math.min(500,1205-start)},(_,i)=>({id:id(start+i+1),session_id:roomId,text:"Hope",answers:[{text:"Hope",key:"hope"}],revision:0}));
-      return send({status:"ok",role:mode==="allowed"?"facilitator":"participant",version:42,topic:"live:fixture",server_time:new Date().toISOString(),phone_depth:"Phone-only depth",session:null,state:{engagement_id:roomId,live_session_id:roomId,version:42},answers,next:start+500<1205?id(start+500):null});
+      return send({status:"ok",role:mode==="allowed"?"facilitator":mode.startsWith("tv:")?"tv":"participant",version:mode.startsWith("tv:")?tvVersion:42,topic:"live:fixture",server_time:new Date().toISOString(),phone_depth:mode.startsWith("tv:")?null:"Phone-only depth",display:tvDisplay,presence:tvPresence,session:null,state:{engagement_id:roomId,live_session_id:null,tv_content:tvContent,phones_down:false,burst_ends_at:null,results:{total:0,people:0,words:[]},version:mode.startsWith("tv:")?tvVersion:42},answers,next:start+500<1205?id(start+500):null});
     }
     if(url.pathname==="/rest/v1/rpc/live_submit"){
       assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
@@ -163,11 +194,14 @@ before(async () => {
     }
     if (url.pathname === "/auth/v1/admin/generate_link") {
       roomAuthCalls++;let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
-      assert.equal(req.headers.apikey,tripwire);assert.equal(body.email,"ann@example.org");
+      assert.equal(req.headers.apikey,tripwire);
+      if(body.email.endsWith("@tv.clearway.invalid"))return send({action_link:"unused",email_otp:"unused",hashed_token:"fixture-tv-"+body.email.split("@")[0],verification_type:"magiclink",id:body.email.split("@")[0],email:body.email});
+      assert.equal(body.email,"ann@example.org");
       return send({action_link:"unused",email_otp:"unused",hashed_token:"server-only-magic-token",verification_type:"magiclink",id:userId,email:body.email});
     }
     if (url.pathname === "/auth/v1/verify") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      if(body.token_hash?.startsWith("fixture-tv-")){const mode="tv:"+body.token_hash.slice(11);return send({access_token:token(mode),refresh_token:"refresh-"+mode,expires_in:3600,token_type:"bearer",user:user(mode)});}
       assert.equal(body.token_hash,"server-only-magic-token");
       return send({access_token:token("room"),refresh_token:"refresh-room",expires_in:3600,token_type:"bearer",user:user("room")});
     }
@@ -270,7 +304,7 @@ test("home links lead to real routes", async () => {
 });
 
 test("unbuilt private and live surfaces serve no engagement data", async () => {
-  for (const route of ["/tv", "/remote", "/room/nonexistent"]) {
+  for (const route of ["/remote", "/room/nonexistent"]) {
     const response = await fetch(origin + route);
     assert.equal(response.status, 404, route);
     assert.match(await response.text(), /Check the room link with your facilitator/);
@@ -658,4 +692,30 @@ test("a long editing session refreshes its facilitator cookie on the run-of-show
   const response=await fetch(origin+`/api/run-of-show/${roomId}`,{headers:{cookie}});
   assert.equal(response.status,200);assert.match(response.headers.get("set-cookie")!,/cw-facilitator=/);
   assert.match(response.headers.get("set-cookie")!,/HttpOnly/);assert.match(response.headers.get("cache-control")!,/no-store/);
+});
+
+test("TV opens as a separate Navy shell and short room links preserve the existing sign-in boundary",async()=>{
+ const page=await fetch(origin+"/tv");assert.equal(page.status,200);const html=await page.text();assert.match(html,/data-surface="tv"/);assert.match(html,/Opening this screen/);assert.doesNotMatch(html,/Test facilitator|PRIVATE-PRINT-NOTES|Sign in with Google/);
+ const link=await fetch(origin+"/r/abcdef12",{redirect:"manual"});assert.equal(link.status,307);assert.ok(link.headers.get("location")!.endsWith("/room/"+roomId));
+ assert.ok((await fetch(origin+"/r/ZZZZZZZZ",{redirect:"manual"})).headers.get("location")!.endsWith("/room"));
+});
+test("TV code approval, own persistent cookies, multi-screen preparation and unpair use separate authorizations",async()=>{
+ const tvJar=new Map<string,string>(),endpoint=origin+"/api/tv";
+ const sync=async()=>{const response=await fetch(endpoint,{method:"POST",headers:{origin,cookie:cookieHeader(tvJar),"Content-Type":"application/json"},body:"{}"});applyCookies(tvJar,response);return {response,data:await response.json()};};
+ assert.equal((await fetch(endpoint,{method:"POST",headers:{origin:"https://evil.example"},body:"{}"})).status,403);
+ const pairing=await sync();assert.equal(pairing.data.status,"pair");assert.match(pairing.data.code,/^\d{6}$/);assert.match(pairing.response.headers.get("set-cookie")!,/HttpOnly/);assert.match(pairing.response.headers.get("set-cookie")!,/Max-Age=31536000/);assert.ok(!JSON.stringify(pairing.data).includes("proof"));
+ assert.equal((await sync()).data.code,pairing.data.code,"Code persists until expiry");
+ assert.equal((await fetch(origin+`/api/tv/control/${roomId}`,{method:"POST",headers:{origin,cookie:cookieHeader(tvJar),"Content-Type":"application/json"},body:JSON.stringify({action:"pair",code:pairing.data.code,label:"Front TV"})})).status,401);
+ const {jar}=await finishLogin("allowed"),headers={origin,cookie:cookieHeader(jar),"Content-Type":"application/json"};
+ const control=async(value:Record<string,unknown>)=>fetch(origin+`/api/tv/control/${roomId}`,{method:"POST",headers,body:JSON.stringify(value)});
+ assert.equal((await control({action:"pair",code:pairing.data.code,label:"Front TV"})).status,200);
+ const paired=await sync();assert.equal(paired.data.status,"paired");assert.ok([...tvJar.keys()].some(k=>k.startsWith("cw-tv")));assert.ok(![...tvJar.keys()].some(k=>k.startsWith("cw-facilitator")));assert.ok(!JSON.stringify(paired.data).includes("access_token"));
+ const reopened=await fetch(origin+"/tv",{headers:{cookie:cookieHeader(new Map(tvJar))}});assert.equal(reopened.status,200);const restored=await reopened.text();assert.doesNotMatch(restored,/PRIVATE-PRINT-NOTES/);assert.equal((await sync()).data.tv,paired.data.tv);
+ assert.equal((await fetch(origin+"/control",{headers:{cookie:cookieHeader(tvJar)},redirect:"manual"})).status,307);
+ assert.equal((await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(jar)}})).status,403);
+ assert.equal((await control({action:"screen",content:"join"})).status,200);
+ const frame=await (await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(tvJar)}})).json();assert.equal(frame.role,"tv");assert.equal(frame.state.tv_content,"join");assert.equal(frame.phone_depth,null);assert.equal(frame.presence.names[0].name,"Ann");
+ const manager=await fetch(origin+`/setup/${roomId}/tv`,{headers:{cookie:cookieHeader(jar)}});assert.equal(manager.status,200);assert.match(await manager.text(),/Show screen check|Paired screens/);
+ const proof=JSON.parse(decodeURIComponent(tvJar.get("cw-tv-device")!));assert.equal((await control({action:"unpair",device:proof.id})).status,200);assert.equal((await sync()).data.status,"pair");
+ assert.equal((await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(tvJar)}})).status,403);
 });

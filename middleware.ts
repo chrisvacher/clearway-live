@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { facilitatorClient, type CookieJar } from "@/lib/auth/client";
 import { privateResponse } from "@/lib/auth/response";
 import { hasRoomCookie, participantClient } from "@/lib/room/client";
+import { tvClient } from "@/lib/tv/client";
 import { uuid } from "@/lib/room/identity";
 
 export async function middleware(request: NextRequest) {
@@ -19,10 +20,10 @@ export async function middleware(request: NextRequest) {
   const roomPage=request.nextUrl.pathname.startsWith("/room");
   const client=roomPage
     ?(room&&uuid(room)&&hasRoomCookie(jar,room)?participantClient(jar,room):null)
-    :facilitatorClient(jar);
+    :request.nextUrl.pathname==="/tv"?tvClient(jar):facilitatorClient(jar);
   if (client) await client.auth.getUser();
   // Refresh only. Page and data guards independently authorize every request.
   return privateResponse(response);
 }
 
-export const config = { runtime: "nodejs", matcher: ["/sign-in", "/setup/:path*", "/control/:path*", "/api/facilitator/:path*", "/api/run-of-show/:path*", "/room/:path*"] };
+export const config = { runtime: "nodejs", matcher: ["/tv", "/api/tv/control/:path*", "/sign-in", "/setup/:path*", "/control/:path*", "/api/facilitator/:path*", "/api/run-of-show/:path*", "/room/:path*"] };

@@ -285,3 +285,23 @@
 }
 /* Warning and Error live only on app surfaces: they do not exist on the TV or phones */
 [data-surface="tv"], [data-surface="phone"] { --cwl-app-warning: initial; --cwl-app-warning-bg: initial; --cwl-app-error: initial; --cwl-app-error-bg: initial; }
+
+/* Approved pass 2 TV ramp is bound here so room-size changes recalculate it. */
+[data-surface="tv"] {
+ --cwl-room-scale: var(--cwl-room-very-small); --cwl-fit-scale: 1;
+ --cwl-tv-scale: max(1, calc(var(--cwl-room-scale) * var(--cwl-fit-scale)));
+ --cwl-fs-tv-display: calc(144px * var(--cwl-tv-scale));
+ --cwl-fs-tv-headline-xl: calc(96px * var(--cwl-tv-scale));
+ --cwl-fs-tv-headline: calc(64px * var(--cwl-tv-scale));
+ --cwl-fs-tv-main: calc(56px * var(--cwl-tv-scale));
+ --cwl-fs-tv-body: calc(44px * var(--cwl-tv-scale));
+ --cwl-fs-tv-floor: calc(36px * var(--cwl-tv-scale));
+ --cwl-fs-tv-eyebrow: calc(36px * var(--cwl-tv-scale));
+ --cwl-tex-solid: 0.16;
+ --cwl-check-display: 144px; --cwl-check-headline-xl: 96px; --cwl-check-headline: 64px; --cwl-check-main: 56px; --cwl-check-body: 44px; --cwl-check-floor: 36px;
+ --tv-stage-scale: 1;
+}
+[data-surface="tv"][data-room="small"] { --cwl-room-scale: var(--cwl-room-small); }
+[data-surface="tv"][data-room="medium"] { --cwl-room-scale: var(--cwl-room-medium); }
+[data-surface="tv"][data-room="large"] { --cwl-room-scale: var(--cwl-room-large); }
+[data-surface="tv"][data-room="very_large"] { --cwl-room-scale: var(--cwl-room-very-large); }

@@ -54,6 +54,7 @@ export function ShowEditor({ initial }: { initial: RunOfShow }) {
       <Link href={base}><LayoutDashboard aria-hidden="true" size={18} />Overview</Link>
       <Link href={`${base}#attendees`}><Users aria-hidden="true" size={18} />Attendees</Link>
       <Link href={`${base}/run-of-show`} aria-current="page"><ListOrdered aria-hidden="true" size={18} />Run of show</Link>
+      <Link href={`${base}/tv`}><Printer aria-hidden="true" size={18} />Pair a TV</Link>
       <Link href={`${base}/door`}><DoorOpen aria-hidden="true" size={18} />Door list</Link>
       <Link href={`${base}/run-of-show/print`}><Printer aria-hidden="true" size={18} />Printouts</Link>
       <Link href="/setup">View engagements</Link>

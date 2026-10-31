@@ -17,7 +17,7 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
     if (patch.withdrawn || patch.hidden) answers.delete(patch.id);
     else answers.set(patch.id, { id: patch.id, session_id: patch.session_id, text: patch.text, answers: patch.answers, revision: patch.revision });
   }
-  return { kind: "applied", value: { ...current, state: event.state, session: event.session, answers: [...answers.values()], version } };
+  return { kind: "applied", value: { ...current, state: event.state, session: event.session, display: event.display ?? current.display, presence: event.presence ?? current.presence, answers: [...answers.values()], version } };
 }
 
 export function adoptSnapshot(current: LiveSnapshot | null, next: LiveSnapshot) {

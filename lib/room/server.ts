@@ -30,6 +30,11 @@ export function roomClient(request: NextRequest, response: NextResponse, engagem
 export async function roomRpc(action: string, payload: Record<string, unknown>) {
   const { data, error } = await serviceClient().rpc("room_auth", { p_action: action, p: payload });
   if (error) throw new Error("Room connection unavailable");
+  if(action==="bind"&&data?.status==="signed_in") {
+    // Notify after the identity transaction commits; never invert device/room locks.
+    const notified=await serviceClient().rpc("tv_presence_sync",{p_engagement:payload.engagement});
+    if(notified.error)console.error("TV arrival notification unavailable",{code:notified.error.code});
+  }
   return data as Record<string, unknown>;
 }
 function rateKeys(request: NextRequest, engagement: string, device: string, email: string, action: string) {
