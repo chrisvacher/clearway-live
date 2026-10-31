@@ -1,4 +1,4 @@
-export type LiveSession = { id: string; title: string; interaction: "word_cloud" | "wall" | "content"; prompt: string; state: string; max_sends: number; max_characters: number; max_words: number };
+export type LiveSession = { revision?: number; base_year?: number; settings?: { anonymous: boolean; burst_minutes: number; join_strip: boolean }; id: string; title: string; interaction: "word_cloud" | "wall" | "content"; prompt: string; state: string; max_sends: number; max_characters: number; max_words: number };
 export type LiveState = { engagement_id: string; live_session_id: string | null; version: number; tv_content: string; phones_down: boolean; burst_ends_at: string | null; results: { total: number; people: number; words: { key: string; text: string; count: number; size: number; level: string }[] }; [key: string]: unknown };
 export type LiveAnswer = { id: string; session_id: string; text: string; answers: { text: string; key: string }[]; revision: number; created_at?: string };
 export type LivePatch = LiveAnswer & { withdrawn?: boolean; hidden?: boolean };

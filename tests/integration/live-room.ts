@@ -18,7 +18,7 @@ async function main() {
   const clients: SupabaseClient[] = [];
   async function identity(label: string) {
     const client = createClient(env.API_URL, env.ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } }); clients.push(client);
-    const generated = await admin.auth.admin.generateLink({ type: "magiclink", email: `live-${label}-${randomUUID()}@example.org` });
+    const generated = await admin.auth.admin.generateLink({ type: "magiclink", email: `live-${label}-${randomUUID()}@${label === "fac" ? "clearway.co" : "example.org"}` });
     assert.equal(generated.error, null);
     const type = generated.data.properties!.verification_type; assert.ok(type === "magiclink" || type === "signup");
     const verified = await client.auth.verifyOtp({ token_hash: generated.data.properties!.hashed_token, type });
@@ -100,6 +100,32 @@ async function main() {
     await db.query("update public.room_states set phones_down=false where engagement_id=$1", [room]);
     await until(() => restored.length === 1, "Active TV resumed on the rotated private channel");
     await until(() => adapterEvents.length === 1, "Production receive adapter authenticated before joining");
+    // Native authorizations and a real WebSocket verify explicit Save reaches the room.
+    const facilitator=await identity("fac"),facId=randomUUID();
+    await db.query("insert into auth.identities(user_id,provider,provider_id,identity_data) values($1,'google',$1::text,jsonb_build_object('email',$2::text,'email_verified',true))",[facilitator.user.id,facilitator.user.email]);
+    await db.query("insert into auth.mfa_amr_claims(id,session_id,created_at,updated_at,authentication_method) values(gen_random_uuid(),$1,now(),now(),'oauth')",[facilitator.session]);
+    await db.query("insert into public.clearway_users(id,auth_user_id,name,email) values($1,$2,'Native facilitator',$3)",[facId,facilitator.user.id,facilitator.user.email]);
+    await db.query("insert into public.engagement_facilitators(engagement_id,clearway_user_id,role) values($1,$2,'lead')",[room,facId]);
+    await db.query("update public.device_sessions set revoked_at=null where auth_session_id=$1",[phone.session]);
+    await db.query("update public.room_states set phones_down=false where engagement_id=$1",[room]);
+    const saveStart=await tv.client.rpc("live_snapshot",{p_engagement:room});assert.equal(saveStart.error,null);
+    const savedEvents:Record<string,unknown>[]=[];await joined(tv.client,saveStart.data.topic,event=>savedEvents.push(event));
+    const show=await facilitator.client.rpc("show_read",{p_engagement:room});assert.equal(show.error,null);assert.equal(show.data.status,"ok");
+    const edit={...show.data.sessions[0],prompt:"Saved {base year + 10}",phone_depth:"Depth {base year + 3}",notes:"SAVED-NOTES-SECRET"};
+    const started=Date.now();
+    const saved=await facilitator.client.rpc("show_write",{p_engagement:room,p_action:"save",p_input:edit});assert.equal(saved.error,null);assert.equal(saved.data.status,"ok");
+    await until(()=>savedEvents.length===1,"Saved prompt reached native private WebSocket");
+    const deliveryMs=Date.now()-started;
+    assert.equal((savedEvents[0].session as {prompt:string}).prompt,"Saved 2036");assert.ok(!JSON.stringify(savedEvents).includes("SAVED-NOTES-SECRET"));assert.ok(!JSON.stringify(savedEvents).includes("Depth 2029"));
+    const depth=await phone.client.rpc("live_snapshot",{p_engagement:room});assert.equal(depth.data.phone_depth,"Depth 2029");
+    assert.equal((await tv.client.rpc("show_read",{p_engagement:room})).data.status,"denied");
+    const conflicts=await Promise.all([1,2].map(n=>facilitator.client.rpc("show_write",{p_engagement:room,p_action:"save",p_input:{...edit,revision:edit.revision+1,title:"Concurrent edit "+n}})));
+    assert.deepEqual(conflicts.map(x=>x.data.status).sort(),["conflict","ok"]);
+    await db.query("insert into public.sessions(engagement_id,title,position) select $1,'Planning row '||n,n from generate_series(1,1205)n",[room]);
+    let showAfter:string|null=null,showVersion:string|null=null,showCount=0;
+    do {const page: {data:{status:string;sessions:unknown[];next:string|null;version:string}|null;error:unknown}=await facilitator.client.rpc("show_read",{p_engagement:room,p_after:showAfter,p_version:showVersion});assert.equal(page.error,null);assert.ok(page.data);assert.equal(page.data.status,"ok");showCount+=page.data.sessions.length;showAfter=page.data.next;showVersion=page.data.version;}while(showAfter);
+    assert.equal(showCount,1206);
+    console.log(`Native run of show: Save broadcast received in ${deliveryMs} ms on loopback, anonymous TV projection, private phone depth, concurrent-save protection and 1206-session paging passed. Venue acceptance remains separate.`);
     console.log("Native live engine: private WebSocket delivery, 50 concurrent writes, ordered versions, deduplication, anti-spoofing, anonymous payloads, 1256-row pagination, latency receipts and revocation rotation passed. This is not the venue latency acceptance test.");
   } finally {
     for(const stop of subscriptions)stop();

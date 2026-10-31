@@ -229,3 +229,59 @@
 .cwl-phone-label { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-label); line-height: 1.4; font-weight: 600; letter-spacing: 0; }
 .cwl-phone-micro { font-family: var(--cwl-font); font-size: var(--cwl-fs-phone-micro); line-height: 1.4; font-weight: 500; letter-spacing: 0; }
 .cwl-tv-headline strong, .cwl-tv-headline-xl strong { font-weight: 700; }
+
+:root { --cwl-app-sidebar-w: 248px; --cwl-app-header-h: 64px; --cwl-app-panel-w: 480px; --cwl-app-gutter: 24px; --cwl-app-gap: 16px; }
+
+/* Approved pass 2 app surface tokens. TV/phone motion tokens follow in their PRs. */
+/* ---------- App surfaces: control, setup, scribe, review (light by default) ---------- */
+[data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"] {
+  --cwl-app-page: var(--cw-off-white, #F9F9FB); /* App surfaces: the page. */
+  --cwl-app-card: var(--cw-white, #FFFFFF); /* App surfaces: cards, tables, panels, modals, inputs. */
+  --cwl-app-sunken: var(--cw-gray-100, #F3F4F6); /* App surfaces: table headers, pinned footers, skeletons, disabled fills. */
+  --cwl-app-text: var(--cw-navy, #03294E); /* App surfaces: main text on page, card and sunken. */
+  --cwl-app-text-muted: var(--cw-gray-600, #4B5563); /* App surfaces: secondary text and help text. */
+  --cwl-app-text-subtle: var(--cw-gray-500, #6B7280); /* App surfaces: meta, placeholders, disabled labels. */
+  --cwl-app-border: var(--cw-gray-200, #E5E7EB); /* App surfaces: hairlines, card and table borders. */
+  --cwl-app-border-strong: var(--cw-gray-500, #6B7280); /* App surfaces: input, checkbox and toggle edges (3:1). */
+  --cwl-app-primary: var(--cwl-royal-deep); /* App surfaces: primary buttons. Deeper Royal so 14px labels pass. */
+  --cwl-app-primary-hover: var(--cw-navy, #03294E); /* App surfaces: primary button hover (base sweep ends on Navy). */
+  --cwl-app-on-primary: var(--cw-white, #FFFFFF); /* App surfaces: label on primary buttons. */
+  --cwl-app-link: var(--cwl-royal-deep); /* App surfaces: links and ghost buttons (Royal at text size fails on white; Deeper Royal passes). */
+  --cwl-app-focus: var(--cw-royal-blue, #3F72DE); /* App surfaces: focus ring, 2px solid, 2px offset (3:1 on white and Off-White). */
+  --cwl-app-hover: var(--cw-gray-100, #F3F4F6); /* App surfaces: row, nav and ghost-button hover. */
+  --cwl-app-selected: var(--cwl-sky-pale); /* App surfaces: selected rows, active nav item. */
+  --cwl-app-avatar: var(--cwl-sky-light); /* App surfaces: initials avatars (Navy text). */
+  --cwl-app-warning: var(--cw-warning, #D97706); /* App surfaces only: Warning icon and disc fill. Never as text. Never on the TV or phones. */
+  --cwl-app-warning-bg: var(--cw-warning-light, #FEF3C7); /* App surfaces only: Warning banners and chips (Navy text). */
+  --cwl-app-on-warning: var(--cw-navy, #03294E); /* App surfaces only: glyph on a Warning disc. */
+  --cwl-app-error: var(--cw-error, #DC2626); /* App surfaces only: Error text, input edges, icons, destructive buttons. Never on the TV or phones. */
+  --cwl-app-error-bg: var(--cw-error-light, #FEE2E2); /* App surfaces only: Error banners and chips (Navy text). */
+  --cwl-app-on-error: var(--cw-white, #FFFFFF); /* App surfaces only: label on a destructive button or Error disc. */
+  --cwl-app-success: var(--cw-success, #059669); /* App surfaces: success icon and disc fill. Never as text. */
+  --cwl-app-success-bg: var(--cw-success-light, #D1FAE5); /* App surfaces: success chips (Navy text). */
+  --cwl-app-info: var(--cw-info, #2563EB); /* App surfaces: info icon and disc fill. */
+  --cwl-app-info-bg: var(--cw-info-light, #DBEAFE); /* App surfaces: info banners and Ready chips (Navy text). */
+  --cwl-app-team: var(--cw-navy, #03294E); /* App surfaces: Team-led chip fill (Off-White text). */
+  --cwl-app-on-team: var(--cw-off-white, #F9F9FB); /* App surfaces: text on cwl-app-team. */
+  --cwl-app-scrim: var(--cwl-app-scrim-ink); /* App surfaces: behind modals and side panels. */
+  --cwl-core-not-started: var(--cw-gray-100, #F3F4F6); --cwl-core-not-started-disc: var(--cw-gray-500, #6B7280); --cwl-core-not-started-glyph: var(--cw-white, #FFFFFF); /* Not started · lucide circle-dashed */
+  --cwl-core-on-track: var(--cw-success-light, #D1FAE5); --cwl-core-on-track-disc: var(--cw-success, #059669); --cwl-core-on-track-glyph: var(--cw-white, #FFFFFF); /* On track · lucide check */
+  --cwl-core-at-risk: var(--cw-warning-light, #FEF3C7); --cwl-core-at-risk-disc: var(--cw-warning, #D97706); --cwl-core-at-risk-glyph: var(--cw-navy, #03294E); /* At risk · lucide triangle-alert */
+  --cwl-core-off-track: var(--cw-error-light, #FEE2E2); --cwl-core-off-track-disc: var(--cw-error, #DC2626); --cwl-core-off-track-glyph: var(--cw-white, #FFFFFF); /* Off track · lucide x */
+  --cwl-core-completed: var(--cwl-sky-pale); --cwl-core-completed-disc: var(--cwl-royal-deep); --cwl-core-completed-glyph: var(--cw-white, #FFFFFF); /* Completed · lucide flag */
+  --cwl-run-draft: var(--cw-gray-100, #F3F4F6); --cwl-on-run-draft: var(--cw-gray-700, #374151); /* Draft · lucide pencil-line */
+  --cwl-run-ready: var(--cw-info-light, #DBEAFE); --cwl-on-run-ready: var(--cw-navy, #03294E); /* Ready · lucide circle-check */
+  --cwl-run-live: var(--cw-lime, #D2FF71); --cwl-on-run-live: var(--cw-navy, #03294E); /* Live · lucide radio */
+  --cwl-run-done: var(--cw-gray-200, #E5E7EB); --cwl-on-run-done: var(--cw-gray-700, #374151); /* Done · lucide check-check */
+  --cwl-run-team-led: var(--cw-navy, #03294E); --cwl-on-run-team-led: var(--cw-off-white, #F9F9FB); /* Team-led · lucide users */
+  --cwl-fs-app-page-title: 24px; /* Base H3. Page titles in the app header. */
+  --cwl-fs-app-section-title: 20px; /* Base H4. Section and panel titles. */
+  --cwl-fs-app-body: 16px; /* Base body. Paragraphs, review text. */
+  --cwl-fs-app-table: 14px; /* Base small. Table cells, inputs, dense lists. */
+  --cwl-fs-app-label: 14px; /* Base small, 600. Field labels, nav, buttons (uppercase 700). */
+  --cwl-fs-app-micro: 12px; /* Base micro. Chips, table headers (uppercase), meta. */
+  /* Sunrise never appears on app surfaces */
+  --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial;
+}
+/* Warning and Error live only on app surfaces: they do not exist on the TV or phones */
+[data-surface="tv"], [data-surface="phone"] { --cwl-app-warning: initial; --cwl-app-warning-bg: initial; --cwl-app-error: initial; --cwl-app-error-bg: initial; }
