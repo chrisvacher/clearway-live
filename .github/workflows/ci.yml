@@ -56,10 +56,10 @@ jobs:
         run: supabase test db --local
       - name: Test native Auth session binding
         run: npm run test:auth
-      - name: Test native private Realtime and live engine
-        run: npm run test:live
       - name: Test native TV pairing and persistent display sessions
         run: npm run test:tv
+      - name: Test native private Realtime and live engine
+        run: npm run test:live
       - name: Test Team Hub reader against a disposable fixture only
         run: npm run test:team-hub
       - name: Test idempotent seeds and native practice sign-in/reset
