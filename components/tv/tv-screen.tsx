@@ -11,6 +11,7 @@ import { TvScenes } from "./tv-scenes";
 export function TvScreen({ initial }: { initial: TvBinding | null }) {
   const [status, setStatus] = useState<TvStatus>(initial || { status: "opening" });
   const [frame, setFrame] = useState<LiveSnapshot | null>(null), [mode, setMode] = useState("connecting"), [awake, setAwake] = useState(true);
+  const [nameLimit, setNameLimit] = useState(14);
   const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), sync = useRef<() => void>(() => {});
   const receipt = useRef<TvReceipts | null>(null), clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
   const boxes = useRef(new Map<string, DOMRect>());
@@ -58,6 +59,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
     window.addEventListener("online", resume); document.addEventListener("visibilitychange", resume);
     return () => { stream.stop(); receipts.stop(); receipt.current = null; window.removeEventListener("online", resume); document.removeEventListener("visibilitychange", resume); };
   }, [engagement, binding]);
+  const arrivalLayout = JSON.stringify([frame?.presence, frame?.display?.room_size, frame?.state.tv_content]);
+  useLayoutEffect(() => { setNameLimit(14); }, [arrivalLayout]);
   useLayoutEffect(() => {
     if (!frame || !stage.current) return;
     const el = stage.current;
@@ -74,6 +77,9 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
       };
       let fit = 1;
       while (!fits() && fit > 1 / roomScale) { fit = Math.max(1 / roomScale, fit - 0.05); viewport.style.setProperty("--cwl-fit-scale", String(fit)); }
+      // Keep a remaining count when long arrival names exceed the readable
+      // floor, rather than shrinking or clipping the room's content.
+      if (!fits() && frame.state.tv_content === "join" && nameLimit > 1) setNameLimit(nameLimit - 1);
     }
     const style = getComputedStyle(el), scale = el.getBoundingClientRect().width / 1920;
     const duration = frame.display?.reduced_motion || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : parseFloat(style.getPropertyValue("--cwl-dur-make-room"));
@@ -88,7 +94,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
     // its next paint. Receipt timestamps remain the original receive times.
     const raf = requestAnimationFrame(() => receipt.current?.paint(frame.version));
     return () => cancelAnimationFrame(raf);
-  }, [frame]);
+  }, [frame, nameLimit]);
   useEffect(() => {
     const el = root.current; if (!el) return;
     const resize = () => el.style.setProperty("--tv-stage-scale", String(Math.min(el.clientWidth / 1920, el.clientHeight / 1080)));
@@ -106,7 +112,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={frame?.state.tv_content === "screen_check" || frame?.state.tv_content === "session" ? "content" : "holding"} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} reconnecting={mode === "offline" || status.status === "paired" && ["fallback", "connecting"].includes(mode)} /></div>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} nameLimit={nameLimit} reconnecting={mode === "offline" || status.status === "paired" && ["fallback", "connecting"].includes(mode)} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

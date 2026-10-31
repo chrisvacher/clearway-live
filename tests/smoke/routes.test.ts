@@ -50,7 +50,9 @@ const profile = { id: "50000000-0000-4000-8000-000000000002", name: "Test facili
 const tvDevices=new Map<string,{proof:string;code_hash:string|null;expires_at:string;engagement?:string;label?:string;binding?:string;claim?:string}>();
 let tvContent="holding",tvVersion=42;
 let tvDisplay={church:"Riverside Church",title:"Riverside Church Wayfinding",logo_url:null,room_code:"ABCDEF12",theme:"dark",room_size:"very_small",texture:true,reduced_motion:false};
-const tvPresence={count:2,names:[{key:"ann",name:"Ann"},{key:"ben",name:"Ben"}]};
+const tvPresence=process.env.CLEARWAY_SMOKE_CROWDED_TV==="1"
+  ? {count:50,names:Array.from({length:14},(_,i)=>({key:`crowded-${i}`,name:"Alexandertheverylongname".repeat(6)}))}
+  : {count:2,names:[{key:"ann",name:"Ann"},{key:"ben",name:"Ben"}]};
 const tripwire = "foundation-server-secret-must-never-ship";
 
 before(async () => {

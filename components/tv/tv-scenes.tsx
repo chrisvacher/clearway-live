@@ -16,7 +16,7 @@ function CodeExpiry({ expires }: { expires: string }) {
   useEffect(() => { const tick = () => setSeconds(Math.max(0, Math.ceil((Date.parse(expires) - Date.now()) / 1000))); tick(); const timer = setInterval(tick, 1000); return () => clearInterval(timer); }, [expires]);
   return <span className="tv-upclose">Code changes in {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span>;
 }
-export function TvScenes({ status, frame, reconnecting }: { status: TvStatus; frame: LiveSnapshot | null; reconnecting: boolean }) {
+export function TvScenes({ status, frame, reconnecting, nameLimit }: { status: TvStatus; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number }) {
   const display = frame?.display, presence = frame?.presence;
   const paired = status.status === "paired" && Boolean(display);
   const mode = paired ? frame!.state.tv_content : status.status === "pair" ? "pair" : "opening";
@@ -35,7 +35,7 @@ export function TvScenes({ status, frame, reconnecting }: { status: TvStatus; fr
         <p className="tv-eyebrow">{display?.title}</p><h1 className="tv-headline-xl"><strong>{display?.church}</strong></h1><p className="tv-body tv-muted"><Check aria-hidden="true" /> This screen is paired</p>
       </section>
       <section className={`tv-scene tv-join${mode === "join" ? " is-active" : ""}`} aria-hidden={mode !== "join"}>
-        {display && <><Qr code={display.room_code} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>live.clearway.co</span><span>/r/{display.room_code}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > 14 && <span>+ {(presence?.count || 0) - 14} more</span>}</div></div></>}
+        {display && <><Qr code={display.room_code} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>live.clearway.co</span><span>/r/{display.room_code}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
       </section>
       <section className={`tv-scene tv-session${mode === "session" ? " is-active" : ""}`} aria-hidden={mode !== "session"}>
         <p className="tv-eyebrow">{frame?.session?.title}</p><h1 className="tv-headline">{frame?.session?.prompt}</h1>
