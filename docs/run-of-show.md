@@ -2,7 +2,7 @@
 
 Milestone 2, PR 2 implements SET-07 and FAIL-10. Open **Edit run of show** from an engagement's setup page. Sessions are grouped into Pre-call, Day 1, Day 2 and Follow-up. Move buttons work by keyboard and touch. A session's part changes in its editor.
 
-The editor follows the approved pass 2 white app shell and 480px private panel. It supports title, church-local planned time and length, mode and opening window, word cloud/wall/content, prompt, phone depth, answer limits, default burst length, join strip, presenter notes, output destination and draft/ready state. Self-paced windows are stored now; scheduled opening belongs to the interaction-library milestone. AI and named-answer settings are not enabled ahead of their milestones.
+The editor follows the approved pass 2 white app shell and 480px private panel. It supports title, segment, church-local planned time and length, mode and opening window, word cloud/wall/content, prompt, phone depth, answer limits, default burst length, join strip, presenter notes, output destination and draft/ready state. Self-paced windows are stored now; scheduled opening belongs to the interaction-library milestone. AI and named-answer settings are not enabled ahead of their milestones.
 
 The API refreshes and persists the facilitator cookie during long editing sessions. Save commits the session, its notes, one room version and its verified private broadcast together. It never starts a session. Current live/closed states remain under live-room controls. Mode or interaction cannot change while running or after answers exist. Removing a session is a soft delete and is refused for a current/live/open session.
 

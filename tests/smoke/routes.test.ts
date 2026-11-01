@@ -33,6 +33,7 @@ const fixtureSession = (id:string, position=0) => ({id,engagement_id:roomId,titl
 showSessions.set(roomAttendee,fixtureSession(roomAttendee));
 showSessions.set(roomId,fixtureSession(roomId,1));
 let livePages=0,liveRestart=false;
+const controlPresses:Record<string,unknown>[]=[];
 let roomAuthCalls = 0;
 let roomBound = false;
 const userId = "50000000-0000-4000-8000-000000000001";
@@ -139,6 +140,11 @@ before(async () => {
       else if(body.p_action==="reorder") input.order.forEach((v:{id:string},i:number)=>{const row=showSessions.get(v.id)!;showSessions.set(v.id,{...row,position:i,revision:Number(row.revision)+1});});
       showVersion++;return send({status:"ok",id:input.id});
     }
+    if(url.pathname==="/rest/v1/rpc/control_status"){assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      return send(mode==="allowed"&&body.p_engagement===roomId?{status:"ok",server_time:new Date().toISOString(),version:42,fac_topic:"fac:fixture",screens:[{id:"screen",label:"Front TV",confirmed_version:42,last_seen_at:new Date().toISOString(),connected:true}],counts:{signed_in:1,answered:0,answers:0,hidden:0,latency_p95_ms:null},items:[],controls:[]}:{status:"denied"});}
+    if(url.pathname==="/rest/v1/rpc/room_control"){assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);controlPresses.push(body);
+      return send(mode==="allowed"&&body.p_engagement===roomId?{status:"ok",version:43}:{status:"denied"});}
+    if(url.pathname==="/rest/v1/rpc/live_tick"){assert.notEqual(req.headers.apikey,tripwire);return send(mode==="allowed"||(mode.startsWith("tv:")&&Boolean(tvDevices.get(mode.slice(3))?.binding))?{status:"none",version:42}:{status:"denied"});}
     if (url.pathname === "/rest/v1/rpc/live_snapshot") {
       assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);livePages++;
       if((!["allowed","room"].includes(mode)&&!(mode.startsWith("tv:")&&tvDevices.get(mode.slice(3))?.binding))||body.p_engagement!==roomId)return send({status:"denied"});
@@ -405,7 +411,7 @@ test("OAuth uses PKCE, then a verified allowlist claim opens setup and control",
   const sessionJson = Buffer.from(appCookie.slice(7), "base64url").toString();
   assert.doesNotMatch(sessionJson, /provider_token|provider_refresh_token|unused-google/);
   assert.ok(![...jar.keys()].some(k => /^cw-facilitator\.\d+$/.test(k)), "Old provider-token chunks are removed");
-  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Prepare your engagement."]]) {
+  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Run the room."]]) {
     const page = await fetch(origin + path, { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
     assert.equal(page.status, 200);
     assert.match(page.headers.get("cache-control")!, /no-store/);
@@ -718,4 +724,25 @@ test("TV code approval, own persistent cookies, multi-screen preparation and unp
  const manager=await fetch(origin+`/setup/${roomId}/tv`,{headers:{cookie:cookieHeader(jar)}});assert.equal(manager.status,200);assert.match(await manager.text(),/Show screen check|Paired screens/);
  const proof=JSON.parse(decodeURIComponent(tvJar.get("cw-tv-device")!));assert.equal((await control({action:"unpair",device:proof.id})).status,200);assert.equal((await sync()).data.status,"pair");
  assert.equal((await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(tvJar)}})).status,403);
+});
+test("the live room and remote are facilitator-only, and presses are validated before the room", async () => {
+  const pressUrl = origin + `/api/control/${roomId}`, id = "57000000-0000-4000-8000-000000000001";
+  assert.equal((await fetch(pressUrl)).status, 401);
+  assert.equal((await fetch(pressUrl, { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify({ id, action: "next", from: null }) })).status, 401);
+  for (const path of [`/control/${roomId}`, `/remote/${roomId}`]) assert.equal((await fetch(origin + path, { redirect: "manual" })).status, 307, path);
+  const { jar } = await finishLogin("allowed"), cookie = cookieHeader(jar), headers = { origin, cookie, "Content-Type": "application/json" };
+  assert.equal((await fetch(pressUrl, { method: "POST", headers: { ...headers, origin: "https://evil.example" }, body: JSON.stringify({ id, action: "next", from: null }) })).status, 403);
+  for (const bad of [{ id, action: "next" }, { id, action: "start_burst", from: null, minutes: 9 }, { id: "x", action: "next", from: null }, { id, action: "delete_room", from: null }])
+    assert.equal((await fetch(pressUrl, { method: "POST", headers, body: JSON.stringify(bad) })).status, 422, JSON.stringify(bad));
+  const before = controlPresses.length;
+  const ok = await fetch(pressUrl, { method: "POST", headers, body: JSON.stringify({ id, action: "start_burst", from: null, minutes: 4, extra: "ignored" }) });
+  assert.equal(ok.status, 200); assert.match(ok.headers.get("cache-control")!, /no-store/);
+  assert.deepEqual(controlPresses.slice(before), [{ p_engagement: roomId, p_id: id, p_action: "start_burst", p: { from: null, minutes: 4 } }]);
+  const status = await fetch(pressUrl, { headers: { cookie } }); assert.equal(status.status, 200); assert.equal((await status.json()).screens[0].label, "Front TV");
+  for (const [path, text] of [[`/control/${roomId}`, "Live room"], [`/remote/${roomId}`, "Only you see this"]]) {
+    const page = await fetch(origin + path, { headers: { cookie } }); assert.equal(page.status, 200, path);
+    const html = await page.text(); assert.ok(html.includes(text), path); assert.ok(!html.includes(tripwire)); assert.match(page.headers.get("cache-control")!, /no-store/);
+  }
+  assert.equal((await fetch(origin + `/api/live/${roomId}/tick?surface=control`, { method: "POST", headers })).status, 200);
+  assert.equal((await fetch(origin + `/api/live/${roomId}/tick?surface=phone`, { method: "POST", headers })).status, 403);
 });

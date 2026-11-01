@@ -113,3 +113,5 @@ Both are needed by design pass 2. Codex builds each as a setting; the default wa
 • Default TV screen: dark (Navy), light (Off-White), or chosen per room.
 • The church on the TV: the church's name only, its logo beside Clearway's, or Clearway only.
 Handoff update, October 30, 2026: milestone 1 passed and is merged. Chris supplied design pass 2, approved motion, and confirmed the export’s filled-mark textures and LIVE pill, Navy default TV theme, and church logo beside Clearway’s. The entry gates and the two design questions above are resolved. See docs/design-pass-2-handoff.md and the updated PRD.
+
+Handoff update, November 1, 2026: step 4 is built in Claude and Claude Code rather than Codex. Chris decided that earlier steps keep taking answers while the room stays in their segment, that leaving the segment or closing the day closes them, that moving between steps needs no confirmation, that a TV silent for 12 seconds drops out of confirmation, and that Refresh phones needs a second tap. See docs/live-controls.md and the updated PRD.

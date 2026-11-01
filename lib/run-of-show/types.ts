@@ -6,9 +6,10 @@ export type ShowSession = {
   planned_start: string | null; planned_minutes: number; mode: "live" | "self_paced";
   opens_at: string | null; closes_at: string | null;
   interaction: "word_cloud" | "wall" | "content"; prompt: string; phone_depth: string;
-  settings: SessionSettings; notes: string; lands_in: string; state: string;
+  settings: SessionSettings; notes: string; lands_in: string; state: string; segment: string;
+  shown_at?: string | null; closed_at?: string | null;
   max_sends: number; max_characters: number; max_words: number; revision: number;
 };
 export type ShowContext = { id: string; title: string; church: string; timezone: string; base_year: number; closed: boolean };
 export type RunOfShow = { context: ShowContext; sessions: ShowSession[]; version: string };
-export type SessionInput = Omit<ShowSession, "engagement_id" | "position" | "revision"> & { revision: number | null };
+export type SessionInput = Omit<ShowSession, "engagement_id" | "position" | "revision" | "shown_at" | "closed_at"> & { revision: number | null };

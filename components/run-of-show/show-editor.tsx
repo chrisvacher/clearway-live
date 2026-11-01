@@ -7,7 +7,7 @@ import { SessionForm } from "./session-form";
 
 function newSession(id: string): ShowSession {
   return { id: crypto.randomUUID(), engagement_id: id, title: "", part: "Day 1", position: 0, planned_start: null, planned_minutes: 5, mode: "live", opens_at: null, closes_at: null,
-    interaction: "word_cloud", prompt: "", phone_depth: "", notes: "", lands_in: "", state: "draft", max_sends: 3, max_characters: 28, max_words: 3, revision: 0, settings: { anonymous: true, burst_minutes: 4, join_strip: false } };
+    interaction: "word_cloud", prompt: "", phone_depth: "", notes: "", lands_in: "", segment: "", state: "draft", max_sends: 3, max_characters: 28, max_words: 3, revision: 0, settings: { anonymous: true, burst_minutes: 4, join_strip: false } };
 }
 const messages: Record<string, string> = {
   conflict: "Someone changed this session or its order. Your edits are still here. Reload the run of show, then reopen the session before editing.",
