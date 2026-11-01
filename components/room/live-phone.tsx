@@ -115,7 +115,8 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
     : down && running ? <span className="ph-marker"><Smartphone size={14} aria-hidden="true" />Phones down</span>
     : isLive && view?.state === "live" ? <span className="ph-live">Live</span> : null;
 
-  return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={takesInput ? "phone-answering" : "phone-waiting"}>
+  return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={takesInput || view?.interaction === "content" ? "phone-answering" : "phone-waiting"}>
+    <div className="ph-texture" aria-hidden="true" />
     <header className="ph-head"><span className="ph-church">{church}</span>{marker}</header>
     <div className="ph-body">
       {phone.fresh && !bannerSeen && room && room.answers.length > 0 && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />

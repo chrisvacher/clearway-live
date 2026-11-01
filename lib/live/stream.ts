@@ -5,7 +5,7 @@ import type { LiveEvent, LiveRead, LiveSnapshot, SubmissionRequest } from "./typ
 type Mode = "connecting" | "realtime" | "fallback" | "offline" | "denied";
 export type StreamOptions = {
   read: (transport: boolean) => Promise<LiveRead>;
-  render: (snapshot: LiveSnapshot) => void;
+  render: (snapshot: LiveSnapshot, event?: LiveEvent) => void;
   mode: (mode: Mode) => void;
   received?: (event: LiveEvent, receivedAt: number) => void;
   subscribe?: (read: LiveRead, event: (event: LiveEvent) => void, rekey: () => void, status: (connected: boolean) => void) => () => void;
@@ -53,7 +53,7 @@ export class RoomStream {
     if (!this.value) { void this.recover(); return; }
     const next = applyLiveEvent(this.value, event);
     if (next.kind === "snapshot") { void this.recover(); return; }
-    if (next.kind === "applied") { this.options.received?.(event, Date.now()); this.value = next.value; this.options.render(this.value); }
+    if (next.kind === "applied") { this.options.received?.(event, Date.now()); this.value = next.value; this.options.render(this.value, event); }
   };
   private async recover(transport = false) {
     if (this.stopped) return;

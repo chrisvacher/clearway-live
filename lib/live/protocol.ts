@@ -15,7 +15,11 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   const patch = event.answer;
   if (patch && patch.session_id === event.state.live_session_id) {
     if (patch.withdrawn || patch.hidden) answers.delete(patch.id);
-    else answers.set(patch.id, { id: patch.id, session_id: patch.session_id, text: patch.text, answers: patch.answers, revision: patch.revision });
+    else {
+      // A change keeps its place: the wall orders answers by when they first arrived.
+      const created = answers.get(patch.id)?.created_at;
+      answers.set(patch.id, { id: patch.id, session_id: patch.session_id, text: patch.text, answers: patch.answers, revision: patch.revision, ...(created ? { created_at: created } : {}) });
+    }
   }
   // A hidden word leaves every shared answer at once; unhiding restores it from
   // the next snapshot, so a newly visible word is never invented on the client.

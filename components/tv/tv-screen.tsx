@@ -5,6 +5,9 @@ import { RoomStream } from "@/lib/live/stream";
 import { clockSample, retryDelay } from "@/lib/live/protocol";
 import type { LiveRead, LiveSnapshot } from "@/lib/live/types";
 import { TvReceipts } from "@/lib/tv/receipts";
+import { TvFlow } from "@/lib/tv/flow";
+import { screenType } from "@/lib/tv/policy";
+import { tokenMs } from "@/lib/tv/board";
 import type { TvBinding, TvStatus } from "@/lib/tv/types";
 import { TvScenes } from "./tv-scenes";
 
@@ -16,6 +19,20 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), sync = useRef<() => void>(() => {});
   const receipt = useRef<TvReceipts | null>(null), clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
   const boxes = useRef(new Map<string, DOMRect>());
+  // The arrival flow: answers that land together reach the board as a steady
+  // flow, never held past cwl-delay-max-hold. Timings are the design tokens.
+  const [flow, setFlow] = useState<TvFlow | null>(null), flowRef = useRef<TvFlow | null>(null);
+  useEffect(() => {
+    const el = root.current!, next = new TvFlow({ stagger: tokenMs(el, "cwl-delay-stagger"), staggerMin: tokenMs(el, "cwl-delay-stagger-min"),
+      maxHold: tokenMs(el, "cwl-delay-max-hold"), newHold: tokenMs(el, "cwl-dur-new-hold") });
+    flowRef.current = next; setFlow(next);
+    let raf = requestAnimationFrame(function tick() { next.tick(); raf = requestAnimationFrame(tick); });
+    // A hidden page can't animate, so anything waiting lands at once.
+    const hidden = () => { if (document.visibilityState !== "visible") next.settle(); };
+    const backstop = setInterval(() => { if (document.visibilityState !== "visible") next.settle(); }, 1000);
+    document.addEventListener("visibilitychange", hidden);
+    return () => { cancelAnimationFrame(raf); clearInterval(backstop); document.removeEventListener("visibilitychange", hidden); flowRef.current = null; };
+  }, []);
   const engagement = status.status === "paired" ? status.engagement : null, binding = status.status === "paired" ? status.tv : null;
   useEffect(() => {
     let stopped = false, running = false, again = false, timer: ReturnType<typeof setTimeout>, failures = 0;
@@ -50,7 +67,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
         clock.current = clockSample(sent, Date.now(), Date.parse(data.server_time)); return data;
       },
       received: (event, at) => { if (event.answer) receipts.record(event.state.version, { id: event.answer.id, revision: event.answer.revision, received_at: new Date(at + clock.current.offsetMs).toISOString(), uncertainty_ms: clock.current.uncertaintyMs }); },
-      render: value => {
+      render: (value, event) => {
+        flowRef.current?.offer(value, event);
         boxes.current = new Map([...stage.current?.querySelectorAll<HTMLElement>("[data-name-key]") || []].map(el => [el.dataset.nameKey!, el.getBoundingClientRect()]));
         setFrame(value);
       },
@@ -84,7 +102,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
     const el = stage.current;
     // Fit the entire token ramp evenly, stopping at its 1080p type floor.
     // The screen-check ladder deliberately keeps its calibration sizes.
-    const scene = el.querySelector<HTMLElement>(".tv-scene.is-active"), viewport = root.current!;
+    const active = el.querySelector<HTMLElement>(".tv-scene.is-active"), viewport = root.current!;
+    const scene = active?.querySelector<HTMLElement>(".tv-layer:not(.is-leaving)") ?? active;
     viewport.style.setProperty("--cwl-fit-scale", "1");
     if (scene) {
       const roomScale = parseFloat(getComputedStyle(viewport).getPropertyValue("--cwl-room-scale")) || 1;
@@ -129,8 +148,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   }, []);
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
-  return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={frame?.state.tv_content === "screen_check" || frame?.state.tv_content === "session" ? "content" : "holding"} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "fallback", "connecting"].includes(mode)} /></div>
+  return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-texture={display?.texture === false ? "off" : "on"}>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "fallback", "connecting"].includes(mode)} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

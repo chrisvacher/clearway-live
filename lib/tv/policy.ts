@@ -1,5 +1,6 @@
 import { uuid } from "../room/identity";
 import type { TvReceipt } from "./types";
+import type { LiveSnapshot } from "../live/types";
 export function pairingCode(value: unknown) {
   const code = typeof value === "string" ? value.replaceAll(" ", "") : "";
   return /^\d{6}$/.test(code) ? code : null;
@@ -20,4 +21,12 @@ export function receiptInput(body: Record<string, unknown>) {
     answers.push({ id: a.id, revision: a.revision, received_at: a.received_at, uncertainty_ms: a.uncertainty_ms });
   }
   return { engagement: body.engagement, version: Number(body.version), received_at: body.received_at as string, uncertainty_ms: Number(body.uncertainty_ms), answers };
+}
+// Texture by screen type: live input screens and content screens carry the
+// glow only; holding, join and breaks carry the oversized mark with glow.
+export function screenType(frame: Pick<LiveSnapshot, "state" | "session"> | null) {
+  const content = frame?.state.tv_content;
+  if (content === "screen_check") return "content";
+  if (content !== "session") return "holding";
+  return frame?.session?.interaction === "content" ? "content" : "input";
 }
