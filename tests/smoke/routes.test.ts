@@ -154,6 +154,8 @@ before(async () => {
       const answers=Array.from({length:Math.min(500,1205-start)},(_,i)=>({id:id(start+i+1),session_id:roomId,text:"Hope",answers:[{text:"Hope",key:"hope"}],revision:0}));
       return send({status:"ok",role:mode==="allowed"?"facilitator":mode.startsWith("tv:")?"tv":"participant",version:mode.startsWith("tv:")?tvVersion:42,topic:"live:fixture",server_time:new Date().toISOString(),phone_depth:mode.startsWith("tv:")?null:"Phone-only depth",display:tvDisplay,presence:tvPresence,session:null,state:{engagement_id:roomId,live_session_id:null,tv_content:tvContent,phones_down:false,burst_ends_at:null,results:{total:0,people:0,words:[]},version:mode.startsWith("tv:")?tvVersion:42},answers,next:start+500<1205?id(start+500):null});
     }
+    if(url.pathname==="/rest/v1/rpc/phone_room"){assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
+      return send(mode==="room"&&body.p_engagement===roomId?{status:"ok",server_time:new Date().toISOString(),name:"Ann",sessions:[{id:roomId,title:"Step",part:"Day 1",segment:"",interaction:"wall",state:"live",prompt:"Hope",phone_depth:"",max_sends:5,max_characters:140,max_words:20,closed_at:null}],answers:[]}:{status:"denied"});}
     if(url.pathname==="/rest/v1/rpc/live_submit"){
       assert.notEqual(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
       return send(mode==="room"&&body.p_engagement===roomId?{status:"accepted",id:body.p_id,revision:body.p_revision,version:43}:{status:"denied"});
@@ -649,6 +651,16 @@ test("live snapshots page past 1000, restart on version changes and protect tran
   assert.equal((await fetch(`${origin}/api/live/${roomId}`)).status,403);
   assert.equal((await fetch(`${origin}/api/live/${roomId}?surface=control`,{headers:{cookie}})).status,403);
   assert.equal((await fetch(`${origin}/api/live/${practiceRoom}`,{headers:{cookie}})).status,403);
+});
+test("a phone reads only its own room view, with its own cookie",async()=>{
+  const session={access_token:token("room"),refresh_token:"refresh-room",expires_at:Math.floor(Date.now()/1000)+3600,user:user("room")};
+  const cookie=`cw-room-${roomId}=base64-`+Buffer.from(JSON.stringify(session)).toString("base64url");
+  const mine=await fetch(`${origin}/api/live/${roomId}/mine`,{headers:{cookie}});
+  assert.equal(mine.status,200);assert.match(mine.headers.get("cache-control")!,/private.*no-store/);
+  const data=await mine.json();assert.equal(data.status,"ok");assert.equal(data.sessions.length,1);assert.ok(!JSON.stringify(data).includes(tripwire));
+  assert.equal((await fetch(`${origin}/api/live/${roomId}/mine`)).status,403);
+  assert.equal((await fetch(`${origin}/api/live/${practiceRoom}/mine`,{headers:{cookie}})).status,403);
+  assert.equal((await fetch(`${origin}/api/live/not-a-room/mine`,{headers:{cookie}})).status,400);
 });
 test("live submissions require their participant cookie, origin and valid immutable identity",async()=>{
   const session={access_token:token("room"),refresh_token:"refresh-room",expires_at:Math.floor(Date.now()/1000)+3600,user:user("room")};

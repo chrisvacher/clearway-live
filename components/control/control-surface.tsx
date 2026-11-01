@@ -8,7 +8,7 @@ import { parts, type RunOfShow, type ShowSession } from "@/lib/run-of-show/types
 import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, burstLeft, roomSizes, useSecondTap } from "./live-controls";
-import { TvMirror } from "./tv-mirror";
+import { TvMirror } from "@/components/tv/tv-mirror";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;

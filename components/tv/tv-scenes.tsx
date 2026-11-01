@@ -24,7 +24,7 @@ export function TvScenes({ status, frame, reconnecting, nameLimit }: { status: T
   return <>
     <div className="tv-texture" aria-hidden="true"><span /></div>
     <header className="tv-top"><div className="tv-brand-row"><span className="tv-mark" role="img" aria-label="Clearway" />{paired && <span className="tv-church-logo">{display?.logo_url ? <Image unoptimized src={display.logo_url} alt={display.church} width={180} height={56} /> : <span>{display?.church}</span>}</span>}</div>
-      <div className="tv-top-status">{mode === "join" && <span className="tv-tally">{presence?.count || 0} here</span>}{mode === "session" && frame?.session && <><span className="tv-tally">{frame.state.results.total} answers</span>{["live", "phones_down"].includes(frame.session.state) && <span className={`tv-live${frame.state.phones_down ? " is-down" : ""}`}>{frame.state.phones_down ? "Phones down" : "Live"}</span>}</>}</div>
+      <div className="tv-top-status">{mode === "join" && <span className="tv-tally">{presence?.count || 0} here</span>}{mode === "session" && frame?.session && <><span className="tv-tally">{frame.state.results.total} {frame.state.results.total === 1 ? "answer" : "answers"}</span>{["live", "phones_down"].includes(frame.session.state) && <span className={`tv-live${frame.state.phones_down ? " is-down" : ""}`}>{frame.state.phones_down ? "Phones down" : "Live"}</span>}</>}</div>
     </header>
     <div className="tv-scenes">
       <section className={`tv-scene tv-pair${mode === "pair" ? " is-active" : ""}`} aria-hidden={mode !== "pair"}>

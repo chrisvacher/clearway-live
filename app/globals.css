@@ -300,10 +300,10 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 
 /* FAC-01 and FAC-03: the live room's control surface and remote (approved pass 2).
    All colors and type come from Clearway Live tokens. */
-.ctl-mirror { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--cwl-radius-button); background: var(--cwl-surface); color: var(--cwl-text); flex: none; }
-.ctl-mirror .tv-stage { transform: translate(-50%,-50%) scale(var(--tv-stage-scale, 0.3)); }
-.ctl-mirror[data-theme="light"] .tv-texture, .ctl-mirror[data-texture="off"] .tv-texture { display: none; }
-.ctl-mirror .tv-reconnecting { display: none; }
+.tv-mirror { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--cwl-radius-button); background: var(--cwl-surface); color: var(--cwl-text); flex: none; }
+.tv-mirror .tv-stage { transform: translate(-50%,-50%) scale(var(--tv-stage-scale, 0.3)); }
+.tv-mirror[data-theme="light"] .tv-texture, .tv-mirror[data-texture="off"] .tv-texture { display: none; }
+.tv-mirror .tv-reconnecting { display: none; }
 
 .surface:has(> .ctl-app) > .header { display: none; }
 .ctl-app { display: flex; flex-direction: column; height: 100svh; background: var(--cwl-app-page); color: var(--cwl-app-text); font-size: var(--cwl-fs-app-table); }
@@ -314,12 +314,12 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-app p, .ctl-remote p { margin: 0; color: inherit; }
 .ctl-col > * { flex: none; }
 /* The mirror keeps the TV's own type ramp inside the app shell's element styles. */
-.ctl-mirror .tv-stage h1, .ctl-mirror .tv-stage p { margin: 0; color: inherit; }
-.ctl-mirror .tv-stage .tv-headline { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-light); line-height: 1.1; }
-.ctl-mirror .tv-stage .tv-headline-xl { font-size: var(--cwl-fs-tv-headline-xl); font-weight: var(--fw-light); line-height: 1.05; }
-.ctl-mirror .tv-stage .tv-join-link { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-bold); }
-.ctl-mirror .tv-stage .tv-eyebrow { font-size: var(--cwl-fs-tv-eyebrow); color: var(--cwl-text-muted); }
-.ctl-mirror .tv-stage .tv-muted { color: var(--cwl-text-muted); }
+.tv-mirror .tv-stage h1, .tv-mirror .tv-stage p { margin: 0; color: inherit; }
+.tv-mirror .tv-stage .tv-headline { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-light); line-height: 1.1; }
+.tv-mirror .tv-stage .tv-headline-xl { font-size: var(--cwl-fs-tv-headline-xl); font-weight: var(--fw-light); line-height: 1.05; }
+.tv-mirror .tv-stage .tv-join-link { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-bold); }
+.tv-mirror .tv-stage .tv-eyebrow { font-size: var(--cwl-fs-tv-eyebrow); color: var(--cwl-text-muted); }
+.tv-mirror .tv-stage .tv-muted { color: var(--cwl-text-muted); }
 .ctl-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) var(--space-6); background: var(--cwl-app-card); border-bottom: 1px solid var(--cwl-app-border); }
 .ctl-eyebrow { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); text-transform: uppercase; letter-spacing: 0.06em; font-weight: var(--fw-semibold); }
 .ctl-label { font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
@@ -417,3 +417,63 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-sheet { width: min(480px, 100%); max-height: 85svh; overflow-y: auto; padding: var(--space-4) var(--cwl-phone-gutter) var(--space-8); background: var(--cwl-app-page); border-radius: var(--cwl-radius-card) var(--cwl-radius-card) 0 0; }
 .ctl-sheet .ctl-item-list { max-height: none; }
 .ctl-size-list { display: grid; gap: var(--space-2); margin-block: var(--space-3); }
+
+/* Milestone 2, PR 5: the participant's phone in the live room. Ported from the
+   Clearway Live phone components (cwl-ph-*). Signed in, the phone takes the whole page. */
+.surface:has(.ph-app) > .header { display: none; }
+main:has(> .ph-app) { max-width: none; padding: 0; }
+main:has(> .ph-app) > :not(.ph-app) { display: none; }
+.ph-app { min-height: 100svh; display: flex; flex-direction: column; background: var(--cwl-surface); color: var(--cwl-text); font-family: var(--cwl-font); }
+.ph-app p, .ph-app h1, .ph-app ul { margin: 0; }
+.ph-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 56px; padding: var(--space-3) var(--cwl-phone-gutter); border-bottom: 1px solid var(--cwl-border); background: var(--cwl-surface); }
+.ph-church { font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ph-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); width: min(100%, 40rem); margin-inline: auto; padding: var(--cwl-phone-stack) var(--cwl-phone-gutter); }
+.ph-step, .ph-waiting { display: flex; flex-direction: column; gap: var(--space-4); }
+.surface .ph-app .ph-headline { font-size: var(--cwl-fs-phone-headline); font-weight: var(--fw-bold); line-height: 1.2; letter-spacing: -0.01em; color: var(--cwl-text); }
+.surface .ph-app .ph-prompt { font-size: var(--cwl-fs-phone-prompt); font-weight: var(--fw-semibold); line-height: 1.3; color: var(--cwl-text); }
+.surface .ph-app .ph-text { font-size: var(--cwl-fs-phone-body); line-height: 1.6; color: var(--cwl-text); }
+.surface .ph-app .ph-muted { font-size: var(--cwl-fs-phone-label); line-height: 1.4; font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ph-depth { font-size: var(--cwl-fs-phone-body); line-height: 1.6; white-space: pre-line; color: var(--cwl-text); }
+.ph-more summary { font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); display: flex; align-items: center; }
+.ph-live { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.25em 0.75em; border-radius: var(--cwl-radius-pill); background: var(--cwl-live); color: var(--cwl-on-live); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); letter-spacing: 0.08em; text-transform: uppercase; line-height: 1.2; }
+.ph-live::before { content: ""; width: 0.5em; height: 0.5em; border-radius: 50%; background: currentColor; }
+.ph-marker { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.2em 0.7em; border-radius: var(--cwl-radius-pill); box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-bold); line-height: 1.2; color: var(--cwl-text); white-space: nowrap; }
+.ph-who { display: flex; align-items: flex-start; gap: var(--space-2); font-size: var(--cwl-fs-phone-label); line-height: 1.4; }
+.surface .ph-app .ph-who span:last-child { color: var(--cwl-text-muted); }
+.ph-who strong { color: var(--cwl-text); }
+.ph-banner { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border-radius: var(--cwl-radius-card); box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); font-size: var(--cwl-fs-phone-label); }
+.surface .ph-app .ph-banner { color: var(--cwl-text); }
+.ph-banner span { flex: 1; }
+.ph-pager { display: flex; justify-content: space-between; gap: var(--space-3); }
+.ph-pager button, .ph-answer-actions button, .ph-banner button, .ph-secondary { display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--cwl-phone-touch); padding: 0 var(--space-2); border: 0; background: transparent; color: var(--cwl-text); font: inherit; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.ph-pager button:disabled { visibility: hidden; }
+.ph-answers { display: flex; flex-direction: column; gap: var(--space-2); padding: 0; list-style: none; }
+.ph-answer { padding: var(--space-3) 14px; border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-body); line-height: 1.4; font-weight: var(--fw-medium); overflow-wrap: anywhere; transition: background-color var(--cwl-dur-phones-dim) var(--cwl-ease-signature), color var(--cwl-dur-phones-dim) var(--cwl-ease-signature); }
+.ph-answer-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.ph-answer-status { flex: none; display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); }
+.ph-answer-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-1); font-size: var(--cwl-fs-phone-label); }
+.ph-answer-actions span { flex: 1; }
+.ph-answer .ph-answer-actions button { color: var(--cwl-text-on-card); }
+.ph-answer.is-failed { box-shadow: inset 0 0 0 2px var(--cwl-callout); }
+.ph-down { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: var(--cwl-radius-card); border: 2px solid var(--cwl-border-strong); font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-bold); }
+.surface .ph-app .ph-down { color: var(--cwl-text); }
+.ph-app.is-dimmed .ph-body > *, .ph-app.is-dimmed .ph-prompt { color: var(--cwl-text-muted); transition: color var(--cwl-dur-phones-dim) var(--cwl-ease-signature); }
+.ph-app.is-dimmed .ph-answer { background: var(--cwl-bar-track); color: var(--cwl-text-muted); }
+.ph-burst { display: flex; align-items: center; gap: var(--space-3); }
+.ph-burst-ring { width: 52px; height: 52px; flex: none; fill: none; stroke-width: 7; }
+.ph-burst-track { stroke: var(--cwl-bar-track); }
+.ph-burst-fill { stroke: var(--cwl-text-muted); stroke-linecap: round; transition: stroke-dasharray 500ms linear; }
+.surface .ph-app .ph-burst-time { font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; color: var(--cwl-text); }
+.ph-foot { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 10px; width: min(100%, 40rem); margin-inline: auto; padding: var(--space-3) var(--cwl-phone-gutter) var(--space-5); background: var(--cwl-surface); border-top: 1px solid var(--cwl-border); }
+.ph-label { font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ph-input { width: 100%; min-height: var(--cwl-phone-touch-lg); padding: var(--space-3) 14px; border: 2px solid var(--cwl-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font: inherit; font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-medium); line-height: 1.4; resize: none; }
+.ph-input:focus { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.ph-input[aria-invalid="true"] { border-color: var(--cwl-callout); }
+.surface .ph-app .ph-count { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ph-count span:last-child { flex: none; font-variant-numeric: tabular-nums; }
+.ph-actions { display: flex; gap: var(--space-2); }
+.ph-send { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--cwl-phone-touch-lg); border: 0; border-radius: var(--cwl-radius-button); background: var(--cwl-button-primary); color: var(--cwl-on-accent); font: inherit; font-size: var(--cwl-fs-phone-button); font-weight: var(--fw-bold); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
+.ph-send:focus-visible, .ph-pager button:focus-visible, .ph-answer-actions button:focus-visible, .ph-banner button:focus-visible, .ph-secondary:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.ph-send:disabled { background: var(--cwl-bar-track); color: var(--cwl-text-muted); cursor: not-allowed; }
+.ph-app .tv-mirror { margin-bottom: var(--space-2); }
+@media (prefers-reduced-motion: reduce) { .ph-answer, .ph-burst-fill, .ph-app.is-dimmed .ph-body > * { transition: none; } }

@@ -13,7 +13,7 @@ export function TvMirror({ frame, label = "On the TV now" }: { frame: LiveSnapsh
     const observer = new ResizeObserver(fit); observer.observe(el); fit(); return () => observer.disconnect();
   }, []);
   const display = frame?.display;
-  return <div ref={box} className="ctl-mirror" role="img" aria-label={`${label}: ${frame?.session?.title ?? (frame?.state.tv_content === "join" ? "Join screen" : "Holding screen")}`}
+  return <div ref={box} className="tv-mirror" role="img" aria-label={`${label}: ${frame?.session?.title ?? (frame?.state.tv_content === "join" ? "Join screen" : "Holding screen")}`}
     data-surface="tv" data-theme={display?.theme || "dark"} data-room={display?.room_size || "very_small"} data-motion="reduced"
     data-screen={frame?.state.tv_content === "session" ? "content" : "holding"} data-texture={display?.texture === false ? "off" : "on"}>
     <div className="tv-stage" aria-hidden="true">
