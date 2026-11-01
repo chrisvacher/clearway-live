@@ -12,7 +12,7 @@ export default async function EngagementRoom({ params, searchParams }: { params:
   const initial=info.closed?{status:"closed"}:await initialRoomAccess(id);
   return <main id="main" className="page-width narrow">
     <div className="eyebrow-live">{info.church}</div><h1>{info.title}</h1>
-    {info.closed ? <p>This engagement has closed. Check with your facilitator.</p> : <RoomAccess key={id} engagement={id} email={email?.slice(0,254)} practice={info.type==="practice"} initial={initial} />}
+    {info.closed ? <p>This engagement has closed. Check with your facilitator.</p> : <RoomAccess key={id} engagement={id} church={info.church} email={email?.slice(0,254)} practice={info.type==="practice"} initial={initial} />}
     {info.howTheRoomDecides && <section className="notice"><h2>How the room decides</h2><p>{info.howTheRoomDecides}</p></section>}
   </main>;
 }

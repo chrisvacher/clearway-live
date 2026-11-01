@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CircleAlert } from "lucide-react";
+import { LivePhone } from "./live-phone";
 
 import type { RoomAccessStatus as Status } from "@/lib/room/access";
 const messages: Record<string, string> = {
@@ -18,7 +19,7 @@ const messages: Record<string, string> = {
   invalid_request: "Check your details and try again.",
 };
 
-export function RoomAccess({ engagement, email: initialEmail = "", confirm, practice = false, initial }: { engagement: string; practice?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string } }) {
+export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, initial }: { engagement: string; church?: string; practice?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string } }) {
   const [state, setState] = useState<Status>(initial||{ status: "loading" });
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState("");
@@ -80,6 +81,8 @@ export function RoomAccess({ engagement, email: initialEmail = "", confirm, prac
     } catch { if (action === "send") setSentTo(null); setState({ status: "unavailable" }); }
     finally { setBusy(false); setSubmitting(null); }
   }
+  // Signed in on the room page: the phone becomes the live room.
+  if (state.status === "signed_in" && church !== undefined && !confirm) return <LivePhone engagement={engagement} church={church} name={state.name} />;
   if (state.status === "signed_in") return <section aria-live="polite"><h2>{state.name ? `You’re in, ${state.name}.` : "You’re in."}</h2><p>{state.role === "scribe" ? "You’re joining as the scribe." : "Your place in the room is ready."}</p><p>Your facilitator will let you know what happens next.</p></section>;
   if (state.status === "closed") return <p role="status">{messages.closed}</p>;
   if (confirm) return <section><p>Tap below to finish signing in on this device.</p>

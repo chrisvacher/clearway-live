@@ -5,7 +5,7 @@ import type { RunOfShow } from "@/lib/run-of-show/types";
 import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, roomSizes } from "./live-controls";
-import { TvMirror } from "./tv-mirror";
+import { TvMirror } from "@/components/tv/tv-mirror";
 
 // FAC-03: the live controls in the facilitator's hand. It holds its own
 // connection and needs nothing from the laptop.
@@ -22,7 +22,7 @@ export function Remote({ initial }: { initial: RunOfShow }) {
     <div className="ctl-remote-body">
       <ReloadNotice room={room} />
       <TvMirror frame={confirmed} />
-      <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On the TV now</p><p className="ctl-label">{shown?.title ?? (confirmed?.state.tv_content === "join" ? "Join screen" : "Holding screen")}{confirmed?.session && confirmed.session.interaction !== "content" ? ` · ${confirmed.state.results.total} answers` : ""}</p></div>{pill}</div>
+      <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On the TV now</p><p className="ctl-label">{shown?.title ?? (confirmed?.state.tv_content === "join" ? "Join screen" : "Holding screen")}{confirmed?.session && confirmed.session.interaction !== "content" ? ` · ${confirmed.state.results.total} ${confirmed.state.results.total === 1 ? "answer" : "answers"}` : ""}</p></div>{pill}</div>
       <Banners room={room} compact />
       {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
       <section className="ctl-private" aria-label="Up next, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Up next</span></div>

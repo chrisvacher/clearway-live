@@ -2,6 +2,7 @@
 
 - `milestone-2-brief.md`: milestone 2, the live room.
 - `live-controls.md`: the control surface and remote (milestone 2, step 4), including late answers and segments.
+- `live-phones.md`: the participant's phone in the live room (milestone 2, step 5).
 - `prd.md`: the full PRD. Export it from the PRD doc in Claude (Export, Markdown) and save it here as `prd.md`. It is the source of truth.
 
 Design files live in `design/`:
