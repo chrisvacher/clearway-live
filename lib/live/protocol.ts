@@ -17,7 +17,14 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
     if (patch.withdrawn || patch.hidden) answers.delete(patch.id);
     else answers.set(patch.id, { id: patch.id, session_id: patch.session_id, text: patch.text, answers: patch.answers, revision: patch.revision });
   }
-  return { kind: "applied", value: { ...current, state: event.state, session: event.session, display: event.display ?? current.display, presence: event.presence ?? current.presence, answers: [...answers.values()], version } };
+  // A hidden word leaves every shared answer at once; unhiding restores it from
+  // the next snapshot, so a newly visible word is never invented on the client.
+  const hiddenKeys = new Set(Array.isArray(event.state.hidden_keys) ? event.state.hidden_keys : []);
+  const unhidden = (current.state.hidden_keys || []).some(key => !hiddenKeys.has(key));
+  if (unhidden) return { kind: "snapshot", value: current };
+  const visible = [...answers.values()].map(answer => hiddenKeys.size && answer.answers.some(item => hiddenKeys.has(item.key))
+    ? { ...answer, answers: answer.answers.filter(item => !hiddenKeys.has(item.key)) } : answer);
+  return { kind: "applied", value: { ...current, state: event.state, session: event.session, display: event.display ?? current.display, presence: event.presence ?? current.presence, answers: visible, version } };
 }
 
 export function adoptSnapshot(current: LiveSnapshot | null, next: LiveSnapshot) {

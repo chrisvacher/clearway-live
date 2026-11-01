@@ -2,7 +2,7 @@
 
 Oct 29, 2026 · @Chris Vacher
 
-Version 2, October 29, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
+Version 2, October 29, 2026, with decisions to November 1, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
 
 ## Summary
 
@@ -348,11 +348,12 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Content | The headline on the TV with the detail, sources and Scripture underneath, to read and zoom |
 | Self-paced | A session open outside the live room (pre-work, lens seeding, check-ins), reached from the room link or an email, with the person's saved answers |
 | Offline | Input still works. Each unsent answer shows "Saved on this phone" and sends in order on reconnect |
+| Earlier step, still open | The step's prompt and the person's answers, with input still available, while the room stays in its segment |
 | Session closed | The person's own answers for that session, read-only |
 | TV down | The TV view itself, when the facilitator switches phones to it (see FAIL-02) |
 
 - One-handed use, touch targets at least 44 px, works from 360 px wide, inputs stay above the keyboard.
-- A phone follows the room. People can look back at sessions already reached, but a phone never runs ahead of the room, and it returns to the live session on its own unless the person is typing.
+- A phone follows the room. People can look back at sessions already reached, and answer one that is still open, but a phone never runs ahead of the room, and it returns to the live session on its own unless the person is typing.
 - A person can change their answer while the session is open (Decided) and withdraw it (Default). The TV animates the change like any other.
 - Over a limit (too many words, too many characters), the phone says so and holds Send. It never cuts an answer silently.
 - Phones follow the system text size and reduced-motion settings.
@@ -370,6 +371,8 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 - Large controls: Go live on the next session, Next, Back, Nothing live, Start burst (3, 4 or 5 minutes) with a countdown, Phones down and Open phones, Spotlight an item, Hide an item from the TV, Undo the last AI merge, Refresh phones, Show the TV view on phones, and room size.
 - It always shows what the TV has confirmed it is showing, not what the remote asked for. If the TV hasn't confirmed within 2 seconds, the remote shows "Syncing" until it does (FAIL-06).
+- With more than one TV, confirmed means every connected TV has confirmed. A TV silent for 12 seconds drops out of the confirmation and shows as reconnecting on the control surface, so one dead screen can't hold the room in Syncing. With no TV connected, the remote says "No TV connected" and every control still works (Decided November 1).
+- Presses that change many phones at once (Refresh phones, closing a day) need a second tap within 3 seconds (Decided November 1).
 - Preview: browse any session, with its phone depth and notes, without moving the room. Go live from the preview sends it.
 - It shows Up next with that session's notes, and a small "On the TV now" mirror.
 - The facilitator's own remote shows a short list of current alignment signals (milestone 6), so the signal still works with the laptop closed (FAIL-05). A team facilitator's remote never shows it.
@@ -427,6 +430,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Team-led | Marks the sessions in a handed-over block |
 | Lands in | The report section, Clearway Map field or CORE record its output feeds |
 | Seeded from | Optional: a self-paced session whose answers appear first |
+| Segment | Optional: groups consecutive sessions that belong together, such as Five Lenses. Late answers stay open across a segment (Decided November 1) |
 
 **Session states**
 
@@ -434,17 +438,20 @@ Every role is enforced in the database with row-level security, not only hidden 
 | --- | --- |
 | Draft | Being set up. Not visible to the room |
 | Ready | Set up and waiting in the run of show |
-| Open (self-paced) | Taking answers on phones between its open and close times, outside the live room. Any number can be open at once |
+| Open | Taking answers on phones while not on the TV. A self-paced session is open between its open and close times. A live session the room has moved past stays open while the room is in its segment (Decided November 1). Any number can be open at once |
 | Live | On the TV and phones. Exactly one session is live at a time, or none (Nothing live) |
 | Phones down | Live, with input locked and the TV holding |
-| Closed | Finished. Its results stay viewable, and phones show the person's own answers |
+| Closed | Finished: its segment ended, or its part was closed. Its results stay viewable, and phones show the person's own answers |
 
 **Going live**
 
 - Go live makes a session the one live session: the TV animates to it, and every phone moves to it within 1 second.
-- Nothing live puts the TV on its holding screen and phones on waiting.
-- Next and Back move through the run of show. Back to a closed session shows it read-only, results included. Reopen is a separate control that opens it for input again with all earlier input in place.
-- A submission queued offline is accepted after the session closes if the server receives it within 2 minutes of the close and the phone queued it before the close (Default grace window).
+- Nothing live puts the TV on its holding screen and phones on waiting. It is a break: it closes nothing.
+- Next and Back move through the run of show, skipping drafts and self-paced sessions. Moving needs no confirmation (Decided November 1).
+- Late answers (Decided November 1): leaving a step does not stop its answers while the room stays in the step's segment. With the room on Five Lenses: Community, a phone can go back to Five Lenses: Congregation and still answer it, so the report has everything. Phones down and bursts lock only the step on the TV. Going live on a step outside the segment closes every step in it. A step with no segment closes as soon as the room moves on.
+- Close the day: Close Pre-call, Close Day 1, Close Day 2 and Close Follow-up close every step still open in that part, so the overnight report works from a fixed set of answers. If one of its steps is on the TV, the TV goes to its holding screen.
+- Back to a closed session shows it read-only, results included. Reopen is a separate control that opens it for input again with all earlier input in place.
+- A submission queued offline is accepted after its session closes if the server receives it within 2 minutes of the close and the phone queued it before the close (Default grace window).
 - Edits to a live or ready session's prompt, depth or settings go out when the facilitator presses Save, never per keystroke. Saved edits reach the TV and phones within a second, animated.
 
 **Bursts and phones down** (Decided: 3 to 5 minutes)
@@ -1436,7 +1443,7 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Authorship | Nobody in the room sees who wrote what. Authorship appears only in a facilitator's full export |
 | Answers | Changing an answer is Decided. Withdrawing one is Default |
 | Pairing and sessions | TV pairing and device sign-ins last until the engagement closes. More than one TV can be paired |
-| Late answers | Queued offline answers are accepted up to 2 minutes after a session closes if queued before it |
+| Late answers | Earlier steps take answers until the room leaves their segment or their day is closed (Decided November 1). Queued offline answers are accepted up to 2 minutes after a session closes if queued before it |
 | Word cloud | Three words and 28 characters per answer, commas split up to five, three sends per person. Synrg's matching rules. AI combining from about 30 different answers |
 | Open text | Up to 280 characters. An AI summary appears only after Show summary, then refreshes after 8 answers or 75 seconds |
 | Q&A | Questions up to 200 characters. Askers count 2 and voters 1. The top three on the TV |

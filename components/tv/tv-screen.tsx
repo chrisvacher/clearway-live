@@ -60,6 +60,23 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
     window.addEventListener("online", resume); document.addEventListener("visibilitychange", resume);
     return () => { stream.stop(); receipts.stop(); receipt.current = null; window.removeEventListener("online", resume); document.removeEventListener("visibilitychange", resume); };
   }, [engagement, binding]);
+  // The TV is the one client always in the room, so it asks the database to end
+  // an expired burst. The database decides from its own clock.
+  const burstEnds = frame?.state.burst_ends_at ?? null;
+  useEffect(() => {
+    if (!engagement || !burstEnds) return;
+    let stopped = false, timer: ReturnType<typeof setTimeout>;
+    const tick = async (attempt = 0) => {
+      if (stopped) return;
+      try {
+        const response = await fetch(`/api/live/${engagement}/tick?surface=tv`, { method: "POST" });
+        const data = await response.json() as { status: string; ms?: number };
+        if (data.status === "early" && !stopped) timer = setTimeout(() => void tick(attempt), Math.min(60000, (data.ms ?? 250) + 100));
+      } catch { if (!stopped && attempt < 6) timer = setTimeout(() => void tick(attempt + 1), retryDelay(attempt)); }
+    };
+    timer = setTimeout(() => void tick(), Math.max(0, Date.parse(burstEnds) - clock.current.offsetMs - Date.now() + 100));
+    return () => { stopped = true; clearTimeout(timer); };
+  }, [engagement, burstEnds]);
   const arrivalLayout = JSON.stringify([frame?.presence, frame?.display?.room_size, frame?.state.tv_content]);
   useLayoutEffect(() => { setNameLimit(14); }, [arrivalLayout]);
   useLayoutEffect(() => {

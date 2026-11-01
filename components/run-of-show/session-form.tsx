@@ -38,6 +38,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
       <fieldset disabled={busy || blocked || context.closed}>
         <div className="show-fields">
           <label className="is-full" htmlFor="session-title">Title<input ref={first} id="session-title" required maxLength={200} value={value.title} onChange={e => change("title", e.target.value)} /></label>
+          <label className="is-full" htmlFor="session-segment">Segment<input id="session-segment" maxLength={100} value={value.segment ?? ""} onChange={e => change("segment", e.target.value)} /><span className="show-help">Steps in the same segment, like Five Lenses, keep taking answers until the room moves on from the segment.</span></label>
           <label htmlFor="session-part">Part<select id="session-part" value={value.part} onChange={e => change("part", e.target.value as ShowSession["part"])}>{parts.map(part => <option key={part}>{part}</option>)}</select></label>
           <label htmlFor="session-mode">Mode<select id="session-mode" disabled={running} value={value.mode} onChange={e => change("mode", e.target.value as ShowSession["mode"])}><option value="live">Live, in the room</option><option value="self_paced">Self-paced</option></select></label>
           <label htmlFor="session-start">Planned start<input id="session-start" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} /></label>

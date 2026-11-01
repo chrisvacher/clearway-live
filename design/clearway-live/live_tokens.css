@@ -26,6 +26,7 @@
   --cwl-glow-ink: rgba(63, 114, 222, 0.45); /* Royal Blue at 45%: centre of the corner glow. */
   --cwl-scrim-ink: rgba(3, 41, 78, 0.88); /* Navy at 88%: spotlight scrim on dark screens. */
   --cwl-scrim-light-ink: rgba(249, 249, 251, 0.9); /* Off-White at 90%: spotlight scrim on light screens. */
+  --cwl-app-scrim-ink: rgba(3, 41, 78, 0.4); /* Navy at 40%: behind app modals, side panels and the remote's sheets. */
 
   /* ---------- Semantic color, dark theme (default) ---------- */
   --cwl-surface: var(--cw-navy, #03294E); /* Screen background. Dark: every TV and phone screen. Light: light screens only. */
@@ -305,3 +306,15 @@
 [data-surface="tv"][data-room="medium"] { --cwl-room-scale: var(--cwl-room-medium); }
 [data-surface="tv"][data-room="large"] { --cwl-room-scale: var(--cwl-room-large); }
 [data-surface="tv"][data-room="very_large"] { --cwl-room-scale: var(--cwl-room-very-large); }
+
+/* ---------- Nesting guard (design pass 2, FAC-01 and FAC-03) ----------
+   A TV drawn inside an app surface (the control surface's mirror, the remote's mirror) keeps its own
+   theme and live-only colors. App surfaces set Sunrise to initial and light values inherit, so the
+   room surface re-declares its semantic tokens from base values here. Room surfaces themselves are unchanged. */
+:root { --cwl-guard-sunrise: var(--cwl-sunrise); --cwl-guard-royal-deep: var(--cwl-royal-deep); }
+[data-surface="control"] [data-surface="tv"] { --cwl-sunrise: var(--cwl-guard-sunrise); --cwl-royal-deep: var(--cwl-guard-royal-deep); --cwl-callout: var(--cwl-sunrise); --cwl-bar-leader: var(--cwl-sunrise); --cwl-word-leader: var(--cwl-sunrise); }
+[data-surface="control"] [data-surface="tv"][data-theme="dark"] {
+  --cwl-surface: var(--cw-navy); --cwl-surface-card: var(--cw-off-white); --cwl-text: var(--cw-off-white); --cwl-text-muted: var(--cw-sky-blue);
+  --cwl-border: var(--cwl-border-dark-ink); --cwl-border-strong: var(--cw-sky-blue); --cwl-presence: var(--cw-sky-blue); --cwl-scrim: var(--cwl-scrim-ink);
+  --cwl-word-single: var(--cw-sky-blue); --cwl-word-repeated: var(--cw-off-white); --cwl-word-new: var(--cw-lime);
+}

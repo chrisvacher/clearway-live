@@ -1,5 +1,7 @@
 # Remote boundary
 
-Reserve `/remote` here for milestone 2. The remote belongs to the control surface
-and will require the facilitator or delegated block authorization. Do not import
-setup UI into this route tree. No working remote ships in milestone 1.
+`/remote/[engagement]` is FAC-03, the facilitator's phone remote. It belongs to the
+control surface: a current Clearway facilitator session and engagement assignment
+are required, and every press goes through `/api/control/[engagement]`. It runs on
+its own connection, so it works with the facilitator's laptop closed. Handing the
+remote to a team facilitator (D2-11) is later work. Do not import setup UI here.
