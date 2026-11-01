@@ -22,6 +22,8 @@ The phone follows the same room state as the TV, through `GET /api/live/[engagem
 
 The header carries one marker, in this order: Offline, Reconnecting, TV view, Phones down, Live.
 
+Waiting, phones down and closed steps carry the filled mark's offset pattern behind the phone (A2); answering and reading content stay plain Navy. See `live-board.md`.
+
 ## Looking back, never ahead
 
 Earlier and Later page through the steps the room has reached; Back to now returns to the live step. When the room moves, the phone follows unless the person is typing an answer to an earlier step. Phones down and bursts lock only the live step: an earlier step in the same segment takes answers until the room leaves the segment or the day closes (PR 4).

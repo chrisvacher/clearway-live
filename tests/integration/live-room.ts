@@ -78,6 +78,12 @@ async function main() {
     await until(() => events.length >= 51, "50 simultaneous requests all reached Realtime");
     const versions = events.map(e => (e.state as { version: number }).version);
     assert.equal(new Set(versions).size, 51); assert.deepEqual(versions, [...versions].sort((a,b) => a-b));
+    // Counts, square-root sizes, levels and arrival order travel computed with the
+    // event, so the TV never computes them. A screened answer is never broadcast.
+    const lastWords = (events[events.length - 1].state as { results: { words: { key: string; count: number; size: number; level: string; order: number }[] } }).results.words;
+    assert.deepEqual(lastWords.map(w => [w.key, w.count, w.size, w.level, w.order]), [["hope", 51, 168, "leader", 1]]);
+    const screened = await phone.client.rpc("live_submit", { ...payload, p_id: randomUUID(), p_text: "f u c k" }); assert.equal(screened.data.status, "filtered");
+    const heard = events.length; await new Promise(r => setTimeout(r, 400)); assert.equal(events.length, heard);
     const spoof = await phoneChannel.send({ type: "broadcast", event: "room", payload: { forged: true } }); assert.notEqual(spoof, "ok");
     assert.ok(!events.some(e => e.forged));
     assert.equal((await outsider.client.rpc("live_snapshot", { p_engagement: room })).data.status, "denied");

@@ -298,6 +298,63 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 
 .tv-viewport, .tv-stage { transition: background-color var(--cwl-dur-make-room) var(--cwl-ease-signature), color var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 
+/* D1-02 and D1-03: session layers, the word cloud and the response wall
+   (approved pass 2 motion). Positions and sizes move in code on one spring;
+   colors and fades are transitions on Clearway Live tokens. */
+.tv-texture span { transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-viewport[data-screen="input"] .tv-texture span, .tv-viewport[data-screen="content"] .tv-texture span,
+.tv-mirror[data-screen="input"] .tv-texture span, .tv-mirror[data-screen="content"] .tv-texture span { opacity: 0; }
+.tv-layers { position: absolute; inset: 0; }
+.tv-layer { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: safe center; gap: var(--space-6); transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-layer.is-input { justify-content: flex-start; gap: var(--space-4); }
+.tv-layer.is-input .tv-headline { margin-bottom: var(--space-4); }
+.tv-layer.is-entering, .tv-layer.is-leaving { opacity: 0; }
+.tv-layer.is-leaving { pointer-events: none; }
+.tv-content-text { white-space: pre-line; }
+.tv-board { position: relative; flex: 1; min-height: 360px; display: flex; flex-direction: column; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.3; overflow: hidden; }
+.tv-note { position: absolute; left: 0; bottom: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.tv-layer:has(.tv-board[data-empty="false"]) .tv-note { opacity: 0; }
+.tv-field { position: relative; flex: 1; min-height: 0; }
+.tv-word { display: inline-block; font-weight: var(--fw-bold); line-height: 1.05; white-space: nowrap; will-change: transform, opacity; transform-origin: 0 0; transition: color var(--cwl-dur-swell) var(--cwl-ease-signature), background-color var(--cwl-dur-swell) var(--cwl-ease-signature); }
+.tv-word.is-repeated { color: var(--cwl-word-repeated); }
+.tv-word.is-leader { color: var(--cwl-word-leader); }
+.tv-word.is-new { color: var(--cwl-word-new); }
+.tv-word.is-settling { transition-duration: var(--cwl-dur-settle-color); }
+.tv-chips { position: relative; display: flex; align-items: center; flex: none; height: calc(var(--cwl-fs-tv-floor) * 2); overflow: hidden; -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent); }
+.tv-chips-track { display: flex; flex: none; align-items: center; gap: 40px; will-change: transform; }
+.tv-word.is-single { flex: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-word-single); }
+.tv-word.is-single.is-new { color: var(--cwl-word-new); }
+[data-surface="tv"][data-theme="light"] .tv-word.is-leader { color: var(--cwl-on-callout); background: var(--cwl-callout); border-radius: 12px; padding: 0 0.2em; }
+[data-surface="tv"][data-theme="light"] .tv-word.is-new { color: var(--cwl-on-live); background: var(--cwl-live); border-radius: 12px; padding: 0 0.2em; }
+.tv-wall { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) calc(600px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px; }
+.tv-groups { position: relative; display: flex; flex-direction: column; gap: 28px; min-width: 0; min-height: 0; }
+.tv-groups-empty { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-medium); color: var(--cwl-text-muted); }
+.tv-feed { display: flex; flex-direction: column; min-height: 0; padding-left: 40px; border-left: 2px solid var(--cwl-border); }
+.tv-feed-head { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-text-muted); padding-bottom: 12px; }
+.tv-feed-list { position: relative; flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; -webkit-mask-image: linear-gradient(to bottom, black 75%, transparent); mask-image: linear-gradient(to bottom, black 75%, transparent); }
+.tv-feed-track { display: flex; flex-direction: column; will-change: transform; }
+.tv-feed-row { position: relative; flex: none; overflow: hidden; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.3; color: var(--cwl-text); padding: 14px 0 14px 24px; border-bottom: 1px solid var(--cwl-border); overflow-wrap: anywhere; }
+.tv-feed-row::before { content: ""; position: absolute; left: 0; top: 16px; bottom: 16px; width: 6px; border-radius: 3px; background: transparent; transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.tv-feed-row.is-newest::before { background: var(--cwl-live); }
+.tv-join-strip { position: absolute; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.tv-join-strip .tv-qr { width: 160px; height: 160px; padding: 12px; border-radius: 12px; }
+.tv-layer.is-input:has(.tv-join-strip) .tv-board { margin-right: 380px; }
+.tv-live { transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature), color var(--cwl-dur-settle-color) var(--cwl-ease-signature), box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.tv-stage:has(.tv-board[data-newest="on"]) .tv-live:not(.is-down) { background: transparent; color: var(--cwl-live); box-shadow: inset 0 0 0 3px var(--cwl-live); }
+.tv-scrim { position: absolute; inset: 0; z-index: 3; background: var(--cwl-scrim); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-spotlight-off) var(--cwl-ease-calm); }
+.tv-scrim.is-on { opacity: 1; transition-duration: var(--cwl-dur-spotlight-on); }
+.tv-spot { position: absolute; left: 50%; top: 50%; z-index: 4; width: 1360px; padding: 64px 72px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-callout); color: var(--cwl-on-callout); opacity: 0; pointer-events: none; transform: translate(-50%,-46%) scale(0.94); transition: opacity var(--cwl-dur-spotlight-off) var(--cwl-ease-calm), transform var(--cwl-dur-spotlight-off) var(--cwl-ease-calm); }
+.tv-spot.is-on { opacity: 1; transform: translate(-50%,-50%); transition-duration: var(--cwl-dur-spotlight-on); }
+.tv-stage .tv-spot p { color: var(--cwl-on-callout); }
+.tv-spot-eyebrow { margin-bottom: var(--space-4) !important; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); letter-spacing: 0.1em; text-transform: uppercase; }
+.tv-spot-text { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-semibold); line-height: 1.15; overflow-wrap: anywhere; }
+.tv-spot-meta { margin-top: var(--space-6) !important; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); }
+.tv-stage:has(.tv-spot.is-on) .tv-word.is-leader { color: var(--cwl-word-repeated); }
+[data-surface="tv"][data-theme="light"] .tv-stage:has(.tv-spot.is-on) .tv-word.is-leader { background: none; color: var(--cwl-word-repeated); }
+[data-motion="reduced"] .tv-layer, [data-motion="reduced"] .tv-scrim, [data-motion="reduced"] .tv-spot, [data-motion="reduced"] .tv-note, [data-motion="reduced"] .tv-texture span { transition-duration: var(--cwl-dur-reduced); }
+[data-motion="reduced"] .tv-word, [data-motion="reduced"] .tv-live, [data-motion="reduced"] .tv-feed-row::before { transition-duration: 0ms; }
+[data-motion="reduced"] .tv-spot { transform: translate(-50%,-50%); }
+
 /* FAC-01 and FAC-03: the live room's control surface and remote (approved pass 2).
    All colors and type come from Clearway Live tokens. */
 .tv-mirror { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--cwl-radius-button); background: var(--cwl-surface); color: var(--cwl-text); flex: none; }
@@ -425,6 +482,11 @@ main:has(> .ph-app) { max-width: none; padding: 0; }
 main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ph-app { min-height: 100svh; display: flex; flex-direction: column; background: var(--cwl-surface); color: var(--cwl-text); font-family: var(--cwl-font); }
 .ph-app p, .ph-app h1, .ph-app ul { margin: 0; }
+/* A2: the filled mark's offset pattern behind a waiting or phones-down phone;
+   phones answering or reading stay plain Navy. It fades over cwl-dur-phones-dim. */
+.ph-app { position: relative; isolation: isolate; }
+.ph-texture { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--cwl-texture-ink); opacity: 0; -webkit-mask: url('/marks/clearway-offset.svg') -60px -40px / 320px 320px repeat; mask: url('/marks/clearway-offset.svg') -60px -40px / 320px 320px repeat; transition: opacity var(--cwl-dur-phones-dim) var(--cwl-ease-signature); }
+.ph-app[data-screen="phone-waiting"] .ph-texture { opacity: var(--cwl-tex-solid); }
 .ph-head { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 56px; padding: var(--space-3) var(--cwl-phone-gutter); border-bottom: 1px solid var(--cwl-border); background: var(--cwl-surface); }
 .ph-church { font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 .ph-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); width: min(100%, 40rem); margin-inline: auto; padding: var(--cwl-phone-stack) var(--cwl-phone-gutter); }
@@ -476,4 +538,4 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ph-send:focus-visible, .ph-pager button:focus-visible, .ph-answer-actions button:focus-visible, .ph-banner button:focus-visible, .ph-secondary:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
 .ph-send:disabled { background: var(--cwl-bar-track); color: var(--cwl-text-muted); cursor: not-allowed; }
 .ph-app .tv-mirror { margin-bottom: var(--space-2); }
-@media (prefers-reduced-motion: reduce) { .ph-answer, .ph-burst-fill, .ph-app.is-dimmed .ph-body > * { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .ph-answer, .ph-burst-fill, .ph-app.is-dimmed .ph-body > *, .ph-texture { transition: none; } }

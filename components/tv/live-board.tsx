@@ -1,0 +1,73 @@
+"use client";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Board, reducedMotion, tokenMs, type BoardKind } from "@/lib/tv/board";
+import type { TvFlow } from "@/lib/tv/flow";
+import { springRate, springStep } from "@/lib/tv/motion";
+import type { LiveSnapshot } from "@/lib/live/types";
+
+// D1-03: the word cloud or the response wall for one session layer. On the TV
+// it follows the arrival flow; a mirror or phone shows each frame at once.
+export function LiveBoard({ kind, session, frame, flow }: { kind: BoardKind; session: string; frame: LiveSnapshot | null; flow?: TvFlow | null }) {
+  const host = useRef<HTMLDivElement>(null), board = useRef<Board | null>(null);
+  useEffect(() => {
+    const root = host.current!, next = new Board(root, kind, session);
+    board.current = next;
+    const off = flow ? flow.subscribe(shown => next.show(shown)) : undefined;
+    if (flow?.current) next.show(flow.current);
+    return () => { off?.(); next.destroy(); board.current = null; root.replaceChildren(); };
+  }, [kind, session, flow]);
+  useEffect(() => { if (!flow && frame && board.current) board.current.show({ frame, fresh: [], lone: false, replay: true }); }, [flow, frame]);
+  return <div ref={host} className="tv-board" />;
+}
+
+// The count climbs on the same gentle spring as the board, in step with the
+// answers the TV is showing, never restarting a tick with each batch.
+export function Tally({ flow, total }: { flow?: TvFlow | null; total: number }) {
+  const el = useRef<HTMLSpanElement>(null);
+  const unit = (n: number) => `${n} ${n === 1 ? "answer" : "answers"}`;
+  useLayoutEffect(() => {
+    const node = el.current; if (!node || !flow) return;
+    let value = flow.current?.frame.state.results.total ?? total, target = value, velocity = 0, raf = 0, last = performance.now();
+    node.textContent = unit(value);
+    const run = (now: number) => {
+      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
+      if (reducedMotion(node)) { value = target; velocity = 0; }
+      else [value, velocity] = springStep(value, velocity, target, springRate(tokenMs(node, "cwl-dur-make-room")), dt);
+      const done = Math.abs(value - target) < 0.3 && Math.abs(velocity) < 0.3;
+      node.textContent = unit(done ? target : Math.round(value));
+      raf = done ? 0 : requestAnimationFrame(run);
+    };
+    const off = flow.subscribe(shown => {
+      target = shown.frame.state.results.total;
+      if (!raf) { last = performance.now(); raf = requestAnimationFrame(run); }
+    });
+    return () => { off(); cancelAnimationFrame(raf); };
+  }, [flow]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <span ref={el} className="tv-tally">{flow ? null : unit(total)}</span>;
+}
+
+type Spot = { key: string; text: string; meta: string };
+function spotOf(frame: LiveSnapshot | null): Spot | null {
+  const key = frame?.state.spotlight_key;
+  if (!frame || !key || frame.state.tv_content !== "session") return null;
+  if (frame.session?.interaction === "word_cloud") {
+    const word = frame.state.results.words.find(item => item.key === key);
+    return word ? { key, text: word.text, meta: `${word.count} ${word.count === 1 ? "mention" : "mentions"}` } : null;
+  }
+  const answer = frame.answers.find(item => item.id === key);
+  return answer ? { key, text: answer.text, meta: "From the answers" } : null;
+}
+
+// Spotlight: the Navy scrim rises and the item lifts in a Sunrise block.
+// Clearing it plays the reverse. The leading word takes its normal color meanwhile.
+export function Spotlight({ frame }: { frame: LiveSnapshot | null }) {
+  const spot = spotOf(frame), [last, setLast] = useState<Spot | null>(spot);
+  useEffect(() => { if (spot) setLast(spot); }, [spot?.key, spot?.text, spot?.meta]); // eslint-disable-line react-hooks/exhaustive-deps
+  const shown = spot ?? last;
+  return <>
+    <div className={`tv-scrim${spot ? " is-on" : ""}`} aria-hidden="true" />
+    <div className={`tv-spot${spot ? " is-on" : ""}`} aria-hidden={!spot} role={spot ? "status" : undefined}>
+      {shown && <><p className="tv-spot-eyebrow">Spotlight</p><p className="tv-spot-text">{shown.text}</p><p className="tv-spot-meta">{shown.meta}</p></>}
+    </div>
+  </>;
+}
