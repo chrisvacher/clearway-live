@@ -2,6 +2,19 @@
 
 Milestone 2, PR 3 implements FAC-04 and the D1-01 join screen. Open `/tv` on the separate screen computer. In an engagement's setup or run of show, choose **Pair a TV**, enter its six-digit code and name the screen. Each code expires in five minutes and is consumed on approval. Multiple TVs can be paired independently.
 
+## Pairing codes and the server's clock
+
+The database alone decides when a code expires, and it replaces a code on the TV's first request after expiry. The TV never shows a code the server would refuse:
+
+- Each pairing reply carries the server's time. The TV measures its offset from that and the round trip, so its own computer's clock does not matter. A TV computer whose clock is 37 seconds slow still retires its code on time.
+- The code leaves the screen at the server's expiry, less the round-trip uncertainty and a 250 ms allowance between the app server's and the database's clocks. The countdown reaches 0:00 at that moment. Until the replacement arrives the six code cards stay in place, empty.
+- The TV asks for the replacement just after the database's clock passes expiry, then every 200 ms for up to 2 seconds. The new code is on screen within about half a second of expiry on a normal connection, and within a second in the native test.
+- While unpaired and failing to connect, the TV retries at least every 2 seconds instead of backing off to 30, and a request that hangs is dropped after 5 seconds. A failing connection can delay a new code but never keeps an expired one on screen.
+
+Codes are not accepted past expiry. There is no grace period.
+
+The timing lives in `lib/tv/pair-clock.ts` and the TV's pairing loop in `lib/tv/sync.ts`, both covered by `tests/unit/tv-pairing-clock.test.ts`, including runs with the TV clock 37 seconds slow and fast and with the network down across an expiry.
+
 The TV has its own persistent HttpOnly device proof and `cw-tv` Auth cookie. Facilitator and participant cookies are never used for TV access. Approval requires the current native Google session, Clearway allowlist and engagement assignment. A server-only, no-email token exchange creates a native identity solely for the approved device and binds its native session to that engagement. Browser clients cannot call that exchange. Pair attempts and anonymous initialization are rate limited, and code hashes remain private.
 
 Reopening the TV page resumes its existing native session. If an expired session must be restored, the device proof can restore only its still-approved pairing. Unpairing or engagement closure revokes the binding and native refresh session, clears pending claims, retires its private topic and requires a fresh approval. Reopening the engagement cannot restore the old TV. A TV cannot read another room, roster emails, attendee identifiers, phone depth, planning fields or presenter notes.
@@ -16,4 +29,4 @@ The TV uses the existing private Realtime stream, five-second snapshots and 1.5-
 
 ## Verification
 
-`npm run check` covers application checks. CI replays and lints the migration, runs the role matrix, and executes `npm run test:tv` against disposable loopback Auth, Postgres and private Realtime. The TV integration verifies code expiry, approval, two screens, browser-client resume, first-name arrivals, duplicate-device counting, private data isolation, per-answer timestamps, cached-channel revocation, display settings and closure/reopen. HTTP tests exercise the real SSR SDK cookie namespaces and code-exchange endpoints. Native fixture clocks and transport probes do not establish venue latency acceptance. No production TV pairing, Auth session, attendee or email is created by automated checks.
+`npm run check` covers application checks. CI replays and lints the migration, runs the role matrix, and executes `npm run test:tv` against disposable loopback Auth, Postgres and private Realtime. The TV integration verifies code expiry, a replaced code reaching a TV with a slow clock within a second, approval, two screens, browser-client resume, first-name arrivals, duplicate-device counting, private data isolation, per-answer timestamps, cached-channel revocation, display settings and closure/reopen. HTTP tests exercise the real SSR SDK cookie namespaces and code-exchange endpoints. Native fixture clocks and transport probes do not establish venue latency acceptance. No production TV pairing, Auth session, attendee or email is created by automated checks.

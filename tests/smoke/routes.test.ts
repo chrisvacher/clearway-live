@@ -736,7 +736,7 @@ test("TV code approval, own persistent cookies, multi-screen preparation and unp
  const tvJar=new Map<string,string>(),endpoint=origin+"/api/tv";
  const sync=async()=>{const response=await fetch(endpoint,{method:"POST",headers:{origin,cookie:cookieHeader(tvJar),"Content-Type":"application/json"},body:"{}"});applyCookies(tvJar,response);return {response,data:await response.json()};};
  assert.equal((await fetch(endpoint,{method:"POST",headers:{origin:"https://evil.example"},body:"{}"})).status,403);
- const pairing=await sync();assert.equal(pairing.data.status,"pair");assert.match(pairing.data.code,/^\d{6}$/);assert.match(pairing.response.headers.get("set-cookie")!,/HttpOnly/);assert.match(pairing.response.headers.get("set-cookie")!,/Max-Age=31536000/);assert.ok(!JSON.stringify(pairing.data).includes("proof"));
+ const pairing=await sync();assert.equal(pairing.data.status,"pair");assert.match(pairing.data.code,/^\d{6}$/);assert.match(pairing.response.headers.get("set-cookie")!,/HttpOnly/);assert.match(pairing.response.headers.get("set-cookie")!,/Max-Age=31536000/);assert.ok(!JSON.stringify(pairing.data).includes("proof"));assert.ok(Number.isFinite(Date.parse(pairing.data.server_time)),"The TV counts down on the server's clock");
  assert.equal((await sync()).data.code,pairing.data.code,"Code persists until expiry");
  assert.equal((await fetch(origin+`/api/tv/control/${roomId}`,{method:"POST",headers:{origin,cookie:cookieHeader(tvJar),"Content-Type":"application/json"},body:JSON.stringify({action:"pair",code:pairing.data.code,label:"Front TV"})})).status,401);
  const {jar}=await finishLogin("allowed"),headers={origin,cookie:cookieHeader(jar),"Content-Type":"application/json"};
