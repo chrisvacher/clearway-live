@@ -214,6 +214,7 @@
   --cwl-dur-map-field: 700ms; /* Each draft Map field rises into place on cwl-ease-calm, cwl-delay-map-step apart, in reading order. Reduced motion: at once. */
   --cwl-dur-source-light: 400ms; /* Pass 5. Overnight review: the selected sentence's tint, and the highlight sweeping across its source words. Source cards come forward over cwl-dur-make-room. Reduced motion: in place. */
   --cwl-dur-tc-strike: 400ms; /* Pass 5. Tracked changes: the strike through deleted words, or the underline under inserted words, draws across on cwl-ease-signature. Reduced motion: the line is there at once. */
+  --cwl-dur-signal-in: 900ms; /* Pass 6. An alignment signal card coming into the facilitator's private panel: a soft fade and an 8px rise on cwl-ease-calm, slower than a room arrival so it never catches the eye. No ring, no color flash, no sound. It leaves on Dismiss with cwl-dur-hide. Reduced motion: it appears in place. */
   --cwl-delay-type-batch: 120ms; /* The TV applies typed edits at most this often, so a line never stutters. */
   --cwl-delay-map-step: 160ms; /* Between draft Map fields assembling. */
   --cwl-delay-tc-leave: 900ms; /* Pass 5. A correction folding in on the TV: struck words stay readable this long, then leave over cwl-dur-hide while the paragraph reflows and inserted words arrive underlined. */
