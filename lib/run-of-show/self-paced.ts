@@ -52,7 +52,7 @@ export function rehearsalMessage(result: { status: string; answers?: number; ses
     case "unchanged": return "";
     case "live": return `${result.title ? `${result.title} is live. ` : ""}Choose Nothing live first. Test answers can’t be cleared while a session is live.`;
     case "closed": return "This engagement has closed.";
-    case "denied": return "Only this engagement's facilitators can do that.";
+    case "denied": return "Only this engagement’s facilitators can do that.";
     default: return "That didn’t go through. Try again.";
   }
 }
