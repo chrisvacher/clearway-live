@@ -190,6 +190,8 @@
   --cwl-delay-quiet: 3000ms; /* Nothing has arrived for this long: a crowded screen may step down, group, take turns or roll. */
   --cwl-reconnect-low: 0.45; /* The low point of the reconnecting breath. */
   --cwl-faint: 0.32; /* Faint shapes behind the room's answer (individual grid placements). Shapes only, never text. */
+  --cwl-tc-line: 0.08em; /* Pass 5. Thickness of the underline under inserted words and the strike through deleted words, in the text's own color, on every surface and theme. */
+  --cwl-tc-offset: 0.18em; /* Pass 5. Gap between inserted words and their underline. */
   /* ---------- Design pass 4 (milestone 4, Wayfinding session tools) ---------- */
   /* Flags: something needs fixing (an empty Vision Outcome, a goal missing a CORE letter, a first step without an owner or date).
      TV and phones only: app surfaces show the Warning chip instead, so Sunrise and Warning never meet. */
@@ -208,8 +210,11 @@
   --cwl-dur-field-lock: 3000ms; /* A card field stays with one phone this long after its last keystroke, then is released. */
   --cwl-dur-remote-hand: 500ms; /* The remote changing hands: holder banners slide in, controls settle. The TV never changes. Reduced motion: instant. */
   --cwl-dur-map-field: 700ms; /* Each draft Map field rises into place on cwl-ease-calm, cwl-delay-map-step apart, in reading order. Reduced motion: at once. */
+  --cwl-dur-source-light: 400ms; /* Pass 5. Overnight review: the selected sentence's tint, and the highlight sweeping across its source words. Source cards come forward over cwl-dur-make-room. Reduced motion: in place. */
+  --cwl-dur-tc-strike: 400ms; /* Pass 5. Tracked changes: the strike through deleted words, or the underline under inserted words, draws across on cwl-ease-signature. Reduced motion: the line is there at once. */
   --cwl-delay-type-batch: 120ms; /* The TV applies typed edits at most this often, so a line never stutters. */
   --cwl-delay-map-step: 160ms; /* Between draft Map fields assembling. */
+  --cwl-delay-tc-leave: 900ms; /* Pass 5. A correction folding in on the TV: struck words stay readable this long, then leave over cwl-dur-hide while the paragraph reflows and inserted words arrive underlined. */
 }
 
 /* ---------- Light screens ---------- */
@@ -308,6 +313,7 @@
   --cwl-app-team: var(--cw-navy, #03294E); /* App surfaces: Team-led chip fill (Off-White text). */
   --cwl-app-on-team: var(--cw-off-white, #F9F9FB); /* App surfaces: text on cwl-app-team. */
   --cwl-app-scrim: var(--cwl-app-scrim-ink); /* App surfaces: behind modals and side panels. */
+  --cwl-app-source-word: var(--cwl-sky-light); /* Pass 5. App surfaces only: the source words highlighted in an overnight source card and on an easel photo (Navy text, 11.1:1). The selected sentence uses cwl-app-selected. */
   --cwl-core-not-started: var(--cw-gray-100, #F3F4F6); --cwl-core-not-started-disc: var(--cw-gray-500, #6B7280); --cwl-core-not-started-glyph: var(--cw-white, #FFFFFF); /* Not started · lucide circle-dashed */
   --cwl-core-on-track: var(--cw-success-light, #D1FAE5); --cwl-core-on-track-disc: var(--cw-success, #059669); --cwl-core-on-track-glyph: var(--cw-white, #FFFFFF); /* On track · lucide check */
   --cwl-core-at-risk: var(--cw-warning-light, #FEF3C7); --cwl-core-at-risk-disc: var(--cw-warning, #D97706); --cwl-core-at-risk-glyph: var(--cw-navy, #03294E); /* At risk · lucide triangle-alert */
@@ -355,13 +361,15 @@
    the overnight review) keeps its own theme and live-only colors. App surfaces set Sunrise to initial and light values
    inherit, so the TV re-declares its semantic tokens from base values here. A TV page of its own is unchanged.
    Pass 4 added the dark bar track, bar label, cut line, focus ring, offline and AI tokens, so a dark mirror inside the
-   light remote no longer picks up the light bar track and cut line. */
+   light remote no longer picks up the light bar track and cut line.
+   Pass 5 adds phones: a dark phone drawn inside an app surface (OVN-03's read-back preview in review) keeps its
+   own theme instead of inheriting the light page's text and surface tokens. */
 :root { --cwl-guard-sunrise: var(--cwl-sunrise); --cwl-guard-royal-deep: var(--cwl-royal-deep); }
-:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"] {
+:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) :is([data-surface="tv"], [data-surface="phone"]) {
   --cwl-sunrise: var(--cwl-guard-sunrise); --cwl-royal-deep: var(--cwl-guard-royal-deep);
   --cwl-callout: var(--cwl-sunrise); --cwl-bar-leader: var(--cwl-sunrise); --cwl-word-leader: var(--cwl-sunrise); --cwl-flag: var(--cwl-sunrise);
 }
-:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"][data-theme="dark"] {
+:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) :is([data-surface="tv"], [data-surface="phone"])[data-theme="dark"] {
   --cwl-surface: var(--cw-navy); --cwl-surface-card: var(--cw-off-white); --cwl-text: var(--cw-off-white); --cwl-text-muted: var(--cw-sky-blue);
   --cwl-border: var(--cwl-border-dark-ink); --cwl-border-strong: var(--cw-sky-blue); --cwl-presence: var(--cw-sky-blue); --cwl-scrim: var(--cwl-scrim-ink);
   --cwl-word-single: var(--cw-sky-blue); --cwl-word-repeated: var(--cw-off-white); --cwl-word-new: var(--cw-lime);

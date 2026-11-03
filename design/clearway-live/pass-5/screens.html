@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clearway Live Milestone 5 Screens</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap">
+<link rel="stylesheet" href="design-system/clearway-base/colors_and_type.css">
+<link rel="stylesheet" href="design-system/clearway-live/live_tokens.css">
+<link rel="stylesheet" href="design-system/clearway-live/components/bundle.css">
+<link rel="stylesheet" href="pass-2/pass2.css">
+<link rel="stylesheet" href="pass-3/pass3.css">
+<link rel="stylesheet" href="pass-4/pass4.css">
+<link rel="stylesheet" href="pass-5/pass5.css">
+<style>
+/* Review page layout: one column of boards, each labelled with its screen IDs and component names. One light look, like the pass 2 and 3 review pages: every color is a Clearway token. */
+:root { color-scheme: light; }
+body { margin: 0; background: var(--cw-off-white); color: var(--cw-navy); font-family: var(--cwl-font); }
+.sc { padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.sc-top h1 { margin: 4px 0 0; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; }
+.sc-top p { margin: 6px 0 0; max-width: 80ch; font-size: 14px; line-height: 1.6; color: var(--cw-gray-700); }
+.sc-eyebrow { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cw-gray-600); }
+#toc { display: flex; flex-wrap: wrap; gap: 6px; }
+#toc a { font-size: 13px; font-weight: 600; color: var(--cw-navy); text-decoration: none; background: var(--cw-white); border: 1px solid var(--cw-gray-300); border-radius: 6px; padding: 5px 10px; }
+#toc a:hover { border-color: var(--cw-navy); }
+#toc a:focus-visible { outline: 2px solid var(--cw-royal-blue); outline-offset: 2px; }
+.sc-board { background: var(--cw-white); border: 1px solid var(--cw-gray-200); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 16px; min-width: 0; }
+.sc-head h2 { margin: 6px 0 0; font-size: 20px; font-weight: 600; text-wrap: balance; }
+.sc-ids { display: flex; flex-wrap: wrap; gap: 6px; }
+.sc-id { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; background: var(--cw-navy); color: var(--cw-off-white); border-radius: 6px; padding: 2px 8px; }
+.sc-note { margin: 0; max-width: 100ch; font-size: 14px; line-height: 1.6; color: var(--cw-gray-700); }
+.sc-body { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.sc-row { display: grid; gap: 18px; align-items: start; min-width: 0; }
+.sc-row.is-1 { grid-template-columns: minmax(0, 1fr); }
+.sc-row.is-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sc-row.is-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sc-row.is-phones { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+.sc-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.sc-actions:empty { display: none; }
+.sc-actions .cwl-a-btn { height: 34px; font-size: 12px; padding: 0 12px; }
+.sc-frame { margin: 0; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.sc-label { font-size: 12px; font-weight: 700; letter-spacing: 0.04em; color: var(--cw-gray-600); }
+.sc-box { min-width: 0; }
+.sc-frame.is-tv .sc-box { border-radius: 8px; overflow: hidden; }
+.sc-frame.is-phone .sc-box { max-width: 240px; }
+.sc-cap { margin: 0; font-size: 13px; line-height: 1.5; color: var(--cw-gray-700); }
+.sc-tabs { margin: 0; }
+.sc-table { overflow-x: auto; border: 1px solid var(--cw-gray-200); border-radius: 12px; }
+.p4-part { padding: 20px 4px 0; border-top: 2px solid var(--cw-navy); }
+.p4-part h2 { margin: 4px 0 0; font-size: 22px; font-weight: 700; }
+.p4-part p { margin: 6px 0 0; font-size: 14px; color: var(--cw-gray-700); max-width: 90ch; }
+#motion { display: flex; flex-direction: column; gap: 28px; }
+@media (max-width: 900px) {
+  .sc-row.is-2, .sc-row.is-3 { grid-template-columns: minmax(0, 1fr) !important; }
+  .sc-row { grid-template-columns: minmax(0, 1fr) !important; }
+  .cwl-wf-iconsheet { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
+</head>
+<body>
+<main class="sc">
+  <header class="sc-top">
+    <div class="sc-eyebrow">Clearway Live · Design pass 5 · Milestone 5: scribe and overnight</div>
+    <h1>Milestone 5 screens</h1>
+    <p>Every screen in the design pass 5 brief, labelled with its screen IDs and the component names they'll have in code: the scribe console and the scribe's phone, the scribe's cards on the control surface, the overnight review, and the Day 2 read-back. Built on the Clearway Live design system and the approved pass 2, 3 and 4 work, with Riverside Church's seed data (base year 2026, so the 10-year Future is 2036). Each board moves between its states without redrawing: pick a state, switch the TV between Navy and Off-White, and use the buttons to watch input arrive. The six new movements are at the end with their tokens and reduced-motion equivalents.</p>
+  </header>
+  <nav id="toc" aria-label="Screens"><a href="https://claude.ai/artifact/TviB5WSyPHa1tSBCdTE8Pf">Design system</a><a href="https://claude.ai/artifact/ApScozFpsGAUXRmCb1seh6">Milestone 4 screens</a><a href="https://claude.ai/artifact/UUiRFxw8QFTfecDwWqs7UP">Motion review</a></nav>
+  <div id="boards" class="sc-body" style="gap:28px"></div>
+  <div class="p4-part" id="part-motion"><div class="sc-eyebrow">Part</div><h2>Motion: the six new movements</h2><p>The screen is alive: every input appears at once, and existing items move, regroup and resize as new input arrives, with no refresh and no reveal step. Each movement below has its tokens, a short prototype and its reduced-motion equivalent.</p></div>
+  <div id="motion"></div>
+</main>
+<script src="vendor/lucide.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="design-system/clearway-live/components/bundle.js"></script>
+<script src="pass-2/live-room.js"></script>
+<script src="pass-3/views.js"></script>
+<script src="pass-3/data.js"></script>
+<script src="pass-4/data4.js"></script>
+<script src="pass-4/wayfinding.js"></script>
+<script src="pass-5/data5.js"></script>
+<script src="pass-5/scribe5.js"></script>
+<script src="pass-5/screens5.js"></script>
+<script src="pass-5/motion5.js"></script>
+</body>
+</html>

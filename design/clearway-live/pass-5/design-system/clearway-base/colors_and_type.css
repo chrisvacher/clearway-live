@@ -1,0 +1,203 @@
+/* ================================================================
+   CLEARWAY DESIGN SYSTEM — colors_and_type.css
+   Pulled directly from src/styles/global.css (clearway-dot-co repo).
+   Plus Jakarta Sans as the single typeface. Calm, clear, decisive.
+   ================================================================ */
+
+/* ---------- Fonts ---------- */
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 200; font-display: swap; src: url('./fonts/PlusJakartaSans-ExtraLight.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 300; font-display: swap; src: url('./fonts/PlusJakartaSans-Light.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 400; font-display: swap; src: url('./fonts/PlusJakartaSans-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: italic;  font-weight: 400; font-display: swap; src: url('./fonts/PlusJakartaSans-Italic.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 500; font-display: swap; src: url('./fonts/PlusJakartaSans-Medium.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 600; font-display: swap; src: url('./fonts/PlusJakartaSans-SemiBold.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 700; font-display: swap; src: url('./fonts/PlusJakartaSans-Bold.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: italic;  font-weight: 700; font-display: swap; src: url('./fonts/PlusJakartaSans-BoldItalic.ttf') format('truetype'); }
+@font-face { font-family: 'Plus Jakarta Sans'; font-style: normal;  font-weight: 800; font-display: swap; src: url('./fonts/PlusJakartaSans-ExtraBold.ttf') format('truetype'); }
+
+:root {
+  /* ---------- Brand colors ---------- */
+  --cw-navy:        #03294E;   /* Primary text, dark bg, authority */
+  --cw-royal-blue:  #3F72DE;   /* Primary action, links, credibility */
+  --cw-sky-blue:    #99C5FE;   /* Accents, icon bg, energy */
+  --cw-lime:        #D2FF71;   /* Highlight, freshness */
+  --cw-soft-lime:   #E6FFA8;   /* CTA on dark, hopeful */
+  --cw-off-white:   #F9F9FB;   /* Page background */
+  --cw-white:       #FFFFFF;
+
+  /* ---------- Neutrals (grays) ---------- */
+  --cw-gray-50:  #F9FAFB;
+  --cw-gray-100: #F3F4F6;
+  --cw-gray-200: #E5E7EB;
+  --cw-gray-300: #D1D5DB;
+  --cw-gray-400: #9CA3AF;
+  --cw-gray-500: #6B7280;
+  --cw-gray-600: #4B5563;
+  --cw-gray-700: #374151;
+  --cw-gray-800: #1F2937;
+  --cw-gray-900: #111827;
+
+  /* ---------- Semantic status ---------- */
+  --cw-success:       #059669;
+  --cw-success-light: #D1FAE5;
+  --cw-warning:       #D97706;
+  --cw-warning-light: #FEF3C7;
+  --cw-error:         #DC2626;
+  --cw-error-light:   #FEE2E2;
+  --cw-info:          #2563EB;
+  --cw-info-light:    #DBEAFE;
+
+  /* ---------- Semantic foreground / background tokens ---------- */
+  --fg-strong:  var(--cw-navy);      /* headings, emphasis */
+  --fg-default: var(--cw-gray-700);  /* body */
+  --fg-muted:   var(--cw-gray-600);  /* secondary body */
+  --fg-subtle:  var(--cw-gray-500);  /* meta, captions */
+  --fg-on-dark: var(--cw-off-white);
+  --fg-link:    var(--cw-royal-blue);
+
+  --bg-page:    var(--cw-off-white);
+  --bg-surface: var(--cw-white);
+  --bg-sunken:  var(--cw-gray-50);
+  --bg-dark:    var(--cw-navy);
+
+  --border-subtle: var(--cw-gray-200);
+  --border-strong: var(--cw-gray-300);
+
+  /* ---------- Typography ---------- */
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Type scale (desktop). Tablet/mobile overrides below. */
+  --fs-hero:    4rem;      /* 64px — hero H1, light weight */
+  --fs-h1:      3rem;      /* 48px */
+  --fs-h2:      2.25rem;   /* 36px */
+  --fs-h3:      1.5rem;    /* 24px */
+  --fs-h4:      1.25rem;   /* 20px */
+  --fs-lead:    1.25rem;   /* 20px — intro paragraphs */
+  --fs-body:    1rem;      /* 16px */
+  --fs-small:   0.875rem;  /* 14px */
+  --fs-eyebrow: 0.875rem;  /* 14px, UPPERCASE, tracking */
+  --fs-micro:   0.75rem;   /* 12px */
+
+  --lh-tight: 1.1;     /* @kind font */
+  --lh-heading: 1.2;   /* @kind font */
+  --lh-body: 1.6;      /* @kind font */
+  --lh-loose: 1.7;     /* @kind font */
+
+  --fw-light: 300;     /* @kind font */
+  --fw-regular: 400;   /* @kind font */
+  --fw-medium: 500;    /* @kind font */
+  --fw-semibold: 600;  /* @kind font */
+  --fw-bold: 700;      /* @kind font */
+
+  --tracking-eyebrow: 0.1em;  /* @kind font */
+  --tracking-button:  0.05em; /* @kind font */
+
+  /* ---------- Radii ---------- */
+  --radius-sm: 0.25rem;   /* 4 */
+  --radius-md: 0.375rem;  /* 6 — buttons */
+  --radius-lg: 0.75rem;   /* 12 — cards, dropdowns */
+  --radius-xl: 1rem;      /* 16 */
+  --radius-pill: 9999px;
+
+  /* ---------- Shadows (navy-tinted) ---------- */
+  --shadow-sm: 0 1px 2px 0 rgb(3 41 78 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(3 41 78 / 0.07), 0 2px 4px -2px rgb(3 41 78 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(3 41 78 / 0.08), 0 4px 6px -4px rgb(3 41 78 / 0.05);
+  --shadow-xl: 0 20px 25px -5px rgb(3 41 78 / 0.08), 0 8px 10px -6px rgb(3 41 78 / 0.05);
+  --shadow-dropdown: 0 20px 40px rgb(3 41 78 / 0.12);
+
+  /* ---------- Spacing (4px grid) ---------- */
+  --space-1:  0.25rem;  /* 4  */
+  --space-2:  0.5rem;   /* 8  */
+  --space-3:  0.75rem;  /* 12 */
+  --space-4:  1rem;     /* 16 */
+  --space-5:  1.25rem;  /* 20 */
+  --space-6:  1.5rem;   /* 24 */
+  --space-8:  2rem;     /* 32 */
+  --space-10: 2.5rem;   /* 40 */
+  --space-12: 3rem;     /* 48 — mobile section */
+  --space-16: 4rem;     /* 64 — tablet section */
+  --space-20: 5rem;     /* 80 */
+  --space-24: 6rem;     /* 96 — desktop section */
+
+  --container-max:  75rem;    /* 1200 */
+  --container-wide: 87.5rem;  /* 1400 */
+
+  /* ---------- Motion ---------- */
+  --ease-base: ease;                                /* @kind other */
+  --ease-mochary: cubic-bezier(0.25, 0.1, 0.25, 1); /* @kind other */
+  --dur-fast: 150ms;    /* @kind other */
+  --dur-base: 200ms;    /* @kind other */
+  --dur-slow: 300ms;    /* @kind other */
+  --dur-mochary: 500ms; /* @kind other */
+  --dur-reveal: 800ms;  /* @kind other */
+}
+
+/* ---------- Base ---------- */
+html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  color: var(--fg-strong);
+  background: var(--bg-page);
+}
+
+/* ---------- Semantic element styles ---------- */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-heading);
+  color: var(--fg-strong);
+  margin: 0;
+}
+
+h1 { font-size: var(--fs-h1); }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); }
+h4 { font-size: var(--fs-h4); }
+
+.hero-headline {
+  font-size: var(--fs-hero);
+  font-weight: var(--fw-light);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.hero-headline strong { font-weight: var(--fw-bold); }
+
+p { margin: 0; color: var(--fg-muted); line-height: var(--lh-body); }
+.lead { font-size: var(--fs-lead); color: var(--fg-muted); line-height: var(--lh-loose); }
+
+a { color: var(--fg-link); text-decoration: none; }
+a:hover { color: var(--cw-navy); }
+
+.eyebrow {
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--cw-royal-blue);
+}
+
+small, .small { font-size: var(--fs-small); color: var(--fg-subtle); }
+
+/* Responsive type (tablet / mobile per CLAUDE.md) */
+@media (max-width: 1024px) {
+  :root {
+    --fs-hero: 3rem;      /* 48px */
+    --fs-h1:   2.25rem;   /* 36px */
+    --fs-h2:   1.75rem;   /* 28px */
+    --fs-h3:   1.25rem;   /* 20px */
+  }
+}
+@media (max-width: 768px) {
+  :root {
+    --fs-hero: 2.25rem;   /* 36px */
+    --fs-h1:   1.75rem;   /* 28px */
+    --fs-h2:   1.5rem;    /* 24px */
+    --fs-h3:   1.125rem;  /* 18px */
+  }
+}
+
+
