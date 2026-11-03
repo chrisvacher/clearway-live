@@ -1,6 +1,5 @@
 "use client";
-import Image from "next/image";
-import { Check, RefreshCw } from "lucide-react";
+import { Check } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { roomQr } from "@/lib/tv/qr";
 import { shortRoomLink } from "@/lib/tv/policy";
@@ -8,7 +7,11 @@ import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvStatus } from "@/lib/tv/types";
 import type { TvFlow } from "@/lib/tv/flow";
 import { tokenMs } from "@/lib/tv/board";
-import { LiveBoard, Spotlight, Tally } from "./live-board";
+import { Spotlight, Tally } from "./live-board";
+import { ContentScreen, ScreenCheck } from "./content-screen";
+import { ChurchLockup, LiveMark, type MarkState } from "./live-mark";
+import { tvViews } from "@/components/interactions/tv-views";
+import { contentOf, kindOf } from "@/lib/interactions/kinds";
 
 function Qr({ code }: { code: string }) {
   const qr = useMemo(() => roomQr(code), [code]);
@@ -43,15 +46,15 @@ function SessionLayers({ frame, flow }: { frame: LiveSnapshot | null; flow?: TvF
   }, [layers]);
   return <div ref={box} className="tv-layers">{layers.map(layer => {
     const shown = !layer.leaving && frame && frame.session?.id === layer.id ? frame : layer.frame, session = shown.session!;
-    const input = session.interaction !== "content";
-    return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} aria-hidden={layer.leaving}>
-      <p className="tv-eyebrow">{session.title}</p>
+    const kind = kindOf(session), input = Boolean(kind?.input), View = tvViews[session.interaction];
+    return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} data-kind={session.interaction} aria-hidden={layer.leaving}>
       {input ? <>
+        <p className="tv-eyebrow">{session.title}</p>
         <h1 className="tv-headline">{session.prompt}</h1>
-        <LiveBoard kind={session.interaction as "word_cloud" | "wall"} session={session.id} frame={shown} flow={flow} />
-        <p className="tv-note tv-muted">Waiting for answers</p>
+        {View && <View session={session.id} frame={shown} flow={flow} />}
+        {!kind?.structured && <p className="tv-note tv-muted">Waiting for answers</p>}
         {session.settings?.join_strip && shown.display && <div className="tv-join-strip"><span className="tv-upclose">live.clearway.co/r/{shown.display.room_code}</span><Qr code={shown.display.room_code} /></div>}
-      </> : <h1 className="tv-headline-xl tv-content-text">{session.prompt}</h1>}
+      </> : <ContentScreen frame={shown} />}
     </div>;
   })}</div>;
 }
@@ -61,10 +64,16 @@ export function TvScenes({ status, frame, reconnecting, nameLimit, flow }: { sta
   const paired = status.status === "paired" && Boolean(display);
   const mode = paired ? frame!.state.tv_content : status.status === "pair" ? "pair" : "opening";
   const link = display ? shortRoomLink(display.room_code) : "";
+  const session = frame?.session ?? null, kind = kindOf(session);
+  const inputOn = mode === "session" && Boolean(kind?.input);
+  // A screen check in the run of show uses the full-bleed check, like the room's own.
+  const checkOn = mode === "screen_check" || (mode === "session" && session?.interaction === "content" && contentOf(session.options).screen === "screen_check");
+  const mark: MarkState = !inputOn || !session ? null : session.state === "closed" ? "closed"
+    : ["live", "phones_down"].includes(session.state) ? (frame!.state.phones_down || session.state === "phones_down" ? "down" : "live") : null;
   return <>
     <div className="tv-texture" aria-hidden="true"><span /></div>
-    <header className="tv-top"><div className="tv-brand-row"><span className="tv-mark" role="img" aria-label="Clearway" />{paired && <span className="tv-church-logo">{display?.logo_url ? <Image unoptimized src={display.logo_url} alt={display.church} width={180} height={56} /> : <span>{display?.church}</span>}</span>}</div>
-      <div className="tv-top-status">{mode === "join" && <span className="tv-tally">{presence?.count || 0} here</span>}{mode === "session" && frame?.session && frame.session.interaction !== "content" && <><Tally flow={flow} total={frame.state.results.total} />{["live", "phones_down"].includes(frame.session.state) && <span className={`tv-live${frame.state.phones_down ? " is-down" : ""}`}>{frame.state.phones_down ? "Phones down" : "Live"}</span>}</>}</div>
+    <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}</div>
+      <div className="tv-top-status"><LiveMark state={mark} reconnecting={reconnecting} /></div>
     </header>
     <div className="tv-scenes">
       <section className={`tv-scene tv-pair${mode === "pair" ? " is-active" : ""}`} aria-hidden={mode !== "pair"}>
@@ -82,12 +91,10 @@ export function TvScenes({ status, frame, reconnecting, nameLimit, flow }: { sta
       </section>
       <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1></section>
     </div>
-    <section className={`tv-check${mode === "screen_check" ? " is-active" : ""}`} aria-hidden={mode !== "screen_check"}>
-      <div className="tv-check-edge" /><div className="tv-check-safe" />{["tl", "tr", "bl", "br"].map(corner => <div key={corner} className={`tv-check-corner ${corner}`} />)}<div className="tv-check-circle" /><div className="tv-check-cross" /><div className="tv-check-cross is-horizontal" />
-      <div className="tv-type-ladder">{[["display", "Aa 8", "144"], ["headline-xl", "Grow", "96"], ["headline", "Where is God", "64"], ["main", "Welcoming culture", "56"], ["body", "Small groups in homes", "44"], ["floor", "23 answers", "36"], ["upclose", "Reconnecting (up close only)", "24"]].map(([type, text, size]) => <div key={type}><small>{type} · {size}px</small><span className={`tv-type-${type}`}>{text}</span></div>)}</div>
-      <div className="tv-check-label"><h1 className="tv-eyebrow">Screen check</h1><p className="tv-body">Every Lime corner should be fully visible.</p><p className="tv-floor">The circle should look round. Choose Just Scan, Screen Fit or 1:1 on your TV.</p></div>
-    </section>
+    <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
     {paired && <Spotlight frame={frame} />}
-    <footer className="tv-foot"><span className="tv-upclose">{mode === "pair" ? "live.clearway.co/tv" : ""}</span>{status.status === "pair" && <CodeExpiry expires={status.expires_at} />}<span className={`tv-reconnecting tv-upclose${reconnecting ? " is-on" : ""}`} role="status"><RefreshCw aria-hidden="true" />Reconnecting</span></footer>
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{status.status === "pair" && <CodeExpiry expires={status.expires_at} />}</span>
+      <span className="tv-foot-right">{mode === "join" && <span className="tv-tally"><b>{presence?.count || 0}</b> here</span>}
+        {inputOn && frame && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} />}</span></footer>
   </>;
 }

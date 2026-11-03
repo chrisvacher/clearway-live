@@ -123,7 +123,7 @@
   --cwl-radius-button: 6px; /* Phone buttons and inputs, base radius-md. */
   --cwl-radius-card: 12px; /* Phone cards, base radius-lg. */
   --cwl-radius-tv-card: 16px; /* TV wall cards and panels, base radius-xl. */
-  --cwl-radius-pill: 9999px; /* LIVE marker, markers, chips, bars' ends. */
+  --cwl-radius-pill: 9999px; /* Switches and progress tracks only. Never a marker, chip, tag or badge (pass 3). */
 
   /* ---------- Elevation ---------- */
   --cwl-shadow-tv: none; /* No shadow on the TV: it reads cleanly at a distance. */
@@ -170,6 +170,22 @@
   --cwl-arrive-from: 0; /* Arriving items start from this opacity. */
 
   --cwl-font: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif);
+  /* ---------- Design pass 3 (milestone 3, Chris, Nov 2 2026) ---------- */
+  --cwl-offline: var(--cw-gray-400, #9CA3AF); /* Offline and reconnecting: the Clearway mark in gray, on the TV and in the phone header. */
+  --cwl-ai-start: var(--cw-sky-blue, #99C5FE); /* AI: start of the AI gradient. */
+  --cwl-ai-end: var(--cw-soft-lime, #E6FFA8); /* AI: end of the AI gradient. Soft Lime, never Lime. */
+  --cwl-on-ai: var(--cw-navy, #03294E); /* Text and icons on the AI gradient. */
+  --cwl-ai: linear-gradient(115deg, var(--cwl-ai-start), var(--cwl-ai-end)); /* The AI badge and the AI summary's header band. */
+  /* Item palette: 2x2 grid items and any numbered set people must tell apart. Navy numbers on every fill. */
+  --cwl-item-1: #FF8A65; --cwl-item-2: #64B5F6; --cwl-item-3: #81C784; --cwl-item-4: #F06292; --cwl-item-5: #4DD0E1;
+  --cwl-item-6: #CE93D8; --cwl-item-7: #D7CCC8; --cwl-item-8: #4DB6AC; --cwl-item-9: #FFAB91; --cwl-item-10: #9FA8DA;
+  --cwl-radius-marker: 0.3em; /* Markers, chips, tags and counts: squared off to match the AI badge. */
+  --cwl-dur-turn-hold: 8000ms; /* Taking turns: how long one set of older answers stays. */
+  --cwl-dur-roll-row: 6000ms; /* Sign together: a full wall of names rolls up by one row. */
+  --cwl-dur-reconnect-pulse: 2400ms; /* Reconnecting: one slow breath of the gray mark. Reduced motion: steady. */
+  --cwl-delay-quiet: 3000ms; /* Nothing has arrived for this long: a crowded screen may step down, group, take turns or roll. */
+  --cwl-reconnect-low: 0.45; /* The low point of the reconnecting breath. */
+  --cwl-faint: 0.32; /* Faint shapes behind the room's answer (individual grid placements). Shapes only, never text. */
 }
 
 /* ---------- Light screens ---------- */
@@ -190,6 +206,9 @@
   --cwl-focus-ring: var(--cw-royal-blue, #3F72DE);
   --cwl-presence: var(--cw-gray-600, #4B5563);
   --cwl-scrim: var(--cwl-scrim-light-ink);
+  --cwl-offline: var(--cw-gray-500, #6B7280);
+  --cwl-ai-start: var(--cwl-sky-deep);
+  --cwl-ai-end: var(--cwl-soft-lime-deep);
 }
 
 /* ---------- Reduced motion: every movement has a still equivalent ----------

@@ -4,6 +4,9 @@ import { LockKeyhole, X } from "lucide-react";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { parts, type SessionInput, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
+import { contentOf, fallbackKinds, screenIds, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
+import { kindDefaults, optionEditors } from "@/components/interactions/option-editors";
+import { contentPromptLabel } from "./content-options";
 
 type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; feedback: string; failed: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void };
 export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove }: Props) {
@@ -24,6 +27,16 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
   const change = <K extends keyof ShowSession>(key: K, v: ShowSession[K]) => setValue(previous => ({ ...previous, [key]: v }));
   const setting = <K extends keyof ShowSession["settings"]>(key: K, v: ShowSession["settings"][K]) => change("settings", { ...value.settings, [key]: v });
   const running = !["draft", "ready"].includes(session.state);
+  // The kinds this server can run, in the library's order. A session keeps its own kind.
+  const kinds: KindInfo[] = context.kinds?.length ? context.kinds : Object.values(fallbackKinds);
+  const kind = kinds.find(k => k.kind === value.interaction) ?? fallbackKinds[value.interaction] ?? null;
+  const Editor = optionEditors[value.interaction];
+  const text = value.interaction === "word_cloud" || value.interaction === "wall";
+  const choose = (next: InteractionKind) => {
+    const info = kinds.find(k => k.kind === next), defaults = kindDefaults[next] ?? {};
+    setValue(v => ({ ...v, interaction: next, options: {}, ...defaults,
+      settings: { ...v.settings, anonymous: info?.named === "always" ? false : info?.named === "never" ? true : v.settings.anonymous } }));
+  };
   async function save(event: FormEvent) {
     event.preventDefault(); setTimeError("");
     try {
@@ -45,20 +58,24 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           <label htmlFor="session-length">Length in minutes<input id="session-length" type="number" min={1} max={1440} required value={value.planned_minutes} onChange={e => change("planned_minutes", Number(e.target.value))} /></label>
           <p className="show-help is-full">All times in {context.timezone}. Planned times stay private.</p>
           {value.mode === "self_paced" && <><label htmlFor="session-opens">Opens<input id="session-opens" type="datetime-local" required value={opens} onChange={e => setOpens(e.target.value)} /></label><label htmlFor="session-closes">Closes<input id="session-closes" type="datetime-local" required value={closes} onChange={e => setCloses(e.target.value)} /></label><p className="show-help is-full">Self-paced times are saved here. Scheduled opening follows with the interaction library.</p></>}
-          <label className="is-full" htmlFor="session-interaction">Interaction<select id="session-interaction" disabled={running} value={value.interaction} onChange={e => {
-            const kind = e.target.value as ShowSession["interaction"]; setValue(v => ({ ...v, interaction: kind, max_characters: kind === "wall" ? 280 : 28, max_words: kind === "wall" ? 50 : 3 }));
-          }}><option value="word_cloud">Word cloud</option><option value="wall">Open text wall</option><option value="content">Content screen</option></select></label>
-          <label className="is-full" htmlFor="session-prompt">Prompt on the TV and phones<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>
+          <label className="is-full" htmlFor="session-interaction">Interaction<select id="session-interaction" disabled={running} value={value.interaction} onChange={e => choose(e.target.value as InteractionKind)}>
+            {kinds.map(k => <option key={k.kind} value={k.kind}>{k.label}{k.kind !== "content" ? ` (${screenIds[k.kind]})` : ""}</option>)}
+            {!kinds.some(k => k.kind === value.interaction) && <option value={value.interaction}>{value.interaction}</option>}</select></label>
+          {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={fresh} locked={busy || blocked || context.closed} onChange={options => change("options", options)} />}
+          <label className="is-full" htmlFor="session-prompt">{value.interaction === "content" ? contentPromptLabel[contentOf(value.options).screen] : "Prompt on the TV and phones"}<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>
           <p className="show-help is-full">Use {"{base year + 10}"}, {"{base year + 3}"} or {"{base year + 1}"} to fill in the year.</p>
           {value.prompt.includes("{base year") && <div className="show-preview is-full"><span className="show-help">Prompt preview</span><p>{fillYears(value.prompt, context.base_year)}</p></div>}
           <label className="is-full" htmlFor="session-depth">Phone depth<textarea id="session-depth" maxLength={20000} rows={4} value={value.phone_depth} onChange={e => change("phone_depth", e.target.value)} /><span className="show-help">Detail, sources or Scripture for phones only.</span></label>
-          <h3 className="is-full">Settings</h3>
-          <p className="show-help is-full">Answers are anonymous on the screen. AI grouping arrives in milestone 3.</p>
-          <label className="show-check is-full" htmlFor="session-join"><input id="session-join" type="checkbox" checked={value.settings.join_strip} onChange={e => setting("join_strip", e.target.checked)} />Show the join strip on the TV</label>
-          <label htmlFor="session-burst">Burst length<select id="session-burst" value={value.settings.burst_minutes} onChange={e => setting("burst_minutes", Number(e.target.value))}>{[3, 4, 5].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></label>
-          <label htmlFor="session-sends">Answers per person<input id="session-sends" type="number" min={1} max={100} required value={value.max_sends} onChange={e => change("max_sends", Number(e.target.value))} /></label>
-          <label htmlFor="session-characters">Characters per answer<input id="session-characters" type="number" min={1} max={280} required value={value.max_characters} onChange={e => change("max_characters", Number(e.target.value))} /></label>
-          <label htmlFor="session-words">Words per answer<input id="session-words" type="number" min={1} max={50} required value={value.max_words} onChange={e => change("max_words", Number(e.target.value))} /></label>
+          {kind?.input && <>
+            <h3 className="is-full">Settings</h3>
+            {kind.named === "setting" ? <label className="show-check is-full" htmlFor="session-anonymous"><input id="session-anonymous" type="checkbox" checked={value.settings.anonymous} onChange={e => setting("anonymous", e.target.checked)} />Anonymous on the screen</label>
+              : <p className="show-help is-full">{kind.named === "always" ? "Named by design: names show on the screen." : "Answers are anonymous on the screen."}</p>}
+            <label className="show-check is-full" htmlFor="session-join"><input id="session-join" type="checkbox" checked={value.settings.join_strip} onChange={e => setting("join_strip", e.target.checked)} />Show the join strip on the TV</label>
+            <label htmlFor="session-burst">Burst length<select id="session-burst" value={value.settings.burst_minutes} onChange={e => setting("burst_minutes", Number(e.target.value))}>{[3, 4, 5].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></label>
+            {!kind.one_per_person && <label htmlFor="session-sends">Answers per person<input id="session-sends" type="number" min={1} max={100} required value={value.max_sends} onChange={e => change("max_sends", Number(e.target.value))} /></label>}
+            {text && <><label htmlFor="session-characters">Characters per answer<input id="session-characters" type="number" min={1} max={280} required value={value.max_characters} onChange={e => change("max_characters", Number(e.target.value))} /></label>
+              <label htmlFor="session-words">Words per answer<input id="session-words" type="number" min={1} max={50} required value={value.max_words} onChange={e => change("max_words", Number(e.target.value))} /></label></>}
+          </>}
           <label className="is-full" htmlFor="session-notes"><span><LockKeyhole size={15} aria-hidden="true" /> Presenter notes</span><textarea id="session-notes" maxLength={30000} rows={5} value={value.notes} onChange={e => change("notes", e.target.value)} /><span className="show-help">Only facilitators see these. They never reach the TV or phones.</span></label>
           <label className="is-full" htmlFor="session-lands">Lands in<input id="session-lands" maxLength={200} value={value.lands_in} onChange={e => change("lands_in", e.target.value)} /></label>
           <label className="is-full" htmlFor="session-state">State<select id="session-state" disabled={running} value={value.state} onChange={e => change("state", e.target.value)}>{running ? <option value={session.state}>{session.state.replaceAll("_", " ")}</option> : <><option value="draft">Draft</option><option value="ready">Ready</option></>}</select></label>

@@ -14,11 +14,13 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   for (const id of hidden) answers.delete(id);
   const patch = event.answer;
   if (patch && patch.session_id === event.state.live_session_id) {
+    // One answer per person: the answers it replaced leave in the same version.
+    for (const id of Array.isArray(patch.replaced) ? patch.replaced : []) answers.delete(id);
     if (patch.withdrawn || patch.hidden) answers.delete(patch.id);
     else {
       // A change keeps its place: the wall orders answers by when they first arrived.
       const created = answers.get(patch.id)?.created_at;
-      answers.set(patch.id, { id: patch.id, session_id: patch.session_id, text: patch.text, answers: patch.answers, revision: patch.revision, ...(created ? { created_at: created } : {}) });
+      answers.set(patch.id, { id: patch.id, session_id: patch.session_id, text: patch.text, answers: patch.answers, ...(patch.value !== undefined && patch.value !== null ? { value: patch.value } : {}), revision: patch.revision, ...(created ? { created_at: created } : {}) });
     }
   }
   // A hidden word leaves every shared answer at once; unhiding restores it from
@@ -43,12 +45,18 @@ export function clockSample(sent: number, received: number, serverTime: number) 
   if (![sent, received, serverTime].every(Number.isFinite) || received < sent) throw new Error("Invalid clock sample");
   return { offsetMs: serverTime - (sent + received) / 2, uncertaintyMs: (received - sent) / 2 };
 }
+// A structured answer (a choice, a value, a ranking, points, a placement) is plain JSON,
+// small, and checked again by its kind in the database.
+function validValue(value: unknown) {
+  if (value === undefined) return true;
+  try { return value !== null && typeof value === "object" && JSON.stringify(value).length <= 8192; } catch { return false; }
+}
 export function submissionRequest(value: Record<string, unknown>): SubmissionRequest | null {
   const uuid = (x: unknown) => typeof x === "string" && /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(x);
   const date = (x: unknown) => typeof x === "string" && x.length <= 40 && Number.isFinite(Date.parse(x));
   if (!uuid(value.id) || !uuid(value.session) || !Number.isInteger(value.revision) || Number(value.revision) < 0 || Number(value.revision) > 1000000
     || !["submit", "change", "withdraw"].includes(String(value.action)) || typeof value.text !== "string" || value.text.length > 1404
-    || (value.action !== "withdraw" && !value.text.trim()) || !date(value.sentAt) || (value.queuedAt !== undefined && !date(value.queuedAt))
+    || (value.action !== "withdraw" && !value.text.trim() && value.value === undefined) || !validValue(value.value) || !date(value.sentAt) || (value.queuedAt !== undefined && !date(value.queuedAt))
     || (value.uncertaintyMs !== undefined && (typeof value.uncertaintyMs !== "number" || !Number.isFinite(value.uncertaintyMs) || value.uncertaintyMs < 0 || value.uncertaintyMs > 60000))) return null;
   return value as SubmissionRequest;
 }

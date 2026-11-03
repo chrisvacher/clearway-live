@@ -7,7 +7,7 @@ import type { ShowSession } from "../../lib/run-of-show/types";
 
 const id = (n: number) => `56000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const step = (n: number, extra: Partial<ShowSession> = {}): ShowSession => ({ id: id(n), engagement_id: id(0), title: `Step ${n}`, part: "Day 1", position: n, planned_start: null, planned_minutes: 10,
-  mode: "live", opens_at: null, closes_at: null, interaction: "word_cloud", prompt: "", phone_depth: "", settings: { anonymous: true, burst_minutes: 4, join_strip: false },
+  mode: "live", opens_at: null, closes_at: null, interaction: "word_cloud", prompt: "", phone_depth: "", options: {}, settings: { anonymous: true, burst_minutes: 4, join_strip: false },
   notes: "", lands_in: "", state: "ready", segment: "", max_sends: 3, max_characters: 28, max_words: 3, revision: 0, ...extra });
 
 test("a press is validated before it reaches the room", () => {

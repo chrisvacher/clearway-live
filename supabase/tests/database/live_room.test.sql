@@ -35,7 +35,7 @@ select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid
  from unnest(array['public.sessions','public.room_states','public.submissions','private.session_notes','private.live_tv_sessions','private.room_transport','private.latency_logs'])t;
 select ok(not has_function_privilege('anon','public.live_snapshot(uuid,uuid,bigint)','execute'),'No anonymous snapshot');
 select ok(not has_function_privilege('authenticated','private.live_fingerprint(uuid)','execute'),'Transport membership cannot be enumerated');
-select ok(not (select prosecdef from pg_proc where oid='public.live_submit(uuid,uuid,uuid,integer,text,text,timestamptz,timestamptz,double precision)'::regprocedure),'Public submit is invoker');
+select ok(not (select prosecdef from pg_proc where oid='public.live_submit(uuid,uuid,uuid,integer,text,text,timestamptz,timestamptz,double precision,jsonb)'::regprocedure),'Public submit is invoker');
 select ok(not has_table_privilege('authenticated','public.room_states','update'),'Clients cannot forge room versions');
 select ok(not has_table_privilege('authenticated','public.submissions','insert'),'Clients cannot skip submission validation');
 
