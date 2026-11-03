@@ -12,6 +12,8 @@ import { ContentScreen, ScreenCheck } from "./content-screen";
 import { ChurchLockup, LiveMark, type MarkState } from "./live-mark";
 import { tvViews } from "@/components/interactions/tv-views";
 import { contentOf, kindOf } from "@/lib/interactions/kinds";
+import { QaWaiting } from "@/components/interactions/qa/qa-tv";
+import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
 
 function Qr({ code }: { code: string }) {
   const qr = useMemo(() => roomQr(code), [code]);
@@ -93,8 +95,9 @@ export function TvScenes({ status, frame, reconnecting, nameLimit, flow }: { sta
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
     {paired && <Spotlight frame={frame} />}
-    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{status.status === "pair" && <CodeExpiry expires={status.expires_at} />}</span>
+    {paired && <QaSpotlight frame={frame} />}
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{status.status === "pair" && <CodeExpiry expires={status.expires_at} />}{paired && <QaWaiting frame={frame} />}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-tally"><b>{presence?.count || 0}</b> here</span>}
-        {inputOn && frame && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} />}</span></footer>
+        {inputOn && frame && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} />}</span></footer>
   </>;
 }

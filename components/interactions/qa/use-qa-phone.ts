@@ -1,0 +1,105 @@
+"use client";
+import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { clockSample } from "@/lib/live/protocol";
+import { browserStore, PhoneOutbox } from "@/lib/phone/outbox";
+import type { OutboxEntry } from "@/lib/phone/types";
+import { isAsk, isVote, nextVote, voteState, type QaRequest, type QaVote } from "@/lib/interactions/qa";
+
+type Asked = { id: string; text: string; session: string };
+type Snapshot = { entries: OutboxEntry[]; votes: QaVote[]; asked: Asked[]; notice: string };
+
+// One Q&A outbox per engagement on this phone, shared by the Q&A step and the Ask sheet:
+// votes and Questions any time asks, kept on the phone until the server settles them, sent
+// one at a time in the order made, with the same id, revision and times on every retry.
+class QaPhone {
+  snap: Snapshot = { entries: [], votes: [], asked: [], notice: "" };
+  private listeners = new Set<() => void>();
+  private outbox: PhoneOutbox;
+  private settledVotes = new Map<string, QaVote>();
+  private replies = new Map<string, { id?: string; revision?: number }>();
+  private clock = { offsetMs: 0, uncertaintyMs: 60000 };
+  private timer?: ReturnType<typeof setTimeout>;
+  constructor(private engagement: string) {
+    this.outbox = new PhoneOutbox(`cw-qa-outbox-${engagement}`, async request => {
+      const ask = isAsk(request);
+      const body = ask ? { id: request.id, text: request.text, sentAt: request.sentAt, queuedAt: request.queuedAt, uncertaintyMs: request.uncertaintyMs }
+        : { id: request.id, question: (request as QaRequest & { value: { question: string } }).value.question, revision: request.revision, on: (request.value as { on: boolean }).on,
+          sentAt: request.sentAt, queuedAt: request.queuedAt, uncertaintyMs: request.uncertaintyMs };
+      const response = await fetch(`/api/live/${engagement}/${ask ? "ask" : "vote"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (response.status >= 500 || response.status === 403) throw new Error("retry");
+      const data = await response.json() as { status: string; id?: string; revision?: number };
+      this.replies.set(`${request.id}:${request.revision}`, data);
+      return data;
+    }, entries => this.update({ entries }), (request, reason) => this.settled(request, reason), browserStore, () => navigator.onLine);
+    this.snap.entries = this.outbox.entries;
+    void this.load();
+  }
+  subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
+  private update(patch: Partial<Snapshot>) { this.snap = { ...this.snap, ...patch }; this.listeners.forEach(l => l()); }
+  private settled(request: QaRequest | Parameters<PhoneOutbox["add"]>[0], reason: string) {
+    const reply = this.replies.get(`${request.id}:${request.revision}`); this.replies.delete(`${request.id}:${request.revision}`);
+    if (isVote(request)) {
+      if (reason) {
+        // A vote the room can't count (your own question, gone, or closed) quietly goes back.
+        this.outbox.dismiss(request.id, request.revision);
+        this.notice("That vote couldn’t be counted.");
+      } else {
+        const q = request.value.question, id = reply?.id ?? request.id, revision = reply?.revision ?? request.revision;
+        const before = this.settledVotes.get(q);
+        if (!before || before.revision <= revision) this.settledVotes.set(q, { id, question_id: q, voted: request.value.on, revision });
+        this.update({ votes: this.merged() });
+      }
+      this.later();
+    } else if (isAsk(request) && !reason) this.update({ asked: [...this.snap.asked.filter(a => a.id !== request.id), { id: request.id, text: request.text, session: request.session }] });
+  }
+  private notice(text: string) { this.update({ notice: text }); setTimeout(() => { if (this.snap.notice === text) this.update({ notice: "" }); }, 4000); }
+  private server: QaVote[] = [];
+  private merged() {
+    const out = new Map(this.server.map(v => [v.question_id, v]));
+    this.settledVotes.forEach((v, q) => { const s = out.get(q); if (!s || (s.id === v.id ? s.revision < v.revision : true)) out.set(q, v); });
+    return [...out.values()];
+  }
+  private later() { clearTimeout(this.timer); this.timer = setTimeout(() => void this.load(), 400); }
+  async load() {
+    try {
+      const sent = Date.now(), response = await fetch(`/api/live/${this.engagement}/vote`, { cache: "no-store" });
+      if (!response.ok) return;
+      const data = await response.json() as { status: string; votes: QaVote[]; server_time?: string };
+      if (data.server_time) this.clock = clockSample(sent, Date.now(), Date.parse(data.server_time));
+      if (data.status !== "ok") return;
+      this.server = data.votes;
+      // The server now holds what this phone settled; keep only newer local presses.
+      for (const [q, v] of this.settledVotes) { const s = data.votes.find(x => x.question_id === q); if (s && (s.id !== v.id || s.revision >= v.revision)) this.settledVotes.delete(q); }
+      this.update({ votes: this.merged() });
+    } catch { /* Keep the last votes while offline. */ }
+  }
+  private stamp() { return { sentAt: new Date(Date.now() + this.clock.offsetMs).toISOString(), uncertaintyMs: Math.min(60000, Math.round(this.clock.uncertaintyMs)) }; }
+  vote(question: string, session: string) {
+    const current = voteState(this.snap.votes, this.snap.entries).get(question);
+    if (current?.pending) return;
+    const next = nextVote(question, current, () => crypto.randomUUID());
+    this.outbox.add({ id: next.id, session, revision: next.revision, action: next.revision ? "change" : "submit", text: "", value: { qa: "vote", question, on: next.on }, ...this.stamp() });
+  }
+  ask(text: string, session: string) {
+    this.outbox.add({ id: crypto.randomUUID(), session, revision: 0, action: "submit", text, value: { qa: "ask" }, ...this.stamp() });
+  }
+  dismiss(id: string, revision: number) { this.outbox.dismiss(id, revision); }
+  kick() { this.outbox.kick(); void this.load(); }
+}
+
+const phones = new Map<string, QaPhone>();
+const idle: Snapshot = { entries: [], votes: [], asked: [], notice: "" }, never = () => () => {};
+// Until the room's first frame names the engagement there is nothing to send or show.
+export function useQaPhone(engagement: string | null) {
+  const qa = useMemo(() => { if (!engagement) return null; let p = phones.get(engagement); if (!p) { p = new QaPhone(engagement); phones.set(engagement, p); } return p; }, [engagement]);
+  useEffect(() => {
+    if (!qa) return;
+    const resume = () => { if (document.visibilityState === "visible") qa.kick(); };
+    window.addEventListener("online", resume); document.addEventListener("visibilitychange", resume);
+    return () => { window.removeEventListener("online", resume); document.removeEventListener("visibilitychange", resume); };
+  }, [qa]);
+  const snap = useSyncExternalStore(qa ? qa.subscribe : never, () => qa?.snap ?? idle, () => qa?.snap ?? idle);
+  const votes = useMemo(() => voteState(snap.votes, snap.entries), [snap.votes, snap.entries]);
+  return { ...snap, votes, vote: (question: string, session: string) => qa?.vote(question, session), ask: (text: string, session: string) => qa?.ask(text, session),
+    dismiss: (id: string, revision: number) => qa?.dismiss(id, revision), reload: () => void qa?.load() };
+}

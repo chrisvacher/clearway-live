@@ -22,7 +22,7 @@ export default async function PrintShowPage({ params }: { params: Promise<{ id: 
       const group = sessions.filter(s => s.part === part); if (!group.length) return null;
       return <section key={part}><h2>{part}</h2><table><thead><tr><th scope="col">Time</th><th scope="col">Session</th><th scope="col">Prompt and phone depth</th><th scope="col">Presenter notes</th></tr></thead><tbody>{group.map(s => <tr key={s.id}>
         <td>{date(s.planned_start)}<div>{s.planned_minutes} min</div></td>
-        <td><strong>{s.title}</strong><div>{s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Open text wall" : "Content"} · {s.mode === "live" ? "Live" : "Self-paced"} · {s.state.replaceAll("_", " ")}</div>
+        <td><strong>{s.title}</strong><div>{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Open text wall" : "Content")} · {s.mode === "live" ? "Live" : "Self-paced"} · {s.state.replaceAll("_", " ")}</div>
           <div>{s.settings.burst_minutes}-minute burst · {s.max_sends} answers · {s.max_characters} characters · {s.max_words} words</div>
           {s.mode === "self_paced" && <div>Opens {date(s.opens_at)}. Closes {date(s.closes_at)}.</div>}{s.lands_in && <div>Lands in: {s.lands_in}</div>}</td>
         <td><p>{fillYears(s.prompt, context.base_year)}</p>{s.phone_depth && <><strong>Phone depth</strong><p>{fillYears(s.phone_depth, context.base_year)}</p></>}</td>

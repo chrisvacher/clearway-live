@@ -6,6 +6,7 @@ import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, roomSizes } from "./live-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
+import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 
 // FAC-03: the live controls in the facilitator's hand. It holds its own
 // connection and needs nothing from the laptop.
@@ -32,7 +33,7 @@ export function Remote({ initial }: { initial: RunOfShow }) {
     </div>
     {sheet && <div className="ctl-sheet-scrim" onClick={() => setSheet(null)}>
       <div className="ctl-sheet" role="dialog" aria-modal="true" aria-label={sheet === "items" ? "Items on the TV" : sheet === "size" ? "Room size" : "Preview"} onClick={e => e.stopPropagation()}>
-        {sheet === "items" && <ItemList room={room} onClose={() => setSheet(null)} />}
+        {sheet === "items" && <><ItemList room={room} onClose={() => setSheet(null)} /><QaAnyTime room={room} /></>}
         {sheet === "preview" && upNext && <PreviewCard session={upNext} context={show.context} room={room} onClose={() => setSheet(null)} />}
         {sheet === "size" && <section>
           <div className="ctl-row is-between"><h2>Room size</h2><button className="show-button is-icon" aria-label="Close room size" onClick={() => setSheet(null)}><X size={20} aria-hidden="true" /></button></div>

@@ -6,6 +6,8 @@ import { ChoiceInput, PointsInput, RankingInput, ScaleInput, StatementsInput } f
 import { GridInput } from "@/components/interactions/grid-form-sign/grid-input";
 import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
 import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
+import type { LiveSnapshot } from "@/lib/live/types";
+import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
 // text form. An input sends through the phone's outbox (offline queueing, order, ids and
@@ -18,8 +20,11 @@ export type PhoneInputProps = {
   withdraw: (id: string) => void;
   // The person's own first name, for a named kind (sign together prints it under the line).
   name?: string | null;
+  // The room as the phone follows it, for kinds that show the room's answers (Q&A votes on them).
+  frame?: LiveSnapshot | null;
 };
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
+  qa: QaPhoneInput,
   choice: ChoiceInput,
   scale: ScaleInput,
   ranking: RankingInput,
