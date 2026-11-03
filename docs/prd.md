@@ -2,7 +2,7 @@
 
 Oct 29, 2026 · @Chris Vacher
 
-Version 2, October 29, 2026, with decisions to November 1, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
+Version 2, October 29, 2026, with decisions to November 3, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
 
 ## Summary
 
@@ -19,7 +19,7 @@ The Clearway app is Clearway's live facilitation platform. It is built first for
 | The church's team in the room | Their own phones, usually about 8 people |
 | A team member who takes the remote | Their own phone, for the team-led block |
 | Elders and boards | A read-only copy of the plan |
-| The congregation | An open survey link during Discover |
+| The congregation | Team Hub's open survey link during Discover, before the event |
 
 **What success looks like**
 
@@ -146,6 +146,7 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 - The stack matches CORE as closely as possible. (Oct 29)
 - Data is organized around the engagement, not the retreat: church, then engagement, then Discover inputs, then sessions, then outputs. (Oct 28)
 - Survey results, the Four Helpful Lists and board input conversations all live inside the platform. (Oct 28)
+- The Discover congregational survey uses Team Hub's survey builder, and surveys go to the congregation before the event. The app shows the survey data sourced from Team Hub and doesn't run real-time surveys. In-room polls and rankings are the app's own interactions. (Nov 3, for milestone 6)
 - Scope: Wayfinding first, and the app effectively covers anything Clearway uses Mentimeter for. The longer-term vision is one platform for all of Clearway's facilitation. (Oct 28 and 29)
 - The goal is a working app, not readiness for a particular engagement or date. Chris decides open choices, and Claude presents options rather than deciding them. (Oct 29)
 - Claude builds the concept and direction (this PRD), Claude Design creates the wireframes and high-fidelity designs, and Codex codes the app. (Oct 29)
@@ -158,7 +159,11 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 - Vision Outcomes are provisional on Day 1, prayed over overnight, and confirmed on Day 2 after the read-back. (Oct 28)
 - Commander's intent is team-led in the second half of Day 2, and covers the intent, the must-do, what we'll stop and the 30-day first steps, without repeating the 1-year goals. (Oct 28)
 - The 1-year Outlook lands as CORE goals, owned and dated. (Oct 28)
-- Churches that can only give a day and a half can do a self-facilitated follow-up session. (Oct 29)
+- Churches that can only give a day and a half can do a self-facilitated follow-up session. (Oct 29) It runs on video within two weeks of the half day, with a team facilitator holding the remote. (Nov 3)
+- There is no pre-work before the pre-call. The pre-call is the start, and celebrations and success measures begin live in the call. (Nov 3)
+- Seeded lens sentences are hidden from everyone, the facilitator included, until each lens opens. The facilitator sees only how many have been written. (Nov 3)
+- There is no current-reality line per Vision Outcome. The flow stays as it is. (Nov 3)
+- This Year's Priorities are left for the church's Annual Planning and aren't named in the retreat. The draft Map shows that field empty. (Nov 3)
 - The room decides by consensus, not an individual. Votes and points show where the room is. They never decide. (Oct 29)
 - Phones come out in bursts of 3 to 5 minutes. (Oct 29)
 - There is no scribe in the team-led commander's intent block. The team's cards are the record. (Oct 29)
@@ -184,6 +189,7 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 - The live app is brighter than the rest of Clearway. Royal Blue is the main live brand color. Navy is every dark screen background. Lime means live, confirm and active. Sunrise (#FFC845) is a new brand color just for the live app, for callouts and attention.
 - Dark screens carry texture from the Clearway mark (circle and arrow). Chris confirmed the filled-mark treatment in design pass 2 (October 30).
 - The TV shows popularity by size and color, especially for 1 to 3 word answers, and shows polls and rankings as live horizontal bars.
+- Grouped responses on the TV all share one color, so no group looks more significant than another. (Nov 3)
 
 **From the retreat flow Chris has reviewed** (written into the flow and narrative, not separately decided, and Chris can change them)
 
@@ -272,7 +278,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Team facilitator | A participant the facilitator hands the remote to, for one block | Run that block's TV and phone controls | See the alignment signal, presenter notes, Discover data or other blocks |
 | TV | A pairing code shown on the TV and entered on the control surface | Show the room | Anything else. It holds no personal data beyond what's on screen |
 | Elders and board | A shared read-only link the facilitator creates and can revoke | View the published plan and its CORE status | Edit, or see raw answers, scribe cards or drafts |
-| Congregation | An open survey link, no sign-in | Answer the Discover survey anonymously | Anything else |
+| Congregation | Team Hub's open survey link, no sign-in (Decided November 3: the survey runs in Team Hub) | Answer the Discover survey anonymously, before the event | Anything in this app |
 
 **Sign-in** (Decided: email sign-in checked against the attendee list. The code and these mechanics are Default.)
 
@@ -314,7 +320,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Phone | Each person's own phone | In hand | Input and depth: prompts, full text, sources, their own answers |
 | Scribe console | The scribe's laptop, plus their phone for photos | The side table | Tagged capture that attaches to the live session |
 | Setup | A laptop | Before and after | Engagements, attendees, Discover, run of show, templates, overnight review, outputs |
-| Survey | Any phone or computer | Anywhere | The congregational survey |
+| Survey | Any phone or computer | Anywhere | The congregational survey, in Team Hub's survey builder (Decided November 3). The app shows its results and doesn't host the survey |
 | Read-only copy | Any browser | Elders' meetings | The published plan and its status |
 
 **The control surface and the TV are separate** (Decided, Oct 29)
@@ -346,7 +352,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Live, input open | The prompt, the input for this interaction, a burst countdown if one is running, "Sent" as each answer goes, and "Who sees my answers?" |
 | Live, phones down | The prompt and the person's own answers, dimmed, with "Phones down" |
 | Content | The headline on the TV with the detail, sources and Scripture underneath, to read and zoom |
-| Self-paced | A session open outside the live room (pre-work, lens seeding, check-ins), reached from the room link or an email, with the person's saved answers |
+| Self-paced | A session open outside the live room (lens seeding, check-ins), reached from the room link or an email, with the person's saved answers |
 | Offline | Input still works. Each unsent answer shows "Saved on this phone" and sends in order on reconnect |
 | Earlier step, still open | The step's prompt and the person's answers, with input still available, while the room stays in its segment |
 | Session closed | The person's own answers for that session, read-only |
@@ -668,7 +674,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 **Before the pre-call** (PRE-01 to PRE-05)
 
 - The invite email goes out about a week before the pre-call, and people sign in.
-- Whether the new process also asks pre-work questions on phones before the pre-call is Open. If it does, they run as self-paced sessions (for example a celebration question seeding the pre-call celebrations, and a success-measures question seeding the metrics ranking), reached from the invite email.
+- There is no pre-work on phones before the pre-call (Decided November 3). The pre-call is the start, and celebrations and success measures begin live in the call.
 
 **Pre-call: 90 minutes on video, one to two weeks before.** The facilitator shares the TV view in the call and runs everything from the control surface.
 
@@ -678,9 +684,9 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | Celebrations | Word cloud (INT-01), then open text wall (INT-02) | One-word cloud, then a wall of what God is doing worth celebrating | One word, then a sentence | The Process | PRE-06 |
 | Metrics | Ranking (INT-06) with add an option | The room's ranked success measures as live bars | Rank the measures, suggest missing ones | The 3-year Vision | PRE-07 |
 | What we heard | Headline with depth, then Q&A (INT-03) | Survey, Four Helpful Lists, board and interview headlines, one at a time | The detail under each headline, and anonymous questions that fold and rise by votes | What We Heard, Leadership Interviews | PRE-08, PRE-09 |
-| Seed the Five Lenses | Lens seeding (INT-12), self-paced | The Five Lenses and how the retreat will use them | Each person starts writing 2036 sentences per lens. Seeding opens now and stays open on phones until Day 1. Sentences are hidden until each lens opens | The 10-year Future | PRE-10 |
+| Seed the Five Lenses | Lens seeding (INT-12), self-paced | The Five Lenses and how the retreat will use them | Each person starts writing 2036 sentences per lens. Seeding opens now and stays open on phones until Day 1. Sentences are hidden from everyone, the facilitator included, until each lens opens | The 10-year Future | PRE-10 |
 
-- The metrics options are curated before the call: the facilitator turns any pre-work or Discover input about success measures into ranking options in setup (Default), and the room can suggest more during the call.
+- The metrics options are curated before the call: the facilitator turns any Discover input about success measures into ranking options in setup (Default), and the room can suggest more during the call.
 - The call is recorded in the video tool. The facilitator adds the recording link to the engagement, and anyone who missed the call watches it and seeds their sentences afterward (PRE-11).
 
 **Day 1: celebrate and dream** (template times, Default)
@@ -729,7 +735,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 **Day-and-a-half template** (Default split, since Chris decided only that a self-facilitated follow-up session is available)
 
 - The half day ends after confirming the Vision Outcomes and the 1-year Outlook, with a short close and a draft Map showing what's ready.
-- The pre-mortem and commander's intent move to the follow-up session, run by a team facilitator with the remote, on video or in person (Open).
+- The pre-mortem and commander's intent move to the follow-up session, on video within two weeks of the half day, with a team facilitator holding the remote (Decided November 3).
 - Goals built before the pre-mortem don't need a linked risk. After the follow-up session, the team tags each goal with the risks it answers.
 - Vision Outcomes and goals can be published to CORE at the end of the half day. Commander's intent first steps publish after the follow-up session as a second, additive publish.
 
@@ -743,7 +749,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 
 **INT-12 Lens wall and lens seeding** (milestone 4)
 
-- Seeding: a self-paced session that opens during the pre-call and stays open until Day 1. People write sentences for each lens. They're hidden from everyone, including the control surface, until the lens opens (Default. Showing them to the facilitator beforehand is Open).
+- Seeding: a self-paced session that opens during the pre-call and stays open until Day 1. People write sentences for each lens. They're hidden from everyone, the facilitator and the control surface included, until the lens opens (Decided November 3). The facilitator sees only how many have been written.
 - Live: present-tense sentences, several per person, with a gentle present-tense reminder on the phone.
 - TV: seeded sentences appear first, then new ones fade in and the wall reflows. Similar sentences lean together into clusters under growing labels while people are still typing.
 
@@ -791,7 +797,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 - The card stays at the level of intent. The year's goals live in the 1-year Outlook.
 - Pairs present. Edits made during the presentation replace old lines on the TV as they're typed.
 
-**This Year's Priorities.** The Clearway Map's page 2 needs three to five Annual Initiators. Whether the retreat names them (a short session after the 1-year Outlook) or they wait for the church's Annual Planning is Open. Until then, the draft Map shows that field empty.
+**This Year's Priorities.** The Clearway Map's page 2 needs three to five Annual Initiators. They're left for the church's Annual Planning and aren't named in the retreat (Decided November 3). The draft Map shows that field empty.
 
 ## Scribe capture
 
@@ -881,10 +887,10 @@ Milestone 6. Everything from Discover lives in the engagement record and is avai
 
 **Congregational survey** (SET-04, SET-10)
 
-- Team Hub already has a survey builder, with surveys and responses linked to engagements. Whether the app reads those or builds its own is Open. Either way the app holds the results and themes for the engagement. Team Hub's responses can carry an email, which affects anonymity if that builder is chosen.
-- Question types: multiple choice, scale, ranking, open text, and demographics for segments (age band, years at the church, role).
-- An open link with no sign-in. A light duplicate check (a device id and a hashed network address) only flags possible duplicates for the facilitator and never blocks an answer, since a whole congregation can share church wifi.
-- A live response count on the control surface, and a CSV import for surveys run elsewhere.
+- The survey uses Team Hub's survey builder, with surveys and responses linked to engagements (Decided November 3). Surveys go to the congregation before the event. The app shows the survey data sourced from Team Hub and holds the results and themes for the engagement. It doesn't run real-time surveys: in-room polls and rankings are the app's own interactions. Team Hub's responses can carry an email, which affects anonymity.
+- Question types, in Team Hub's survey builder: multiple choice, scale, ranking, open text, and demographics for segments (age band, years at the church, role).
+- Team Hub's open link, with no sign-in. A light duplicate check (a device id and a hashed network address) only flags possible duplicates for the facilitator and never blocks an answer, since a whole congregation can share church wifi.
+- A response count on the control surface, read from Team Hub, and a CSV import for surveys run elsewhere.
 - AI themes open-text answers as they arrive, with counts and example quotes, no names. The facilitator accepts, renames, merges or rejects each theme. Only accepted themes reach What We Heard and the signal.
 - Segment breakdowns are hidden for segments under 5 respondents (Default), so small groups can't be identified.
 
@@ -922,7 +928,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 **Draft Clearway Map** (D2-15): assembled at the close of Day 2.
 
 - Page 1: Mission, Purpose, Values and Strategy from the church record (entered in setup, since CORE doesn't hold them), the 10-year Future, the 3-year Vision Outcomes.
-- Page 2: This Year's Priorities (empty unless the retreat names them, see Open questions), This Season's Goals (1-year goals ending this season), Leadership Rhythms (from the church record), Key Issues (scribe questions and open tensions).
+- Page 2: This Year's Priorities (empty: left for the church's Annual Planning, Decided November 3), This Season's Goals (1-year goals ending this season), Leadership Rhythms (from the church record), Key Issues (scribe questions and open tensions).
 - Empty fields show as empty, never invented.
 
 **Publish to CORE** (COR-01 to COR-03): see Integrations.
@@ -974,7 +980,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 | --- | --- | --- |
 | Room | Phone pages, the TV page, the remote | Small, fast, works offline, no setup-side code loaded |
 | Control and setup | The control surface, setup, overnight review, outputs | Clearway sign-in only |
-| Public | Survey pages, the read-only copy | No sign-in |
+| Public | The read-only copy | No sign-in |
 | Server | Submission endpoint, realtime broadcast, AI jobs, integrations, scheduled jobs (self-paced opening and closing, check-ins, nightly practice-room reset) | Secrets stay on the server |
 
 **Keys and secrets**: the Supabase service key, the Anthropic key, the Resend key and the Team Hub and CORE connection credentials live only in Vercel environment variables and are never sent to a browser.
@@ -990,7 +996,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 | events (engagement\_id) | Reading scheduled session dates where they exist |
 | people, person\_emails, person\_organizations | Building the attendee list from the church's people (SET-03) |
 | team\_members | Clearway's facilitators and co-facilitators (name and email only) |
-| surveys, survey\_responses | Reading Discover survey results, if Chris chooses Team Hub's survey builder (Open) |
+| surveys, survey\_responses | Reading Discover survey results (Decided November 3: the survey uses Team Hub's survey builder) |
 
 - The app stores each linked record's Team Hub id. It reads on demand and on a refresh button, and never writes to Team Hub (Default).
 - The connection exposes only the columns the app needs. Team Hub tables hold sensitive columns (for example calendar tokens on team\_members) that the app must never be able to read.
@@ -1054,7 +1060,7 @@ Everything hangs off the engagement. These are the entities the screens need. Co
 | --- | --- | --- |
 | Scribe card | Kind, text, speaker (record only), owner and date for actions, time | Session, risk (for mitigations) |
 | Photo and file | Storage path, kind, time | Session |
-| Survey and response | Questions, answers, segments, device id, duplicate flag | Engagement (or a Team Hub survey id) |
+| Survey and response | Questions, answers and segments read from Team Hub's survey (or a CSV import), duplicate flag | Engagement, Team Hub survey id |
 | Conversation note | Uploaded interview or input-conversation notes, kind, person (record only) | Engagement |
 | Discover theme | Source, label, count, strength, example quotes, thin flag, accepted flag | Engagement, its sources |
 | Signal | Kind, theme, evidence, dismissed and saved flags | Session, theme |
@@ -1074,7 +1080,6 @@ Everything hangs off the engagement. These are the entities the screens need. Co
 | First step | Text, owner (an attendee, or a name and email), date | Intent card |
 | Key metric | A success measure the team ranked | Engagement |
 | Celebration | Text and theme | Engagement |
-| Annual Initiator | One of three to five priorities for the year, if the retreat names them (Open) | Engagement |
 | Clearway Map draft | The assembled two pages | Engagement |
 | Report draft | Sections, text, sources, sign-off | Engagement |
 | Communication plan | Rows: who, when, who tells them, message, risk | Engagement |
@@ -1120,7 +1125,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | Navy (#03294E) | Every dark screen background, and text on light cards |
 | Lime (#D2FF71) | Live, confirm and active: the LIVE marker, the current session, confirm buttons, confirmed items, the newest arrival, progress |
 | Sunrise (#FFC845) | Callouts and attention: an item the facilitator spotlights, a key number, the leading answer, something that needs fixing on the TV |
-| Sky Blue, Soft Lime, Off-White | Cards and groups on the wall, so input reads as color |
+| Sky Blue, Soft Lime, Off-White | Cards on the wall, so input reads as color. Grouped responses all share one color (Decided November 3) |
 | Warning (#D97706) and Error (#DC2626) | Real problems only, on the facilitator and scribe views |
 
 - Lime always means live, confirmed or active. Sunrise always means "look here." Each gets at most one moment per screen, they never sit side by side, and neither appears in the group palette.
@@ -1130,7 +1135,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 - A deliberate exception to 60/30/10: the Brain's color ratio puts Navy and Off-White at 60 percent with lime held to small moments. The live surfaces (TV and phones) give Royal, Lime and Sunrise a larger share. Documents and the report keep the standard Clearway look. The facilitator view and scribe console use Clearway Live with a calmer, mostly light palette. The Brain's color\_usage\_ratios entry needs a note for the live app.
 - Warning and Error stay off the TV and phones, and Sunrise stays off the facilitator and scribe views where Warning lives, so the two warm colors never meet. They show failures quietly.
 - The Five Lenses share one lens color (Royal) and are told apart by name and icon, the same on every surface and in the report.
-- The group palette (up to 10 groups) is drawn from Off-White, Sky Blue and Soft Lime and tints of each, tested for contrast and for color-blind readers.
+- Grouped responses on the TV all share one color, so no group looks more significant than another (Decided November 3). Groups are told apart by their labels, never by color. The group palette (up to 10, drawn from Off-White, Sky Blue and Soft Lime and tints of each, tested for contrast and for color-blind readers) stays in the design system but doesn't color groups on the TV.
 - The alignment signal's four states pair a color with an icon and a label, and are marked facilitator-only so no TV or phone component can use them.
 - Meaning always comes from a label, icon or size as well as color, and all text meets WCAG AA for its size.
 
@@ -1305,7 +1310,7 @@ User stories
 
 Acceptance criteria
 
-- Seeded sentences stay hidden until the lens opens.
+- Seeded sentences stay hidden from everyone, the facilitator included, until the lens opens. The facilitator sees only how many have been written.
 - Clustering never delays a sentence reaching the TV. The facilitator can undo, pin or turn it off. AI candidates reach the TV only when the facilitator sends them.
 - Confirming an outcome records the room's consensus decision and its reasons, and is never decided by a count. The app warns when fewer than four or more than six are confirmed.
 - A goal shows each CORE letter as met or missing, checked in code, and stays flagged until all four are met. Owners come from the attendee list or are added by name and email, one person each. End dates default to a season end.
@@ -1344,7 +1349,7 @@ Screens: SCR-01, SCR-02, OVN-01 to OVN-03, D2-03, D2-04, INT-14, FAIL-03.
 
 User stories
 
-- As Chris, I build or connect the congregational survey and share an open link. Answers are anonymous and the count updates live.
+- As Chris, I connect the engagement to its congregational survey in Team Hub, which goes to the congregation before the event, and see its results in the app. Answers are anonymous.
 - As Chris, I run the Four Helpful Lists on the TV and phones.
 - As Chris, I upload interview and input-conversation notes and get themes with no names attached, which I edit and accept.
 - As Chris, during a session I see private signal cards: aligned, divergent, silent and thin data.
@@ -1423,12 +1428,12 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | Mentimeter coverage | Decided November 2: the ten general interactions plus a statements vote (INT-17, design pass 3). No quizzes or predictions for now | Resolved |
 | Scripture text | Decided November 2: the facilitator pastes the passage, with a separate reference and translation (the translation defaults from the engagement) | Resolved |
 | Names in free text sent to AI | Decided November 2: sent as written. Attendee identity fields are still never sent | Resolved |
-| Pre-work before the pre-call | Ask questions on phones before the pre-call (for example celebration and success measures, seeding the pre-call), or start with the pre-call | Milestone 4 |
-| Seeded lens sentences | Hidden from everyone until Day 1 (the Default), or visible to the facilitator beforehand to prepare | Milestone 4 |
-| Perspective, reality and strategy | On October 28 Chris described the 3-year and 1-year work as "the current perspective, the reality, the strategic moves". Add a current-reality line per Vision Outcome (drawn from Discover) beside its 3-year Vision and 1-year Outlook, or leave the flow as it is | Milestone 4 |
-| This Year's Priorities | Name three to five Annual Initiators in the retreat (a short session after the 1-year Outlook), or leave them for the church's Annual Planning | Milestone 4 |
-| The day-and-a-half follow-up | In person or on video, and how soon after the half day | Milestone 4 |
-| Discover survey | Build the survey in the app, or use the survey builder Team Hub already has (surveys and responses linked to engagements) | Milestone 6 |
+| Pre-work before the pre-call | Decided November 3: no pre-work. The pre-call is the start | Resolved |
+| Seeded lens sentences | Decided November 3: hidden from everyone, the facilitator included, until each lens opens. The facilitator sees only how many have been written | Resolved |
+| Perspective, reality and strategy | Decided November 3: no current-reality line per Vision Outcome. The flow stays as it is | Resolved |
+| This Year's Priorities | Decided November 3: left for the church's Annual Planning, not named in the retreat. The draft Map shows that field empty | Resolved |
+| The day-and-a-half follow-up | Decided November 3: on video, within two weeks of the half day, with a team facilitator holding the remote | Resolved |
+| Discover survey | Decided November 3: Team Hub's survey builder. Surveys go to the congregation before the event. The app shows the survey data from Team Hub and doesn't run real-time surveys (in-room polls and rankings are its own interactions) | Resolved |
 | Conversation notes | Upload and paste only, or also import Granola transcripts | Milestone 6 |
 | How the app writes to CORE | An endpoint or database function added to CORE that creates everything in one transaction (the Default approach), built in CORE's repository with Chris's approval | Milestone 7 |
 | Status of new Vision Outcomes in CORE | CORE defaults new outcomes to On track (Green). Keep that, or set another status at publishing | Milestone 7 |
@@ -1475,7 +1480,7 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Handover | The team facilitator assigns pairs. One person per card field at a time. The remote returns automatically after the team-led block |
 | Quotes | Promoted scribe quotes show on the TV anonymously |
 | Wayfinding template | The session times, interactions and prompts in "Wayfinding sessions", including a short Day 1 celebration of about 20 minutes, and the "lands in" mapping |
-| Day and a half | The half day ends after confirming outcomes and the 1-year Outlook. The pre-mortem and commander's intent move to the follow-up |
+| Day and a half | The half day ends after confirming outcomes and the 1-year Outlook. The pre-mortem and commander's intent move to the follow-up, which runs on video within two weeks with a team facilitator holding the remote (Decided November 3) |
 | Metrics | The facilitator curates ranking options in setup |
 | Owners | Chosen from the attendee list or added by name and email |
 | Outcome descriptions | A one-line description per Vision Outcome, drafted by the facilitator from the room's words |
