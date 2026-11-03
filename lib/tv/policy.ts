@@ -28,5 +28,8 @@ export function screenType(frame: Pick<LiveSnapshot, "state" | "session"> | null
   const content = frame?.state.tv_content;
   if (content === "screen_check") return "content";
   if (content !== "session") return "holding";
-  return frame?.session?.interaction === "content" ? "content" : "input";
+  if (frame?.session?.interaction !== "content") return "input";
+  // A holding or walk-in screen in the run of show carries the holding texture.
+  const options = frame.session.options as { screen?: string } | undefined;
+  return options?.screen === "holding" ? "holding" : "content";
 }

@@ -4,10 +4,11 @@ import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, DoorOpen, EyeOff, LayoutDashboard, ListOrdered, Plus, Printer, Users } from "lucide-react";
 import { parts, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm } from "./session-form";
+import { contentLabels, contentOf, fallbackKinds } from "@/lib/interactions/kinds";
 
 function newSession(id: string): ShowSession {
   return { id: crypto.randomUUID(), engagement_id: id, title: "", part: "Day 1", position: 0, planned_start: null, planned_minutes: 5, mode: "live", opens_at: null, closes_at: null,
-    interaction: "word_cloud", prompt: "", phone_depth: "", notes: "", lands_in: "", segment: "", state: "draft", max_sends: 3, max_characters: 28, max_words: 3, revision: 0, settings: { anonymous: true, burst_minutes: 4, join_strip: false } };
+    interaction: "word_cloud", prompt: "", phone_depth: "", notes: "", lands_in: "", segment: "", state: "draft", max_sends: 3, max_characters: 28, max_words: 3, revision: 0, settings: { anonymous: true, burst_minutes: 4, join_strip: false }, options: {} };
 }
 const messages: Record<string, string> = {
   conflict: "Someone changed this session or its order. Your edits are still here. Reload the run of show, then reopen the session before editing.",
@@ -74,7 +75,7 @@ export function ShowEditor({ initial }: { initial: RunOfShow }) {
           return <section key={part} className="show-part"><h2>{part}<span>{group.length} {group.length === 1 ? "session" : "sessions"}</span></h2>
             {group.length ? <ol className="show-list">{group.map((s, index) => <li className={s.id === editing?.session.id ? "is-current" : ""} key={s.id}>
               <div className="show-order"><button className="show-button is-icon" aria-label={`Move ${s.title} up`} disabled={index === 0 || busy || Boolean(editing) || reloadNeeded || show.context.closed} onClick={() => move(part, group, index, -1)}><ArrowUp size={16} aria-hidden="true" /></button><button className="show-button is-icon" aria-label={`Move ${s.title} down`} disabled={index === group.length - 1 || busy || Boolean(editing) || reloadNeeded || show.context.closed} onClick={() => move(part, group, index, 1)}><ArrowDown size={16} aria-hidden="true" /></button></div>
-              <div className="show-time">{time(s.planned_start)}</div><div className="show-session-title"><strong>{s.title}</strong><div className="show-muted">{s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Open text wall" : "Content"} · {s.mode === "live" ? "Live" : "Self-paced"} · {s.planned_minutes} min</div></div>
+              <div className="show-time">{time(s.planned_start)}</div><div className="show-session-title"><strong>{s.title}</strong><div className="show-muted">{s.interaction === "content" ? contentLabels[contentOf(s.options).screen] : show.context.kinds?.find(k => k.kind === s.interaction)?.label ?? fallbackKinds[s.interaction]?.label ?? s.interaction} · {s.mode === "live" ? "Live" : "Self-paced"} · {s.planned_minutes} min</div></div>
               <span className={`show-state is-${s.state}`}>{s.state.replaceAll("_", " ")}</span><button className="show-button" disabled={busy || Boolean(editing)} onClick={e => open(e.currentTarget, s)}>Edit session</button>
             </li>)}</ol> : <p className="show-empty">No sessions yet.</p>}
           </section>;

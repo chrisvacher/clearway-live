@@ -76,6 +76,8 @@ jobs:
         run: npm run test:browser
       - name: Run the load script (50 simulated phones) against the latency log
         run: npm run test:load
+      - name: Test the content screens and the pass 3 chrome in real browsers
+        run: npm run test:content
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

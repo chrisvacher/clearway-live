@@ -3,7 +3,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Board, reducedMotion, tokenMs, type BoardKind } from "@/lib/tv/board";
 import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
-import type { LiveSnapshot } from "@/lib/live/types";
+import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
+import { countOf, countUnit, type KindInfo } from "@/lib/interactions/kinds";
 
 // D1-03: the word cloud or the response wall for one session layer. On the TV
 // it follows the arrival flow; a mirror or phone shows each frame at once.
@@ -21,29 +22,33 @@ export function LiveBoard({ kind, session, frame, flow }: { kind: BoardKind; ses
 }
 
 // The count climbs on the same gentle spring as the board, in step with the
-// answers the TV is showing, never restarting a tick with each batch.
-export function Tally({ flow, total }: { flow?: TvFlow | null; total: number }) {
-  const el = useRef<HTMLSpanElement>(null);
-  const unit = (n: number) => `${n} ${n === 1 ? "answer" : "answers"}`;
+// answers the TV is showing, never restarting a tick with each batch. It sits in the
+// bottom right corner: "8 answering" for one-answer-per-person kinds, "23 answers" for text.
+export function Tally({ flow, results, counts }: { flow?: TvFlow | null; results: LiveResults; counts?: KindInfo["counts"] }) {
+  const el = useRef<HTMLSpanElement>(null), mode = useRef(counts);
+  mode.current = counts;
+  const write = (node: HTMLElement, n: number) => { node.replaceChildren(Object.assign(document.createElement("b"), { textContent: String(n) }), ` ${countUnit(n, mode.current)}`); };
+  const total = countOf(results, counts);
   useLayoutEffect(() => {
     const node = el.current; if (!node || !flow) return;
-    let value = flow.current?.frame.state.results.total ?? total, target = value, velocity = 0, raf = 0, last = performance.now();
-    node.textContent = unit(value);
+    const read = (r: LiveResults) => countOf(r, mode.current);
+    let value = flow.current ? read(flow.current.frame.state.results) : total, target = value, velocity = 0, raf = 0, last = performance.now();
+    write(node, value);
     const run = (now: number) => {
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
       if (reducedMotion(node)) { value = target; velocity = 0; }
       else [value, velocity] = springStep(value, velocity, target, springRate(tokenMs(node, "cwl-dur-make-room")), dt);
       const done = Math.abs(value - target) < 0.3 && Math.abs(velocity) < 0.3;
-      node.textContent = unit(done ? target : Math.round(value));
+      write(node, done ? target : Math.round(value));
       raf = done ? 0 : requestAnimationFrame(run);
     };
     const off = flow.subscribe(shown => {
-      target = shown.frame.state.results.total;
+      target = read(shown.frame.state.results);
       if (!raf) { last = performance.now(); raf = requestAnimationFrame(run); }
     });
     return () => { off(); cancelAnimationFrame(raf); };
-  }, [flow]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <span ref={el} className="tv-tally">{flow ? null : unit(total)}</span>;
+  }, [flow, counts]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <span ref={el} className="tv-tally">{flow ? null : <><b>{total}</b> {countUnit(total, counts)}</>}</span>;
 }
 
 type Spot = { key: string; text: string; meta: string };

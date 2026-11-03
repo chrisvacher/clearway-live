@@ -1,0 +1,85 @@
+// The interaction library (PRD "The interaction library"). Every kind is a TV and phone
+// pair. The database registers each kind (private.interaction_kinds) when its step lands,
+// so the run of show offers only the kinds the server can run; this list fixes the names.
+export const interactionKinds = ["word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "grid", "form", "sign", "statements", "content"] as const;
+export type InteractionKind = typeof interactionKinds[number];
+export const screenIds: Record<InteractionKind, string> = {
+  word_cloud: "INT-01", wall: "INT-02", qa: "INT-03", choice: "INT-04", scale: "INT-05", ranking: "INT-06", points: "INT-07",
+  grid: "INT-08", form: "INT-09", sign: "INT-10", statements: "INT-17", content: "Content",
+};
+export type KindInfo = {
+  kind: InteractionKind; label: string; input: boolean; one_per_person: boolean; counts: "people" | "answers" | "none";
+  structured: boolean; shares_answers: boolean; spotlight: "none" | "id" | "key"; named?: "never" | "always" | "setting";
+};
+// Used only before the server's own kind arrives (an old snapshot): milestone 2's two kinds.
+export const fallbackKinds: Record<string, KindInfo> = {
+  word_cloud: { kind: "word_cloud", label: "Word cloud", input: true, one_per_person: false, counts: "answers", structured: false, shares_answers: true, spotlight: "key" },
+  wall: { kind: "wall", label: "Open text", input: true, one_per_person: false, counts: "answers", structured: false, shares_answers: true, spotlight: "id" },
+  content: { kind: "content", label: "Content screen", input: false, one_per_person: false, counts: "none", structured: false, shares_answers: true, spotlight: "none" },
+};
+export const kindOf = (session: { interaction: string; kind?: KindInfo | null } | null | undefined): KindInfo | null =>
+  session ? session.kind ?? fallbackKinds[session.interaction] ?? null : null;
+export const isInteraction = (value: unknown): value is InteractionKind => interactionKinds.includes(value as InteractionKind);
+
+// "8 answering" for one-answer-per-person kinds, "23 answers" for text kinds.
+export function countOf(results: { total: number; people: number }, counts: KindInfo["counts"] | undefined) {
+  return counts === "people" ? results.people : results.total;
+}
+export function countUnit(n: number, counts: KindInfo["counts"] | undefined) {
+  return counts === "people" ? "answering" : n === 1 ? "answer" : "answers";
+}
+
+// Content screens (PRD "Content screens").
+export const contentScreens = ["headline", "scripture", "prayer", "image", "holding", "screen_check"] as const;
+export type ContentScreen = typeof contentScreens[number];
+export const contentLabels: Record<ContentScreen, string> = {
+  headline: "Headline with depth", scripture: "Scripture", prayer: "Prayer and silence", image: "Image or document page", holding: "Holding and walk-in", screen_check: "Screen check",
+};
+export type ContentOptions = { screen?: ContentScreen; number?: string; source?: string; reference?: string; translation?: string; line?: string; outline?: string; media?: string };
+export const contentOf = (options: unknown): ContentOptions & { screen: ContentScreen } => {
+  const o = options && typeof options === "object" && !Array.isArray(options) ? options as ContentOptions : {};
+  return { ...o, screen: contentScreens.includes(o.screen as ContentScreen) ? o.screen as ContentScreen : "headline" };
+};
+
+// A passage or headline may mark phrases bold with **two stars**. Plain text otherwise:
+// nothing a facilitator types is ever read as markup.
+export function boldParts(text: string): { text: string; bold: boolean }[] {
+  const out: { text: string; bold: boolean }[] = [];
+  text.split(/(\*\*[^*\n]+\*\*)/g).forEach(part => {
+    if (!part) return;
+    const bold = /^\*\*[^*\n]+\*\*$/.test(part);
+    out.push({ text: bold ? part.slice(2, -2) : part, bold });
+  });
+  return out;
+}
+export const plainText = (text: string) => boldParts(text).map(part => part.text).join("");
+
+// Phone depth: paragraphs; a line starting "> " is a quote, and a line that follows it
+// starting "- " is the quote's source; "## Title" starts a "Read more" section.
+export type DepthBlock = { kind: "text"; text: string } | { kind: "quote"; text: string; source?: string } | { kind: "section"; title: string; blocks: DepthBlock[] };
+export function depthBlocks(depth: string): DepthBlock[] {
+  const top: DepthBlock[] = [];
+  let target = top;
+  for (const raw of depth.replace(/\r\n?/g, "\n").split(/\n{2,}/)) {
+    const lines = raw.split("\n").map(line => line.trimEnd()).filter(Boolean);
+    if (!lines.length) continue;
+    if (lines[0].startsWith("## ")) {
+      const section: DepthBlock = { kind: "section", title: lines[0].slice(3).trim(), blocks: [] };
+      top.push(section); target = section.blocks;
+      lines.shift(); if (!lines.length) continue;
+    }
+    if (lines[0].startsWith("> ")) {
+      const quote = lines.filter(line => line.startsWith("> ")).map(line => line.slice(2)).join(" ");
+      const source = lines.find(line => line.startsWith("- "))?.slice(2).trim();
+      target.push({ kind: "quote", text: quote, ...(source ? { source } : {}) });
+    } else target.push({ kind: "text", text: lines.join("\n") });
+  }
+  return top;
+}
+// The holding screen's outline: one item per line, an optional time first ("9:00 Welcome").
+export function outlineRows(outline: string) {
+  return outline.split("\n").map(line => line.trim()).filter(Boolean).slice(0, 12).map(line => {
+    const match = line.match(/^(\d{1,2}(?::\d\d)?\s*(?:am|pm)?)\s+(.+)$/i);
+    return match ? { time: match[1], text: match[2] } : { time: "", text: line };
+  });
+}

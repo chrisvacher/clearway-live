@@ -662,6 +662,14 @@ test("a phone reads only its own room view, with its own cookie",async()=>{
   assert.equal((await fetch(`${origin}/api/live/${practiceRoom}/mine`,{headers:{cookie}})).status,403);
   assert.equal((await fetch(`${origin}/api/live/not-a-room/mine`,{headers:{cookie}})).status,400);
 });
+test("content screen images need a room session and same-origin uploads",async()=>{
+  const media=randomUUID();
+  assert.equal((await fetch(`${origin}/api/media/${roomId}/${media}`)).status,403);
+  assert.equal((await fetch(`${origin}/api/media/${roomId}/${media}?surface=tv`)).status,403);
+  assert.equal((await fetch(`${origin}/api/media/not-a-room/${media}`)).status,404);
+  assert.equal((await fetch(`${origin}/api/media/${roomId}/${media}?surface=admin`)).status,404);
+  assert.equal((await fetch(`${origin}/api/run-of-show/${roomId}/media`,{method:"POST",headers:{"content-type":"application/json"},body:"{}"})).status,403);
+});
 test("live submissions require their participant cookie, origin and valid immutable identity",async()=>{
   const session={access_token:token("room"),refresh_token:"refresh-room",expires_at:Math.floor(Date.now()/1000)+3600,user:user("room")};
   const cookie=`cw-room-${roomId}=base64-`+Buffer.from(JSON.stringify(session)).toString("base64url");

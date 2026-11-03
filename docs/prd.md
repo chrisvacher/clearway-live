@@ -564,7 +564,7 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 | Screen | TV | Phone |
 | --- | --- | --- |
 | Headline with depth | One headline, a number or a short statement, very large | The detail, sources, quotes and optional "read more" sections. Never an empty phone. Used for "What we heard" on the pre-call (PRE-08) |
-| Scripture | The passage and its reference, quiet and typographic, still | The same passage to read, with the translation named. The facilitator pastes the passage in setup (Default). A Bible text service is Open, because many translations limit how much can be displayed |
+| Scripture | Three pieces, quiet and typographic, still: the passage (one phrase may be marked bold), the reference and the translation | The same passage to read, with the reference and translation. The facilitator pastes the passage in setup, with a separate reference, and the translation defaults from the engagement (Decided November 2) |
 | Prayer and silence | A dark, still screen, or a single line | "Phones away" |
 | Image or document page | A photo, slide or document page at its own shape, with the room link small in a corner | The same, to zoom |
 | Screen check | Edge lines, a circle and a type ladder for setting up the TV | Fixes for overscan and aspect |
@@ -635,7 +635,14 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 **Wayfinding interactions** are described in "Wayfinding sessions" (INT-11 to INT-13, INT-15, INT-16) and "Overnight review and the read-back" (INT-14).
 
-**Mentimeter coverage.** The ten general interactions plus content screens are intended to cover what Clearway uses Mentimeter for today. Open: Chris to confirm nothing is missing (for example quizzes or a live "statements" vote, both of which Synrg has).
+**INT-17 Statements** (Decided November 2, design pass 3)
+
+- Phone: several statements (up to eight), each rated 1 to 5 from Strongly disagree to Strongly agree, all on one screen with five numbered buttons per statement. Each tap sends, and tapping another number changes it.
+- TV: one bar per statement from 1 (empty) to 5 (full), ordered by average agreement, leader in Sunrise, with the average and the share who agree (4 or 5) beside it. Bars grow and trade places on the bar motion tokens. Labels sit at the TV floor size because statements are sentences.
+- A statement where at least 35% disagree and at least 35% agree is flagged Divided on the control surface only, never on the TV.
+- Settings: the statements, the two end labels, anonymous on the screen, and Flag divided statements.
+
+**Mentimeter coverage** (Decided November 2). The ten general interactions, the statements vote (INT-17) and the content screens cover what Clearway uses Mentimeter for today. No quizzes or predictions for now. INT-11 to INT-16 stay reserved for Wayfinding.
 
 ## Wayfinding sessions
 
@@ -1407,9 +1414,9 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | --- | --- | --- |
 | Default TV screen | Decided October 30: dark (Navy), retained as an engagement setting | Resolved |
 | The church on the TV | Decided October 30: the church’s logo beside Clearway’s; use its name when no logo is available | Resolved |
-| Mentimeter coverage | Confirm the ten general interactions cover Clearway's uses, or add quizzes, predictions or a statements vote | Milestone 3 |
-| Scripture text | The facilitator pastes passages (the Default), or a Bible text service, keeping in mind that many translations limit display | Milestone 3 |
-| Names in free text sent to AI | Send free text and photos as written (the Default), or add a step that removes names first | Milestone 3 |
+| Mentimeter coverage | Decided November 2: the ten general interactions plus a statements vote (INT-17, design pass 3). No quizzes or predictions for now | Resolved |
+| Scripture text | Decided November 2: the facilitator pastes the passage, with a separate reference and translation (the translation defaults from the engagement) | Resolved |
+| Names in free text sent to AI | Decided November 2: sent as written. Attendee identity fields are still never sent | Resolved |
 | Pre-work before the pre-call | Ask questions on phones before the pre-call (for example celebration and success measures, seeding the pre-call), or start with the pre-call | Milestone 4 |
 | Seeded lens sentences | Hidden from everyone until Day 1 (the Default), or visible to the facilitator beforehand to prepare | Milestone 4 |
 | Perspective, reality and strategy | On October 28 Chris described the 3-year and 1-year work as "the current perspective, the reality, the strategic moves". Add a current-reality line per Vision Outcome (drawn from Discover) beside its 3-year Vision and 1-year Outlook, or leave the flow as it is | Milestone 4 |
@@ -1424,7 +1431,7 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | Owners without a CORE account | Goals published with no owner and flagged until the invitation is claimed, or held in the app until then | Milestone 7 |
 | CORE seats | How invitations for about 8 owners fit a church's CORE plan (the Free plan has one seat) | Milestone 7 |
 | Churches not yet in CORE | Who creates the CORE organization, and when | Milestone 7 |
-| AI disclosure | The wording, and where it appears (invite, sign-in, survey) | Before first use with a church |
+| AI disclosure | Wording drafted November 2, waiting on Chris's approval. Placement: invite email, room sign-in, a "How we use AI" page on phones, and the survey intro | Before first use with a church |
 | Privacy and retention | Consent wording and how long engagement data is kept, checked against Canadian privacy law | Before first use with a church |
 | Language | English only for now, or French as well for churches in Quebec | Before first use with a church |
 | Name | "Clearway app" is a working name. Chris also called it the Clearway live app on October 29. A coined word, or keep a Clearway name | Before a church sees it |
@@ -1436,6 +1443,9 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Area | Default |
 | --- | --- |
 | How it gets built | One milestone at a time, Chris accepting each, design running one milestone ahead |
+| Anthropic API key | Decided November 2: approved, in Vercel as ANTHROPIC_API_KEY, server only |
+| Holding screen outline | Text the facilitator writes on the holding screen, one item per line, so planned times never reach the room by themselves (milestone 3, step 1) |
+| Image or document page | An image (PNG, JPEG or WebP, up to 4 MB), fitted in the browser to a 2400px long edge and stored with the engagement. A document page is exported as an image first (milestone 3, step 1) |
 | Engagement types | Wayfinding, day and a half, team workshop and practice in the first release |
 | Engagement close | Device sign-ins, the read-only copy and check-ins stay active until the facilitator closes the engagement, after the 90-day check-in |
 | Roles | Only the lead facilitator publishes to CORE |

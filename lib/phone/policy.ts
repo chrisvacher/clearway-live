@@ -31,21 +31,24 @@ export function sendsUsed(session: string, answers: OwnAnswer[], outbox: OutboxE
   return sent.size;
 }
 
-export type ShownAnswer = { id: string; text: string; revision: number; status: "sent" | "saved" | "sending" | "failed"; reason?: string; withdrawn: boolean };
+export type ShownAnswer = { id: string; text: string; value?: unknown; revision: number; status: "sent" | "saved" | "sending" | "failed"; reason?: string; withdrawn: boolean };
 // The person's own answers for one step: what the server holds, overlaid with
-// what is still on this phone, newest change winning, in the order written.
-export function ownAnswers(session: string, answers: OwnAnswer[], outbox: OutboxEntry[], online: boolean): ShownAnswer[] {
+// what is still on this phone, newest change winning, in the order written. For a
+// one-answer-per-person kind only the latest stands, as on the server.
+export function ownAnswers(session: string, answers: OwnAnswer[], outbox: OutboxEntry[], online: boolean, onePerPerson = false): ShownAnswer[] {
   const shown = new Map<string, ShownAnswer>();
-  for (const a of answers.filter(a => a.session_id === session)) shown.set(a.id, { id: a.id, text: a.text, revision: a.revision, status: "sent", withdrawn: a.withdrawn });
+  for (const a of answers.filter(a => a.session_id === session)) shown.set(a.id, { id: a.id, text: a.text, ...(a.value !== undefined && a.value !== null ? { value: a.value } : {}), revision: a.revision, status: "sent", withdrawn: a.withdrawn });
   for (const entry of outbox.filter(e => e.request.session === session)) {
     const r = entry.request, before = shown.get(r.id);
     if (before && before.status === "sent" && before.revision >= r.revision) continue;
     // Sent shows the moment an answer leaves the phone. One that had to wait
     // says Saved on this phone, then Sending once the connection is back.
     const status = entry.state === "failed" ? "failed" : !r.queuedAt ? "sent" : online && entry.state === "sending" ? "sending" : "saved";
-    shown.set(r.id, { id: r.id, revision: r.revision, withdrawn: r.action === "withdraw", text: r.action === "withdraw" ? before?.text ?? r.text : r.text, status, reason: entry.reason });
+    const value = r.action === "withdraw" ? before?.value : r.value;
+    shown.set(r.id, { id: r.id, revision: r.revision, withdrawn: r.action === "withdraw", text: r.action === "withdraw" ? before?.text ?? r.text : r.text, ...(value !== undefined ? { value } : {}), status, reason: entry.reason });
   }
-  return [...shown.values()].filter(a => !a.withdrawn);
+  const standing = [...shown.values()].filter(a => !a.withdrawn);
+  return onePerPerson ? standing.slice(-1) : standing;
 }
 
 // Outcomes the server has settled are never retried; anything else waits and retries in order.

@@ -1,5 +1,6 @@
 import { uuid } from "../room/identity";
 import { parts, type SessionInput, type ShowSession } from "./types";
+import { isInteraction } from "../interactions/kinds";
 
 export function fillYears(text: string, base: number) {
   return text.replace(/\{base year(?:\s*\+\s*(1|3|10))?\}/g, (_, years) => String(base + Number(years || 0)));
@@ -25,15 +26,17 @@ export function sessionInput(value: unknown): SessionInput {
     return new Date(s).toISOString();
   };
   if (!uuid(v.id) || (v.revision !== null && (!Number.isInteger(v.revision) || Number(v.revision) < 0))) throw new Error("Reload the session before saving.");
-  if (!parts.includes(v.part as typeof parts[number]) || !["live", "self_paced"].includes(String(v.mode)) || !["word_cloud", "wall", "content"].includes(String(v.interaction))
+  if (!parts.includes(v.part as typeof parts[number]) || !["live", "self_paced"].includes(String(v.mode)) || !isInteraction(v.interaction)
     || !["draft", "ready", "open", "live", "phones_down", "closed"].includes(String(v.state))) throw new Error("Choose a session type and state.");
   const settings = v.settings as Record<string, unknown>;
-  if (!settings || settings.anonymous !== true || typeof settings.join_strip !== "boolean" || ![3, 4, 5].includes(Number(settings.burst_minutes)) || typeof settings.burst_minutes !== "number") throw new Error("Choose the session settings.");
+  if (!settings || typeof settings.anonymous !== "boolean" || typeof settings.join_strip !== "boolean" || ![3, 4, 5].includes(Number(settings.burst_minutes)) || typeof settings.burst_minutes !== "number") throw new Error("Choose the session settings.");
+  const options = v.options === undefined ? {} : v.options;
+  if (!options || typeof options !== "object" || Array.isArray(options) || JSON.stringify(options).length > 60000) throw new Error("Check the session settings.");
   const opens = instant("opens_at"), closes = instant("closes_at");
   if (v.mode === "self_paced" && (!opens || !closes || opens >= closes)) throw new Error("Set an opening time before the closing time.");
   return { id: v.id, revision: v.revision as number | null, title: text("title", 200, true), part: v.part as SessionInput["part"],
     planned_start: instant("planned_start"), planned_minutes: integer("planned_minutes", 1, 1440), mode: v.mode as SessionInput["mode"], opens_at: opens, closes_at: closes,
     interaction: v.interaction as SessionInput["interaction"], prompt: text("prompt", 4000), phone_depth: text("phone_depth", 20000), notes: text("notes", 30000),
     lands_in: text("lands_in", 200), segment: typeof v.segment === "string" ? text("segment", 100) : "", state: v.state as string, max_sends: integer("max_sends", 1, 100), max_characters: integer("max_characters", 1, 280), max_words: integer("max_words", 1, 50),
-    settings: { anonymous: true, burst_minutes: settings.burst_minutes as number, join_strip: settings.join_strip as boolean } };
+    settings: { anonymous: settings.anonymous as boolean, burst_minutes: settings.burst_minutes as number, join_strip: settings.join_strip as boolean }, options: options as Record<string, unknown> };
 }
