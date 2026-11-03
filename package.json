@@ -34,9 +34,11 @@
     "test:qa": "node --import tsx tests/browser/qa.ts",
     "test:self-paced": "node --import tsx tests/browser/self-paced.ts",
     "test:templates": "node --import tsx tests/browser/templates.ts",
+    "test:ai": "node --import tsx tests/browser/ai-live.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.133.0",
     "@supabase/ssr": "0.6.1",
     "@supabase/supabase-js": "2.50.3",
     "class-variance-authority": "0.7.1",

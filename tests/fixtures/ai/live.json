@@ -1,0 +1,92 @@
+{
+  "about": "Fixture set for the live AI prompts, from the fictional Riverside engagement. Each case has the inputs ai_claim hands the worker, the reply recorded for the fake client, and the expected behaviour. The prompt tests check the recorded reply against the expectations always, and a real reply too when ANTHROPIC_API_KEY is set.",
+  "names": ["Priya", "Ben", "Ruth", "Sam", "Daniel", "Grace Ortiz"],
+  "cases": [
+    {
+      "name": "Celebration in one word: youth and young people",
+      "job": "combine_words",
+      "inputs": { "raw": 31, "threshold": 30, "words": [
+        { "ref": "w1", "key": "youth", "text": "youth", "count": 4 },
+        { "ref": "w2", "key": "momentum", "text": "momentum", "count": 3 },
+        { "ref": "w3", "key": "young people", "text": "young people", "count": 2 },
+        { "ref": "w4", "key": "hope", "text": "hope", "count": 2 },
+        { "ref": "w5", "key": "joy", "text": "joy", "count": 2 },
+        { "ref": "w6", "key": "kid", "text": "kids", "count": 2 },
+        { "ref": "w7", "key": "children", "text": "children", "count": 1 },
+        { "ref": "w8", "key": "baptism", "text": "baptisms", "count": 1 },
+        { "ref": "w9", "key": "3 baptism", "text": "3 baptisms", "count": 1 },
+        { "ref": "w10", "key": "faith", "text": "\"faith\"", "count": 1 },
+        { "ref": "w11", "key": "trust", "text": "trust", "count": 1 },
+        { "ref": "w12", "key": "welcome", "text": "welcome", "count": 1 },
+        { "ref": "w13", "key": "welcoming", "text": "welcoming", "count": 1 },
+        { "ref": "w14", "key": "grace", "text": "grace", "count": 1 },
+        { "ref": "w15", "key": "generosity", "text": "generosity", "count": 1 }
+      ] },
+      "reply": "{\"groups\":[{\"survivor\":\"w1\",\"members\":[\"w3\"]},{\"survivor\":\"w6\",\"members\":[\"w7\"]},{\"survivor\":\"w12\",\"members\":[\"w13\"]}]}",
+      "expect": { "together": [["youth", "young people"]], "apart": [["hope", "joy"], ["youth", "kids"], ["baptisms", "3 baptisms"], ["trust", "\"faith\""], ["grace", "generosity"]], "maxGroup": 4 }
+    },
+    {
+      "name": "Nothing to combine",
+      "job": "combine_words",
+      "inputs": { "raw": 30, "threshold": 30, "words": [
+        { "ref": "w1", "key": "hope", "text": "hope", "count": 3 }, { "ref": "w2", "key": "joy", "text": "joy", "count": 2 },
+        { "ref": "w3", "key": "peace", "text": "peace", "count": 2 }, { "ref": "w4", "key": "courage", "text": "courage", "count": 1 }
+      ] },
+      "reply": "{\"groups\":[]}",
+      "expect": { "together": [], "apart": [["hope", "joy"], ["joy", "peace"], ["hope", "courage"]], "maxGroup": 4 }
+    },
+    {
+      "name": "What is worth celebrating",
+      "job": "group_wall",
+      "inputs": { "groups": [], "answers": [
+        { "ref": "a1", "id": "11111111-1111-4111-8111-000000000001", "text": "Three baptisms at Easter" },
+        { "ref": "a2", "id": "11111111-1111-4111-8111-000000000002", "text": "Teenagers asking to be baptized" },
+        { "ref": "a3", "id": "11111111-1111-4111-8111-000000000003", "text": "Our Alpha course was full" },
+        { "ref": "a4", "id": "11111111-1111-4111-8111-000000000004", "text": "Alpha guests stayed for church" },
+        { "ref": "a5", "id": "11111111-1111-4111-8111-000000000005", "text": "Young families staying after the service" },
+        { "ref": "a6", "id": "11111111-1111-4111-8111-000000000006", "text": "New families at the kids program" },
+        { "ref": "a7", "id": "11111111-1111-4111-8111-000000000007", "text": "Daniel led worship for the first time" }
+      ] },
+      "reply": "{\"groups\":[{\"group\":\"n1\",\"label\":\"Baptisms\",\"answers\":[\"a1\",\"a2\"]},{\"group\":\"n2\",\"label\":\"Alpha\",\"answers\":[\"a3\",\"a4\"]},{\"group\":\"n3\",\"label\":\"Young families\",\"answers\":[\"a5\",\"a6\"]}]}",
+      "expect": { "together": [["Three baptisms at Easter", "Teenagers asking to be baptized"], ["Our Alpha course was full", "Alpha guests stayed for church"]],
+        "apart": [["Three baptisms at Easter", "Our Alpha course was full"]], "labelWords": 4 }
+    },
+    {
+      "name": "New answers join an existing group, never a pinned one",
+      "job": "group_wall",
+      "inputs": { "groups": [
+        { "ref": "g1", "id": "22222222-2222-4222-8222-000000000001", "label": "Baptisms", "pinned": false, "renamed": false, "count": 2, "examples": ["Three baptisms at Easter", "Teenagers asking to be baptized"] },
+        { "ref": "g2", "id": "22222222-2222-4222-8222-000000000002", "label": "Alpha", "pinned": true, "renamed": false, "count": 2, "examples": ["Our Alpha course was full", "Alpha guests stayed for church"] }
+      ], "answers": [
+        { "ref": "a1", "id": "11111111-1111-4111-8111-000000000011", "text": "Baptism class doubled" },
+        { "ref": "a2", "id": "11111111-1111-4111-8111-000000000012", "text": "Alpha runs again in January" }
+      ] },
+      "reply": "{\"groups\":[{\"group\":\"g1\",\"answers\":[\"a1\"]}]}",
+      "expect": { "joins": [["Baptism class doubled", "Baptisms"]], "neverJoins": [["Alpha runs again in January", "Alpha"]], "labelWords": 4 }
+    },
+    {
+      "name": "A short read of the room",
+      "job": "summarize_wall",
+      "inputs": { "question": "What is God doing that is worth celebrating?", "count": 7, "cut_at": "2026-11-03T15:00:00Z",
+        "groups": [{ "label": "Baptisms", "count": 3 }, { "label": "Alpha", "count": 2 }],
+        "answers": ["Three baptisms at Easter", "Teenagers asking to be baptized", "Baptism class doubled", "Our Alpha course was full", "Alpha guests stayed for church",
+          "Young families staying after the service", "Ruth's prayer team is growing"] },
+      "reply": "{\"summary\":\"Baptisms lead: people are taking a public step of faith. Alpha is full and young families are staying after the service.\"}",
+      "expect": { "maxWords": 30, "mentions": ["bapti", "alpha"] }
+    },
+    {
+      "name": "Questions about the building",
+      "job": "fold_questions",
+      "inputs": { "questions": [
+        { "ref": "q1", "id": "33333333-3333-4333-8333-000000000001", "text": "When does the new building open?", "asked": 2 },
+        { "ref": "q2", "id": "33333333-3333-4333-8333-000000000002", "text": "What date will the new building be ready?", "asked": 1 },
+        { "ref": "q3", "id": "33333333-3333-4333-8333-000000000003", "text": "Will there be 2 services in the fall?", "asked": 1 },
+        { "ref": "q4", "id": "33333333-3333-4333-8333-000000000004", "text": "Will we go to 3 services in the fall?", "asked": 1 },
+        { "ref": "q5", "id": "33333333-3333-4333-8333-000000000005", "text": "How much will the building cost?", "asked": 1 }
+      ] },
+      "reply": "{\"groups\":[{\"survivor\":\"q1\",\"members\":[\"q2\"]}]}",
+      "expect": { "together": [["When does the new building open?", "What date will the new building be ready?"]],
+        "apart": [["Will there be 2 services in the fall?", "Will we go to 3 services in the fall?"], ["When does the new building open?", "How much will the building cost?"]], "maxGroup": 4 }
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import { barDefaults, ChoiceOptions, PointsOptions, RankingOptions, ScaleOptions
 import { FormOptionsEditor, GridOptionsEditor, SignOptionsEditor } from "@/components/interactions/grid-form-sign/options";
 import { gridPresets } from "@/lib/interactions/grid-form-sign";
 import { QaOptions } from "@/components/interactions/qa/qa-options";
+import { WallOptions, WordCloudOptions } from "@/components/interactions/ai/ai-options";
 
 // Per-interaction settings in the run of show (SET-07). Each kind's editor writes only
 // session.options; the database's options_<kind> normalizes and checks it on Save.
@@ -14,6 +15,8 @@ export type OptionsEditorProps = { session: ShowSession; value: Record<string, u
   onChange: (options: Record<string, unknown>) => void };
 export const optionEditors: Partial<Record<InteractionKind, ComponentType<OptionsEditorProps>>> = {
   content: ContentOptions,
+  word_cloud: WordCloudOptions,
+  wall: WallOptions,
   choice: ChoiceOptions,
   scale: ScaleOptions,
   ranking: RankingOptions,

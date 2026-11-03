@@ -7,6 +7,7 @@ import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, roomSizes } from "./live-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
+import { AiRemote } from "@/components/interactions/ai/ai-panel";
 
 // FAC-03: the live controls in the facilitator's hand. It holds its own
 // connection and needs nothing from the laptop.
@@ -30,6 +31,7 @@ export function Remote({ initial }: { initial: RunOfShow }) {
         <div className="ctl-private-body">{upNext ? <><p className="ctl-label">{upNext.title}</p><p className="ctl-notes">{upNext.notes || "No presenter notes."}</p>
           <button className="show-button is-small" onClick={() => setSheet("preview")}>Preview</button></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
       <LiveControls room={room} variant="remote" onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
+      <AiRemote room={room} />
     </div>
     {sheet && <div className="ctl-sheet-scrim" onClick={() => setSheet(null)}>
       <div className="ctl-sheet" role="dialog" aria-modal="true" aria-label={sheet === "items" ? "Items on the TV" : sheet === "size" ? "Room size" : "Preview"} onClick={e => e.stopPropagation()}>

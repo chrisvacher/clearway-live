@@ -131,13 +131,19 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
 }
 
 export function ItemList({ room, onClose }: { room: Room; onClose?: () => void }) {
-  const items = room.status?.items ?? [], spot = room.frame?.state.spotlight_key, busy = Boolean(room.pending);
   const kind = room.frame?.session?.interaction;
   if (!kind || kind === "content") return null;
   const Own = controlItems[kind];
   if (Own) return <Own room={room} onClose={onClose} />;
+  return <GeneralItems room={room} onClose={onClose} />;
+}
+
+// The general list of items with Spotlight and Hide. A kind's own list may show it too.
+export function GeneralItems({ room, onClose, title = "Items on the TV" }: { room: Room; onClose?: () => void; title?: string }) {
+  const items = room.status?.items ?? [], spot = room.frame?.state.spotlight_key, busy = Boolean(room.pending);
+  const kind = room.frame?.session?.interaction;
   return <section className="ctl-items" aria-labelledby="ctl-items-title">
-    <div className="ctl-row is-between"><h2 id="ctl-items-title">Items on the TV</h2>{onClose && <button className="show-button is-icon" aria-label="Close items" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
+    <div className="ctl-row is-between"><h2 id="ctl-items-title">{title}</h2>{onClose && <button className="show-button is-icon" aria-label="Close items" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
     <p className="show-help">{kind === "wall" ? "Answers, newest first. Names never show." : kind === "word_cloud" ? "Words, most mentioned first." : "In the TV’s order, with the server’s numbers."}{room.status?.counts.hidden ? ` ${room.status.counts.hidden} hidden.` : ""}</p>
     {items.length ? <ul className="ctl-item-list">{items.map(item => <li key={item.key} className={item.hidden ? "is-hidden" : item.key === spot ? "is-spot" : ""}>
       <span className="ctl-item-text">{item.text}{kind === "word_cloud" && <small> · {item.count}</small>}</span>

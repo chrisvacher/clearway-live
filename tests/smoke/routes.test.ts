@@ -766,6 +766,13 @@ test("the live room and remote are facilitator-only, and presses are validated b
     const page = await fetch(origin + path, { headers: { cookie } }); assert.equal(page.status, 200, path);
     const html = await page.text(); assert.ok(html.includes(text), path); assert.ok(!html.includes(tripwire)); assert.match(page.headers.get("cache-control")!, /no-store/);
   }
+  // The AI panel and its presses are facilitator-only and checked before the room.
+  const aiUrl = origin + `/api/control/${roomId}/ai`;
+  assert.equal((await fetch(aiUrl)).status, 401, "the AI panel is facilitator-only");
+  assert.equal((await fetch(aiUrl, { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify({ id, action: "ai_off", session: id }) })).status, 401);
+  assert.equal((await fetch(aiUrl, { method: "POST", headers: { ...headers, origin: "https://evil.example" }, body: JSON.stringify({ id, action: "ai_off", session: id }) })).status, 403);
+  for (const bad of [{ id, action: "ai_off" }, { id, action: "rename_group", group: id, label: "" }, { id, action: "drop_ai", session: id }])
+    assert.equal((await fetch(aiUrl, { method: "POST", headers, body: JSON.stringify(bad) })).status, 422, JSON.stringify(bad));
   assert.equal((await fetch(origin + `/api/live/${roomId}/tick?surface=control`, { method: "POST", headers })).status, 200);
   assert.equal((await fetch(origin + `/api/live/${roomId}/tick?surface=phone`, { method: "POST", headers })).status, 403);
 });

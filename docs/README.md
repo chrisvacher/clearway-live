@@ -12,6 +12,7 @@
 - `qa.md`: Q&A with votes and folding, Spotlight over any session and Questions any time (INT-03, milestone 3, step 4).
 - `self-paced.md`: self-paced sessions (on time, from the room link and the invite email), rehearsals and Clear test answers, each session's CSV and the results recap (milestone 3, step 6a).
 - `templates.md`: the run of show built by dragging (SET-07, pass 3 change 15) and templates with the team workshop template (SET-08) (milestone 3, step 6b).
+- `ai-live.md`: AI, live: word cloud combines, wall groups and Show summary, Q&A folding by AI, the merge limits in code, and FAIL-09 (milestone 3, step 5).
 - `practice-room-script.md`: the milestone 2 acceptance run for Chris, on real devices and venue wifi.
 - `prd.md`: the full PRD. Export it from the PRD doc in Claude (Export, Markdown) and save it here as `prd.md`. It is the source of truth.
 
