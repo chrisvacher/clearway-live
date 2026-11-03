@@ -7,7 +7,7 @@ import type { InteractionKind } from "../interactions/kinds";
 export type ExportRow = { id: string; at: string; name?: string | null; text: string; value?: Record<string, unknown> | null; hidden: boolean; test: boolean;
   votes?: number | null; answered?: boolean | null; folded_into?: string | null };
 export type ExportSession = { id: string; title: string; part: string; mode: string; interaction: InteractionKind; label: string; prompt: string; options: Record<string, unknown> };
-export type SessionExport = { status: "ok"; named: boolean; timezone: string; session: ExportSession; rows: ExportRow[] };
+export type SessionExport = { status: "ok"; named: boolean; timezone: string; church?: string; engagement?: string; session: ExportSession; rows: ExportRow[] };
 
 type Item = { key: string; text: string };
 const items = (options: Record<string, unknown>, field = "items"): Item[] => Array.isArray(options[field])

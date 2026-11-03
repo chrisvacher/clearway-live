@@ -22,20 +22,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   };
   try {
     let body: string, name: string;
-    const { data: engagement } = await client.from("engagements").select("title,churches(name)").eq("id", id).eq("deleted", false).maybeSingle();
-    const church = (engagement?.churches as { name?: string } | null)?.name ?? "", title = (engagement?.title as string | undefined) ?? "";
     if (session === "all") {
       const { data, error } = await client.rpc("results_recap", { p_engagement: id });
       if (error) throw error;
       if (data.status !== "ok") return answer({ status: data.status }, 403);
       const list: SessionExport[] = [];
       for (const entry of data.sessions as { session: { id: string } }[]) { const out = await read(entry.session.id); if (out.status === "ok") list.push(out as SessionExport); }
-      body = allSessionsCsv(list); name = csvName(church, title, "all answers");
+      body = allSessionsCsv(list); name = csvName(list[0]?.church ?? "", list[0]?.engagement ?? "", "all answers");
     } else {
       const out = await read(session as string);
       if (out.status !== "ok") return answer({ status: out.status }, out.status === "denied" ? 403 : 404);
       const data = out as SessionExport;
-      body = sessionCsv(data); name = csvName(church, data.session.title);
+      body = sessionCsv(data); name = csvName(data.church ?? "", data.session.title);
     }
     return privateResponse(new NextResponse(body, { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${name}"` } }));
   } catch (error) {

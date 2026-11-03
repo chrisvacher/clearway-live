@@ -218,6 +218,7 @@ select tests.login(6);
 select is(tests.send(981,323,'',jsonb_build_object('answers',jsonb_build_object('q1','Honest talk about the building')))->>'status','accepted','Ruth answers privately');
 select tests.login(1);
 select is(public.session_export(tests.id(100),tests.id(310))->>'named','false','An anonymous session exports without names');
+select is(public.session_export(tests.id(100),tests.id(310))->>'church','Riverside Church','The export names the church, for the file name');
 select is((select count(*)::integer from jsonb_array_elements(public.session_export(tests.id(100),tests.id(310))->'rows') r where r->>'name' is not null),0,'no row carries a name');
 select is(jsonb_array_length(public.session_export(tests.id(100),tests.id(310))->'rows'),4,'Every standing answer, withdrawn ones left out');
 select is(public.session_export(tests.id(100),tests.id(310))->'rows'->0->>'text','Young families finding us online','oldest first, as changed');

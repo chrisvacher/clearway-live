@@ -28,3 +28,4 @@
   .recap-card { border-color: var(--cwl-app-border); }
 }
 .sp-rehearsing { background: var(--cwl-app-warning-bg); }
+.recap-card .show-state { text-transform: none; }

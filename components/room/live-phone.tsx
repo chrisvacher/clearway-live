@@ -171,7 +171,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
       </section> : notYet ? <section className="ph-step" aria-live="polite">
         <p className="ph-muted">{view.title} · Self-paced</p>
         <h1 className="ph-prompt">{view.title}</h1>
-        <p className="ph-text">This opens {windowLabel(view, zone, serverNow).replace(/^Opens /, "")}. Come back then.</p>
+        <p className="ph-text">This opens {windowLabel(view, zone, serverNow).replace(/^Opens /, "").replace(/\.$/, "")}. Come back then.</p>
         {selfList}
       </section> : <section className="ph-step" aria-live="polite">
         {selfView && <><p className="ph-muted">{view.title} · Self-paced</p><p className="ph-window">{windowLabel(view, zone, serverNow)}</p></>}

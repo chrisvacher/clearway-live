@@ -224,7 +224,7 @@ async function main() {
       assert.ok(lines.some(l => l.includes("this fall")) && !/Priya|Ben/.test(wall.text), "answers without names");
       const priv = await csv(form);
       assert.match(priv.text, /Name,What would make this retreat a win for you\?/); assert.match(priv.text, /Ruth,Honest talk about the building/);
-      const button = control.getByRole("link", { name: "Export answers" });
+      const button = control.getByRole("link", { name: "Export answers", exact: true });
       await until(async () => await button.isVisible(), "Export answers on the control surface", 8000);
       const [download] = await Promise.all([control.waitForEvent("download"), button.click()]);
       assert.match(download.suggestedFilename(), /for-the-facilitators\.csv$/);

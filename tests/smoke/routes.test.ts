@@ -169,6 +169,8 @@ before(async () => {
       if (url.searchParams.get("id") === "eq." + roomId) return send([{ id:roomId,church_id:roomId,title:"Room fixture",team_hub_client_id:null,team_hub_engagement_id:null,base_year:2026,lens_names:["Congregation","Community","Leadership","Operations","Learning"],type:"wayfinding",status:"pre_call",how_the_room_decides:"We decide together.",settings:{neutral_join_message:false,private_note:tripwire},churches:{name:"Fixture church",deleted:false}}]);
       return send([{ id: "engagement-a", title: "Assigned engagement", status: "setup" }]);
     }
+    // Step 6a: the invite links to the engagement's ready self-paced sessions.
+    if (url.pathname === "/rest/v1/sessions"){assert.equal(url.searchParams.get("mode"),"eq.self_paced");return send([{id:"6a000000-0000-4000-8000-000000000001",title:"Before we meet",opens_at:"2026-11-01T14:00:00Z",closes_at:"2099-11-01T14:00:00Z"}]);}
     if (url.pathname === "/rest/v1/churches")return send([{id:roomId,name:"Fixture church",timezone:"America/Toronto",mission:"",purpose:"",values:[],strategy:"",leadership_rhythms:[],governance_body_name:""}]);
     if(url.pathname === "/rest/v1/engagement_facilitators")return send([{clearway_user_id:profile.id,role:"lead"}]);
     if (url.pathname === "/rest/v1/attendees") return send((mode === "room" && roomBound) || mode === "allowed" ? [{id:roomAttendee,name:url.searchParams.get("engagement_id")==="eq."+practiceRoom?practiceName:"Ann Lee",email:"ann@example.org",room_role:"participant"}] : []);
@@ -595,7 +597,7 @@ test("attendee import previews normalize duplicates, then save only reviewed sou
 });
 test("reviewed invite snapshot sends once and retry uses its saved sent status",async()=>{
  const {jar}=await finishLogin("allowed"),batch=randomUUID(),body={id:roomId,batch,attendees:[roomAttendee]};
- const prepared=await setupPost(jar,{...body,action:"prepare_invites"});assert.equal(prepared.data.payload.people[0].email,"ann@example.org");assert.match(prepared.data.preview,/We decide together/);assert.equal(sentBatches.length,0);
+ const prepared=await setupPost(jar,{...body,action:"prepare_invites"});assert.equal(prepared.data.payload.people[0].email,"ann@example.org");assert.match(prepared.data.preview,/We decide together/);assert.match(prepared.data.preview,/Before we meet\nBefore we meet: open from .+\n\S+step=6a000000-0000-4000-8000-000000000001/);assert.equal(sentBatches.length,0);
  const sent=await setupPost(jar,{...body,action:"invite"});assert.equal(sent.data.ok,true);assert.deepEqual(sentBatches,[batch]);
  const retry=await setupPost(jar,{...body,action:"invite"});assert.equal(retry.data.ok,true);assert.deepEqual(sentBatches,[batch]);
 });

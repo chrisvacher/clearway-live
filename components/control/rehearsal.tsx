@@ -22,9 +22,9 @@ export function SelfPacedList({ room, timezone }: { room: Room; timezone: string
       const state = selfPacedState({ ...s, mode: "self_paced" }, now);
       return <li key={s.id} className={state === "open" ? "is-open" : ""}>
         <span className="ctl-time">{s.part}</span>
-        <span className="ctl-run-title"><strong>{s.title}</strong><small>{windowLabel({ ...s, mode: "self_paced" }, timezone, now)}</small></span>
+        <span className="ctl-run-title"><strong>{s.title}</strong><small>{windowLabel({ ...s, mode: "self_paced" }, timezone, now)}</small><small>{s.answered} answered</small></span>
         <span className="ctl-run-meta"><span className={`show-state is-${state}`}>{selfLabels[state] ?? state}</span>
-          <span className="sp-meta">{s.answered} answered{s.interaction !== "content" && <a className="show-button is-small" href={`/api/control/${room.show.context.id}/export?session=${s.id}`} download aria-label={`Export answers for ${s.title}`}><Download size={14} aria-hidden="true" />CSV</a>}</span></span>
+          {s.interaction !== "content" && <a className="show-button is-small" href={`/api/control/${room.show.context.id}/export?session=${s.id}`} download aria-label={`Export answers for ${s.title}`}><Download size={14} aria-hidden="true" />CSV</a>}</span>
       </li>;
     })}</ol>
   </section>;

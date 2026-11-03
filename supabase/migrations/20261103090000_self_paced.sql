@@ -272,7 +272,7 @@ language sql security invoker set search_path='' as $$ select private.rehearsal_
 -- Signatures export the name only, never the strokes.
 create function private.session_export(p_engagement uuid,p_session uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
-declare s public.sessions; k private.interaction_kinds; named boolean; base integer; v_zone text;
+declare s public.sessions; k private.interaction_kinds; named boolean; base integer; v_zone text; v_church text; v_title text;
 begin
  if not coalesce(private.show_allowed(p_engagement),false) then return jsonb_build_object('status','denied'); end if;
  select * into s from public.sessions where id=p_session and engagement_id=p_engagement and not deleted;
@@ -280,8 +280,8 @@ begin
  k:=private.kind(s.interaction);
  if k.kind is null or not k.input then return jsonb_build_object('status','no_input'); end if;
  named:=k.named='always' or not k.shares_answers or (k.named='setting' and (s.settings->>'anonymous')='false');
- select e.base_year,c.timezone into base,v_zone from public.engagements e join public.churches c on c.id=e.church_id where e.id=p_engagement;
- return jsonb_build_object('status','ok','named',named,'timezone',v_zone,
+ select e.base_year,c.timezone,c.name,e.title into base,v_zone,v_church,v_title from public.engagements e join public.churches c on c.id=e.church_id where e.id=p_engagement;
+ return jsonb_build_object('status','ok','named',named,'timezone',v_zone,'church',v_church,'engagement',v_title,
   'session',jsonb_build_object('id',s.id,'title',s.title,'part',s.part,'mode',s.mode,'interaction',s.interaction,'label',k.label,'prompt',private.fill_years(s.prompt,base),'options',s.options),
   'rows',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'at',x.server_received_at,'name',case when named then btrim(a.name) end,'text',x.text,
      'value',case when s.interaction='sign' then x.value-'strokes' else x.value end,'hidden',x.hidden,'test',x.test,
