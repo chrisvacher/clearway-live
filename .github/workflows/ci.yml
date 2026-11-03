@@ -90,6 +90,18 @@ jobs:
         run: npm run test:templates
       - name: Test AI, live (combine, groups, summary, folds, FAIL-09) with the fake model and 50 simulated phones in real browsers
         run: npm run test:ai
+      - name: Run a team workshop end to end from the template (rehearse, clear, eight phones, every session, export, recap) in real browsers
+        run: mkdir -p team-workshop-shots && npm run test:team-workshop
+        env:
+          KIT_SHOTS: team-workshop-shots
+      - name: Upload the team workshop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: team-workshop-screens
+          path: team-workshop-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup
