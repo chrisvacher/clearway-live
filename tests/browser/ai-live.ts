@@ -170,7 +170,7 @@ async function main() {
       await control.getByLabel("Rename Baptisms").fill("Baptisms this year");
       await row("Baptisms").getByRole("button", { name: "Save" }).click();
       await until(async () => (await results()).groups.some((g: { label: string }) => g.label === "Baptisms this year"), "the new name", 5000);
-      await until(async () => (await layer().locator(".ai-group .lbl").allTextContents()).some(t => t.includes("Baptisms this year")), "the TV shows the new name", 5000);
+      if ((await groupsOnTv()).shown.some(t => t.startsWith("Baptisms"))) await until(async () => (await layer().locator(".ai-group .lbl").allTextContents()).some(t => t.includes("Baptisms this year")), "the TV shows the new name", 5000);
       await row("Alpha").getByRole("button", { name: "Pin" }).click();
       await until(async () => (await results()).groups.some((g: { label: string; pinned: boolean }) => g.label === "Alpha" && g.pinned), "Alpha is pinned", 5000);
       if ((await groupsOnTv()).shown.includes("Alpha")) await until(async () => (await layer().locator(".ai-group", { hasText: "Alpha" }).locator(".pin").count()) === 1, "a pinned group shows the pin", 5000);
@@ -234,6 +234,7 @@ async function main() {
       assert.equal(cards[0], "Three baptisms at Easter", "oldest first");
       assert.equal(cards[cards.length - 1], "Prayer team growing", "newest last");
       await until(async () => (await panel().innerText()).includes("AI is off for this session."), "the control surface says AI is off", 5000);
+      if (process.env.KIT_SHOTS) await delay(4500); // past cwl-delay-quiet, so a crowded wall has stepped its cards down
       await shot(tv, "int-02-ai-off-tv"); await shot(control, "fail-09-ai-off-control");
       await panel().getByRole("switch", { name: "AI for this session" }).click();
       await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "on", "back on, the groups return from what is there", 5000);
