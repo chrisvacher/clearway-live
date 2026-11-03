@@ -6,6 +6,7 @@ import { stateLabels } from "@/lib/control/policy";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { RoomSize } from "@/lib/control/types";
 import type { useControlRoom } from "./use-control-room";
+import { controlItems } from "@/components/interactions/control-items";
 
 export type Room = ReturnType<typeof useControlRoom>;
 export const roomSizes: [RoomSize, string][] = [["very_small", "Very small screen"], ["small", "Small screen"], ["medium", "Medium screen"], ["large", "Large screen"], ["very_large", "Very large screen"]];
@@ -133,6 +134,8 @@ export function ItemList({ room, onClose }: { room: Room; onClose?: () => void }
   const items = room.status?.items ?? [], spot = room.frame?.state.spotlight_key, busy = Boolean(room.pending);
   const kind = room.frame?.session?.interaction;
   if (!kind || kind === "content") return null;
+  const Own = controlItems[kind];
+  if (Own) return <Own room={room} onClose={onClose} />;
   return <section className="ctl-items" aria-labelledby="ctl-items-title">
     <div className="ctl-row is-between"><h2 id="ctl-items-title">Items on the TV</h2>{onClose && <button className="show-button is-icon" aria-label="Close items" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
     <p className="show-help">{kind === "wall" ? "Answers, newest first. Names never show." : kind === "word_cloud" ? "Words, most mentioned first." : "In the TV’s order, with the server’s numbers."}{room.status?.counts.hidden ? ` ${room.status.counts.hidden} hidden.` : ""}</p>

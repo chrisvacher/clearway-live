@@ -8,6 +8,7 @@
 - `milestone-3-brief.md`: milestone 3, the interaction library: the work order, the engine contract every kind follows, and what can run in parallel.
 - `interaction-engine.md`: the room engine for every interaction, and the content screens (milestone 3, step 1).
 - `bar-family.md`: multiple choice, scale, ranking with Add an option, 100 points and statements on one live bar component (milestone 3, step 2).
+- `grid-form-sign.md`: the 2x2 grid, the private form and sign together (milestone 3, step 3).
 - `practice-room-script.md`: the milestone 2 acceptance run for Chris, on real devices and venue wifi.
 - `prd.md`: the full PRD. Export it from the PRD doc in Claude (Export, Markdown) and save it here as `prd.md`. It is the source of truth.
 
