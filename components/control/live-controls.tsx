@@ -135,7 +135,7 @@ export function ItemList({ room, onClose }: { room: Room; onClose?: () => void }
   if (!kind || kind === "content") return null;
   return <section className="ctl-items" aria-labelledby="ctl-items-title">
     <div className="ctl-row is-between"><h2 id="ctl-items-title">Items on the TV</h2>{onClose && <button className="show-button is-icon" aria-label="Close items" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
-    <p className="show-help">{kind === "wall" ? "Answers, newest first. Names never show." : "Words, most mentioned first."}{room.status?.counts.hidden ? ` ${room.status.counts.hidden} hidden.` : ""}</p>
+    <p className="show-help">{kind === "wall" ? "Answers, newest first. Names never show." : kind === "word_cloud" ? "Words, most mentioned first." : "In the TV’s order, with the server’s numbers."}{room.status?.counts.hidden ? ` ${room.status.counts.hidden} hidden.` : ""}</p>
     {items.length ? <ul className="ctl-item-list">{items.map(item => <li key={item.key} className={item.hidden ? "is-hidden" : item.key === spot ? "is-spot" : ""}>
       <span className="ctl-item-text">{item.text}{kind === "word_cloud" && <small> · {item.count}</small>}</span>
       {item.hidden

@@ -9,6 +9,7 @@ import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, burstLeft, roomSizes, useSecondTap } from "./live-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
+import { controlPanels } from "@/components/interactions/control-panels";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -30,6 +31,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
   const clock = timing(current, room.now);
   const burst = burstLeft(room);
   const counts = status?.counts;
+  const KindPanel = frame?.session ? controlPanels[frame.session.interaction] : undefined;
   const phones = !frame?.session ? "Waiting for the next session" : frame.session.state === "closed" ? "Showing own answers, read-only"
     : frame.session.interaction === "content" ? "Reading along" : frame.state.phones_down ? "Phones down" : burst ? `Input open · burst ${burst.label} left` : "Input open";
   return <div className="ctl-app" data-room-version={frame?.version}>
@@ -48,7 +50,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
             <div className="ctl-row is-between"><h3>{part}</h3>{open && <button className="show-button is-small" disabled={Boolean(room.pending) || context.closed} onClick={() => confirm.tap(part, () => void room.press("close_part", { part }))}>{confirm.armed === part ? `Tap again to close ${part}` : `Close ${part}`}</button>}</div>
             <ol className="ctl-run-list">{list.map(s => <li key={s.id} className={`${s.id === shownId ? "is-current" : ""}${s.id === room.upNext?.id ? " is-next" : ""}`}>
               <span className="ctl-time">{time(s.planned_start, context.timezone)}</span>
-              <span className="ctl-run-title"><strong>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content"} · {s.planned_minutes} min</small></span>
+              <span className="ctl-run-title"><strong>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min</small></span>
               <span className="ctl-run-meta"><span className={`show-state is-${s.state}`}>{stateLabels[s.state] ?? s.state}</span>
                 <button className="show-button is-small" onClick={() => setPreview(s)} aria-label={`Preview ${s.title}`}>Preview</button></span>
             </li>)}</ol>
@@ -67,6 +69,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           <LiveControls room={room} variant="laptop" onItems={() => document.getElementById("ctl-items-title")?.scrollIntoView({ block: "start", behavior: "smooth" })} />
           <label className="ctl-size" htmlFor="ctl-room-size">Room size<select id="ctl-room-size" value={frame?.display?.room_size ?? "very_small"} disabled={Boolean(room.pending) || !frame} onChange={e => void room.press("room_size", { size: e.target.value as RoomSize })}>{roomSizes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="show-help">Scales all TV type at once.</span></label>
           <ItemList room={room} />
+          {KindPanel && <KindPanel room={room} />}
         </>}
       </main>
       <aside className="ctl-col ctl-side">

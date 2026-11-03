@@ -37,11 +37,11 @@ insert into private.tv_devices(id,proof,engagement_id,label,paired_at) values(te
 insert into private.live_tv_sessions(id,engagement_id,auth_user_id,auth_session_id,device_id) values(tests.id(400),tests.id(100),tests.id(4),tests.id(1004),tests.id(450));
 
 -- The registry: the three kinds milestone 2 runs, private to the database.
-select is((select array_agg(kind order by position) from private.interaction_kinds),array['word_cloud','wall','content'],'Word cloud, wall and content are registered');
+select ok((select array_agg(kind) from private.interaction_kinds) @> array['word_cloud','wall','content'],'Word cloud, wall and content are registered');
 select ok((select relforcerowsecurity from pg_class where oid='private.interaction_kinds'::regclass),'The registry forces row-level security');
 select ok(not has_table_privilege('authenticated','private.interaction_kinds','select'),'Browsers cannot read the registry directly');
 select ok(not has_table_privilege('authenticated','private.session_media','select'),'Browsers cannot read stored images directly');
-select throws_ok($$insert into sessions(engagement_id,title,interaction) values('87000000-0000-4000-8000-000000000100','Unknown','choice')$$,'23503',null,'A session cannot use a kind that is not registered');
+select throws_ok($$insert into sessions(engagement_id,title,interaction) values('87000000-0000-4000-8000-000000000100','Unknown','not_a_kind')$$,'23503',null,'A session cannot use a kind that is not registered');
 
 -- A later step adds a kind by registering it and supplying its own functions. Nothing shared
 -- is redefined. This test kind is one answer per person, structured, with option keys.

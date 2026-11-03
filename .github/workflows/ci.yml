@@ -78,6 +78,8 @@ jobs:
         run: npm run test:load
       - name: Test the content screens and the pass 3 chrome in real browsers
         run: npm run test:content
+      - name: Test the bar family (choice, scale, ranking, 100 points, statements) in real browsers
+        run: npm run test:bars
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

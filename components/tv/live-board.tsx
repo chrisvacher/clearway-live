@@ -5,6 +5,7 @@ import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
 import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
 import { countOf, countUnit, type KindInfo } from "@/lib/interactions/kinds";
+import { spotlights } from "@/components/interactions/spotlights";
 
 // D1-03: the word cloud or the response wall for one session layer. On the TV
 // it follows the arrival flow; a mirror or phone shows each frame at once.
@@ -55,6 +56,8 @@ type Spot = { key: string; text: string; meta: string };
 function spotOf(frame: LiveSnapshot | null): Spot | null {
   const key = frame?.state.spotlight_key;
   if (!frame || !key || frame.state.tv_content !== "session") return null;
+  const own = frame.session ? spotlights[frame.session.interaction] : undefined;
+  if (own) { const spot = own(frame, key); return spot ? { key, ...spot } : null; }
   if (frame.session?.interaction === "word_cloud") {
     const word = frame.state.results.words.find(item => item.key === key);
     return word ? { key, text: word.text, meta: `${word.count} ${word.count === 1 ? "mention" : "mentions"}` } : null;
