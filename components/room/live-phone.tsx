@@ -10,6 +10,7 @@ import { browserStore } from "@/lib/phone/outbox";
 import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { useLivePhone } from "./use-live-phone";
+import { QaAsk } from "@/components/interactions/qa/qa-ask";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
 const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Sending", failed: "Not sent" } as const;
@@ -123,7 +124,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
 
   return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={(takesInput || view?.interaction === "content") && !phoneContentWaits(view) ? "phone-answering" : "phone-waiting"}>
     <div className="ph-texture" aria-hidden="true" />
-    <header className="ph-head"><span className="ph-church">{church}</span>{marker}</header>
+    <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} />{marker}</header>
     <div className="ph-body">
       {phone.fresh && !bannerSeen && room && room.answers.length > 0 && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
         <span>Signed in on this phone. Your earlier answers are here.</span><button type="button" onClick={() => setBannerSeen(true)}>OK</button></p>}
@@ -146,7 +147,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
               ? <p className="ph-who"><span className="ph-marker">Private</span><span><strong>Who sees my answers?</strong> Only the facilitators, with your name. They never show on the screen.</span></p>
               : <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>)}
-            {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} name={name || room?.name} send={answer => structured(answer)}
+            {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}
               change={(id, answer) => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "change", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) }); }}
               withdraw={id => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" }); }} />}
             {!Input && mine.length > 0 && <ul className="ph-answers" aria-label="Your answers">{mine.map(a => <AnswerCard key={a.id} answer={a} editable={takesInput}

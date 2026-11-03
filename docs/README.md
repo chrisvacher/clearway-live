@@ -9,6 +9,7 @@
 - `interaction-engine.md`: the room engine for every interaction, and the content screens (milestone 3, step 1).
 - `bar-family.md`: multiple choice, scale, ranking with Add an option, 100 points and statements on one live bar component (milestone 3, step 2).
 - `grid-form-sign.md`: the 2x2 grid, the private form and sign together (milestone 3, step 3).
+- `qa.md`: Q&A with votes and folding, Spotlight over any session and Questions any time (INT-03, milestone 3, step 4).
 - `practice-room-script.md`: the milestone 2 acceptance run for Chris, on real devices and venue wifi.
 - `prd.md`: the full PRD. Export it from the PRD doc in Claude (Export, Markdown) and save it here as `prd.md`. It is the source of truth.
 

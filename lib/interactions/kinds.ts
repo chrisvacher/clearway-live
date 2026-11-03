@@ -25,8 +25,11 @@ export const isInteraction = (value: unknown): value is InteractionKind => inter
 export function countOf(results: { total: number; people: number }, counts: KindInfo["counts"] | undefined) {
   return counts === "people" ? results.people : results.total;
 }
-export function countUnit(n: number, counts: KindInfo["counts"] | undefined) {
-  return counts === "people" ? "answering" : n === 1 ? "answer" : "answers";
+// A kind may name what it counts (Q&A counts questions).
+export const countWords: Partial<Record<InteractionKind, [string, string]>> = { qa: ["question", "questions"] };
+export function countUnit(n: number, counts: KindInfo["counts"] | undefined, kind?: InteractionKind) {
+  const words = kind ? countWords[kind] : undefined;
+  return counts === "people" ? "answering" : words ? words[n === 1 ? 0 : 1] : n === 1 ? "answer" : "answers";
 }
 
 // Content screens (PRD "Content screens").

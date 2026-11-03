@@ -4,7 +4,7 @@ import { Board, reducedMotion, tokenMs, type BoardKind } from "@/lib/tv/board";
 import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
 import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
-import { countOf, countUnit, type KindInfo } from "@/lib/interactions/kinds";
+import { countOf, countUnit, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { spotlights } from "@/components/interactions/spotlights";
 
 // D1-03: the word cloud or the response wall for one session layer. On the TV
@@ -25,10 +25,10 @@ export function LiveBoard({ kind, session, frame, flow }: { kind: BoardKind; ses
 // The count climbs on the same gentle spring as the board, in step with the
 // answers the TV is showing, never restarting a tick with each batch. It sits in the
 // bottom right corner: "8 answering" for one-answer-per-person kinds, "23 answers" for text.
-export function Tally({ flow, results, counts }: { flow?: TvFlow | null; results: LiveResults; counts?: KindInfo["counts"] }) {
-  const el = useRef<HTMLSpanElement>(null), mode = useRef(counts);
-  mode.current = counts;
-  const write = (node: HTMLElement, n: number) => { node.replaceChildren(Object.assign(document.createElement("b"), { textContent: String(n) }), ` ${countUnit(n, mode.current)}`); };
+export function Tally({ flow, results, counts, kind }: { flow?: TvFlow | null; results: LiveResults; counts?: KindInfo["counts"]; kind?: InteractionKind }) {
+  const el = useRef<HTMLSpanElement>(null), mode = useRef(counts), named = useRef(kind);
+  mode.current = counts; named.current = kind;
+  const write = (node: HTMLElement, n: number) => { node.replaceChildren(Object.assign(document.createElement("b"), { textContent: String(n) }), ` ${countUnit(n, mode.current, named.current)}`); };
   const total = countOf(results, counts);
   useLayoutEffect(() => {
     const node = el.current; if (!node || !flow) return;
@@ -48,8 +48,8 @@ export function Tally({ flow, results, counts }: { flow?: TvFlow | null; results
       if (!raf) { last = performance.now(); raf = requestAnimationFrame(run); }
     });
     return () => { off(); cancelAnimationFrame(raf); };
-  }, [flow, counts]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <span ref={el} className="tv-tally">{flow ? null : <><b>{total}</b> {countUnit(total, counts)}</>}</span>;
+  }, [flow, counts, kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <span ref={el} className="tv-tally">{flow ? null : <><b>{total}</b> {countUnit(total, counts, kind)}</>}</span>;
 }
 
 type Spot = { key: string; text: string; meta: string };

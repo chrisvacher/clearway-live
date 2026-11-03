@@ -10,6 +10,7 @@ import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, burstLeft, roomSizes, useSecondTap } from "./live-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { controlPanels } from "@/components/interactions/control-panels";
+import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -69,6 +70,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           <LiveControls room={room} variant="laptop" onItems={() => document.getElementById("ctl-items-title")?.scrollIntoView({ block: "start", behavior: "smooth" })} />
           <label className="ctl-size" htmlFor="ctl-room-size">Room size<select id="ctl-room-size" value={frame?.display?.room_size ?? "very_small"} disabled={Boolean(room.pending) || !frame} onChange={e => void room.press("room_size", { size: e.target.value as RoomSize })}>{roomSizes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="show-help">Scales all TV type at once.</span></label>
           <ItemList room={room} />
+          <QaAnyTime room={room} />
           {KindPanel && <KindPanel room={room} />}
         </>}
       </main>

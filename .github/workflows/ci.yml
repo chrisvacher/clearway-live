@@ -82,6 +82,8 @@ jobs:
         run: npm run test:bars
       - name: Test the 2x2 grid, private form and sign together with 50 simulated phones in real browsers
         run: npm run test:grid-form-sign
+      - name: Test Q&A (INT-03) on a paired TV, phones and 50 simulated phones in real browsers
+        run: npm run test:qa
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

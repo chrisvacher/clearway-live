@@ -30,7 +30,8 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   if (unhidden) return { kind: "snapshot", value: current };
   const visible = [...answers.values()].map(answer => hiddenKeys.size && answer.answers.some(item => hiddenKeys.has(item.key))
     ? { ...answer, answers: answer.answers.filter(item => !hiddenKeys.has(item.key)) } : answer);
-  return { kind: "applied", value: { ...current, state: event.state, session: event.session, display: event.display ?? current.display, presence: event.presence ?? current.presence, answers: visible, version } };
+  return { kind: "applied", value: { ...current, state: event.state, session: event.session, display: event.display ?? current.display, presence: event.presence ?? current.presence,
+    qa: event.qa !== undefined ? event.qa : current.qa, answers: visible, version } };
 }
 
 export function adoptSnapshot(current: LiveSnapshot | null, next: LiveSnapshot) {

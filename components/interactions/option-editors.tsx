@@ -6,6 +6,7 @@ import { ContentOptions } from "@/components/run-of-show/content-options";
 import { barDefaults, ChoiceOptions, PointsOptions, RankingOptions, ScaleOptions, StatementsOptions } from "@/components/interactions/bars/bar-options";
 import { FormOptionsEditor, GridOptionsEditor, SignOptionsEditor } from "@/components/interactions/grid-form-sign/options";
 import { gridPresets } from "@/lib/interactions/grid-form-sign";
+import { QaOptions } from "@/components/interactions/qa/qa-options";
 
 // Per-interaction settings in the run of show (SET-07). Each kind's editor writes only
 // session.options; the database's options_<kind> normalizes and checks it on Save.
@@ -21,6 +22,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
   grid: GridOptionsEditor,
   form: FormOptionsEditor,
   sign: SignOptionsEditor,
+  qa: QaOptions,
 };
 // Each kind's starting options and limits when it is chosen.
 export type KindDefaults = Partial<Pick<ShowSession, "max_sends" | "max_characters" | "max_words" | "options">>;
@@ -36,4 +38,5 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   grid: { options: { preset: "custom", ...gridPresets.custom, items: [] } },
   form: { options: { questions: [{ key: "q1", text: "What would make this time a win for you?" }] } },
   sign: { options: { text: "" } },
+  qa: { max_sends: 10, max_characters: 200, max_words: 50, options: { any_time: false } },
 };
