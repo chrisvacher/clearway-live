@@ -11,9 +11,12 @@
 /* ---------- TV: the grid ---------- */
 .tv-board.gfs-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 64px; font-size: var(--cwl-fs-tv-floor); }
 .gfs-plotwrap { position: relative; display: grid; grid-template-columns: calc(var(--cwl-fs-tv-floor) * 1.6) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) calc(var(--cwl-fs-tv-floor) * 1.7); column-gap: 12px; min-height: 0; }
-.gfs-yname { grid-row: 1; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); display: flex; justify-content: space-between; align-items: center; font-weight: var(--fw-bold); color: var(--cwl-text); white-space: nowrap; }
+.gfs-yname { grid-row: 1; grid-column: 1; writing-mode: vertical-rl; transform: rotate(180deg); display: flex; justify-content: space-between; align-items: center; gap: 0.4em; font-weight: var(--fw-bold); color: var(--cwl-text); white-space: nowrap; }
 .gfs-xname { grid-row: 2; grid-column: 2; display: flex; justify-content: space-between; align-items: center; font-weight: var(--fw-bold); color: var(--cwl-text); white-space: nowrap; }
 .gfs-yname span:not(.n), .gfs-xname span:not(.n) { font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+/* The vertical axis is shorter than the horizontal one: its two ends sit a little smaller and
+   never touch the axis name, even when the plot is short. */
+.gfs-yname span:not(.n) { font-size: 0.8em; }
 .gfs-plot { grid-row: 1; grid-column: 2; position: relative; min-height: 0; border-left: 4px solid var(--cwl-cut-line); border-bottom: 4px solid var(--cwl-cut-line); }
 .gfs-mid-x, .gfs-mid-y { position: absolute; background: var(--cwl-border); }
 .gfs-mid-x { left: 50%; top: 0; bottom: 0; width: 2px; }
