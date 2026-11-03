@@ -12,6 +12,8 @@ import { TvMirror } from "@/components/tv/tv-mirror";
 import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
+import { AiPanel } from "@/components/interactions/ai/ai-panel";
+import { aiPressNames } from "@/lib/interactions/ai";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -77,6 +79,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
         </>}
       </main>
       <aside className="ctl-col ctl-side">
+        <AiPanel room={room} />
         <Private title="Room">
           <div className="ctl-stats">
             <div><b>{counts ? counts.signed_in : "·"}</b><span>Signed in</span></div>
@@ -89,7 +92,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
         <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>
         <Private title="Presenter notes">{current ? <><p className="ctl-label">{current.title}</p><p className="ctl-notes">{current.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing is live.</p>}</Private>
-        {status?.controls.length ? <Private title="Recent presses"><ul className="ctl-log">{status.controls.slice(0, 5).map(c => <li key={c.id}><span>{c.by || "The room"}</span> {c.action.replaceAll("_", " ")}</li>)}</ul></Private> : null}
+        {status?.controls.length ? <Private title="Recent presses"><ul className="ctl-log">{status.controls.slice(0, 5).map(c => <li key={c.id}><span>{c.by || "The room"}</span> {aiPressNames[c.action] ?? c.action.replaceAll("_", " ")}</li>)}</ul></Private> : null}
       </aside>
     </div>
     <Toasts room={room} />

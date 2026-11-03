@@ -8,6 +8,7 @@ import { LiveBars, LiveScale } from "@/components/interactions/bars/tv-bars";
 import { GridView } from "@/components/interactions/grid-form-sign/grid-view";
 import { FormView, SignView } from "@/components/interactions/grid-form-sign/sign-view";
 import { QaTv } from "@/components/interactions/qa/qa-tv";
+import { WallView } from "@/components/interactions/ai/wall-view";
 
 // The TV view for each kind that takes input. A view draws from the server's results and
 // animates from what is on screen to what arrives: it never redraws, never resets a bar to
@@ -17,7 +18,7 @@ import { QaTv } from "@/components/interactions/qa/qa-tv";
 export type TvViewProps = { session: string; frame: LiveSnapshot; flow?: TvFlow | null };
 export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>>> = {
   word_cloud: props => <LiveBoard kind="word_cloud" {...props} />,
-  wall: props => <LiveBoard kind="wall" {...props} />,
+  wall: WallView,
   choice: props => <LiveBars kind="choice" {...props} />,
   scale: props => <LiveScale {...props} />,
   ranking: props => <LiveBars kind="ranking" {...props} />,

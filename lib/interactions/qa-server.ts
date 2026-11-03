@@ -8,6 +8,7 @@ import { uuid } from "@/lib/room/identity";
 import { limitedJson } from "@/lib/server/request";
 import { roomMutation } from "@/lib/live/mutation";
 import { askBody, outboxStatus, voteBody } from "./qa";
+import { kickAi } from "@/lib/ai/trigger";
 
 // A phone's Q&A calls (Ask any time, votes, its own votes), under its own room sign-in.
 // Every rule is the database's; this only checks the shape and carries the session cookies.
@@ -37,6 +38,7 @@ export async function askAnyTime(client: SupabaseClient, engagement: string, raw
   if (!input) return { data: { status: "invalid_request" }, status: 422 };
   const { data, error } = await roomMutation(client, engagement, () => client.rpc("qa_ask", { p_engagement: engagement, p_id: input.id, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt, p_uncertainty: input.uncertaintyMs }));
   if (error) throw error;
+  if (data.status === "accepted" && typeof data.session === "string") kickAi(engagement, data.session);
   return { data, status: statusCode(data.status) };
 }
 export async function castVote(client: SupabaseClient, engagement: string, raw: Record<string, unknown> | null) {

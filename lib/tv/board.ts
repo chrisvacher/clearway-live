@@ -4,6 +4,8 @@
 import type { LiveAnswer, LiveSnapshot } from "../live/types";
 import type { Shown } from "./flow";
 import { fitScale, planField, springRate, springStep } from "./motion";
+import { absorbedInto, type AiWord } from "../interactions/ai";
+import { aiGlyphEl } from "@/components/interactions/ai/ai-dom";
 
 export function tokenMs(el: Element, name: string) {
   const value = getComputedStyle(el).getPropertyValue(`--${name}`).trim();
@@ -38,7 +40,7 @@ export class Field {
   private last: FieldEntry[] | null = null;
   private observer?: ResizeObserver;
   constructor(private root: HTMLElement, private create: (key: string) => HTMLElement,
-    private opt: { gapX: number; gapY: number; fill: number; floor: () => number; maxWidth: number }) {
+    private opt: { gapX: number; gapY: number; fill: number; floor: () => number; maxWidth: number; onResize?: () => void }) {
     let width = 0, height = 0;
     if (typeof ResizeObserver === "function") {
       this.observer = new ResizeObserver(() => {
@@ -48,14 +50,26 @@ export class Field {
     }
     void document.fonts?.ready.then(() => this.replan());
   }
-  replan() { if (this.last && this.root.isConnected) this.set(this.last); }
+  // A field that may show fewer items when space shrinks (the wall's groups) decides again itself.
+  replan() { if (!this.last || !this.root.isConnected) return; if (this.opt.onResize) this.opt.onResize(); else this.set(this.last); }
   destroy() { this.observer?.disconnect(); }
   element(key: string) { const it = this.items.get(key); return it && !it.going ? it.el : null; }
+  // AI combines: a word leaving glides into its survivor's place as it fades (pass 3, INT-01).
+  glideInto(key: string, into: string) {
+    const it = this.items.get(key), to = this.items.get(into);
+    if (it?.going && to && !reducedMotion(this.root)) { it.tx = to.tx; it.ty = to.ty; it.rest = false; }
+  }
+  // Undo plays it backwards: the word leaves the survivor's place for one of its own.
+  startFrom(key: string, from: string) {
+    const it = this.items.get(key), at = this.items.get(from);
+    if (it && at && !it.going && !reducedMotion(this.root)) { it.x = at.x; it.y = at.y; it.o = Math.min(it.o, 0.4); it.rest = false; }
+  }
   private measure(it: FieldItem, size: number) {
     const keep = it.el.style.fontSize; it.el.style.fontSize = `${size}px`;
     const box = { w: it.el.offsetWidth, h: it.el.offsetHeight }; it.el.style.fontSize = keep; return box;
   }
-  set(list: FieldEntry[], instant = false) {
+  // Returns whether every item found a place of its own (the caller may show fewer).
+  set(list: FieldEntry[], instant = false): boolean {
     const root = this.root, width = root.clientWidth, height = root.clientHeight, snap = instant || reducedMotion(root);
     const want = new Set(list.map(entry => entry.key));
     this.items.forEach((it, key) => { if (!want.has(key)) it.going = true; });
@@ -73,7 +87,7 @@ export class Field {
       entry.update(it.el);
     }
     this.last = list;
-    if (width < 40 || height < 40) return;
+    if (width < 40 || height < 40) return true;
     const { gapX, gapY, fill, maxWidth } = this.opt, floor = this.opt.floor();
     let area = 0;
     for (const entry of list) { const box = this.measure(this.items.get(entry.key)!, entry.size); area += (box.w + gapX) * (box.h + gapY); }
@@ -100,6 +114,7 @@ export class Field {
       if (snap) { it.x = it.tx; it.y = it.ty; it.fs = it.tfs; it.vx = it.vy = it.vfs = 0; if (instant) it.o = 1; }
     });
     this.step(0);
+    return plan.ok;
   }
   step(dt: number) {
     const root = this.root, reduced = reducedMotion(root), now = performance.now();
@@ -259,6 +274,19 @@ export class ArrivalOrder {
   }
 }
 
+// A combined word carries the AI glyph beside it (pass 3 change 14); built only when it changes.
+function wordContent(el: HTMLElement, word: AiWord) {
+  const sign = `${word.ai ? "ai" : ""}|${word.text}`;
+  if (word.ai) el.setAttribute("aria-label", `${word.text}, ${word.count}, combined by AI`); else el.removeAttribute("aria-label");
+  if (el.dataset.content === sign) return;
+  el.dataset.content = sign;
+  if (word.ai) {
+    const wrap = document.createElement("span"); wrap.className = "ai-word";
+    wrap.append(document.createTextNode(word.text), aiGlyphEl());
+    el.replaceChildren(wrap);
+  } else el.textContent = word.text;
+}
+
 export type BoardKind = "word_cloud" | "wall";
 // One board per session layer. It shows frames for its own session only, so a
 // leaving layer keeps its last picture while the next one cross-fades in.
@@ -270,6 +298,7 @@ export class Board {
   private raf = 0;
   private settle?: ReturnType<typeof setTimeout>;
   private first = true;
+  private absorbed = new Map<string, string>();
   constructor(private root: HTMLElement, private kind: BoardKind, private session: string) {
     root.dataset.board = kind;
     if (kind === "word_cloud") {
@@ -320,9 +349,17 @@ export class Board {
     const moment = words.some(word => isNew.has(word.key) && word.level !== "leader");
     this.chips!.set(singles.map(word => ({ key: word.key, text: word.text, isNew: isNew.has(word.key) })), instant);
     this.field!.set(repeated.map(word => ({ key: word.key, size: word.size * scale, update: el => {
-      el.textContent = word.text;
+      wordContent(el, word);
       el.className = `tv-word ${word.level === "leader" ? "is-leader" : "is-repeated"}${isNew.has(word.key) && word.level !== "leader" ? " is-new" : ""}`;
     } })), instant);
+    // AI combines and their undo animate between where the words were and where they go.
+    const absorbed = new Map<string, string>();
+    for (const word of words as AiWord[]) for (const key of word.merged ?? []) absorbed.set(key, word.key);
+    if (!instant) {
+      for (const [key, into] of absorbed) if (this.absorbed.get(key) !== into) this.field!.glideInto(key, absorbedInto(key, words as AiWord[]) ?? into);
+      for (const [key, from] of this.absorbed) if (!absorbed.has(key)) this.field!.startFrom(key, from);
+    }
+    this.absorbed = absorbed;
     if (moment) this.moment();
   }
   private wall(frame: LiveSnapshot, fresh: string | null, instant: boolean) {

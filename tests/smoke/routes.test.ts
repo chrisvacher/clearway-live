@@ -23,6 +23,8 @@ const roomAttendee = "50000000-0000-4000-8000-000000000011";
 const emails: { to: string[]; text: string; html: string }[] = [];
 const inviteBatches = new Map<string,Record<string,unknown>>();
 const sentBatches:string[]=[];
+// Step 5: the engagement's AI setting drives the sign-in line and the invite paragraph.
+let fixtureAi=false;const sentInvites:string[]=[];
 let failedInviteBatch:string|null=null,combinedImports=0;
 const roomDevices = new Map<string,{proof:string;code:string;approved:boolean;claim?:string}>();
 const roomChallenges = new Map<string,{email:string;code:string;link:string;consumed:boolean}>();
@@ -166,7 +168,7 @@ before(async () => {
       return send(mode === "allowed" ? [profile] : []);
     }
     if (url.pathname === "/rest/v1/engagements") {
-      if (url.searchParams.get("id") === "eq." + roomId) return send([{ id:roomId,church_id:roomId,title:"Room fixture",team_hub_client_id:null,team_hub_engagement_id:null,base_year:2026,lens_names:["Congregation","Community","Leadership","Operations","Learning"],type:"wayfinding",status:"pre_call",how_the_room_decides:"We decide together.",settings:{neutral_join_message:false,private_note:tripwire},churches:{name:"Fixture church",deleted:false}}]);
+      if (url.searchParams.get("id") === "eq." + roomId) return send([{ id:roomId,church_id:roomId,title:"Room fixture",team_hub_client_id:null,team_hub_engagement_id:null,base_year:2026,lens_names:["Congregation","Community","Leadership","Operations","Learning"],type:"wayfinding",status:"pre_call",how_the_room_decides:"We decide together.",settings:{neutral_join_message:false,private_note:tripwire,ai_enabled:fixtureAi},churches:{name:"Fixture church",deleted:false}}]);
       return send([{ id: "engagement-a", title: "Assigned engagement", status: "setup" }]);
     }
     // Step 6a: the invite links to the engagement's ready self-paced sessions.
@@ -179,7 +181,7 @@ before(async () => {
     if(url.pathname==="/emails/batch") {
       let raw="";for await(const chunk of req)raw+=chunk;const payload=JSON.parse(raw);assert.equal(payload.length,1);assert.equal(payload[0].to[0],"ann@example.org");assert.match(payload[0].text,/We decide together/);
       if(req.headers["idempotency-key"]===failedInviteBatch){failedInviteBatch=null;return send({message:"Temporary fixture failure"},500);}
-      sentBatches.push(String(req.headers["idempotency-key"]));return send({data:[{id:randomUUID()}]});
+      sentBatches.push(String(req.headers["idempotency-key"]));sentInvites.push(payload[0].text);return send({data:[{id:randomUUID()}]});
     }
     if(url.pathname==="/rest/v1/rpc/queue_engagement_invites") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);if(mode!=="allowed")return send({message:"denied"},403);
@@ -214,6 +216,9 @@ before(async () => {
       if(body.token_hash?.startsWith("fixture-tv-")){const mode="tv:"+body.token_hash.slice(11);return send({access_token:token(mode),refresh_token:"refresh-"+mode,expires_in:3600,token_type:"bearer",user:user(mode)});}
       assert.equal(body.token_hash,"server-only-magic-token");
       return send({access_token:token("room"),refresh_token:"refresh-room",expires_in:3600,token_type:"bearer",user:user("room")});
+    }
+    if (url.pathname === "/rest/v1/rpc/room_ai") {
+      assert.equal(req.headers.apikey,tripwire);let raw="";for await(const chunk of req)raw+=chunk;return send(JSON.parse(raw).p_engagement===roomId&&fixtureAi);
     }
     if (url.pathname === "/rest/v1/rpc/room_public_info") {
       let raw="";for await(const chunk of req)raw+=chunk;const body=JSON.parse(raw);
@@ -766,6 +771,45 @@ test("the live room and remote are facilitator-only, and presses are validated b
     const page = await fetch(origin + path, { headers: { cookie } }); assert.equal(page.status, 200, path);
     const html = await page.text(); assert.ok(html.includes(text), path); assert.ok(!html.includes(tripwire)); assert.match(page.headers.get("cache-control")!, /no-store/);
   }
+  // The AI panel and its presses are facilitator-only and checked before the room.
+  const aiUrl = origin + `/api/control/${roomId}/ai`;
+  assert.equal((await fetch(aiUrl)).status, 401, "the AI panel is facilitator-only");
+  assert.equal((await fetch(aiUrl, { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify({ id, action: "ai_off", session: id }) })).status, 401);
+  assert.equal((await fetch(aiUrl, { method: "POST", headers: { ...headers, origin: "https://evil.example" }, body: JSON.stringify({ id, action: "ai_off", session: id }) })).status, 403);
+  for (const bad of [{ id, action: "ai_off" }, { id, action: "rename_group", group: id, label: "" }, { id, action: "drop_ai", session: id }])
+    assert.equal((await fetch(aiUrl, { method: "POST", headers, body: JSON.stringify(bad) })).status, 422, JSON.stringify(bad));
   assert.equal((await fetch(origin + `/api/live/${roomId}/tick?surface=control`, { method: "POST", headers })).status, 200);
   assert.equal((await fetch(origin + `/api/live/${roomId}/tick?surface=phone`, { method: "POST", headers })).status, 403);
+});
+
+test("How we use AI is public; the sign-in line and the invite paragraph follow the engagement's AI setting", async () => {
+  const { aiIconCredit, aiInviteParagraph, aiPageParagraphs, aiSignInLine } = await import("../../lib/ai/disclosure");
+  const page = await fetch(origin + "/how-we-use-ai", { redirect: "manual" });
+  assert.equal(page.status, 200, "no sign-in needed");
+  const html = await page.text(), article = html.match(/<article class="ai-disclosure"[\s\S]*?<\/article>/)![0];
+  assert.match(article, /How we use AI<\/h1>/);
+  for (const text of aiPageParagraphs) assert.ok(article.includes(`<p>${text}</p>`), text);
+  assert.ok(article.endsWith(`<p class="ai-disclosure-credit">${aiIconCredit}</p></article>`), "the credit is the last line");
+  assert.doesNotMatch(article.replace(/<[^>]+>/g, " "), /[\u2010-\u2015\u2212]|\s-\s/, "no dashes");
+  assert.equal((html.replace(/<script[\s\S]*?<\/script>/g, "").match(/Flaticon/g) || []).length, 1, "credited once, on this page only");
+  try {
+    fixtureAi = false;
+    assert.ok(!(await (await fetch(origin + "/room/" + roomId)).text()).includes("how-we-use-ai"), "AI off: no line");
+    fixtureAi = true;
+    const room = await (await fetch(origin + "/room/" + roomId)).text();
+    assert.ok(room.includes(`${aiSignInLine} <a href="/how-we-use-ai">How we use AI</a>`), "AI on: the line, its last three words linking to the page");
+    assert.ok(room.indexOf("how-we-use-ai") > room.indexOf(">Sign in</button>"), "under the sign-in button");
+    assert.doesNotMatch(room, /Flaticon/, "no credit on the sign-in screen");
+    const { jar } = await finishLogin("allowed");
+    for (const ai of [true, false]) {
+      fixtureAi = ai;
+      const before = sentInvites.length, batch = randomUUID();
+      const sent = await setupPost(jar, { action: "invite", id: roomId, batch, attendees: [roomAttendee] });
+      assert.equal(sent.data.ok, true);
+      assert.equal(sentInvites.length, before + 1, "one faked email");
+      const text = sentInvites.at(-1)!;
+      assert.equal(text.includes(`${aiInviteParagraph}\n${origin}/how-we-use-ai`), ai, ai ? "AI on: the paragraph and the page link" : "AI off: no paragraph");
+      assert.equal(text.includes("AI"), ai);
+    }
+  } finally { fixtureAi = false; }
 });

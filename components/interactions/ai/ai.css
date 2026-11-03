@@ -1,0 +1,128 @@
+/* AI, live (milestone 3, step 5). Tokens only. The AI icon: design pass 3, change 14. */
+
+/* ---------- The AI icon in its three forms ---------- */
+.cwl-ai-icon { width: 1em; height: 1em; flex: none; display: inline-block; vertical-align: middle; }
+.cwl-ai-badge { display: inline-grid; place-items: center; padding: 0.18em; border-radius: var(--cwl-radius-marker); background: var(--cwl-ai); color: var(--cwl-on-ai); line-height: 0; font-size: var(--cwl-fs-tv-floor); vertical-align: middle; flex: none; }
+.cwl-ai-badge .cwl-ai-icon { width: 1.3em; height: 1.3em; }
+.cwl-ai-glyph { display: inline-block; width: 1.3em; height: 1.3em; flex: none; vertical-align: middle; line-height: 0; }
+.cwl-ai-glyph svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.cwl-ai-stop-start { stop-color: var(--cwl-ai-start); }
+.cwl-ai-stop-end { stop-color: var(--cwl-ai-end); }
+[data-theme="light"] .cwl-ai-glyph g { stroke: var(--cwl-on-ai); stroke-width: 0.5; stroke-linejoin: round; }
+/* Phones, the control surface and the remote: the small badge, deeper shades on light ground. */
+.ph-app .cwl-ai-badge, .ctl-app .cwl-ai-badge, .ctl-remote .cwl-ai-badge, .ph-answer .cwl-ai-badge, .show-editor .cwl-ai-badge { font-size: var(--cwl-fs-phone-micro); border-radius: var(--cwl-radius-marker); padding: 0.2em;
+  background: linear-gradient(115deg, var(--cwl-sky-deep), var(--cwl-soft-lime-deep)); }
+.ctl-app .cwl-ai-glyph g, .ctl-remote .cwl-ai-glyph g { stroke: var(--cwl-on-ai); stroke-width: 0.5; }
+
+/* "AI badge + what AI did", in a foot or a row. */
+.ai-line { display: inline-flex; align-items: center; gap: 0.5em; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ai-line .cwl-ai-badge { font-size: 0.7em; }
+.tv-foot-left .ai-line { font-size: var(--cwl-fs-tv-floor); }
+
+/* ---------- INT-01: a combined word carries the gradient glyph ---------- */
+.tv-word .ai-word { display: inline-flex; align-items: flex-start; gap: 0.12em; }
+.tv-word .cwl-ai-glyph { font-size: var(--cwl-fs-tv-floor); width: 1.6em; height: 1.6em; margin-top: 0.1em; }
+
+/* ---------- INT-02: the wall, AI on (groups beside the answers) or off (cards in arrival order) ---------- */
+.ai-wall { position: relative; flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); margin-bottom: calc(var(--cwl-fs-tv-body) * 0.5); }
+/* Nothing sits behind the count in the corner: the cards fade out above the foot, as the answer column does. */
+.ai-cards:not(.is-turns) { -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent); mask-image: linear-gradient(to bottom, black 85%, transparent); }
+.ai-wall > .ai-wall-split, .ai-wall > .ai-cards { grid-area: 1 / 1; min-height: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.ai-wall[data-ai="on"] > .ai-cards, .ai-wall[data-ai="off"] > .ai-wall-split { opacity: 0; pointer-events: none; }
+.ai-wall-split { display: grid; grid-template-columns: minmax(0, 1fr) calc(600px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px;
+  transition: grid-template-columns var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+/* While the summary shows, the answers column gives it room and stays in view. */
+.ai-wall-split.has-summary { grid-template-columns: minmax(0, 1fr) calc(440px * var(--cwl-tv-scale)); }
+.ai-groups { --ai-gap: 28px; position: relative; display: flex; flex-direction: column; gap: var(--ai-gap); min-width: 0; min-height: 0; }
+.ai-groups-head { display: flex; align-items: center; gap: 0.5em; min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; color: var(--cwl-text-muted); }
+/* While the summary shows, its AI band heads the column, so the groups' own heading steps aside to make room. */
+.ai-wall-split.has-summary .ai-groups-head { display: none; }
+.ai-wall-split.has-summary .ai-group-field { flex: 1 0 calc(var(--cwl-fs-tv-floor) * 1.8); }
+.ai-wall-split.has-summary .ai-groups { --ai-gap: 12px; }
+.ai-groups-head .cwl-ai-badge { font-size: 0.7em; }
+.ai-group-field { position: relative; flex: 1; min-height: 0; }
+.ai-group { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.2em 0.45em; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel);
+  font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; will-change: transform, opacity; }
+.ai-group .n { display: inline-grid; place-items: center; min-width: 1.3em; height: 1.3em; padding: 0 0.3em; border-radius: var(--cwl-radius-marker);
+  font-size: max(var(--cwl-fs-tv-floor), 0.5em); background: var(--cwl-surface); color: var(--cwl-text); font-variant-numeric: tabular-nums; }
+.ai-group .pin { width: 0.6em; height: 0.6em; flex: none; }
+.ai-groups-empty { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-medium); color: var(--cwl-text-muted); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.ai-groups-empty.is-off { opacity: 0; position: absolute; pointer-events: none; }
+.ai-more { flex: none; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; color: var(--cwl-text-muted); }
+.ai-more:empty { display: none; }
+
+/* The AI summary: top of the groups column, under the question. Opening grows its row, so
+   the groups glide down; a refresh cross-fades its text. Never on its own. */
+.ai-summary { flex: 0 1 auto; min-height: 0; display: grid; grid-template-rows: 1fr; margin-bottom: 0; opacity: 1;
+  transition: grid-template-rows var(--cwl-dur-make-room) var(--cwl-ease-signature), margin-bottom var(--cwl-dur-make-room) var(--cwl-ease-signature), opacity var(--cwl-dur-arrive) var(--cwl-ease-arrive); }
+.ai-summary.is-off { grid-template-rows: 0fr; margin-bottom: calc(-1 * var(--ai-gap)); opacity: 0; pointer-events: none; }
+.ai-summary-clip { min-height: 0; overflow: hidden; }
+.ai-summary-box { border-radius: var(--cwl-radius-tv-card); overflow: hidden; background: var(--cwl-surface-panel-small); color: var(--cwl-text-on-panel); }
+.ai-summary-head { display: flex; align-items: center; gap: 14px; padding: 10px 32px; background: var(--cwl-ai); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); color: var(--cwl-on-ai); line-height: 1.2; }
+.ai-summary-head .cwl-ai-icon { width: 1em; height: 1em; }
+.ai-summary-text { margin: 0; padding: 14px 32px 18px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-medium); line-height: 1.2; color: var(--cwl-text-on-panel); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.ai-summary-text.is-fading { opacity: 0; }
+
+/* AI off: answer cards in arrival order, oldest first, so each card keeps its place. A crowded
+   wall steps older cards down to the body size, then the floor, then the oldest take turns. */
+.ai-cards { position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 24px; overflow: hidden; }
+.ai-card { flex: none; max-width: 820px; padding: var(--cwl-tv-card-pad); border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
+  font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere; box-shadow: var(--cwl-shadow-tv); will-change: transform, opacity;
+  transition: box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.ai-card.is-body { font-size: var(--cwl-fs-tv-body); padding: 22px 28px; }
+.ai-card.is-floor { font-size: var(--cwl-fs-tv-floor); padding: 18px 24px; }
+.ai-card.is-resting { display: none; }
+.ai-card.is-newest { box-shadow: 0 0 0 5px var(--cwl-surface), 0 0 0 11px var(--cwl-live); }
+.ai-turns { flex-basis: 100%; order: 99; margin-top: 4px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ai-turns:empty { display: none; }
+[data-motion="reduced"] .ai-summary, [data-motion="reduced"] .ai-summary-text, [data-motion="reduced"] .ai-wall > * { transition-duration: var(--cwl-dur-reduced); }
+
+/* ---------- Phones ---------- */
+.ph-answer-note { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-1) 0 0; color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); }
+
+/* ---------- The control surface and remote ---------- */
+.ai-panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.ai-state { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--cwl-radius-card);
+  background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); font-size: var(--cwl-fs-app-table); }
+.ai-state > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ai-switch { position: relative; width: 44px; height: 26px; flex: none; border-radius: var(--cwl-radius-pill); border: 0; background: var(--cwl-app-border-strong); cursor: pointer; }
+.ai-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--cwl-app-card); transition: transform var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.ai-switch[aria-checked="true"] { background: var(--cwl-app-primary); }
+.ai-switch[aria-checked="true"]::after { transform: translateX(18px); }
+.ai-switch:disabled { opacity: 0.5; cursor: not-allowed; }
+.ai-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ai-meter { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.ai-meter div { display: flex; flex-direction: column; }
+.ai-meter b { font-size: var(--cwl-fs-app-section-title); font-variant-numeric: tabular-nums; }
+.ai-meter span { color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-micro); }
+.ai-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); max-height: 420px; overflow-y: auto; }
+.ai-rows li { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--cwl-app-border); }
+.ai-rows li:last-child { border-bottom: 0; }
+.ai-rows li.is-undone .ai-row-title { color: var(--cwl-app-text-subtle); text-decoration: line-through; }
+.ai-row-n { min-width: 2.2em; text-align: center; font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.ai-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.ai-row-title { font-weight: var(--fw-semibold); }
+.ai-row-sub { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-micro); }
+.ai-row-actions { display: flex; flex-wrap: wrap; gap: var(--space-1); justify-content: flex-end; }
+.ai-rename { display: flex; gap: var(--space-1); flex: 1; }
+.ai-rename input { flex: 1; min-width: 0; min-height: var(--space-8); padding: var(--space-1) var(--space-2); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); font: inherit; }
+.ai-note { color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-micro); }
+.ai-summary-preview { white-space: pre-wrap; }
+.ai-remote { display: flex; flex-direction: column; gap: var(--space-2); }
+.ai-remote .ctl-grid { margin: 0; }
+.ai-wall-split .tv-feed-head { line-height: 1.15; }
+/* FAIL-09's notices, styled like the control surface's banners but their own class, so the TV's banners stay one of a kind. */
+.ai-notice { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-button); color: var(--cwl-app-text); }
+.ai-notice svg { flex: none; margin-top: 2px; }
+.ai-notice.is-warning { background: var(--cwl-app-warning-bg); }
+.ai-notice.is-warning > svg { color: var(--cwl-app-warning); }
+.ai-notice.is-info { background: var(--cwl-app-info-bg); }
+
+/* ---------- The AI disclosure (approved November 3): room sign-in line and "How we use AI" ---------- */
+.surface .ai-disclosure-note { display: flex; align-items: flex-start; gap: var(--space-3); margin: 0; font-size: var(--cwl-fs-phone-label); line-height: 1.45; color: var(--cwl-text-muted); }
+.ai-disclosure-note .cwl-ai-badge { font-size: var(--cwl-fs-phone-micro); margin-top: 0.15em; }
+.ai-disclosure-note a { color: var(--cwl-text); font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: 0.18em; white-space: nowrap; }
+.ai-disclosure h1 { display: flex; align-items: center; gap: var(--space-3); }
+.ai-disclosure h1 .cwl-ai-badge { font-size: var(--cwl-fs-phone-label); }
+.surface .ai-disclosure p { font-size: var(--cwl-fs-phone-body); line-height: 1.55; color: var(--cwl-text); }
+.surface .ai-disclosure .ai-disclosure-credit { margin-top: var(--space-8); font-size: var(--cwl-fs-phone-label); color: var(--cwl-text-muted); }

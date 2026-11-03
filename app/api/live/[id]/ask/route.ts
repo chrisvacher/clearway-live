@@ -2,6 +2,8 @@ import type { NextRequest } from "next/server";
 import { askAnyTime, phoneQa } from "@/lib/interactions/qa-server";
 
 export const dynamic = "force-dynamic";
+// AI work runs after the response (lib/ai/trigger.ts) and may take a while; the answer never waits for it.
+export const maxDuration = 60;
 // Questions any time: an Ask from any session's phone, into the engagement's one pool.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

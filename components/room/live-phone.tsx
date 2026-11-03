@@ -13,14 +13,17 @@ import { useLivePhone } from "./use-live-phone";
 import { QaAsk } from "@/components/interactions/qa/qa-ask";
 import { requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
 import "./self-paced.css";
+import { AiBadge } from "@/components/interactions/ai/ai-icon";
+import { combinedWith } from "@/lib/interactions/ai";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
 const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Sending", failed: "Not sent" } as const;
 
-function AnswerCard({ answer, editable, onChange, onWithdraw, onDismiss }: { answer: ShownAnswer; editable: boolean; onChange: () => void; onWithdraw: () => void; onDismiss: () => void }) {
+function AnswerCard({ answer, editable, onChange, onWithdraw, onDismiss, combined }: { answer: ShownAnswer; editable: boolean; onChange: () => void; onWithdraw: () => void; onDismiss: () => void; combined?: string | null }) {
   const Icon = answer.status === "sent" ? Check : answer.status === "saved" ? WifiOff : answer.status === "sending" ? RefreshCw : null;
   return <li className={`ph-answer is-${answer.status}`}>
     <div className="ph-answer-row"><span className="ph-answer-text">{answer.text}</span><span className="ph-answer-status">{Icon && <Icon size={16} aria-hidden="true" />}{statusLabel[answer.status]}</span></div>
+    {combined && <p className="ph-answer-note"><AiBadge />On the screen with {combined}</p>}
     {answer.status === "failed" ? <div className="ph-answer-actions"><span>{answer.reason}</span><button type="button" onClick={onDismiss}>Dismiss</button></div>
       : editable && answer.status === "sent" ? <div className="ph-answer-actions"><button type="button" onClick={onChange}>Change</button><button type="button" onClick={onWithdraw}>Withdraw</button></div> : null}
   </li>;
@@ -188,7 +191,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
             {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}
               change={(id, answer) => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "change", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) }); }}
               withdraw={id => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" }); }} />}
-            {!Input && mine.length > 0 && <ul className="ph-answers" aria-label="Your answers">{mine.map(a => <AnswerCard key={a.id} answer={a} editable={takesInput}
+            {!Input && mine.length > 0 && <ul className="ph-answers" aria-label="Your answers">{mine.map(a => <AnswerCard key={a.id} answer={a} editable={takesInput} combined={combinedWith(frame, a.id)}
               onChange={() => { setEditing({ id: a.id, revision: revisionOf(a) }); setDraft(a.text); input.current?.focus(); }}
               onWithdraw={() => phone.submit({ id: a.id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" })}
               onDismiss={() => phone.dismiss(a.id, a.revision)} />)}</ul>}

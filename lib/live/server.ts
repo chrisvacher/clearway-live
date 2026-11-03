@@ -10,6 +10,7 @@ import { limitedJson } from "@/lib/server/request";
 import { submissionRequest } from "./protocol";
 import type { LiveSnapshot } from "./types";
 import { roomMutation } from "./mutation";
+import { kickAi } from "@/lib/ai/trigger";
 
 export async function handleLive(request: NextRequest, engagement: string) {
   const config = authConfig();
@@ -43,6 +44,8 @@ export async function handleLive(request: NextRequest, engagement: string) {
       const { data, error } = await roomMutation(client, engagement, () => client.rpc("live_submit", { p_engagement: engagement, p_id: input.id, p_session: input.session, p_revision: input.revision,
         p_action: input.action, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt || null, p_uncertainty: input.uncertaintyMs || 0, p_value: input.value ?? null }));
       if (error) throw error;
+      // AI works after the answer is stored and broadcast, never before (PRD "AI").
+      if (data.status === "accepted") kickAi(engagement, input.session);
       return result(data, ["accepted", "duplicate"].includes(data.status) ? 200 : data.status === "denied" ? 403 : ["closed", "conflict"].includes(data.status) ? 409 : 422);
     }
     // Every page uses the same room version. Restart if a concurrent commit moved it.

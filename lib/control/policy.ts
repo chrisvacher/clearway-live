@@ -69,6 +69,8 @@ export const actionNames: Record<string, string> = {
   extend_burst: "Extend 1 min", end_burst: "End burst", phones_down: "Phones down", open_phones: "Open phones", spotlight: "Spotlight",
   clear_spotlight: "Clear spotlight", hide: "Hide", unhide: "Unhide", refresh_phones: "Refresh phones", tv_on_phones: "TV view on phones",
   room_size: "Room size", close_part: "Close the day", burst_ended: "Burst ended",
+  turn_ai_on: "Turn AI on", turn_ai_off: "Turn AI off", undo_ai_combine: "Undo an AI combine", undo_ai_group: "Undo an AI group", redo_ai_group: "Redo an AI group",
+  pin_group: "Pin a group", unpin_group: "Unpin a group", rename_group: "Rename a group", undo_last_ai_change: "Undo last AI change", show_summary: "Show summary", hide_summary: "Hide summary",
 };
 // Copy shown after a refused press. Plain, verb-led, no dashes.
 export function resultMessage(result: ControlResult) {

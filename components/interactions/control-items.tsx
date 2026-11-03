@@ -4,6 +4,7 @@ import type { InteractionKind } from "@/lib/interactions/kinds";
 import type { Room } from "@/components/control/live-controls";
 import { FormAnswers, GridItems, SignNames } from "@/components/interactions/grid-form-sign/control";
 import { QaPanel } from "@/components/interactions/qa/qa-panel";
+import { AiWallPanel, AiWordsPanel } from "@/components/interactions/ai/ai-panel";
 
 // The control surface's item list for a kind that needs its own (merging grid items,
 // reading private answers, closing signing). Kinds not listed use the general list of
@@ -14,4 +15,6 @@ export const controlItems: Partial<Record<InteractionKind, ComponentType<Control
   form: FormAnswers,
   sign: SignNames,
   qa: QaPanel,
+  word_cloud: AiWordsPanel,
+  wall: AiWallPanel,
 };

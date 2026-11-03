@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Eye, EyeOff, Pencil, RotateCcw, Sun, SunDim, Undo2, X } from "lucide-react";
 import type { Room } from "@/components/control/live-controls";
 import { askedBy, qaMessage, type QaAction, type QaQuestion } from "@/lib/interactions/qa";
+import { AiBadge } from "@/components/interactions/ai/ai-icon";
 
 type Status = { status: string; version: number; spotlight: string | null; session: { id: string; title: string; state: string; live: boolean; any_time: boolean } | null;
   questions: QaQuestion[]; counts?: { questions: number; folded: number; answered: number; hidden: number } };
@@ -61,7 +62,7 @@ export function QaPanel({ room, onClose, headingId = "ctl-items-title", session 
           q.askers > 1 ? askedBy(q) : null, `${q.votes} ${q.votes === 1 ? "vote" : "votes"}`, q.edited ? "Edited, never refolded" : null].filter(Boolean).join(" · ")}</p>
         {q.edited && q.original && <p className="qa-ctl-meta">Asked as: {q.original}</p>}
         {q.members && q.members.length > 0 && <ul className="qa-ctl-members" aria-label="Folded into this question">{q.members.map(m => <li key={m.id}>
-          <span><span className={`qa-fold-by is-${m.by}`}>{foldLabel[m.by] ?? "Folded"}</span> {m.text}</span>
+          <span><span className={`qa-fold-by is-${m.by}`}>{m.by === "ai" && <AiBadge />}{foldLabel[m.by] ?? "Folded"}</span> {m.text}</span>
           <button className="show-button is-small" disabled={busy} onClick={() => void press("undo_fold", { merge: m.merge })}><Undo2 size={16} aria-hidden="true" />Undo fold</button>
         </li>)}</ul>}
       </div>
