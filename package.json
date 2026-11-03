@@ -33,6 +33,7 @@
     "test:grid-form-sign": "node --import tsx tests/browser/grid-form-sign.ts",
     "test:qa": "node --import tsx tests/browser/qa.ts",
     "test:self-paced": "node --import tsx tests/browser/self-paced.ts",
+    "test:templates": "node --import tsx tests/browser/templates.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

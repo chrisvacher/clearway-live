@@ -1,6 +1,6 @@
 # Run of show and printouts
 
-Milestone 2, PR 2 implements SET-07 and FAIL-10. Open **Edit run of show** from an engagement's setup page. Sessions are grouped into Pre-call, Day 1, Day 2 and Follow-up. Move buttons work by keyboard and touch. A session's part changes in its editor.
+Milestone 2, PR 2 implements SET-07 and FAIL-10. Open **Edit run of show** from an engagement's setup page. Sessions are grouped into Pre-call, Day 1, Day 2 and Follow-up. A session's part changes in its editor. Milestone 3 step 6b replaced the side panel and Move buttons with the drag-to-build builder and its keyboard path, and added templates: see `templates.md`.
 
 The editor follows the approved pass 2 white app shell and 480px private panel. It supports title, segment, church-local planned time and length, mode and opening window, word cloud/wall/content, prompt, phone depth, answer limits, default burst length, join strip, presenter notes, output destination and draft/ready state. Self-paced windows are stored now; scheduled opening belongs to the interaction-library milestone. AI and named-answer settings are not enabled ahead of their milestones.
 

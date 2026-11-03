@@ -150,6 +150,8 @@
   --cwl-dur-spotlight-off: 500ms; /* Spotlight off: base dur-mochary. */
   --cwl-dur-hide: 400ms; /* Hide: the item fades and shrinks away. */
   --cwl-dur-reduced: 150ms; /* Reduced motion: the still equivalent's fade, base dur-fast. */
+  --cwl-dur-app-hover: 200ms; /* App surfaces: hover and press, base dur-base. */
+  --cwl-dur-panel: 300ms; /* App surfaces: side panel sliding in from the right, base dur-slow. */
 
   /* ---------- Motion: easing ---------- */
   --cwl-ease-signature: cubic-bezier(0.25, 0.1, 0.25, 1); /* Base signature easing. Default for every movement. */
