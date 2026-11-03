@@ -161,3 +161,29 @@ test("Texture follows the screen type", () => {
   assert.equal(screenType({ ...f, state: { ...f.state, tv_content: "screen_check" } }), "content");
   assert.equal(screenType(null), "holding");
 });
+
+test("A catch-up snapshot counts its new answers as received; opening and other sessions do not", async () => {
+  const { snapshotArrivals } = await import("../../lib/tv/receipts");
+  const before = frame(3, [{ id: id(1), text: "hope" }]);
+  const after = frame(5, [{ id: id(1), text: "hope" }, { id: id(2), text: "youth" }]);
+  assert.deepEqual(snapshotArrivals(before, after), [{ id: id(2), revision: 0 }]);
+  assert.deepEqual(snapshotArrivals(null, after), [], "the first frame after opening is a baseline");
+  const other = { ...after, state: { ...after.state, live_session_id: id(99) } };
+  assert.deepEqual(snapshotArrivals(before, other), [], "another session's answers were not just delivered");
+  const changed = { ...after, answers: after.answers.map(a => a.id === id(1) ? { ...a, revision: 1 } : a) };
+  assert.equal(snapshotArrivals(after, changed).length, 1, "a change is a new revision");
+});
+
+test("The latency report's verdict, window and percentiles", async () => {
+  const { percentile, reportWindow, verdict } = await import("../../lib/latency/report");
+  assert.equal(verdict({ measured: 100, under_second: 95 }).met, true);
+  assert.equal(verdict({ measured: 100, under_second: 94 }).met, false);
+  assert.match(verdict({ measured: 0, under_second: 0 }).label, /No answers/);
+  const now = Date.parse("2026-11-02T20:00:00Z");
+  assert.deepEqual(reportWindow(null, null, now), { from: "2026-11-02T08:00:00.000Z", to: "2026-11-02T20:00:00.000Z" }, "the last 12 hours by default");
+  assert.equal(reportWindow("2026-10-01T00:00:00Z", null, now).from, "2026-11-02T08:00:00.000Z", "more than 7 days falls back");
+  assert.equal(reportWindow("2026-11-02T19:00:00Z", "2026-11-02T19:30:00Z", now).to, "2026-11-02T19:30:00.000Z");
+  assert.equal(percentile([], 0.95), null);
+  assert.equal(percentile([100, 200, 300, 400, 500], 0.5), 300);
+  assert.equal(percentile([100, 200, 300, 400, 500], 1), 500);
+});

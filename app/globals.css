@@ -539,3 +539,11 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ph-send:disabled { background: var(--cwl-bar-track); color: var(--cwl-text-muted); cursor: not-allowed; }
 .ph-app .tv-mirror { margin-bottom: var(--space-2); }
 @media (prefers-reduced-motion: reduce) { .ph-answer, .ph-burst-fill, .ph-app.is-dimmed .ph-body > *, .ph-texture { transition: none; } }
+
+/* Milestone 2, step 7: the phone to TV report (facilitator only). */
+.latency-report .ctl-private { margin-top: var(--space-6); }
+.latency-verdict { margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-button); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); font-weight: var(--fw-semibold); }
+.latency-verdict.is-met { background: var(--cwl-app-success-bg); }
+.latency-table { width: 100%; margin-top: var(--space-4); border-collapse: collapse; font-size: var(--cwl-fs-app-table); color: var(--cwl-app-text); }
+.latency-table th, .latency-table td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--cwl-app-border); text-align: left; }
+.latency-table th[scope="row"] { font-weight: var(--fw-medium); }

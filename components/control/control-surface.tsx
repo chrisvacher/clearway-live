@@ -77,6 +77,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
             <div><b>{counts ? counts.answers : "·"}</b><span>Answers on the TV{counts?.hidden ? `, ${counts.hidden} hidden` : ""}</span></div>
             <div><b>{counts?.latency_p95_ms != null ? `${(counts.latency_p95_ms / 1000).toFixed(2)}s` : "·"}</b><span>Phone to TV, 95th</span></div>
           </div>
+          <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
         <Private title="Presenter notes">{current ? <><p className="ctl-label">{current.title}</p><p className="ctl-notes">{current.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing is live.</p>}</Private>
