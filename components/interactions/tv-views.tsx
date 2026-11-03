@@ -4,6 +4,7 @@ import type { InteractionKind } from "@/lib/interactions/kinds";
 import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvFlow } from "@/lib/tv/flow";
 import { LiveBoard } from "@/components/tv/live-board";
+import { LiveBars, LiveScale } from "@/components/interactions/bars/tv-bars";
 
 // The TV view for each kind that takes input. A view draws from the server's results and
 // animates from what is on screen to what arrives: it never redraws, never resets a bar to
@@ -14,4 +15,9 @@ export type TvViewProps = { session: string; frame: LiveSnapshot; flow?: TvFlow 
 export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>>> = {
   word_cloud: props => <LiveBoard kind="word_cloud" {...props} />,
   wall: props => <LiveBoard kind="wall" {...props} />,
+  choice: props => <LiveBars kind="choice" {...props} />,
+  scale: props => <LiveScale {...props} />,
+  ranking: props => <LiveBars kind="ranking" {...props} />,
+  points: props => <LiveBars kind="points" {...props} />,
+  statements: props => <LiveBars kind="statements" {...props} />,
 };

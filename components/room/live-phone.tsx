@@ -144,7 +144,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
             {takesInput && <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>}
-            {Input && <Input step={view} mine={mine} open={takesInput} send={answer => structured(answer)}
+            {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} send={answer => structured(answer)}
               change={(id, answer) => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "change", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) }); }}
               withdraw={id => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" }); }} />}
             {!Input && mine.length > 0 && <ul className="ph-answers" aria-label="Your answers">{mine.map(a => <AnswerCard key={a.id} answer={a} editable={takesInput}
