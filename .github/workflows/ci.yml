@@ -80,6 +80,8 @@ jobs:
         run: npm run test:content
       - name: Test the bar family (choice, scale, ranking, 100 points, statements) in real browsers
         run: npm run test:bars
+      - name: Test the 2x2 grid, private form and sign together with 50 simulated phones in real browsers
+        run: npm run test:grid-form-sign
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

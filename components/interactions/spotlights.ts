@@ -1,6 +1,7 @@
 import type { InteractionKind } from "@/lib/interactions/kinds";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { barSpot } from "@/lib/interactions/bars";
+import { signSpot } from "@/lib/interactions/grid-form-sign";
 
 // What Spotlight lifts over the scrim for a kind that spotlights by item key, read from the
 // server's results. Word cloud and the wall are the TV's own. Each step adds its kinds here,
@@ -12,4 +13,5 @@ export const spotlights: Partial<Record<InteractionKind, (frame: LiveSnapshot, k
   ranking: (frame, key) => barSpot("ranking", frame.state.results, key),
   points: (frame, key) => barSpot("points", frame.state.results, key),
   statements: (frame, key) => barSpot("statements", frame.state.results, key),
+  sign: (frame, key) => signSpot(frame.state.results, key),
 };

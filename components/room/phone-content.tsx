@@ -6,7 +6,7 @@ import { contentOf, depthBlocks, plainText, type DepthBlock } from "@/lib/intera
 import { mediaUrl } from "@/lib/interactions/media";
 import type { PhoneStep } from "@/lib/phone/types";
 
-function Blocks({ blocks }: { blocks: DepthBlock[] }) {
+export function Blocks({ blocks }: { blocks: DepthBlock[] }) {
   return <>{blocks.map((block, i) => block.kind === "text" ? <p key={i} className="ph-text ph-depth">{block.text}</p>
     : block.kind === "quote" ? <blockquote key={i} className="ph-quote"><p>{block.text}</p>{block.source && <p className="ph-source">{block.source}</p>}</blockquote>
     : <details key={i} className="ph-section"><summary>{block.title}<ChevronDown size={18} aria-hidden="true" /></summary><Blocks blocks={block.blocks} /></details>)}</>;

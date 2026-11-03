@@ -5,6 +5,8 @@ import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvFlow } from "@/lib/tv/flow";
 import { LiveBoard } from "@/components/tv/live-board";
 import { LiveBars, LiveScale } from "@/components/interactions/bars/tv-bars";
+import { GridView } from "@/components/interactions/grid-form-sign/grid-view";
+import { FormView, SignView } from "@/components/interactions/grid-form-sign/sign-view";
 
 // The TV view for each kind that takes input. A view draws from the server's results and
 // animates from what is on screen to what arrives: it never redraws, never resets a bar to
@@ -20,4 +22,7 @@ export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>
   ranking: props => <LiveBars kind="ranking" {...props} />,
   points: props => <LiveBars kind="points" {...props} />,
   statements: props => <LiveBars kind="statements" {...props} />,
+  grid: GridView,
+  form: FormView,
+  sign: SignView,
 };
