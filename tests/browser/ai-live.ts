@@ -234,7 +234,11 @@ async function main() {
       assert.equal(cards[0], "Three baptisms at Easter", "oldest first");
       assert.equal(cards[cards.length - 1], "Prayer team growing", "newest last");
       await until(async () => (await panel().innerText()).includes("AI is off for this session."), "the control surface says AI is off", 5000);
-      if (process.env.KIT_SHOTS) await delay(4500); // past cwl-delay-quiet, so a crowded wall has stepped its cards down
+      // Once quiet, a crowded wall steps its cards down to the floor and then takes turns: every card shown is whole.
+      await until(async () => layer().locator(".ai-cards").evaluate(box => {
+        const b = box.getBoundingClientRect(), shown = [...box.querySelectorAll<HTMLElement>(".ai-card:not(.is-resting)")];
+        return shown.length > 0 && shown.every(c => c.getBoundingClientRect().bottom <= b.bottom + 1);
+      }), "the crowded wall settles with every shown card whole", 20000);
       await shot(tv, "int-02-ai-off-tv"); await shot(control, "fail-09-ai-off-control");
       await panel().getByRole("switch", { name: "AI for this session" }).click();
       await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "on", "back on, the groups return from what is there", 5000);

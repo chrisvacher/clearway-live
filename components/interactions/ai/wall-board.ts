@@ -79,25 +79,31 @@ class Cards {
     this.cards.forEach((c, id) => c.el.classList.toggle("is-newest", id === fresh));
   }
   // Crowded: step older cards down, then rest the oldest and give them turns.
+  // Steps: 1 older cards to the body size, 2 older to the floor, 3 every card to the floor,
+  // 4 the oldest rest and take turns, so whatever shows is whole and readable.
   private layout() {
-    const cards = this.order.map(id => this.cards.get(id)!).filter(Boolean), keep = 4, older = cards.slice(0, Math.max(0, cards.length - keep));
+    const cards = this.order.map(id => this.cards.get(id)!).filter(Boolean), keep = this.step >= 3 ? 0 : 4, older = cards.slice(0, Math.max(0, cards.length - keep));
     for (const c of cards) c.el.classList.remove("is-body", "is-floor", "is-resting");
     for (const c of older) { c.el.classList.toggle("is-body", this.step === 1); c.el.classList.toggle("is-floor", this.step >= 2); }
     let resting = 0;
-    if (this.step >= 3 && older.length) {
-      // Rest older cards until the rest fit, starting from a rotating offset so every card gets its turn.
-      const n = older.length;
-      for (let i = 0; i < n && this.root.scrollHeight > this.root.clientHeight + 2; i++) { older[(this.offset + i) % n].el.classList.add("is-resting"); resting++; }
+    const rotating = cards.slice(0, Math.max(0, cards.length - 2));
+    if (this.step >= 4 && rotating.length) {
+      // The turns line takes its place first, then the oldest rest until everything else fits,
+      // from a rotating offset so every card gets its turn. The two newest always show.
+      this.turns.textContent = "+ 0 more, taking turns";
+      const n = rotating.length;
+      for (let i = 0; i < n && this.over(); i++) { rotating[(this.offset + i) % n].el.classList.add("is-resting"); resting++; }
     }
     this.turns.textContent = resting ? `+ ${resting} more, taking turns` : "";
+    this.root.classList.toggle("is-turns", resting > 0);
   }
   private over() { return this.root.scrollHeight > this.root.clientHeight + 2; }
   tick(dt: number) {
     const now = performance.now(), quiet = now - this.lastArrival > tokenMs(this.root, "cwl-delay-quiet");
     if (!this.visible) return;
     // One step at a time, each given time to settle: body size, then the floor, then turns.
-    if (quiet && this.step < 3 && now - this.stepAt > tokenMs(this.root, "cwl-dur-regroup") && this.over()) { this.step++; this.stepAt = now; this.flip(() => this.layout()); }
-    if (this.step >= 3 && now - this.turnAt > tokenMs(this.root, "cwl-dur-turn-hold") && this.turns.textContent) {
+    if (quiet && this.step < 4 && now - this.stepAt > tokenMs(this.root, "cwl-dur-regroup") && this.over()) { this.step++; this.stepAt = now; this.flip(() => this.layout()); }
+    if (this.step >= 4 && now - this.turnAt > tokenMs(this.root, "cwl-dur-turn-hold") && this.turns.textContent) {
       this.turnAt = now; this.offset++; this.flip(() => this.layout());
     }
     const reduced = reducedMotion(this.root), rate = springRate(tokenMs(this.root, "cwl-dur-regroup"));

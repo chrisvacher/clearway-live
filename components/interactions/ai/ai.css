@@ -26,7 +26,7 @@
 /* ---------- INT-02: the wall, AI on (groups beside the answers) or off (cards in arrival order) ---------- */
 .ai-wall { position: relative; flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); margin-bottom: calc(var(--cwl-fs-tv-body) * 0.5); }
 /* Nothing sits behind the count in the corner: the cards fade out above the foot, as the answer column does. */
-.ai-cards { -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent); mask-image: linear-gradient(to bottom, black 85%, transparent); }
+.ai-cards:not(.is-turns) { -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent); mask-image: linear-gradient(to bottom, black 85%, transparent); }
 .ai-wall > .ai-wall-split, .ai-wall > .ai-cards { grid-area: 1 / 1; min-height: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .ai-wall[data-ai="on"] > .ai-cards, .ai-wall[data-ai="off"] > .ai-wall-split { opacity: 0; pointer-events: none; }
 .ai-wall-split { display: grid; grid-template-columns: minmax(0, 1fr) calc(600px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px;
