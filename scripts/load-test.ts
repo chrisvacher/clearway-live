@@ -26,10 +26,23 @@ const sentences = ["Teenagers asking to be baptized", "Young families finding us
 export type LoadOptions = { origin: string; room?: string; phones?: number; bursts?: number; gapSeconds?: number; spreadSeconds?: number; reportCookie?: string; bypass?: string; log?: (line: string) => void; random?: () => number };
 export type LoadResult = { sent: number; accepted: number; refused: Record<string, number>; phoneMs: { p50: number | null; p95: number | null; max: number | null }; from: string; to: string; reportUrl: string; report: LatencyReport | null };
 
-class Phone {
+// One simulated phone: a cookie jar and the real phone endpoints. The acceptance kit
+// (tests/browser/acceptance-live.ts) reuses it for every kind.
+export class Phone {
   private jar = new Map<string, string>();
   offset = 0; uncertainty = 60000;
   constructor(private origin: string, private bypass?: string) {}
+  private stamp() { return { sentAt: new Date(Date.now() + this.offset).toISOString(), uncertaintyMs: Math.min(60000, Math.round(this.uncertainty)) }; }
+  // A structured answer (or a change to one, with its id and next revision), as a phone's outbox sends it.
+  async sendValue(room: string, session: string, value: unknown, text = "", answer?: { id: string; revision: number }) {
+    const body = { id: answer?.id ?? randomUUID(), session, revision: answer?.revision ?? 0, action: answer?.revision ? "change" : "submit", text, value, ...this.stamp() };
+    const response = await this.call(`/api/live/${room}`, { method: "POST", body: JSON.stringify(body) });
+    return ((await response.json().catch(() => ({ status: `http_${response.status}` }))) as { status: string }).status;
+  }
+  async vote(room: string, question: string) {
+    const response = await this.call(`/api/live/${room}/vote`, { method: "POST", body: JSON.stringify({ id: randomUUID(), question, revision: 0, on: true, ...this.stamp() }) });
+    return (await response.json().catch(() => ({ status: `http_${response.status}` }))) as { status: string; reason?: string };
+  }
   async call(path: string, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
     headers.set("Origin", this.origin);
@@ -61,6 +74,21 @@ class Phone {
     const data = await response.json().catch(() => ({ status: `http_${response.status}` }));
     return { status: data.status as string, ms: performance.now() - t0 };
   }
+}
+
+// Joins phones to a room by name in batches of ten, then gives every phone one clock: the
+// fastest of several samples against the server, as NTP does (they share this process's clock).
+export async function joinPhones(origin: string, count: number, options: { room?: string; prefix?: string; bypass?: string } = {}) {
+  const room = options.room ?? practiceRoom, phones: Phone[] = [];
+  for (let start = 0; start < count; start += 10) {
+    const batch = Array.from({ length: Math.min(10, count - start) }, () => new Phone(origin, options.bypass));
+    await Promise.all(batch.map((p, i) => p.join(room, `${options.prefix ?? "Load phone"} ${String(start + i + 1).padStart(2, "0")}`)));
+    phones.push(...batch);
+  }
+  let best = { offset: 0, uncertainty: Infinity };
+  for (let i = 0; i < 7; i++) { await phones[0].snapshot(room); if (phones[0].uncertainty < best.uncertainty) best = { offset: phones[0].offset, uncertainty: phones[0].uncertainty }; }
+  for (const p of phones) { p.offset = best.offset; p.uncertainty = best.uncertainty; }
+  return phones;
 }
 
 export async function runLoad(options: LoadOptions): Promise<LoadResult> {
