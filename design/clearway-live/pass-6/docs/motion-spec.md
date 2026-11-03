@@ -1,0 +1,12 @@
+# Milestone 6 motion spec
+
+The screen is alive: every input appears at once, and existing items move, regroup and resize as new input arrives, with no refresh and no reveal step. Setup follows the same rule each time a refresh brings new data from Team Hub. Every prototype is in `screens.html` under Motion.
+
+| Movement | Tokens | What moves | Reduced motion |
+| --- | --- | --- | --- |
+| 1. New responses arriving | `cwl-dur-bar-grow` 600ms, `cwl-ease-signature`, `cwl-dur-settle-color` | Refresh reads Team Hub. The count rolls from its old value to the new total, a chip says how many are new, and bars and scale columns grow in place from their current length. Options stay in survey order | Values in place |
+| 2. A theme growing | `cwl-dur-bar-grow`, `cwl-dur-make-room` 700ms, `cwl-dur-arrive` 500ms | Counts roll and bars grow. Themes trade places by FLIP when the order changes. A new theme arrives | Values and order in place |
+| 3. Merging and rejecting themes | `cwl-dur-regroup` 1200ms, `cwl-ease-calm`, `cwl-dur-hide` 400ms, `cwl-ease-exit`, `cwl-dur-make-room` | The merged theme glides beneath its survivor and fades, the survivor holds a focus ring, then the counts add with a roll. A rejected theme fades and shrinks out and the list closes up | Disappears, counts in place |
+| 4. A Four Helpful Lists card landing | `cwl-dur-arrive`, `cwl-ease-arrive`, `cwl-dur-make-room`, `cwl-dur-new-hold` 1200ms, `cwl-dur-regroup`, `cwl-dur-count` 400ms, `cwl-dur-swell` 400ms | A card slides into its column and takes the Lime moment. A similar card glides beneath its survivor and becomes one, marked AI with how many it holds. Agreement counts tick, the card swells a little, and glides up its column when it passes another | 150ms fade, folds and trades in place |
+| 5. A signal card arriving | `cwl-dur-signal-in` 900ms (new), `cwl-ease-calm`, `cwl-dur-make-room`, `cwl-dur-hide` | Control surface only. A soft fade and an 8px rise, slower than a room arrival, no ring, no color flash, no sound. Cards below make room. Dismiss fades it out and the list closes up. The facilitator's own remote updates in the same moment | In place |
+| 6. The neutral question going to the TV | `cwl-dur-make-room` 700ms, `cwl-ease-signature` | The same crossfade as a session change. The question is prepared behind the live screen and fades in while the live screen, the room's count and the AI line fade back. Back to the wall reverses it | 150ms swap |
