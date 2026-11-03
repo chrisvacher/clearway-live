@@ -47,7 +47,7 @@ export function ContentOptions({ session, value, context, fresh, locked, onChang
     {o.screen === "scripture" && <>{text("reference", "Reference", 100, undefined, "Habakkuk 2:2")}{text("translation", "Translation", 100, "Defaults from the engagement.", context.scripture_translation || "NIV")}</>}
     {o.screen === "holding" && <>{text("line", "Line under the welcome (optional)", 200, undefined, "Coffee is at the back. We start at 9:00.")}
       <label className="is-full" htmlFor="content-outline">The day’s outline (optional)<textarea id="content-outline" rows={5} maxLength={1000} value={String(value.outline ?? "")} onChange={e => set({ outline: e.target.value })} />
-        <span className="show-help">One item per line, a time first if you like: 9:00 Welcome and prayer. Shown in place of the line.</span></label></>}
+        <span className="show-help">One item per line, a time first if you like: 9:00 Welcome and prayer. Up to twelve lines; seven or more show in two columns. Shown in place of the line.</span></label></>}
     {o.screen === "image" && <div className="is-full show-media">
       {o.media && <Image unoptimized src={mediaUrl(context.id, o.media, "control")} alt="The image on the TV" width={320} height={180} className="show-media-preview" />}
       {fresh ? <p className="show-help">Save the session once, then add its image.</p>

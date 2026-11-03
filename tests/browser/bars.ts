@@ -131,32 +131,33 @@ async function main() {
     await step("The run of show edits each kind's options and saves them through the database's check", async () => {
       const editor = await facContext.newPage();
       await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
-      await editor.getByRole("button", { name: "Add session" }).click();
-      await editor.fill("#session-title", "Poll from the editor");
-      await editor.selectOption("#session-interaction", "choice");
-      await editor.getByLabel("Choice 1", { exact: true }).fill("Yes, this year");
-      await editor.getByLabel("Choice 2", { exact: true }).fill("Next year");
-      await editor.getByLabel("Choice 3", { exact: true }).fill("Not yet");
-      await editor.getByRole("button", { name: "Add choice" }).click();
-      await editor.getByLabel("Choice 4", { exact: true }).fill("We need to talk");
-      await editor.getByRole("button", { name: "Move choice 4 up" }).click();
-      await editor.getByLabel("Pick any").check();
-      await editor.locator(".bars-options").scrollIntoViewIfNeeded();
+      // SET-07: a tile from the palette adds the session at the end and opens its options in place.
+      const open = editor.locator(".rb-row.is-open");
+      await editor.locator(".rb-tile", { hasText: "Multiple choice" }).click();
+      await open.locator("#session-title").fill("Poll from the editor");
+      await open.getByLabel("Choice 1", { exact: true }).fill("Yes, this year");
+      await open.getByLabel("Choice 2", { exact: true }).fill("Next year");
+      await open.getByLabel("Choice 3", { exact: true }).fill("Not yet");
+      await open.getByRole("button", { name: "Add choice" }).click();
+      await open.getByLabel("Choice 4", { exact: true }).fill("We need to talk");
+      await open.getByRole("button", { name: "Move choice 4 up" }).click();
+      await open.getByLabel("Pick any").check();
+      await open.locator(".bars-options").scrollIntoViewIfNeeded();
       await shot(editor, "set-07-choice-options");
-      await editor.getByRole("button", { name: "Save", exact: true }).click();
+      await open.getByRole("button", { name: "Done", exact: true }).click();
       const saved = await until(async () => (await sql.query("select options from public.sessions where engagement_id=$1 and title='Poll from the editor'", [room.id])).rows[0]?.options, "choice saved", 10000);
       assert.deepEqual(saved.items.map((o: { text: string }) => o.text), ["Yes, this year", "Next year", "We need to talk", "Not yet"]);
       assert.equal(saved.multiple, true);
-      for (const [kind, label, check] of [["ranking", "Option 1", "Add an option"], ["points", "Option 1", null], ["statements", "Statement 1", "Flag divided statements"], ["scale", null, null]] as const) {
-        await editor.getByRole("button", { name: "Add session" }).click();
-        await editor.fill("#session-title", `Editor ${kind}`);
-        await editor.selectOption("#session-interaction", kind);
-        if (label) { const items = kind === "points" ? 5 : kind === "ranking" ? 4 : 3; for (let i = 1; i <= items; i++) await editor.getByLabel(label.replace("1", String(i)), { exact: true }).fill(`${kind} item ${i}`); }
-        if (check === "Add an option") await editor.getByLabel(check).check();
-        if (kind === "points") await editor.selectOption("#points-cut", "3");
-        if (kind === "scale") { await editor.selectOption("#scale-max", "10"); await editor.fill("#scale-low", "Not ready"); }
-        if (kind === "statements" || kind === "points" || kind === "scale") { await editor.locator(kind === "scale" ? "#scale-max" : ".bars-options").scrollIntoViewIfNeeded(); await shot(editor, `set-07-${kind}-options`); }
-        await editor.getByRole("button", { name: "Save", exact: true }).click();
+      for (const [kind, tile, label, check] of [["ranking", "Ranking", "Option 1", "Add an option"], ["points", "100 points", "Option 1", null], ["statements", "Statements", "Statement 1", "Flag divided statements"], ["scale", "Scale", null, null]] as const) {
+        await until(async () => await editor.locator(".rb-row.is-open").count() === 0, "the last options closed", 10000);
+        await editor.locator(".rb-tile", { hasText: tile }).click();
+        await open.locator("#session-title").fill(`Editor ${kind}`);
+        if (label) { const items = kind === "points" ? 5 : kind === "ranking" ? 4 : 3; for (let i = 1; i <= items; i++) await open.getByLabel(label.replace("1", String(i)), { exact: true }).fill(`${kind} item ${i}`); }
+        if (check === "Add an option") await open.getByLabel(check).check();
+        if (kind === "points") await open.locator("#points-cut").selectOption("3");
+        if (kind === "scale") { await open.locator("#scale-max").selectOption("10"); await open.locator("#scale-low").fill("Not ready"); }
+        if (kind === "statements" || kind === "points" || kind === "scale") { await open.locator(kind === "scale" ? "#scale-max" : ".bars-options").scrollIntoViewIfNeeded(); await shot(editor, `set-07-${kind}-options`); }
+        await open.getByRole("button", { name: "Done", exact: true }).click();
         const o = await until(async () => (await sql.query("select options from public.sessions where engagement_id=$1 and title=$2", [room.id, `Editor ${kind}`])).rows[0]?.options, `${kind} saved`, 10000);
         if (kind === "ranking") assert.equal(o.suggest, true);
         if (kind === "points") assert.equal(o.cut, 3);

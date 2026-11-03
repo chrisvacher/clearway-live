@@ -62,11 +62,11 @@ async function main() {
         ${[["Small group access", 54], ["Clear next steps", 41], ["More midweek options", 33], ["Serving with friends", 28]].map(([t, n]) => `<p>${t} <span style="display:inline-block;height:22px;width:${Number(n) * 6}px;background:#3F72DE"></span> ${n}%</p>`).join("")}</div></body>`);
       const png = await page.locator("div").first().screenshot({ type: "png" }); await page.close();
       await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
-      await editor.locator("li", { hasText: "Survey page" }).getByRole("button", { name: "Edit session" }).click();
-      await editor.locator("#content-file").setInputFiles({ name: "page-3.png", mimeType: "image/png", buffer: png });
+      await editor.locator(".rb-row", { hasText: "Survey page" }).getByRole("button", { name: /Open options/ }).click();
+      await editor.locator(".rb-row.is-open #content-file").setInputFiles({ name: "page-3.png", mimeType: "image/png", buffer: png });
       await editor.getByText("Image added. Save to put it in the run of show.").waitFor({ timeout: 10000 });
       await shot(editor, "set-07-image-options");
-      await editor.getByRole("button", { name: "Save", exact: true }).click();
+      await editor.locator(".rb-row.is-open").getByRole("button", { name: "Done", exact: true }).click();
       await until(async () => (await sql.query("select options->>'media' as m from public.sessions where id=$1", [image])).rows[0].m, "image saved on the session", 10000);
     });
 

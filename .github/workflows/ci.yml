@@ -86,6 +86,8 @@ jobs:
         run: npm run test:qa
       - name: Test self-paced sessions, Clear test answers, export and the recap with 50 simulated phones in real browsers
         run: npm run test:self-paced
+      - name: Test the drag-to-build run of show and templates (SET-07, SET-08) with a template run on a TV and phone
+        run: npm run test:templates
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

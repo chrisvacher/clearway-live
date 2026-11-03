@@ -123,8 +123,8 @@ async function main() {
     // ---------- Run of show ----------
     await step("SET-07: the grid's settings in the run of show, ten items at most, and the pre-mortem preset", async () => {
       const editor = await facContext.newPage(); await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
-      await editor.locator("li", { hasText: "Place each idea" }).getByRole("button", { name: "Edit session" }).click();
-      await editor.locator("#grid-preset").waitFor();
+      await editor.locator(".rb-row", { hasText: "Place each idea" }).getByRole("button", { name: /Open options/ }).click();
+      await editor.locator(".rb-row.is-open #grid-preset").waitFor();
       assert.equal(await editor.locator(".gfs-lines li").count(), 5, "the five items");
       await editor.getByRole("button", { name: "Add an item" }).click();
       await editor.locator("#grid-item-5").fill(gridItems[5]);
@@ -132,11 +132,11 @@ async function main() {
       assert.equal(await editor.getByRole("button", { name: "Add an item" }).isDisabled(), true, "a grid holds ten items at most");
       await shot(editor, "set-07-grid-options");
       for (let i = 9; i >= 6; i--) await editor.getByRole("button", { name: `Remove Spare idea ${i + 1}` }).click();
-      await editor.getByRole("button", { name: "Save", exact: true }).click();
+      await editor.locator(".rb-row.is-open").getByRole("button", { name: "Done", exact: true }).click();
       await until(async () => (await sql.query("select jsonb_array_length(options->'items') as n from public.sessions where id=$1", [grid])).rows[0].n === 6, "six items saved", 10000);
-      await editor.locator("li", { hasText: "Our shared commitment" }).getByRole("button", { name: "Edit session" }).click();
-      await editor.locator("#sign-text").waitFor();
-      assert.ok((await editor.locator(".show-panel").innerText()).includes("Named by design"), "sign together is named by design");
+      await editor.locator(".rb-row", { hasText: "Our shared commitment" }).getByRole("button", { name: /Open options/ }).click();
+      await editor.locator(".rb-row.is-open #sign-text").waitFor();
+      assert.ok((await editor.locator(".rb-row.is-open .show-panel").innerText()).includes("Named by design"), "sign together is named by design");
       await shot(editor, "set-07-sign-options");
       await editor.close();
     });

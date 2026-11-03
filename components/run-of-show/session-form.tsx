@@ -1,23 +1,31 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { LockKeyhole, X } from "lucide-react";
+import { Check, LockKeyhole, Trash2, X } from "lucide-react";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
+import { defaultWindow } from "@/lib/run-of-show/builder";
 import { parts, type SessionInput, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
 import { contentOf, fallbackKinds, screenIds, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { kindDefaults, optionEditors } from "@/components/interactions/option-editors";
 import { contentPromptLabel } from "./content-options";
 
-type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; feedback: string; failed: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void };
-export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove }: Props) {
-  const [value, setValue] = useState(session);
-  const [start, setStart] = useState(() => localTime(session.planned_start, context.timezone));
-  const [opens, setOpens] = useState(() => localTime(session.opens_at, context.timezone));
-  const [closes, setCloses] = useState(() => localTime(session.closes_at, context.timezone));
+// The builder (SET-07) opens this form in place, in the run ("inline"): Done saves, Remove
+// takes the session out, and unsaved edits survive the options sliding closed (draft).
+export type FormDraft = { value: ShowSession; start: string; opens: string; closes: string };
+type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; feedback: string; failed: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void;
+  variant?: "panel" | "inline"; revision?: number | null; draft?: FormDraft; onDraft?: (draft: FormDraft, dirty: boolean) => void; startNote?: string };
+export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove, variant = "panel", revision, draft, onDraft, startNote }: Props) {
+  const inline = variant === "inline";
+  const [value, setValue] = useState(() => draft?.value ?? session);
+  const [start, setStart] = useState(() => draft?.start ?? localTime(session.planned_start, context.timezone));
+  const [opens, setOpens] = useState(() => draft?.opens ?? localTime(session.opens_at, context.timezone));
+  const [closes, setCloses] = useState(() => draft?.closes ?? localTime(session.closes_at, context.timezone));
   const [timeError, setTimeError] = useState("");
   const first = useRef<HTMLInputElement>(null), panel = useRef<HTMLElement>(null);
-  useEffect(() => { first.current?.focus({ preventScroll: true }); if (window.matchMedia("(max-width: 900px)").matches) panel.current?.scrollIntoView({ block: "start" }); }, []);
+  useEffect(() => { first.current?.focus({ preventScroll: true }); if (!inline && window.matchMedia("(max-width: 900px)").matches) panel.current?.scrollIntoView({ block: "start" }); }, [inline]);
   const dirty = JSON.stringify(value) !== JSON.stringify(session) || start !== localTime(session.planned_start, context.timezone) || opens !== localTime(session.opens_at, context.timezone) || closes !== localTime(session.closes_at, context.timezone);
+  const report = useRef(onDraft); report.current = onDraft;
+  useEffect(() => { report.current?.({ value, start, opens, closes }, dirty); }, [value, start, opens, closes, dirty]);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
@@ -39,22 +47,26 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
   };
   async function save(event: FormEvent) {
     event.preventDefault(); setTimeError("");
+    // Inline, Done marks the session Ready and Save as draft keeps it a Draft.
+    const intent = ((event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null)?.value;
+    const state = inline && !running && (intent === "ready" || intent === "draft") ? intent : value.state;
     try {
       const instant = (v: string) => { try { return zonedInstant(v, context.timezone); } catch { throw new Error("Check the session times. During a daylight saving clock change, choose a different time."); } };
-      await onSave({ ...value, revision: fresh ? null : session.revision, planned_start: instant(start), opens_at: instant(opens), closes_at: instant(closes) });
+      await onSave({ ...value, state, revision: fresh ? null : revision !== undefined ? revision : session.revision, planned_start: instant(start), opens_at: instant(opens), closes_at: instant(closes) });
     } catch (error) { setTimeError(error instanceof Error ? error.message : "Check the session details."); }
   }
-  return <aside ref={panel} className="show-panel" aria-labelledby="session-editor-title">
-    <div className="show-private"><LockKeyhole size={15} aria-hidden="true" />Only you see this</div>
-    <div className="show-panel-head"><h2 id="session-editor-title">{fresh ? "Add session" : "Edit session"}</h2><button className="show-button is-icon" aria-label="Close session editor" disabled={busy} onClick={close}><X size={20} aria-hidden="true" /></button></div>
+  const Wrap = inline ? "div" : "aside";
+  return <Wrap ref={panel as never} className={inline ? "show-panel is-inline" : "show-panel"} aria-labelledby={inline ? undefined : "session-editor-title"} aria-label={inline ? `Options for ${session.title}` : undefined}>
+    {!inline && <><div className="show-private"><LockKeyhole size={15} aria-hidden="true" />Only you see this</div>
+    <div className="show-panel-head"><h2 id="session-editor-title">{fresh ? "Add session" : "Edit session"}</h2><button className="show-button is-icon" aria-label="Close session editor" disabled={busy} onClick={close}><X size={20} aria-hidden="true" /></button></div></>}
     <form onSubmit={save} className="show-form">
       <fieldset disabled={busy || blocked || context.closed}>
         <div className="show-fields">
           <label className="is-full" htmlFor="session-title">Title<input ref={first} id="session-title" required maxLength={200} value={value.title} onChange={e => change("title", e.target.value)} /></label>
           <label className="is-full" htmlFor="session-segment">Segment<input id="session-segment" maxLength={100} value={value.segment ?? ""} onChange={e => change("segment", e.target.value)} /><span className="show-help">Steps in the same segment, like Five Lenses, keep taking answers until the room moves on from the segment.</span></label>
           <label htmlFor="session-part">Part<select id="session-part" value={value.part} onChange={e => change("part", e.target.value as ShowSession["part"])}>{parts.map(part => <option key={part}>{part}</option>)}</select></label>
-          <label htmlFor="session-mode">Mode<select id="session-mode" disabled={running} value={value.mode} onChange={e => change("mode", e.target.value as ShowSession["mode"])}><option value="live">Live, in the room</option><option value="self_paced">Self-paced</option></select></label>
-          <label htmlFor="session-start">Planned start<input id="session-start" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} /></label>
+          <label htmlFor="session-mode">Mode<select id="session-mode" disabled={running} value={value.mode} onChange={e => { const mode = e.target.value as ShowSession["mode"]; change("mode", mode); if (mode === "self_paced" && !opens && !closes) { const w = defaultWindow(Date.now()); setOpens(localTime(w.opens_at, context.timezone)); setCloses(localTime(w.closes_at, context.timezone)); } }}><option value="live">Live, in the room</option><option value="self_paced">Self-paced</option></select></label>
+          {startNote !== undefined ? <p className="show-help" id="session-start">{startNote}</p> : <label htmlFor="session-start">Planned start<input id="session-start" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} /></label>}
           <label htmlFor="session-length">Length in minutes<input id="session-length" type="number" min={1} max={1440} required value={value.planned_minutes} onChange={e => change("planned_minutes", Number(e.target.value))} /></label>
           <p className="show-help is-full">All times in {context.timezone}. Planned times stay private.</p>
           {value.mode === "self_paced" && <><label htmlFor="session-opens">Opens<input id="session-opens" type="datetime-local" required value={opens} onChange={e => setOpens(e.target.value)} /></label><label htmlFor="session-closes">Closes<input id="session-closes" type="datetime-local" required value={closes} onChange={e => setCloses(e.target.value)} /></label><p className="show-help is-full">It opens and closes on phones at these times, outside the live room. Next and Back skip it, and invite emails link to it.</p></>}
@@ -78,11 +90,17 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           </>}
           <label className="is-full" htmlFor="session-notes"><span><LockKeyhole size={15} aria-hidden="true" /> Presenter notes</span><textarea id="session-notes" maxLength={30000} rows={5} value={value.notes} onChange={e => change("notes", e.target.value)} /><span className="show-help">Only facilitators see these. They never reach the TV or phones.</span></label>
           <label className="is-full" htmlFor="session-lands">Lands in<input id="session-lands" maxLength={200} value={value.lands_in} onChange={e => change("lands_in", e.target.value)} /></label>
-          <label className="is-full" htmlFor="session-state">State<select id="session-state" disabled={running} value={value.state} onChange={e => change("state", e.target.value)}>{running ? <option value={session.state}>{session.state.replaceAll("_", " ")}</option> : <><option value="draft">Draft</option><option value="ready">Ready</option></>}</select></label>
+          {!inline && <label className="is-full" htmlFor="session-state">State<select id="session-state" disabled={running} value={value.state} onChange={e => change("state", e.target.value)}>{running ? <option value={session.state}>{session.state.replaceAll("_", " ")}</option> : <><option value="draft">Draft</option><option value="ready">Ready</option></>}</select></label>}
         </div>
       </fieldset>
-      <div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}<span className="show-help">Edits go out when you save.</span><button className="show-button" type="button" disabled={busy} onClick={close}>Cancel</button><button className="show-button is-primary" type="submit" disabled={busy || blocked || context.closed}>{busy ? "Saving..." : "Save"}</button></div>
-      {!fresh && !running && !context.closed && <button className="show-remove" type="button" disabled={busy || blocked} onClick={() => { if (window.confirm(`Remove ${session.title} from the run of show?`)) onRemove(); }}>Remove session</button>}
+      {inline ? <div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}
+        <span className="show-help">Every setting has a default. Finish now or come back later; edits go out when you press Done.</span>
+        {dirty && <button className="show-button" type="button" disabled={busy} onClick={() => { setValue(session); setStart(localTime(session.planned_start, context.timezone)); setOpens(localTime(session.opens_at, context.timezone)); setCloses(localTime(session.closes_at, context.timezone)); }}>Discard changes</button>}
+        {!running && !context.closed && <button className="show-button" type="button" disabled={busy || blocked} onClick={onRemove}><Trash2 size={16} aria-hidden="true" />Remove</button>}
+        {!running && <button className="show-button" type="submit" name="intent" value="draft" disabled={busy || blocked || context.closed}>Save as draft</button>}
+        <button className="show-button is-primary" type="submit" name="intent" value="ready" disabled={busy || blocked || context.closed}><Check size={16} aria-hidden="true" />{busy ? "Saving..." : "Done"}</button></div>
+      : <><div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}<span className="show-help">Edits go out when you save.</span><button className="show-button" type="button" disabled={busy} onClick={close}>Cancel</button><button className="show-button is-primary" type="submit" disabled={busy || blocked || context.closed}>{busy ? "Saving..." : "Save"}</button></div>
+      {!fresh && !running && !context.closed && <button className="show-remove" type="button" disabled={busy || blocked} onClick={() => { if (window.confirm(`Remove ${session.title} from the run of show?`)) onRemove(); }}>Remove session</button>}</>}
     </form>
-  </aside>;
+  </Wrap>;
 }

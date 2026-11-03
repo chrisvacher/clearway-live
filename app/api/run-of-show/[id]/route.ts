@@ -27,7 +27,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let action: string, input: unknown;
   try {
     const body = await limitedJson(request, 262144); action = String(body.action);
-    if (action === "save") input = sessionInput(body.input);
+    if (action === "save") {
+      // A drop (SET-07) lands a new session at its place in the part.
+      const index = (body.input as Record<string, unknown> | null)?.index;
+      if (index !== undefined && (!Number.isInteger(index) || Number(index) < 0 || Number(index) > 5000)) throw new Error("Drop the session into the run of show again.");
+      input = { ...sessionInput(body.input), ...(index !== undefined ? { index } : {}) };
+    }
+    else if (action === "place") {
+      const v = body.input as Record<string, unknown>;
+      if (!v || !uuid(v.id) || !Number.isInteger(v.revision) || Number(v.revision) < 0 || !parts.includes(v.part as typeof parts[number]) || !Number.isInteger(v.index) || Number(v.index) < 0 || Number(v.index) > 5000)
+        throw new Error("Reload the run of show before moving sessions.");
+      input = { id: v.id, revision: v.revision, part: v.part, index: v.index };
+    }
     else if (action === "remove") {
       const v = body.input as Record<string, unknown>;
       if (!v || !uuid(v.id) || !Number.isInteger(v.revision) || Number(v.revision) < 0) throw new Error("Reload the session before removing it.");

@@ -49,7 +49,9 @@ export function ContentScreen({ frame }: { frame: LiveSnapshot }) {
       return <div className="tv-content tv-holding-screen">
         <p className="tv-eyebrow">{session.title}</p>
         <h1 className="tv-headline-xl">{session.prompt.trim() ? <Bold text={session.prompt} /> : <>Welcome to <strong>{church}</strong></>}</h1>
-        {rows.length > 0 ? <div className="tv-outline">{rows.map((row, i) => <div key={i} className="tv-outline-row"><b>{row.time}</b><span>{row.text}</span></div>)}</div>
+        {rows.length > 6 ? <div className="tv-outline-cols">{[rows.slice(0, Math.ceil(rows.length / 2)), rows.slice(Math.ceil(rows.length / 2))].map((column, c) =>
+            <div key={c} className="tv-outline">{column.map((row, i) => <div key={i} className="tv-outline-row"><b>{row.time}</b><span>{row.text}</span></div>)}</div>)}</div>
+          : rows.length > 0 ? <div className="tv-outline">{rows.map((row, i) => <div key={i} className="tv-outline-row"><b>{row.time}</b><span>{row.text}</span></div>)}</div>
           : o.line && <p className="tv-body tv-muted tv-holding-line">{o.line}</p>}
       </div>;
     }
