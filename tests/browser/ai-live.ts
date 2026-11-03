@@ -61,6 +61,16 @@ async function main() {
     await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
     const layer = () => tv.locator(".tv-layer:not(.is-leaving)").last();
     const tvSays = async () => (await tv.locator("body").innerText()).toLowerCase();
+    // The AI groups on the TV now (anything fading out is leaving), whether any overlap or are cut, and the more line.
+    const groupsOnTv = () => layer().locator(".ai-group-field").evaluate(field => {
+      const box = field.getBoundingClientRect(), pills = [...field.querySelectorAll<HTMLElement>(".ai-group")].filter(e => Number(getComputedStyle(e).opacity) > 0.5).map(e => ({ t: e.querySelector(".lbl")!.textContent!.trim(), r: e.getBoundingClientRect() }));
+      const overlap = pills.some((a, i) => pills.some((b, j) => j > i && a.r.left < b.r.right - 1 && b.r.left < a.r.right - 1 && a.r.top < b.r.bottom - 1 && b.r.top < a.r.bottom - 1));
+      const cut = pills.some(p => p.r.left < box.left - 1 || p.r.right > box.right + 1 || p.r.top < box.top - 1 || p.r.bottom > box.bottom + 1);
+      const more = Number((field.parentElement!.querySelector(".ai-more")?.textContent ?? "").match(/\+ (\d+)/)?.[1] ?? 0);
+      const debug = [field.closest(".tv-board"), field.closest(".ai-wall"), field.closest(".ai-wall-split"), ...field.parentElement!.children]
+        .map(e => e ? `${e.className.toString().split(" ")[0]}:${Math.round(e.getBoundingClientRect().height)}` : "").join(" ");
+      return { shown: pills.map(p => p.t).sort(), overlap, cut, more, field: `${Math.round(box.width)}x${Math.round(box.height)}`, debug };
+    });
     // The words on the TV now: anything fading out is leaving.
     const words = async () => layer().locator(".tv-word:not(.is-going)").evaluateAll(els => els.filter(e => Number(getComputedStyle(e).opacity) > 0.5).map(e => e.textContent!.trim()));
 
@@ -132,6 +142,7 @@ async function main() {
       await press(fac, sql, room.id, "go_live", { session: wall });
       await layer().locator('[data-board="wall"]').waitFor({ timeout: 10000 });
       assert.equal(await layer().locator(".ai-wall").getAttribute("data-ai"), "on", "AI is on: groups beside the answers");
+      for (const p of [priya, ben, ruth]) await until(async () => (await p.locator("body").innerText()).includes("worth celebrating"), "each phone is on the wall", 10000);
       await send(priya, "Three baptisms at Easter");
       await until(async () => (await layer().locator(".tv-feed-row").allTextContents()).includes("Three baptisms at Easter"), "the first answer is in the column at once", 3000);
       await send(ben, "Teenagers asking to be baptized");
@@ -140,8 +151,12 @@ async function main() {
       await send(priya, "Young families staying after the service");
       await send(ruth, "New families at the kids program");
       await send(ruth, "Volunteers who show up early");
-      const labels = async () => (await layer().locator(".ai-group .lbl").allTextContents()).map(t => t.trim()).sort();
-      await until(async () => JSON.stringify(await labels()) === JSON.stringify(["Alpha", "Baptisms", "Young families"]), "three groups form", 15000);
+      await until(async () => (await results()).groups.length === 3, "three groups form on the server", 15000);
+      await until(async () => { const g = await groupsOnTv(); return g.shown.length + g.more === 3 && g.shown.length >= 1 && g; }, "the TV shows them, whole, with the rest on the control surface", 8000);
+      await settle(tv);
+      const placed = await groupsOnTv();
+      assert.ok(placed.shown.length >= 1 && !placed.overlap && !placed.cut, `groups never overlap and are never cut at rest: ${JSON.stringify(placed)}`);
+      console.log(`  groups on the TV at very small screen: ${placed.shown.join(", ")}${placed.more ? `, ${placed.more} more on the control surface` : ""} (field ${placed.field})`);
       assert.equal(await layer().locator(".ai-groups-head .cwl-ai-badge").count(), 1, "one AI badge above the groups");
       const counts = (await results()).groups.map((g: { label: string; count: number }) => `${g.label}:${g.count}`).sort();
       assert.deepEqual(counts, ["Alpha:2", "Baptisms:2", "Young families:2"], "the server counts each group");
@@ -154,9 +169,11 @@ async function main() {
       await row("Baptisms").getByRole("button", { name: "Rename Baptisms" }).click();
       await control.getByLabel("Rename Baptisms").fill("Baptisms this year");
       await row("Baptisms").getByRole("button", { name: "Save" }).click();
+      await until(async () => (await results()).groups.some((g: { label: string }) => g.label === "Baptisms this year"), "the new name", 5000);
       await until(async () => (await layer().locator(".ai-group .lbl").allTextContents()).some(t => t.includes("Baptisms this year")), "the TV shows the new name", 5000);
       await row("Alpha").getByRole("button", { name: "Pin" }).click();
-      await until(async () => (await layer().locator(".ai-group", { hasText: "Alpha" }).locator(".pin").count()) === 1, "a pinned group shows the pin", 5000);
+      await until(async () => (await results()).groups.some((g: { label: string; pinned: boolean }) => g.label === "Alpha" && g.pinned), "Alpha is pinned", 5000);
+      if ((await groupsOnTv()).shown.includes("Alpha")) await until(async () => (await layer().locator(".ai-group", { hasText: "Alpha" }).locator(".pin").count()) === 1, "a pinned group shows the pin", 5000);
       await row("Young families").getByRole("button", { name: "Undo" }).click();
       await until(async () => !(await layer().locator(".ai-group .lbl").allTextContents()).some(t => t.includes("Young families")), "the undone group leaves the TV", 5000);
       await until(async () => (await row("Young families").innerText()).includes("Redo"), "and can be redone", 5000);
@@ -170,6 +187,12 @@ async function main() {
       await until(async () => (await layer().locator(".ai-summary:not(.is-off) .ai-summary-text").innerText().catch(() => "")).includes("Most answers celebrate"), "the summary opens at the top of the groups column", 10000);
       assert.match(await layer().locator(".ai-summary-head").innerText(), /AI summary/);
       await until(async () => (await panel().innerText()).includes("Most answers celebrate"), "the control surface shows it privately", 5000);
+      await settle(tv);
+      const under = await groupsOnTv();
+      const text = await layer().locator(".ai-summary-text").evaluate(e => ({ clipped: e.getBoundingClientRect().bottom > e.closest(".ai-summary-clip")!.getBoundingClientRect().bottom + 1 }));
+      assert.ok(!text.clipped, "the summary's text is never cut off");
+      assert.ok(under.shown.length >= 1 && !under.overlap && !under.cut, `under the summary, at least one whole group and none cut: ${JSON.stringify(under)}`);
+      console.log(`  under the summary: ${under.shown.join(", ")} (field ${under.field})`);
       await shot(tv, "int-02-show-summary-tv"); await shot(control, "int-02-control-summary");
       await panel().getByRole("button", { name: "Hide summary" }).click();
       await until(async () => (await layer().locator(".ai-summary:not(.is-off)").count()) === 0, "Hide summary closes it", 5000);

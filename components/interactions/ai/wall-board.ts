@@ -12,7 +12,7 @@ import { ArrivalOrder, Feed, Field, reducedMotion, tokenMs } from "@/lib/tv/boar
 import type { Shown } from "@/lib/tv/flow";
 import { springRate, springStep, wordSize } from "@/lib/tv/motion";
 import type { LiveSnapshot } from "@/lib/live/types";
-import { moreGroups, shownGroups, wallOf } from "@/lib/interactions/ai";
+import { moreGroups, shownGroups, wallOf, type WallGroup } from "@/lib/interactions/ai";
 import { aiBadgeEl, aiIconEl } from "./ai-dom";
 
 const make = (tag: string, className: string, text?: string) => { const el = document.createElement(tag); el.className = className; if (text !== undefined) el.textContent = text; return el; };
@@ -130,7 +130,7 @@ export class WallBoard {
     root.dataset.board = "wall";
     this.wall = make("div", "ai-wall"); this.wall.dataset.ai = "off";
     const split = this.split = make("div", "ai-wall-split"), groups = make("section", "ai-groups"), head = make("p", "ai-groups-head");
-    head.append(aiBadgeEl(), make("span", "", "Grouped from your answers"));
+    head.append(aiBadgeEl(), make("span", "", "Grouped from answers"));
     this.head = head;
     this.summary = make("div", "ai-summary is-off"); this.summary.setAttribute("role", "region"); this.summary.setAttribute("aria-label", "AI summary");
     const clip = make("div", "ai-summary-clip"), box = make("div", "ai-summary-box"), band = make("div", "ai-summary-head");
@@ -148,7 +148,7 @@ export class WallBoard {
     root.appendChild(this.wall);
     this.feed = new Feed(list);
     this.field = new Field(fieldEl, key => { const el = make("div", "ai-group"); el.dataset.key = key; el.append(make("span", "lbl"), make("span", "n")); return el; },
-      { gapX: 28, gapY: 22, fill: 0.5, maxWidth: 1100, floor: () => this.floor() });
+      { gapX: 28, gapY: 22, fill: 0.5, maxWidth: 1100, floor: () => this.floor(), onResize: () => this.fitGroups() });
     this.cards = new Cards(cards);
     let last = performance.now();
     const tick = (now: number) => {
@@ -182,7 +182,16 @@ export class WallBoard {
     this.feed.track.querySelectorAll(".is-newest").forEach(row => row.classList.remove("is-newest"));
     if (fresh && ai) this.feed.element(fresh)?.classList.add("is-newest");
     this.setSummary(ai ? summary : null);
-    const { shown, rest } = shownGroups(ai ? groups : [], Boolean(ai && summary));
+    this.groups = { list: ai ? groups : [], summary: Boolean(ai && summary) };
+    this.fitGroups(instant);
+    if (fresh) this.moment();
+  }
+  // Groups never overlap and are never cut: show as many whole groups as fit at the floor,
+  // largest first (at least one); the rest wait on the control surface. Run again whenever
+  // the field changes size (the summary opening, the answers column narrowing).
+  private groups: { list: WallGroup[]; summary: boolean } = { list: [], summary: false };
+  private fitGroups(instant = false) {
+    const { shown, rest } = shownGroups(this.groups.list, this.groups.summary), summary = this.groups.summary;
     const max = shown.reduce((m, g) => Math.max(m, g.count), 2), scale = this.floor() / 36;
     const entries = shown.map(g => ({ key: g.id, size: wordSize(g.count, max, 44, 72) * scale, update: (el: HTMLElement) => {
       const label = el.querySelector(".lbl")!, n = el.querySelector(".n")!;
@@ -190,13 +199,14 @@ export class WallBoard {
       if (n.textContent !== String(g.count)) n.textContent = String(g.count);
       el.setAttribute("aria-label", `${g.label}, ${g.count} answers${g.pinned ? ", pinned" : ""}`);
     } }));
-    // Groups never overlap and are never cut: show as many whole groups as fit at the floor,
-    // largest first (at least one); the rest wait on the control surface.
-    let fit = entries.length;
-    while (!this.field.set(entries.slice(0, fit), instant) && fit > 1) fit--;
+    // The more line is written first, so the field is measured with its space already taken.
     this.empty.classList.toggle("is-off", shown.length > 0);
-    this.more.textContent = moreGroups(rest + entries.length - fit, Boolean(summary));
-    if (fresh) this.moment();
+    let fit = entries.length;
+    for (;;) {
+      this.more.textContent = moreGroups(rest + entries.length - fit, summary);
+      if (this.field.set(entries.slice(0, fit), instant) || fit <= 1) break;
+      fit--;
+    }
   }
   // Opening grows its row; a refresh cross-fades the text; hiding closes it.
   private setSummary(summary: { id: string; text: string } | null) {

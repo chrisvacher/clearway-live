@@ -40,7 +40,7 @@ export class Field {
   private last: FieldEntry[] | null = null;
   private observer?: ResizeObserver;
   constructor(private root: HTMLElement, private create: (key: string) => HTMLElement,
-    private opt: { gapX: number; gapY: number; fill: number; floor: () => number; maxWidth: number }) {
+    private opt: { gapX: number; gapY: number; fill: number; floor: () => number; maxWidth: number; onResize?: () => void }) {
     let width = 0, height = 0;
     if (typeof ResizeObserver === "function") {
       this.observer = new ResizeObserver(() => {
@@ -50,7 +50,8 @@ export class Field {
     }
     void document.fonts?.ready.then(() => this.replan());
   }
-  replan() { if (this.last && this.root.isConnected) this.set(this.last); }
+  // A field that may show fewer items when space shrinks (the wall's groups) decides again itself.
+  replan() { if (!this.last || !this.root.isConnected) return; if (this.opt.onResize) this.opt.onResize(); else this.set(this.last); }
   destroy() { this.observer?.disconnect(); }
   element(key: string) { const it = this.items.get(key); return it && !it.going ? it.el : null; }
   // AI combines: a word leaving glides into its survivor's place as it fades (pass 3, INT-01).
