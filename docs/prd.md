@@ -550,6 +550,7 @@ The live room is the heart of the product and the riskiest part to build. These 
 **TV pairing (FAC-04)**
 
 - Opening the TV address in any browser shows a large pairing code. The facilitator enters it on the control surface, and the TV joins the engagement.
+- A pairing code lasts 60 minutes, then the TV shows a new one. It's used up once the facilitator pairs with it (Decided November 3).
 - Pairing lasts until the engagement closes and survives the browser closing (Default). The facilitator can unpair or re-pair at any time.
 - More than one TV can be paired to the same engagement, for larger rooms (Default).
 
