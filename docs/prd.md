@@ -1166,15 +1166,15 @@ Claude Design builds the app's design system before the first high-fidelity scre
 
 **Design passes** (design runs one milestone ahead)
 
-| Pass | Covers | Ready before |
-| --- | --- | --- |
-| 1 | Connecting the existing Clearway design system, app tokens, phone and laptop foundations, sign-in and attendee components | Milestone 1 |
-| 2 | TV themes, type scale and texture, motion tokens and prototypes, the remote, the facilitator view, wall card, word cloud, offline and reconnecting states, the private-view treatment | Milestone 2 |
-| 3 | Every general interaction with its states, content screens, the group palette | Milestone 3 |
-| 4 | Lens colors, Wayfinding components (lens wall, cluster and rename, outcome rows, pre-mortem grid, goal builder, intent card, draft Map), Scripture and prayer screens | Milestone 4 |
-| 5 | Scribe console, overnight review, read-back | Milestone 5 |
-| 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 |
-| 7 | Publish to CORE, report, communication plan, read-only copy, check-ins | Milestone 7 |
+| Pass | Covers | Ready before | Status |
+| --- | --- | --- | --- |
+| 1 | Connecting the existing Clearway design system, app tokens, phone and laptop foundations, sign-in and attendee components | Milestone 1 | Delivered |
+| 2 | TV themes, type scale and texture, motion tokens and prototypes, the remote, the facilitator view, wall card, word cloud, offline and reconnecting states, the private-view treatment | Milestone 2 | Delivered |
+| 3 | Every general interaction with its states, content screens, the group palette | Milestone 3 | Delivered November 2 |
+| 4 | Lens colors, Wayfinding components (lens wall, cluster and rename, outcome rows, pre-mortem grid, goal builder, intent card, draft Map), Scripture and prayer screens | Milestone 4 | Delivered November 3 (PR #34) |
+| 5 | Scribe console, overnight review, read-back | Milestone 5 | Delivered November 3 (PR #39) |
+| 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Not started |
+| 7 | Publish to CORE, report, communication plan, read-only copy, check-ins | Milestone 7 | Not started |
 
 **Done when**
 
