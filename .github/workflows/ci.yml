@@ -84,6 +84,8 @@ jobs:
         run: npm run test:grid-form-sign
       - name: Test Q&A (INT-03) on a paired TV, phones and 50 simulated phones in real browsers
         run: npm run test:qa
+      - name: Test self-paced sessions, Clear test answers, export and the recap with 50 simulated phones in real browsers
+        run: npm run test:self-paced
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

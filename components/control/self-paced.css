@@ -1,0 +1,31 @@
+/* Step 6a: self-paced sessions, the rehearsal and Clear test answers on the control surface,
+   and the results recap. Tokens only. */
+.sp-list .ctl-run-list li.is-open { box-shadow: inset 3px 0 0 var(--cwl-app-success); }
+.sp-list .ctl-time { overflow-wrap: anywhere; }
+.sp-meta { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-micro); }
+.sp-meta .show-button svg, .ctl-row .show-button svg { flex: none; }
+.sp-rehearsal { display: flex; flex-direction: column; gap: var(--space-2); }
+.sp-rehearsal .ctl-banner { margin: 0; }
+.sp-rehearsal .show-help.is-error { color: var(--cwl-app-error); }
+.sp-clear:not(:disabled) { border-color: var(--cwl-app-error); }
+
+/* The results recap: one card per session, the TV's own picture of its results. */
+.recap { display: flex; flex-direction: column; gap: var(--space-6); padding-bottom: var(--space-12); }
+.recap-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.recap-head h1 { margin: 0; }
+.recap-part { display: flex; flex-direction: column; gap: var(--space-4); }
+.recap-part h2 { margin: 0; font-size: var(--cwl-fs-app-section-title); }
+.recap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--space-4); }
+.recap-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); break-inside: avoid; }
+.recap-card h3 { margin: 0; font-size: var(--cwl-fs-app-body); overflow-wrap: anywhere; }
+.recap-card .recap-prompt { margin: 0; color: var(--cwl-app-text-muted); overflow-wrap: anywhere; }
+.recap-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.recap-count { font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.recap-empty { padding: var(--space-6); border: 1px dashed var(--cwl-app-border); border-radius: var(--cwl-radius-card); color: var(--cwl-app-text-muted); }
+@media print {
+  .recap-actions, .recap-card .show-button, .site-header, .skip-link { display: none !important; }
+  .recap-grid { grid-template-columns: 1fr 1fr; }
+  .recap-card { border-color: var(--cwl-app-border); }
+}
+.sp-rehearsing { background: var(--cwl-app-warning-bg); }
+.recap-card .show-state { text-transform: none; }

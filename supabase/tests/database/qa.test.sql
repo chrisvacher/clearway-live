@@ -236,7 +236,7 @@ select ok((select array_agg(k) from jsonb_object_keys(public.live_snapshot(tests
 select tests.login(1);
 select is(tests.ctl(989,'spotlight','{"item":"hope"}')->>'status','missing','The session''s own Spotlight rules are unchanged');
 select tests.login(3);
-select is((select array_agg(k order by k) from jsonb_object_keys(public.phone_room(tests.id(100))) k),array['answers','name','server_time','sessions','status'],'The phone''s own view is unchanged');
+select is((select array_agg(k order by k) from jsonb_object_keys(public.phone_room(tests.id(100))) k),array['answers','name','rehearsal','self_paced','server_time','sessions','status','timezone'],'The phone''s own view is unchanged by Q&A (step 6a adds self_paced, rehearsal and timezone)');
 select tests.login(1);
 select is(tests.ctl(990,'nothing_live')->>'status','ok','Nothing live');
 select ok(tests.same_state(),'and on the holding screen');

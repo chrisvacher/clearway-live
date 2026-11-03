@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Clock, EyeOff, Printer, Smartphone } from "lucide-react";
+import { Clock, EyeOff, LayoutGrid, Printer, Smartphone } from "lucide-react";
 import { stateLabels, timing } from "@/lib/control/policy";
 import { parts, type RunOfShow, type ShowSession } from "@/lib/run-of-show/types";
 import type { RoomSize } from "@/lib/control/types";
@@ -11,6 +11,7 @@ import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, T
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
+import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -38,7 +39,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
   return <div className="ctl-app" data-room-version={frame?.version}>
     <header className="ctl-head">
       <div><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>Live room</h1></div>
-      <div className="ctl-row"><SyncChip room={room} /><Link className="show-button" href={`/remote/${engagement}`}><Smartphone size={18} aria-hidden="true" />Open the remote</Link><Link className="show-button" href={`/setup/${engagement}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link></div>
+      <div className="ctl-row">{status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}<SyncChip room={room} /><Link className="show-button" href={`/remote/${engagement}`}><Smartphone size={18} aria-hidden="true" />Open the remote</Link><Link className="show-button" href={`/setup/${engagement}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link><Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />See results recap</Link></div>
     </header>
     <div className="ctl-cols">
       <nav className="ctl-col ctl-run" aria-label="Run of show">
@@ -57,13 +58,14 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
             </li>)}</ol>
           </section>;
         })}
+        <SelfPacedList room={room} timezone={context.timezone} />
         <Private title="Up next">{room.upNext ? <><p className="ctl-label">{room.upNext.title}</p><p className="ctl-notes">{room.upNext.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing else is ready.</p>}</Private>
       </nav>
       <main id="main" className="ctl-col ctl-centre">
         <ReloadNotice room={room} />
         <div className="ctl-row is-between"><span className="ctl-eyebrow">On the TV now</span><SyncChip room={room} /></div>
         <TvMirror frame={room.mirror} />
-        <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On phones now</p><p className="ctl-label">{phones}</p></div></div>
+        <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On phones now</p><p className="ctl-label">{phones}</p></div><ExportAnswers room={room} /></div>
         <Banners room={room} />
         {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
         {preview ? <PreviewCard session={show.sessions.find(s => s.id === preview.id) ?? preview} context={context} room={room} onClose={() => setPreview(null)} /> : <>
@@ -85,6 +87,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
+        <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>
         <Private title="Presenter notes">{current ? <><p className="ctl-label">{current.title}</p><p className="ctl-notes">{current.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing is live.</p>}</Private>
         {status?.controls.length ? <Private title="Recent presses"><ul className="ctl-log">{status.controls.slice(0, 5).map(c => <li key={c.id}><span>{c.by || "The room"}</span> {c.action.replaceAll("_", " ")}</li>)}</ul></Private> : null}
       </aside>

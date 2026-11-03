@@ -6,16 +6,24 @@ import { limitedJson } from "@/lib/server/request";
 import { teamHubReader } from "@/lib/server/team-hub";
 import { serviceClient } from "@/lib/server/supabase";
 import { sendEmailBatch } from "@/lib/server/email";
-import { invitationMessages,type InvitationSnapshot } from "@/lib/setup/invitation";
+import { invitationMessages,type InvitationSelfPaced,type InvitationSnapshot } from "@/lib/setup/invitation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
 import { clearwayEmail } from "@/lib/auth/policy";
 import { fictionalEmail, practiceId } from "@/lib/room/practice";
 import { uuid } from "@/lib/room/policy";
 const answer=(data:Record<string,unknown>,status=200)=>privateResponse(NextResponse.json(data,{status}));
 type InviteBatch={id:string;status:string;payload:InvitationSnapshot};
-async function deliverInvites(engagement:string,batch:InviteBatch,origin:string){
+// The invite links to every self-paced session that is ready and not yet closed (step 6a).
+async function selfPacedFor(client:SupabaseClient,engagement:string):Promise<InvitationSelfPaced[]>{
+  const {data,error}=await client.from("sessions").select("id,title,opens_at,closes_at").eq("engagement_id",engagement).eq("mode","self_paced").eq("deleted",false)
+    .neq("state","draft").gt("closes_at",new Date().toISOString()).order("opens_at").limit(20);
+  if(error)throw new Error("save");
+  return (data||[]) as InvitationSelfPaced[];
+}
+async function deliverInvites(engagement:string,batch:InviteBatch,origin:string,selfPaced:InvitationSelfPaced[]){
   if(batch.status!=="sent"){
-    await sendEmailBatch(batch.id,invitationMessages(engagement,batch.payload,origin));
+    await sendEmailBatch(batch.id,invitationMessages(engagement,batch.payload,origin,selfPaced));
     const {error}=await serviceClient().rpc("mark_invites_sent",{p_batch:batch.id});
     if(error)throw new Error("save");
   }
@@ -68,7 +76,7 @@ export async function POST(request:NextRequest){
         if(!preview.people.length||preview.people.length>50)throw new Error("Choose up to 50 people to add and invite at once.");
         if(preview.people.some(p=>fictionalEmail(p.email)))throw new Error("Use real email addresses to send invites.");
         const batch=await rpc("import_and_queue_invites",{p_engagement:e.id,p_batch:body.batch,p_people:preview.people}) as InviteBatch;
-        const count=await deliverInvites(e.id,batch,config.origin);
+        const count=await deliverInvites(e.id,batch,config.origin,await selfPacedFor(client,e.id));
         return answer({ok:true,count,duplicates:preview.duplicates});
       }
       const count=await rpc("import_attendees",{p_engagement:e.id,p_people:preview.people});return answer({ok:true,count,duplicates:preview.duplicates});
@@ -85,8 +93,9 @@ export async function POST(request:NextRequest){
     if(action==="invite"||action==="prepare_invites"){
       const e=await scoped();if(!uuid(body.batch)||!Array.isArray(body.attendees)||!body.attendees.every(uuid))return answer({ok:false},400);
       const batch=await rpc("queue_engagement_invites",{p_engagement:e.id,p_batch:body.batch,p_attendees:body.attendees}) as InviteBatch;
-      if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,config.origin)[0]?.text});
-      return answer({ok:true,count:await deliverInvites(e.id,batch,config.origin)});
+      const selfPaced=await selfPacedFor(client,e.id);
+      if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,config.origin,selfPaced)[0]?.text});
+      return answer({ok:true,count:await deliverInvites(e.id,batch,config.origin,selfPaced)});
     }
     return answer({ok:false},400);
   }catch(error){

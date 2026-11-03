@@ -170,5 +170,6 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const steps = neighbours(sessions, shownId, anchor);
   const next = upNext(sessions, shownId, anchor);
   const current = sessions.find(s => s.id === shownId) ?? null;
-  return { frame, mirror, mode, status, show, now, toasts, pending, waiting, message, syncing, reload, confirmed, press, steps, upNext: next, current, clockOffset: clock.current.offsetMs, setMessage };
+  const refresh = useCallback(() => { refreshStatus.current(); refreshShow.current(); }, []);
+  return { frame, mirror, mode, status, show, now, toasts, pending, waiting, message, syncing, reload, confirmed, press, steps, upNext: next, current, clockOffset: clock.current.offsetMs, setMessage, refresh };
 }

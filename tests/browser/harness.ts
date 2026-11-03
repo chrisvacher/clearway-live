@@ -44,6 +44,11 @@ export async function mailbox() {
       }
       throw new Error(`No sign-in code for ${email}`);
     },
+    // The newest message to an address whose text matches, such as an invite.
+    async find(email: string, pattern: RegExp) {
+      for (let i = 0; i < 100; i++) { const hit = [...messages].reverse().find(m => m.to.includes(email) && pattern.test(m.text)); if (hit) return hit.text; await delay(100); }
+      throw new Error(`No message for ${email} matching ${pattern}`);
+    },
     get count() { return messages.length; },
     close: () => new Promise<void>(r => server.close(() => r())),
   };

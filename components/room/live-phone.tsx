@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Check, ChevronLeft, ChevronRight, MonitorSmartphone, RefreshCw, Send, Smartphone, WifiOff } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, FlaskConical, MonitorSmartphone, RefreshCw, Send, Smartphone, WifiOff } from "lucide-react";
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
@@ -11,6 +11,8 @@ import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { useLivePhone } from "./use-live-phone";
 import { QaAsk } from "@/components/interactions/qa/qa-ask";
+import { requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
+import "./self-paced.css";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
 const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Sending", failed: "Not sent" } as const;
@@ -59,13 +61,32 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
       prompt: live.prompt, phone_depth: frame?.phone_depth ?? "", max_sends: live.max_sends, max_characters: live.max_characters, max_words: live.max_words, closed_at: null });
     return list;
   }, [room, frame, liveId]);
-  const shownId = viewing && viewing !== liveId && steps.some(s => s.id === viewing) ? viewing : liveId;
-  const view = steps.find(s => s.id === shownId) ?? null;
-  const isLive = Boolean(view && view.id === liveId);
-  const lookingBack = Boolean(view && !isLive);
-  const index = steps.findIndex(s => s.id === shownId);
+  // Self-paced sessions, open between their times outside the live room. Their state is
+  // worked out from the server's clock, so they open and close on time between reads.
+  const serverNow = now + phone.clockOffset, zone = room?.timezone || "America/Toronto";
+  const selfPaced: PhoneStep[] = (room?.self_paced ?? []).map(s => ({ ...s, state: selfPacedState(s, serverNow) }));
+  const selfView = viewing ? selfPaced.find(s => s.id === viewing) ?? null : null;
+  const shownId = selfView ? selfView.id : viewing && viewing !== liveId && steps.some(s => s.id === viewing) ? viewing : liveId;
+  const view = selfView ?? steps.find(s => s.id === shownId) ?? null;
+  const isLive = Boolean(view && view.id === liveId && !selfView);
+  const lookingBack = Boolean(view && !isLive && !selfView);
+  const index = selfView ? -1 : steps.findIndex(s => s.id === shownId);
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 500); return () => clearInterval(t); }, []);
+
+  // When a self-paced session opens or closes, read the phone's own view again (its prompt
+  // arrives with the opening), at most every 2 seconds.
+  const boundary = (room?.self_paced ?? []).some(s => selfPacedState(s, serverNow) !== s.state);
+  const lastReload = useRef(0), reloadRoom = phone.reload;
+  useEffect(() => { if (boundary && Date.now() - lastReload.current > 2000) { lastReload.current = Date.now(); reloadRoom(); } }, [boundary, now, reloadRoom]);
+  // The invite email links to a self-paced session: open it once the phone's view arrives.
+  const asked = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (asked.current === undefined) asked.current = requestedStep(window.location.search);
+    if (!asked.current || !room) return;
+    const want = asked.current; asked.current = null;
+    if ((room.self_paced ?? []).some(s => s.id === want) || room.sessions.some(s => s.id === want)) setViewing(want);
+  }, [room]);
 
   // Drafts survive phones down, a refresh and the phone going to sleep.
   useEffect(() => {
@@ -101,7 +122,15 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const check = view && textForm ? checkAnswer(draft, view) : { ok: false, message: "", count: "" };
   const atLimit = Boolean(view && !editing && used >= view.max_sends);
   const waiting = phone.entries.some(e => e.request.queuedAt && e.state !== "failed");
-  const named = isLive && frame?.session?.settings?.anonymous === false;
+  const named = selfView ? selfView.settings?.anonymous === false : isLive && frame?.session?.settings?.anonymous === false;
+  const notYet = Boolean(selfView && selfView.state === "ready");
+  // The self-paced sessions a person can open from here: everything but the one on screen,
+  // and never under a live step that is taking answers.
+  const others = selfPaced.filter(s => s.id !== view?.id && s.state !== "closed");
+  const selfList = others.length > 0 && !(isLive && running) ? <section className="ph-self" aria-labelledby="ph-self-title">
+    <h2 id="ph-self-title">On your phone</h2>
+    <ul>{others.map(s => <li key={s.id}><button type="button" onClick={() => go(s.id)}><strong>{s.title}</strong><span>{windowLabel(s, zone, serverNow)}</span></button></li>)}</ul>
+  </section> : null;
 
   function send(event: FormEvent) {
     event.preventDefault();
@@ -128,7 +157,9 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
     <div className="ph-body">
       {phone.fresh && !bannerSeen && room && room.answers.length > 0 && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
         <span>Signed in on this phone. Your earlier answers are here.</span><button type="button" onClick={() => setBannerSeen(true)}>OK</button></p>}
-      {(earlier || lookingBack) && <nav className="ph-pager" aria-label="Steps reached">
+      {room?.rehearsal && <p className="ph-banner" role="status"><FlaskConical size={16} aria-hidden="true" /><span>Rehearsal. Your answers are test answers and will be cleared.</span></p>}
+      {selfView && <nav className="ph-pager" aria-label="Steps reached"><span /><button type="button" onClick={() => go(null)}>Back to now<ChevronRight size={18} aria-hidden="true" /></button></nav>}
+      {!selfView && (earlier || lookingBack) && <nav className="ph-pager" aria-label="Steps reached">
         <button type="button" disabled={!earlier} onClick={() => earlier && go(earlier.id)}><ChevronLeft size={18} aria-hidden="true" />Earlier</button>
         {lookingBack && <button type="button" onClick={() => go(later && later.id !== liveId ? later.id : null)}>{later && later.id !== liveId ? "Later" : "Back to now"}<ChevronRight size={18} aria-hidden="true" /></button>}
       </nav>}
@@ -136,7 +167,14 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
       {!view ? <section className="ph-waiting" aria-live="polite">
         <h1 className="ph-headline">{name || room?.name ? `You’re in, ${name || room?.name}.` : "You’re in."}</h1>
         <p className="ph-text">Watch the screen. Questions will appear here.</p>
+        {selfList}
+      </section> : notYet ? <section className="ph-step" aria-live="polite">
+        <p className="ph-muted">{view.title} · Self-paced</p>
+        <h1 className="ph-prompt">{view.title}</h1>
+        <p className="ph-text">This opens {windowLabel(view, zone, serverNow).replace(/^Opens /, "").replace(/\.$/, "")}. Come back then.</p>
+        {selfList}
       </section> : <section className="ph-step" aria-live="polite">
+        {selfView && <><p className="ph-muted">{view.title} · Self-paced</p><p className="ph-window">{windowLabel(view, zone, serverNow)}</p></>}
         {lookingBack && <p className="ph-muted">{view.title} · {view.state === "open" ? "still open" : !asks ? "earlier" : "closed"}</p>}
         {isLive && burstLeft !== null && burstLeft > 0 && burstLength.current && <Burst left={burstLeft} total={burstLength.current.total} />}
         {!asks ? <PhoneContent engagement={engagement} step={view} />
@@ -158,6 +196,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
             {closed && <p className="ph-text">This step is closed. Your answers are kept.</p>}
             {!takesInput && !down && !closed && isLive && !running && <p className="ph-text">Watch the screen. This will open in a moment.</p>}
           </>}
+        {selfList}
       </section>}
     </div>
     {view && takesInput && textForm && <form className="ph-foot" onSubmit={send}>

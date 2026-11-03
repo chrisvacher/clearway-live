@@ -1,0 +1,10 @@
+/* Step 6a: self-paced sessions open on the phone, and a session's window. Tokens only. */
+.ph-self { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); }
+.ph-self h2 { margin: 0; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.ph-self ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.ph-self button { width: 100%; min-height: var(--cwl-phone-touch); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); padding: var(--space-3) var(--space-4);
+  border: 0; box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); border-radius: var(--cwl-radius-card); background: transparent; color: var(--cwl-text); font: inherit; text-align: left; cursor: pointer; }
+.ph-self button span { font-size: var(--cwl-fs-phone-label); color: var(--cwl-text-muted); }
+.ph-self button:disabled { cursor: default; opacity: 0.7; }
+.ph-self button strong { font-size: var(--cwl-fs-phone-body); overflow-wrap: anywhere; }
+.ph-window { margin: 0; font-size: var(--cwl-fs-phone-label); color: var(--cwl-text-muted); }

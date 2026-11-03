@@ -11,6 +11,10 @@ export type ControlStatus = {
   status: "ok"; server_time: string; version: number; fac_topic: string | null; screens: ControlScreen[];
   counts: { signed_in: number; answered: number; answers: number; hidden: number; latency_p95_ms: number | null };
   items: ControlItem[]; controls: ControlLogEntry[];
+  // Step 6a: self-paced sessions with their state worked out from their times, and the rehearsal.
+  self_paced?: ControlSelfPaced[]; rehearsal?: ControlRehearsal;
 };
+export type ControlSelfPaced = { id: string; title: string; part: string; interaction: string; state: string; opens_at: string | null; closes_at: string | null; answered: number };
+export type ControlRehearsal = { since: string | null; test_answers: number; last_clear: { at: string; answers: number; sessions: number; by: string | null } | null };
 // Private notices on the facilitator topic. Hints only: the status read is authoritative.
 export type ControlNotice = { kind: "ack"; screen: string; version: number; at: string } | { kind: "control"; id?: string; action: string; by?: string | null; version: number; changed?: boolean; at: string };
