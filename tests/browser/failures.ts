@@ -1,11 +1,15 @@
-// The milestone 2 failure kit (FAIL-01, 02, 04, 05, 06, 08, 10, and realtime
-// blocked), run in real browsers against the production build and the local
-// stack. Each check breaks something on purpose and proves the room recovers
-// the way the PRD says. Local only: no real email, Team Hub or CORE.
+// The failure kit (FAIL-01, 02, 04, 05, 06, 08, 10, and realtime blocked), run in
+// real browsers against the production build and the local stack. Each check
+// breaks something on purpose and proves the room recovers the way the PRD says.
+// The milestone 2 checks run on the word cloud and wall; then failures-m3.ts runs
+// the same failures on milestone 3's kinds, plus FAIL-09 with the fake AI model.
+// Local only: no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type BrowserContext, type Page, type WebSocketRoute } from "playwright";
 import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
+// Imported first: it points the app's AI worker at the scripted fake model before the app starts.
+import { milestone3Failures } from "./failures-m3";
 
 async function main() {
 const env = localEnv(), sql = db(env), mail = await mailbox();
@@ -179,6 +183,10 @@ try {
     assert.match(text, /reached the TV in under 1 second/); assert.match(text, /Celebration/);
     await shot(report, "latency-report");
   });
+
+  // Milestone 3's kinds, in the same browser and app, on an engagement of their own.
+  await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
+  await milestone3Failures({ env, sql, mail, app, browser, step, shot });
 
   console.log(`Browser failure kit: ${passed.length} checks passed.\n${passed.map(p => `  ${p}`).join("\n")}\nLocal checks on loopback; venue acceptance is the practice-room script.`);
 } catch (error) {

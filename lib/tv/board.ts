@@ -182,13 +182,15 @@ export class Chips {
     const target = this.target();
     if (reducedMotion(this.row)) { this.off = target; this.v = 0; }
     else if (dt > 0) [this.off, this.v] = springStep(this.off, this.v, target, springRate(tokenMs(this.row, "cwl-dur-regroup")), dt);
-    this.track.style.transform = `translateX(${(-this.off).toFixed(2)}px)`;
-    // Retire a chip that has slid fully past the left edge, keeping the picture still.
+    // Retire a chip that has slid fully past the left edge, keeping the picture still: the
+    // offset and the removal land in the same frame as the transform that accounts for them,
+    // so the row never shows one frame shifted by the retired chip's width.
     const first = this.track.firstElementChild as HTMLElement | null;
     if (first && this.track.children.length > 1 && first.offsetLeft + first.offsetWidth < this.off - 4) {
       const gap = parseFloat(getComputedStyle(this.track).columnGap) || 0;
       this.off -= first.offsetWidth + gap; if (first.dataset.key) this.retired.add(first.dataset.key); first.remove();
     }
+    this.track.style.transform = `translateX(${(-this.off).toFixed(2)}px)`;
   }
 }
 

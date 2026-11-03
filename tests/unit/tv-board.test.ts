@@ -187,3 +187,56 @@ test("The latency report's verdict, window and percentiles", async () => {
   assert.equal(percentile([100, 200, 300, 400, 500], 0.5), 300);
   assert.equal(percentile([100, 200, 300, 400, 500], 1), 500);
 });
+
+// The word cloud's single-mention row (milestone 3 acceptance kit). When the oldest chip
+// slides past the left edge it is retired and the offset drops by its width. The transform
+// written in that frame must already account for it, or the row shows one frame shifted by a
+// whole chip (the kit saw 200 to 300 px steps). A minimal DOM stands in for the browser.
+test("Retiring a chip off the left edge never shifts the row for a frame", async () => {
+  type El = { className: string; dataset: Record<string, string>; style: Record<string, string>; children: El[]; parent: El | null; width: number; textContent: string;
+    classList: { add(c: string): void; remove(c: string): void; contains(c: string): boolean; toggle(c: string, on?: boolean): void };
+    appendChild(c: El): El; remove(): void; animate(): { onfinish: null }; querySelector(sel: string): El | null; readonly firstElementChild: El | null;
+    readonly offsetLeft: number; readonly offsetWidth: number; readonly scrollWidth: number; readonly clientWidth: number; closest(): null };
+  const el = (width = 0): El => {
+    const e: El = { className: "", dataset: {}, style: {}, children: [], parent: null, width, textContent: "",
+      classList: { add: c => { e.className += ` ${c}`; }, remove: c => { e.className = e.className.replace(` ${c}`, ""); }, contains: c => e.className.split(" ").includes(c), toggle: () => {} },
+      appendChild: c => { c.parent = e; e.children.push(c); return c; }, remove: () => { if (e.parent) e.parent.children = e.parent.children.filter(x => x !== e); e.parent = null; },
+      animate: () => ({ onfinish: null }), closest: () => null,
+      querySelector: (sel: string) => { const key = /data-key="([^"]+)"/.exec(sel)?.[1]; return e.children.find(c => c.dataset.key === key && !c.classList.contains("is-going")) ?? null; },
+      get firstElementChild() { return e.children[0] ?? null; },
+      get offsetLeft() { if (!e.parent) return 0; let x = 0; for (const c of e.parent.children) { if (c === e) return x; x += c.width + 20; } return x; },
+      get offsetWidth() { return e.width; },
+      get scrollWidth() { return e.children.reduce((s, c) => s + c.width + 20, 0) - 20; },
+      get clientWidth() { return e.width; } };
+    return e;
+  };
+  const g = globalThis as unknown as Record<string, unknown>;
+  const saved = { document: g.document, getComputedStyle: g.getComputedStyle, CSS: g.CSS };
+  g.document = { createElement: () => el(200) };
+  g.getComputedStyle = () => ({ columnGap: "20px", getPropertyValue: (n: string) => n === "--cwl-dur-regroup" ? "700ms" : "" });
+  g.CSS = { escape: (s: string) => s };
+  try {
+    const { Chips } = await import("../../lib/tv/board");
+    const row = el(1000), chips = new Chips(row as unknown as HTMLElement);
+    const words = Array.from({ length: 12 }, (_, i) => ({ key: `w${i}`, text: `w${i}`, isNew: false }));
+    chips.set(words.slice(0, 4), true);
+    // Where the second chip is drawn on screen, frame by frame, as words keep arriving.
+    const track = row.children[0], screenX = (key: string) => {
+      const chip = track.children.find(c => c.dataset.key === key); if (!chip) return null;
+      return chip.offsetLeft + Number(/translateX\((-?[\d.]+)px\)/.exec(track.style.transform ?? "")?.[1] ?? 0);
+    };
+    let retired = 0, largest = 0;
+    for (let n = 5; n <= 12; n++) {
+      chips.set(words.slice(0, n));
+      for (let f = 0; f < 90; f++) {
+        const before = track.children.length, watch = track.children[1]?.dataset.key, x0 = watch ? screenX(watch) : null;
+        chips.step(1 / 60);
+        if (track.children.length < before) retired++;
+        const x1 = watch ? screenX(watch) : null;
+        if (x0 !== null && x1 !== null) largest = Math.max(largest, Math.abs(x1 - x0));
+      }
+    }
+    assert.ok(retired >= 3, `chips were retired off the left edge (${retired})`);
+    assert.ok(largest < 100, `no chip moves half a chip's width (200 px) in one frame (largest ${largest.toFixed(1)} px)`);
+  } finally { Object.assign(g, saved); }
+});
