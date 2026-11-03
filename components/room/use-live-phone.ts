@@ -95,5 +95,7 @@ export function useLivePhone(engagement: string) {
   }, []);
   const dismiss = useCallback((id: string, revision: number) => outbox.current?.dismiss(id, revision), []);
   const answers = room ? [...room.answers.filter(a => !settledAnswers.some(s => s.id === a.id && s.revision > a.revision)), ...settledAnswers.filter(s => !room.answers.some(a => a.id === s.id && a.revision >= s.revision))] : settledAnswers;
-  return { frame, mode, room, answers, entries, online: online && mode !== "offline", fresh, submit, dismiss, clockOffset: clock.current.offsetMs };
+  // Read the phone's own view again now (a self-paced session just opened or closed).
+  const reload = useCallback(() => loadRoom.current(), []);
+  return { frame, mode, room, answers, entries, online: online && mode !== "offline", fresh, submit, dismiss, reload, clockOffset: clock.current.offsetMs };
 }
