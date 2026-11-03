@@ -31,6 +31,14 @@ export function sendsUsed(session: string, answers: OwnAnswer[], outbox: OutboxE
   return sent.size;
 }
 
+// Answers this page saw the server accept, held until a read of the phone's own view that
+// began after each one settled. From then on the server's list decides, so an answer it no
+// longer holds (Clear test answers removed it) leaves the phone and stops counting.
+export type SettledAnswer = OwnAnswer & { settledAt: number };
+export function keepSettled(settled: SettledAnswer[], readStartedAt: number) {
+  return settled.filter(a => a.settledAt >= readStartedAt);
+}
+
 export type ShownAnswer = { id: string; text: string; value?: unknown; revision: number; status: "sent" | "saved" | "sending" | "failed"; reason?: string; withdrawn: boolean };
 // The person's own answers for one step: what the server holds, overlaid with
 // what is still on this phone, newest change winning, in the order written. For a

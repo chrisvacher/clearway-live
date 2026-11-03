@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PhoneOutbox } from "../../lib/phone/outbox";
-import { checkAnswer, limitHint, ownAnswers, sendsUsed, settledReason } from "../../lib/phone/policy";
+import { checkAnswer, keepSettled, limitHint, ownAnswers, sendsUsed, settledReason, type SettledAnswer } from "../../lib/phone/policy";
 import type { OutboxEntry, OwnAnswer } from "../../lib/phone/types";
 import type { SubmissionRequest } from "../../lib/live/types";
 
@@ -46,6 +46,16 @@ test("own answers show Sent, Saved on this phone, Sending and Not sent, newest c
   assert.equal(withdrawn.length, 0, "a withdrawal hides the answer at once");
   const stale = ownAnswers("s1", [{ id: "a", session_id: "s1", text: "Server", revision: 2, withdrawn: false }], [{ request: request("a", { action: "change", revision: 1, text: "Older" }), state: "saved" }], true);
   assert.equal(stale[0].text, "Server");
+});
+
+test("an answer the server accepted stays on the phone only until a later read, so cleared test answers leave the phone", () => {
+  const settled: SettledAnswer[] = [{ id: "t", session_id: "s1", text: "rehearsing", revision: 0, withdrawn: false, settledAt: 1000 }, { id: "n", session_id: "s1", text: "new", revision: 0, withdrawn: false, settledAt: 3000 }];
+  assert.deepEqual(keepSettled(settled, 500).map(a => a.id), ["t", "n"], "a read that began before it settled may not include it yet");
+  const kept = keepSettled(settled, 2000);
+  assert.deepEqual(kept.map(a => a.id), ["n"], "a read that began after it settled decides");
+  // Clear test answers removed "t" on the server: the phone no longer shows it or counts it.
+  assert.equal(sendsUsed("s1", kept, []), 1);
+  assert.deepEqual(ownAnswers("s1", kept, [], true).map(a => a.text), ["new"]);
 });
 
 test("settled outcomes are never retried; anything else waits", () => {

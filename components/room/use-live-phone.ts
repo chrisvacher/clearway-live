@@ -4,7 +4,8 @@ import { RoomStream } from "@/lib/live/stream";
 import { clockSample } from "@/lib/live/protocol";
 import type { LiveRead, LiveSnapshot, SubmissionRequest } from "@/lib/live/types";
 import { browserStore, PhoneOutbox } from "@/lib/phone/outbox";
-import type { OutboxEntry, OwnAnswer, PhoneRoom } from "@/lib/phone/types";
+import { keepSettled, type SettledAnswer } from "@/lib/phone/policy";
+import type { OutboxEntry, PhoneRoom } from "@/lib/phone/types";
 
 // One phone in the live room: the shared room it follows, its own reached
 // steps and answers, and its durable outbox.
@@ -13,7 +14,7 @@ export function useLivePhone(engagement: string) {
   const [mode, setMode] = useState("connecting");
   const [room, setRoom] = useState<PhoneRoom | null>(null);
   const [entries, setEntries] = useState<OutboxEntry[]>([]);
-  const [settledAnswers, setSettledAnswers] = useState<OwnAnswer[]>([]);
+  const [settledAnswers, setSettledAnswers] = useState<SettledAnswer[]>([]);
   const [online, setOnline] = useState(true);
   const [fresh, setFresh] = useState(false);
   const clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
@@ -33,8 +34,8 @@ export function useLivePhone(engagement: string) {
     async function load() {
       if (running) { again = true; return; } running = true;
       try {
-        const response = await fetch(`/api/live/${engagement}/mine`, { cache: "no-store" });
-        if (response.ok && !stopped) { const next = await response.json() as PhoneRoom; if (next.status === "ok") setRoom(next); }
+        const started = Date.now(), response = await fetch(`/api/live/${engagement}/mine`, { cache: "no-store" });
+        if (response.ok && !stopped) { const next = await response.json() as PhoneRoom; if (next.status === "ok") { setRoom(next); setSettledAnswers(list => keepSettled(list, started)); } }
       } catch { /* Keep the last view while offline. */ }
       finally { running = false; if (again && !stopped) { again = false; void load(); } }
     }
@@ -71,7 +72,7 @@ export function useLivePhone(engagement: string) {
       if (response.status >= 500 || response.status === 403) throw new Error("retry");
       return await response.json() as { status: string };
     }, setEntries, (request, reason) => {
-      if (!reason) setSettledAnswers(list => [...list.filter(a => a.id !== request.id), { id: request.id, session_id: request.session, text: request.text, revision: request.revision, withdrawn: request.action === "withdraw" }]);
+      if (!reason) setSettledAnswers(list => [...list.filter(a => a.id !== request.id), { id: request.id, session_id: request.session, text: request.text, revision: request.revision, withdrawn: request.action === "withdraw", settledAt: Date.now() }]);
       loadRoom.current();
     }, browserStore, () => navigator.onLine);
     outbox.current = box; setEntries(box.entries); box.kick();
