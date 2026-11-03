@@ -22,6 +22,8 @@
 --  * private.qa_board and private.qa_root: AI folds (made_by 'ai') apply only while AI is on,
 --    so AI off shows the questions as matching words left them. Every other rule is step 4's.
 --  * private.options_qa: also takes ai (on by default). New: options_word_cloud, options_wall.
+--  * private.rehearsal_control (step 6a): Clear test answers also retires every AI record
+--    made from the cleared answers (private.ai_clear). Everything else is 6a's, verbatim.
 begin;
 
 -- ---------- Tables ----------
@@ -649,7 +651,7 @@ begin
  if s.id is null then select * into s from public.sessions where id=r.live_session_id and not deleted; end if;
  out:=jsonb_build_object('status','ok','version',r.version,'engagement_ai',coalesce(e.settings->>'ai_enabled','false')='true',
   'cost',(select jsonb_build_object('usd',coalesce(sum(cost_usd),0),'runs',count(*),'input_tokens',coalesce(sum(input_tokens),0),'output_tokens',coalesce(sum(output_tokens),0))
-    from private.ai_runs where engagement_id=p_engagement and not deleted));
+    from private.ai_runs where engagement_id=p_engagement));
  if s.id is null or s.interaction not in ('word_cloud','wall','qa') then return out||jsonb_build_object('session',null); end if;
  select * into a from private.ai_sessions where session_id=s.id and not deleted;
  if a.lease_run is not null and a.lease_until>t then select * into running from private.ai_runs where id=a.lease_run; end if;
@@ -778,6 +780,91 @@ begin
 exception when invalid_text_representation then return jsonb_build_object('status','invalid_request');
 end $$;
 
+-- ---------- Clear test answers (step 6a) ----------
+-- Clearing a rehearsal soft-deletes every AI record made from its test answers: word
+-- combines that touch a cleared word, group memberships of cleared answers and any group
+-- left with no standing answer, the summaries and runs of the sessions it touched since the
+-- rehearsal's first test answer (undone records too), and resets those sessions' lease,
+-- watermarks and Show summary, so the real session starts clean. The live AI switch stays.
+-- Every results function already skips deleted rows. The cost log keeps the runs' spend.
+create function private.ai_clear(p_engagement uuid,p_cleared uuid[]) returns void
+language plpgsql security definer set search_path='' as $$
+declare touched uuid[]; since timestamptz;
+begin
+ select array_agg(distinct x.session_id),min(x.created_at) into touched,since from public.submissions x where x.engagement_id=p_engagement and x.id=any(coalesce(p_cleared,array[]::uuid[]));
+ if touched is null then return; end if;
+ update private.ai_word_merges m set deleted=true where m.engagement_id=p_engagement and m.session_id=any(touched) and not m.deleted
+  and exists(select 1 from public.submissions x cross join lateral jsonb_array_elements(x.answers) a where x.id=any(p_cleared) and x.session_id=m.session_id and a->>'key' in (m.member_key,m.survivor_key));
+ update private.ai_group_members set deleted=true where engagement_id=p_engagement and submission_id=any(p_cleared) and not deleted;
+ update private.ai_groups g set deleted=true where g.engagement_id=p_engagement and g.session_id=any(touched) and not g.deleted
+  and not exists(select 1 from private.ai_group_members gm join public.submissions x on x.id=gm.submission_id and not x.deleted where gm.group_id=g.id and not gm.deleted);
+ update private.ai_summaries set deleted=true where engagement_id=p_engagement and session_id=any(touched) and not deleted;
+ update private.ai_runs set deleted=true,status=case when status='running' then 'stale' else status end where engagement_id=p_engagement and session_id=any(touched) and created_at>=since and not deleted;
+ update private.ai_sessions set summary_shown=false,lease_id=null,lease_run=null,lease_until=null,combine_seen=0,group_seen_at=null,fold_seen_at=null,
+  last_ok_at=null,last_failed_at=null,last_error=null,last_ms=null where session_id=any(touched);
+end $$;
+
+-- 6a's private.rehearsal_control, verbatim, with the one line that calls private.ai_clear.
+create or replace function private.rehearsal_control(p_engagement uuid,p_id uuid,p_action text) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare r public.room_states; done private.rehearsal_log; since timestamptz; began timestamptz; cleared uuid[]; n_votes integer:=0; n_suggestions integer:=0; n_sessions integer:=0;
+begin
+ if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
+ select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
+ if not found or not coalesce(private.show_allowed(p_engagement),false) then return jsonb_build_object('status','denied'); end if;
+ if exists(select 1 from public.engagements where id=p_engagement and status='closed') then return jsonb_build_object('status','closed'); end if;
+ if p_id is null or p_action is null or p_action not in ('start','end','clear') then return jsonb_build_object('status','invalid_request'); end if;
+ select * into done from private.rehearsal_log where id=p_id;
+ if found then
+  if done.engagement_id<>p_engagement or done.action<>p_action then return jsonb_build_object('status','conflict'); end if;
+  return jsonb_build_object('status','duplicate','answers',done.answers,'votes',done.votes,'suggestions',done.suggestions,'sessions',done.sessions,'version',r.version);
+ end if;
+ since:=private.rehearsing(p_engagement);
+ if p_action='start' then
+  if since is not null then return jsonb_build_object('status','unchanged','since',since); end if;
+  insert into private.rehearsal_log(id,engagement_id,actor_id,action,created_at) values(p_id,p_engagement,private.clearway_user_id(),'start',clock_timestamp());
+  return jsonb_build_object('status','ok','since',private.rehearsing(p_engagement));
+ elsif p_action='end' then
+  if since is null then return jsonb_build_object('status','unchanged'); end if;
+  insert into private.rehearsal_log(id,engagement_id,actor_id,action,created_at) values(p_id,p_engagement,private.clearway_user_id(),'end',clock_timestamp());
+  return jsonb_build_object('status','ok');
+ end if;
+ -- Clear test answers: never while a session is on the TV and phones.
+ if r.live_session_id is not null then
+  return jsonb_build_object('status','live','title',(select title from public.sessions where id=r.live_session_id));
+ end if;
+ -- The steps a rehearsal reached since the last clear.
+ select min(l.created_at) into began from private.rehearsal_log l where l.engagement_id=p_engagement and l.action='start' and not l.deleted
+  and l.created_at>coalesce((select max(c.created_at) from private.rehearsal_log c where c.engagement_id=p_engagement and c.action='clear' and not c.deleted),'-infinity'::timestamptz);
+ perform 1 from public.sessions where engagement_id=p_engagement and not deleted order by id for update;
+ select coalesce(array_agg(id order by id),array[]::uuid[]) into cleared from public.submissions where engagement_id=p_engagement and test and not deleted;
+ update public.submissions set deleted=true where id=any(cleared);
+ update private.latency_logs set deleted=true where submission_id=any(cleared) and not deleted;
+ update private.qa_questions set deleted=true where submission_id=any(cleared) and not deleted;
+ update private.qa_merges set deleted=true where engagement_id=p_engagement and (survivor_id=any(cleared) or member_id=any(cleared)) and not deleted;
+ update private.qa_votes set deleted=true where engagement_id=p_engagement and (test or question_id=any(cleared)) and not deleted;
+ get diagnostics n_votes=row_count;
+ update private.ranking_suggestions set deleted=true where engagement_id=p_engagement and test and not deleted;
+ get diagnostics n_suggestions=row_count;
+ -- Step 5: nothing AI made from test answers survives into the real session.
+ perform private.ai_clear(p_engagement,cleared);
+ -- A real answer that a test answer replaced stands again.
+ update public.submissions set withdrawn=false,replaced_by=null where engagement_id=p_engagement and replaced_by=any(cleared) and not deleted and not test;
+ -- Steps the rehearsal reached go back to Ready, unless real answers live in them.
+ if began is not null then
+  update public.sessions x set state='ready',closed_at=null
+   where x.engagement_id=p_engagement and not x.deleted and x.mode='live' and x.state in ('open','closed') and x.shown_at>=began
+    and not exists(select 1 from public.submissions y where y.session_id=x.id and not y.deleted);
+  get diagnostics n_sessions=row_count;
+ end if;
+ insert into private.rehearsal_log(id,engagement_id,actor_id,action,answers,votes,suggestions,sessions,created_at)
+  values(p_id,p_engagement,private.clearway_user_id(),'clear',cardinality(cleared),n_votes,n_suggestions,n_sessions,clock_timestamp());
+ -- One version for every surface: a spotlit test question clears, counts recompute.
+ update public.room_states set spotlight_id=case when spotlight_id=any(cleared) then null else spotlight_id end,results=private.live_results(p_engagement)
+  where engagement_id=p_engagement returning * into r;
+ return jsonb_build_object('status','ok','answers',cardinality(cleared),'votes',n_votes,'suggestions',n_suggestions,'sessions',n_sessions,'version',r.version);
+end $$;
+
 -- ---------- Wrappers ----------
 create function public.ai_status(p_engagement uuid,p_session uuid default null) returns jsonb
 language sql stable security invoker set search_path='' as $$ select private.ai_status(p_engagement,p_session) $$;
@@ -793,7 +880,7 @@ language sql security invoker set search_path='' as $$ select private.ai_fail(p_
 create function public.ai_due(p_engagement uuid) returns jsonb
 language sql stable security invoker set search_path='' as $$ select private.ai_due(p_engagement) $$;
 
-revoke all on function private.ai_on(uuid),private.ai_summary_on(uuid),private.ai_quoted(text),private.ai_numbers(text),private.ai_label(text),
+revoke all on function private.ai_clear(uuid,uuid[]),private.ai_on(uuid),private.ai_summary_on(uuid),private.ai_quoted(text),private.ai_numbers(text),private.ai_label(text),
  private.options_word_cloud(jsonb,uuid),private.options_wall(jsonb,uuid),private.ai_wall_open(uuid),private.ai_wall_groups(uuid),
  private.ai_claim(uuid,uuid,text,jsonb),private.ai_usage(jsonb,text,numeric),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),private.ai_due(uuid),
  private.ai_status(uuid,uuid),private.ai_control(uuid,uuid,text,jsonb),

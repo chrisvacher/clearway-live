@@ -1,6 +1,6 @@
 # AI, live
 
-Milestone 3, step 5. The AI states of the word cloud (INT-01), the open text wall (INT-02) and Q&A (INT-03), Show summary, and FAIL-09. Migration `ai_live`.
+Milestone 3, step 5. The AI states of the word cloud (INT-01), the open text wall (INT-02) and Q&A (INT-03), Show summary, and FAIL-09. Migration `20261103110000_ai_live` (after step 6a's `self_paced`).
 
 ## AI is never in the path from phone to TV
 
@@ -48,8 +48,8 @@ The four prompts live in `lib/ai/prompts.ts`, each with a version (`combine-word
 ## The TV
 
 - **INT-01.** A combined word carries the AI glyph (the icon filled with the AI gradient) and the foot says "Combined similar answers" once, beside the AI badge. The absorbed word glides into the survivor's place on the regroup spring while it fades, and the survivor grows; Undo plays it backwards, the word leaving the survivor's place for one of its own.
-- **INT-02, AI on.** Pass 2's layout: the AI groups as short labels in the main area, sized by how many answers they hold, under one AI badge ("Grouped from your answers"), with the answers in a column on the right, newest first. Groups form from two answers; a pinned group shows the pin. Up to nine groups show, four while the summary shows; the rest wait on the control surface ("+ 2 smaller groups on the control surface").
-- **INT-02, the summary.** After Show summary, the summary opens at the top of the groups column under the question: an AI gradient header band with the AI icon and "AI summary", the text on its own Deeper Royal panel at the floor size. The groups glide down to make room; a refresh cross-fades the text; Hide summary closes it.
+- **INT-02, AI on.** Pass 2's layout: the AI groups as short labels in the main area, sized by how many answers they hold, under one AI badge ("Grouped from your answers"), with the answers in a column on the right, newest first. Groups form from two answers; a pinned group shows the pin. Up to nine groups show, four while the summary shows, and only as many as fit whole at the floor size (at least one): groups never overlap and are never cut. The rest wait on the control surface ("+ 2 smaller groups on the control surface").
+- **INT-02, the summary.** After Show summary, the summary opens at the top of the groups column under the question (its AI band then heads the column, so the groups' own heading steps aside, and the answers column narrows to give it room): an AI gradient header band with the AI icon and "AI summary", the text on its own Deeper Royal panel at the floor size. The groups glide down to make room; a refresh cross-fades the text; Hide summary closes it.
 - **INT-02, AI off.** Answer cards in arrival order, oldest first, so each card keeps its place as new ones join at the end. A crowded wall steps older cards down to the body size, then the floor, then the oldest take turns ("+ 6 more, taking turns", every `cwl-dur-turn-hold`), only once nothing has arrived for `cwl-delay-quiet`. Switching AI on or off cross-fades between the two layouts; neither redraws.
 - **INT-03.** A group with an AI fold shows the AI badge and "Combined · asked by 3"; the Spotlight shows it too.
 - The TV never says AI is slow, failing or off. Reduced motion puts everything in place at once.
@@ -66,7 +66,11 @@ The item lists: the word cloud's AI combines with Undo, and the wall's AI groups
 
 ## Shared functions redefined
 
-`private.results_word_cloud`, `private.results_wall`, `private.qa_board`, `private.qa_root` and `private.options_qa`, each keeping every earlier field and rule. New: `options_word_cloud`, `options_wall`. App lines: the wall's TV view is `components/interactions/ai/wall-view.tsx` in `tv-views.tsx`; the word cloud's board (`lib/tv/board.ts`) gains the glyph and the combine glides; `tv-scenes.tsx` gains the foot line; `controlItems` and `controlPanels` gain the AI lists and panel; the remote gains `AiRemote`; `live-controls.tsx` exports its general item list; the run of show gains the AI settings; the phone's answer card gains the combined note; setup's AI label is now "Use AI in live sessions".
+`private.results_word_cloud`, `private.results_wall`, `private.qa_board`, `private.qa_root`, `private.options_qa` and step 6a's `private.rehearsal_control`, each keeping every earlier field and rule. New: `options_word_cloud`, `options_wall`, `ai_clear`. App lines: the wall's TV view is `components/interactions/ai/wall-view.tsx` in `tv-views.tsx`; the word cloud's board (`lib/tv/board.ts`) gains the glyph and the combine glides; `tv-scenes.tsx` gains the foot line; `controlItems` and `controlPanels` gain the AI lists and panel; the remote gains `AiRemote`; `live-controls.tsx` exports its general item list; the run of show gains the AI settings; the phone's answer card gains the combined note; setup's AI label is now "Use AI in live sessions".
+
+## Clear test answers
+
+Step 6a's Clear test answers (`private.rehearsal_control`, redefined with one added call to `private.ai_clear`) also retires everything AI made from the cleared answers: word combines that touch a cleared word, group memberships of cleared answers and any group left with no standing answer, the summaries of the sessions it touched, and those sessions' AI runs since the first test answer, undone records included. It resets those sessions' lease, watermarks and Show summary, so the real session starts clean; the live AI switch stays as the facilitator left it. The cost log keeps what the rehearsal spent. Every results function skips deleted rows, so nothing of the rehearsal reaches a screen.
 
 ## The AI icon
 

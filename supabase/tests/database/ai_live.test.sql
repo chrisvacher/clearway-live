@@ -402,5 +402,88 @@ reset role;
 select ok((select count(*) from private.room_controls where engagement_id=tests.id(100) and action='undo_ai_combine')=1,'Each AI press is logged once in plain words');
 select is(jsonb_array_length(private.ai_due(tests.id(100))),1,'The live session is due for AI work');
 
+-- ---------- Clear test answers retires everything AI made from them (step 6a's rehearsal) ----------
+insert into sessions(id,engagement_id,title,part,position,interaction,prompt,state,max_sends,max_characters,max_words) values
+ (tests.id(350),tests.id(100),'Rehearse: one word','Day 1',10,'word_cloud','One word','ready',20,28,3),
+ (tests.id(360),tests.id(100),'Rehearse: wall','Day 1',11,'wall','What is worth celebrating?','ready',20,280,50),
+ (tests.id(370),tests.id(100),'Rehearse: questions','Day 1',12,'qa','What do you want to ask?','ready',20,200,50);
+create function tests.live_count(p_table text) returns integer language plpgsql security definer set search_path='' as $$
+declare n integer; begin execute format('select count(*)::integer from private.%I where session_id in(%L,%L,%L) and not deleted',p_table,tests.id(350),tests.id(360),tests.id(370)) into n; return n; end $$;
+create function tests.rs(n integer) returns jsonb language sql security definer set search_path='' as $$
+ select private.live_results_for(tests.id(100),tests.id(n),array[]::text[]) $$;
+grant execute on all functions in schema tests to authenticated,anon,service_role;
+set local role authenticated; select tests.login(1);
+select is(tests.ctl(3001,'nothing_live')->>'status','ok','Nothing live before rehearsing');
+select is(public.rehearsal_control(tests.id(100),tests.id(3002),'start')->>'status','ok','A rehearsal starts');
+select is(tests.ctl(3003,'go_live',jsonb_build_object('session',tests.id(350)))->>'status','ok','The rehearsal word cloud goes live');
+select tests.login(3);
+select tests.send(101,350,'youth, young people, hope, joy, grace');
+select tests.send(102,350,'family, momentum, welcome, prayer, music');
+select tests.send(103,350,'unity, mission, healing, light, peace');
+select tests.login(5);
+select tests.send(104,350,'kids, students, seniors, serving, outreach');
+select tests.send(105,350,'alpha, worship, freedom, courage, renewal');
+select tests.send(106,350,'harvest, friendship, love, care, trust');
+reset role;
+select ok((select bool_and(test) from submissions where session_id=tests.id(350)),'Rehearsal answers are test answers');
+select is(tests.claim('rcloud',350,940)->>'job','combine_words','AI works on test answers like any others');
+select is(tests.apply('rcloud',940,jsonb_build_object('groups',jsonb_build_array(
+ jsonb_build_object('survivor',tests.ref('rcloud','words','youth'),'members',jsonb_build_array(tests.ref('rcloud','words','young people'))),
+ jsonb_build_object('survivor',tests.ref('rcloud','words','kids'),'members',jsonb_build_array(tests.ref('rcloud','words','students'))))))->>'status','ok','and combines them');
+set local role authenticated; select tests.login(1);
+select is(tests.ai(3004,'undo_combine',jsonb_build_object('merge',(select (x->>'id')::uuid from jsonb_array_elements(public.ai_status(tests.id(100),tests.id(350))->'combines') x where x->>'member'='student')))->>'status','ok','An undone combine during the rehearsal');
+select is(tests.ctl(3005,'go_live',jsonb_build_object('session',tests.id(360)))->>'status','ok','The rehearsal wall goes live');
+select tests.login(6);
+select tests.send(111,360,'Three baptisms at Easter'); select tests.send(112,360,'Baptism class doubled'); select tests.send(113,360,'Alpha was full');
+reset role;
+select is(tests.claim('rwall',360,941)->>'job','group_wall','AI groups the test answers');
+select is(tests.apply('rwall',941,jsonb_build_object('groups',jsonb_build_array(jsonb_build_object('group','n1','label','Baptisms','answers',
+ jsonb_build_array(tests.ref('rwall','answers','Three baptisms at Easter'),tests.ref('rwall','answers','Baptism class doubled'))))))->>'status','ok','A group from test answers');
+set local role authenticated; select tests.login(1);
+select is(tests.ai(3006,'show_summary',jsonb_build_object('session',tests.id(360)))->>'status','ok','Show summary during the rehearsal');
+reset role;
+select is(tests.claim('rsum',360,942)->>'job','summarize_wall','A summary of test answers');
+select is(tests.apply('rsum',942,'{"summary":"Baptisms lead the rehearsal."}')->>'status','ok','is written');
+set local role authenticated; select tests.login(1);
+select is(tests.ctl(3007,'go_live',jsonb_build_object('session',tests.id(370)))->>'status','ok','The rehearsal Q&A goes live');
+select tests.login(7);
+select tests.send(121,370,'When does the new building open?'); select tests.send(122,370,'What date will the renovation be done?');
+reset role;
+select is(tests.claim('rqa',370,943)->>'job','fold_questions','AI folds test questions');
+select is(tests.apply('rqa',943,jsonb_build_object('groups',jsonb_build_array(jsonb_build_object('survivor',tests.ref('rqa','questions','When does the new building open?'),
+ 'members',jsonb_build_array(tests.ref('rqa','questions','What date will the renovation be done?')))))) ->>'status','ok','and folds them');
+select ok(tests.live_count('ai_word_merges')=2 and tests.live_count('ai_groups')=1 and tests.live_count('ai_summaries')=1 and tests.live_count('ai_runs')=4,'The rehearsal left AI records behind');
+set local role authenticated; select tests.login(1);
+select is(public.rehearsal_control(tests.id(100),tests.id(3008),'clear')->>'status','live','Clear is refused while a session is live (6a)');
+select is(tests.ctl(3009,'nothing_live')->>'status','ok','Nothing live');
+select is(public.rehearsal_control(tests.id(100),tests.id(3010),'clear')->>'status','ok','Clear test answers');
+reset role;
+select is((select count(*)::integer from private.ai_word_merges where session_id=tests.id(350) and not deleted),0,'Every combine that touched a test word is gone, undone ones too');
+select is(tests.live_count('ai_group_members')+tests.live_count('ai_groups'),0,'Groups built from test answers are gone');
+select is(tests.live_count('ai_summaries'),0,'The summary of test answers is gone');
+select is(tests.live_count('ai_runs'),0,'The rehearsal''s AI runs are retired');
+select is((select count(*)::integer from private.qa_merges where session_id=tests.id(370) and not deleted),0,'AI folds of test questions are gone (6a clears merges)');
+select ok((select bool_and(not summary_shown and lease_id is null and combine_seen=0 and group_seen_at is null and fold_seen_at is null and last_ok_at is null)
+ from private.ai_sessions where session_id in(tests.id(350),tests.id(360),tests.id(370))),'The sessions'' AI state starts clean: no lease, no watermarks, Show summary off');
+select is(tests.rs(350)->'words','[]'::jsonb,'The word cloud shows nothing of the rehearsal');
+select is((tests.rs(360)->'groups')||jsonb_build_array(tests.rs(360) ? 'summary'),'[false]'::jsonb,'The wall shows no group and no summary');
+select is(tests.rs(370)->'questions','[]'::jsonb,'Q&A shows nothing of the rehearsal');
+select ok((public.ai_status(tests.id(100))->'cost'->>'runs')::integer=tests.runs(),'The cost log still counts what the rehearsal spent');
+-- A real answer afterwards behaves normally.
+set local role authenticated; select tests.login(1);
+select is(tests.ctl(3011,'go_live',jsonb_build_object('session',tests.id(360)))->>'status','ok','The real session goes live');
+select tests.login(6);
+select tests.send(131,360,'Three baptisms at Easter'); select tests.send(132,360,'Baptism class doubled');
+reset role;
+select ok(not (select bool_or(test) from submissions where id in(tests.id(131),tests.id(132))),'Real answers are not test answers');
+select is((tests.results()->>'total')::integer,2,'Only the real answers count');
+select is(tests.results()->'groups','[]'::jsonb,'No rehearsal group carries over');
+select ok(not (tests.results() ? 'summary'),'No summary until Show summary is tapped again');
+select is(tests.claim('real',360,944)->>'job','group_wall','AI groups the real answers afresh');
+select is(jsonb_array_length(tests.c('real')->'inputs'->'answers'),2,'with both real answers offered, nothing kept apart by the rehearsal');
+select is(tests.apply('real',944,jsonb_build_object('groups',jsonb_build_array(jsonb_build_object('group','n1','label','Baptisms','answers',
+ jsonb_build_array(tests.ref('real','answers','Three baptisms at Easter'),tests.ref('real','answers','Baptism class doubled'))))))->>'status','ok','Applied');
+select is((tests.results()->'groups'->0->>'count')::integer,2,'A real group forms as normal');
+
 select * from finish();
 rollback;

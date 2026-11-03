@@ -35,7 +35,13 @@ async function main() {
   const app = await startApp(env, mail.url);
   let browser: Browser | undefined;
   const passed: string[] = [];
-  const shot = async (page: Page, name: string) => { if (process.env.KIT_SHOTS) { await delay(1200); await page.screenshot({ path: `${process.env.KIT_SHOTS}/${name}.png` }); } };
+  // Screens are saved at rest: once nothing on the page has moved for 400 ms.
+  const settle = async (page: Page) => {
+    const read = () => page.evaluate(() => [...document.querySelectorAll<HTMLElement>("[style]")].map(e => `${e.style.transform}|${e.style.opacity}|${e.style.fontSize}`).join(";"));
+    let last = await read();
+    for (let i = 0; i < 40; i++) { await delay(400); const now = await read(); if (now === last) return; last = now; }
+  };
+  const shot = async (page: Page, name: string) => { if (process.env.KIT_SHOTS) { await delay(600); await settle(page); await page.screenshot({ path: `${process.env.KIT_SHOTS}/${name}.png` }); } };
   const step = async (name: string, run: () => Promise<void>) => { await run(); passed.push(name); console.log(`ok · ${name}`); };
   try {
     await sql.connect();
@@ -114,6 +120,11 @@ async function main() {
       await until(async () => (await tv.locator("[data-ai-foot]").count()) === 0, "and the foot line goes", 5000);
       await until(async () => (await control.locator("[data-combine='young people']").innerText()).includes("Undone"), "the control surface shows it undone", 5000);
       await shot(tv, "int-01-undo-tv");
+      // The same answers with AI off: the cloud exactly as matching alone leaves it, for comparison.
+      await panel().getByRole("switch", { name: "AI for this session" }).click();
+      await until(async () => (await results()).words.every((w: { ai?: boolean }) => !w.ai), "AI off for the cloud", 5000);
+      await shot(tv, "int-01-ai-off-tv");
+      await panel().getByRole("switch", { name: "AI for this session" }).click();
     });
 
     // ---------- INT-02 ----------

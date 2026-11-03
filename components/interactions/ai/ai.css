@@ -24,7 +24,9 @@
 .tv-word .cwl-ai-glyph { font-size: var(--cwl-fs-tv-floor); width: 1.6em; height: 1.6em; margin-top: 0.1em; }
 
 /* ---------- INT-02: the wall, AI on (groups beside the answers) or off (cards in arrival order) ---------- */
-.ai-wall { position: relative; flex: 1; min-height: 0; display: grid; }
+.ai-wall { position: relative; flex: 1; min-height: 0; display: grid; margin-bottom: calc(var(--cwl-fs-tv-body) * 1.4); }
+/* Nothing sits behind the count in the corner: the cards fade out above the foot, as the answer column does. */
+.ai-cards { -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent); mask-image: linear-gradient(to bottom, black 85%, transparent); }
 .ai-wall > .ai-wall-split, .ai-wall > .ai-cards { grid-area: 1 / 1; min-height: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .ai-wall[data-ai="on"] > .ai-cards, .ai-wall[data-ai="off"] > .ai-wall-split { opacity: 0; pointer-events: none; }
 .ai-wall-split { display: grid; grid-template-columns: minmax(0, 1fr) calc(600px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px;
@@ -32,8 +34,11 @@
 /* While the summary shows, the answers column gives it room and stays in view. */
 .ai-wall-split.has-summary { grid-template-columns: minmax(0, 1fr) calc(440px * var(--cwl-tv-scale)); }
 .ai-groups { position: relative; display: flex; flex-direction: column; gap: 28px; min-width: 0; min-height: 0; }
-.ai-groups-head { display: flex; align-items: center; gap: 0.5em; min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); white-space: nowrap; }
-.ai-groups-head > span { overflow: hidden; text-overflow: ellipsis; }
+.ai-groups-head { display: flex; align-items: center; gap: 0.5em; min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; color: var(--cwl-text-muted); }
+/* While the summary shows, its AI band heads the column, so the groups' own heading steps aside to make room. */
+.ai-wall-split.has-summary .ai-groups-head { display: none; }
+.ai-wall-split.has-summary .ai-group-field { flex: 1 0 calc(var(--cwl-fs-tv-floor) * 2.3); }
+.ai-wall-split.has-summary .ai-groups { gap: 20px; }
 .ai-groups-head .cwl-ai-badge { font-size: 0.7em; }
 .ai-group-field { position: relative; flex: 1; min-height: 0; }
 .ai-group { display: inline-flex; align-items: center; gap: 0.4em; padding: 0.3em 0.5em; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel);
@@ -48,7 +53,7 @@
 
 /* The AI summary: top of the groups column, under the question. Opening grows its row, so
    the groups glide down; a refresh cross-fades its text. Never on its own. */
-.ai-summary { flex: none; display: grid; grid-template-rows: 1fr; margin-bottom: -4px; opacity: 1;
+.ai-summary { flex: 0 1 auto; min-height: 0; display: grid; grid-template-rows: 1fr; margin-bottom: -4px; opacity: 1;
   transition: grid-template-rows var(--cwl-dur-make-room) var(--cwl-ease-signature), margin-bottom var(--cwl-dur-make-room) var(--cwl-ease-signature), opacity var(--cwl-dur-arrive) var(--cwl-ease-arrive); }
 .ai-summary.is-off { grid-template-rows: 0fr; margin-bottom: -28px; opacity: 0; pointer-events: none; }
 .ai-summary-clip { min-height: 0; overflow: hidden; }
@@ -105,7 +110,7 @@
 .ai-summary-preview { white-space: pre-wrap; }
 .ai-remote { display: flex; flex-direction: column; gap: var(--space-2); }
 .ai-remote .ctl-grid { margin: 0; }
-.ai-wall-split .tv-feed-head { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-wall-split .tv-feed-head { line-height: 1.15; }
 /* FAIL-09's notices, styled like the control surface's banners but their own class, so the TV's banners stay one of a kind. */
 .ai-notice { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-button); color: var(--cwl-app-text); }
 .ai-notice svg { flex: none; margin-top: 2px; }

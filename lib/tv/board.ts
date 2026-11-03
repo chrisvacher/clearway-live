@@ -67,7 +67,8 @@ export class Field {
     const keep = it.el.style.fontSize; it.el.style.fontSize = `${size}px`;
     const box = { w: it.el.offsetWidth, h: it.el.offsetHeight }; it.el.style.fontSize = keep; return box;
   }
-  set(list: FieldEntry[], instant = false) {
+  // Returns whether every item found a place of its own (the caller may show fewer).
+  set(list: FieldEntry[], instant = false): boolean {
     const root = this.root, width = root.clientWidth, height = root.clientHeight, snap = instant || reducedMotion(root);
     const want = new Set(list.map(entry => entry.key));
     this.items.forEach((it, key) => { if (!want.has(key)) it.going = true; });
@@ -85,7 +86,7 @@ export class Field {
       entry.update(it.el);
     }
     this.last = list;
-    if (width < 40 || height < 40) return;
+    if (width < 40 || height < 40) return true;
     const { gapX, gapY, fill, maxWidth } = this.opt, floor = this.opt.floor();
     let area = 0;
     for (const entry of list) { const box = this.measure(this.items.get(entry.key)!, entry.size); area += (box.w + gapX) * (box.h + gapY); }
@@ -112,6 +113,7 @@ export class Field {
       if (snap) { it.x = it.tx; it.y = it.ty; it.fs = it.tfs; it.vx = it.vy = it.vfs = 0; if (instant) it.o = 1; }
     });
     this.step(0);
+    return plan.ok;
   }
   step(dt: number) {
     const root = this.root, reduced = reducedMotion(root), now = performance.now();

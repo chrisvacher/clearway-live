@@ -125,11 +125,13 @@ export class WallBoard {
   private more: HTMLElement;
   private summaryId: string | null = null;
   private split: HTMLElement;
+  private head!: HTMLElement;
   constructor(private root: HTMLElement, private session: string) {
     root.dataset.board = "wall";
     this.wall = make("div", "ai-wall"); this.wall.dataset.ai = "off";
     const split = this.split = make("div", "ai-wall-split"), groups = make("section", "ai-groups"), head = make("p", "ai-groups-head");
     head.append(aiBadgeEl(), make("span", "", "Grouped from your answers"));
+    this.head = head;
     this.summary = make("div", "ai-summary is-off"); this.summary.setAttribute("role", "region"); this.summary.setAttribute("aria-label", "AI summary");
     const clip = make("div", "ai-summary-clip"), box = make("div", "ai-summary-box"), band = make("div", "ai-summary-head");
     band.append(aiIconEl(), document.createTextNode("AI summary"));
@@ -182,14 +184,18 @@ export class WallBoard {
     this.setSummary(ai ? summary : null);
     const { shown, rest } = shownGroups(ai ? groups : [], Boolean(ai && summary));
     const max = shown.reduce((m, g) => Math.max(m, g.count), 2), scale = this.floor() / 36;
-    this.field.set(shown.map(g => ({ key: g.id, size: wordSize(g.count, max, 44, 72) * scale, update: el => {
+    const entries = shown.map(g => ({ key: g.id, size: wordSize(g.count, max, 44, 72) * scale, update: (el: HTMLElement) => {
       const label = el.querySelector(".lbl")!, n = el.querySelector(".n")!;
       label.replaceChildren(...(g.pinned ? [pinSvg(), document.createTextNode(" ")] : []), document.createTextNode(g.label));
       if (n.textContent !== String(g.count)) n.textContent = String(g.count);
       el.setAttribute("aria-label", `${g.label}, ${g.count} answers${g.pinned ? ", pinned" : ""}`);
-    } })), instant);
+    } }));
+    // Groups never overlap and are never cut: show as many whole groups as fit at the floor,
+    // largest first (at least one); the rest wait on the control surface.
+    let fit = entries.length;
+    while (!this.field.set(entries.slice(0, fit), instant) && fit > 1) fit--;
     this.empty.classList.toggle("is-off", shown.length > 0);
-    this.more.textContent = moreGroups(rest, Boolean(summary));
+    this.more.textContent = moreGroups(rest + entries.length - fit, Boolean(summary));
     if (fresh) this.moment();
   }
   // Opening grows its row; a refresh cross-fades the text; hiding closes it.
