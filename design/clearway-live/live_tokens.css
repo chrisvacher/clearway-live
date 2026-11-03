@@ -76,7 +76,11 @@
   /* ---------- Five Lenses (fixed on every surface and in the report) ---------- */
   --cwl-lens: var(--cw-royal-blue, #3F72DE); /* One color for every lens heading */
   --cwl-on-lens: var(--cw-off-white, #F9F9FB); /* Heading text and icon; 20px bold or larger */
-  /* Headings: Congregation (lucide users), Community (lucide map-pin), Leadership (lucide compass), Operations (lucide settings), Learning (lucide book-open) */
+  --cwl-lens-small: var(--cwl-royal-deep); /* Lens chips and dots below 20px (phones, remote, control surface, report): Deeper Royal, 5.0:1 with Off-White. */
+  /* Lens icons (design pass 4, LensIcon): drawn for Clearway Live on a 24px grid, 2px round strokes in currentColor, in
+     design/clearway-live/pass-4/design-system/clearway-live/assets/Icons. Congregation: people gathered. Community: two houses
+     on one street. Leadership: a flag on the summit. Operations: connected parts of one system. Learning: an open book with a
+     new shoot. They replace the Lucide stand-ins (users, map-pin, compass, settings, book-open) on every surface and in the report. */
 
   /* ---------- Type: TV ramp at 1920x1080, scaled by the room size ---------- */
   --cwl-room-scale: 1.5;   /* set from the room size setting: one of the --cwl-room-* values */
@@ -186,6 +190,26 @@
   --cwl-delay-quiet: 3000ms; /* Nothing has arrived for this long: a crowded screen may step down, group, take turns or roll. */
   --cwl-reconnect-low: 0.45; /* The low point of the reconnecting breath. */
   --cwl-faint: 0.32; /* Faint shapes behind the room's answer (individual grid placements). Shapes only, never text. */
+  /* ---------- Design pass 4 (milestone 4, Wayfinding session tools) ---------- */
+  /* Flags: something needs fixing (an empty Vision Outcome, a goal missing a CORE letter, a first step without an owner or date).
+     TV and phones only: app surfaces show the Warning chip instead, so Sunrise and Warning never meet. */
+  --cwl-flag: var(--cwl-sunrise); /* The flag outline on dark screens and the flag tag fill on every theme. */
+  --cwl-on-flag: var(--cw-navy, #03294E); /* Text and icon on a flag tag (9.5:1). */
+  --cwl-flag-width: 6px; /* The flag outline on dark screens. Light screens: a dashed cwl-text edge instead (a thin Sunrise line fails 3:1 on Off-White). */
+  --cwl-flag-gap: 5px; /* Surface-colored gap between an item and its flag outline. */
+  --cwl-typing: var(--cw-royal-blue, #3F72DE); /* The underline under an intent-card field someone is typing in (4.4:1 on Off-White, 3:1 needed). */
+  --cwl-letter-hatch-ink: rgba(3, 41, 78, 0.18); /* Navy at 18%: the hatch inside a missing CORE letter. */
+  --cwl-letter-hatch: var(--cwl-letter-hatch-ink); /* A missing CORE letter is hatched as well as outlined, so met and missing differ by more than fill. */
+  --cwl-held-dim: 0.5; /* Remote controls while someone else has the remote. Take back stays at full strength. */
+  --cwl-dur-cluster-drift: 900ms; /* A grouped lens sentence drifts from the column into its cluster on cwl-ease-calm, cwl-delay-regroup-step apart, 12 at most. Reduced motion: none. */
+  --cwl-dur-cluster-label: 600ms; /* A cluster label grows to its new size (tv-floor to tv-main by count) on cwl-ease-arrive, from cwl-delay-label-after-drift. Reduced motion: instant. */
+  --cwl-dur-outcome-confirm: 700ms; /* Lime sweeps once across a confirmed outcome, holds, then settles to the Confirmed mark. Reduced motion: the mark appears, no sweep. */
+  --cwl-dur-line-replace: 240ms; /* A rewritten line crossfades in place. Typing that extends a line just grows it. Reduced motion: swap. */
+  --cwl-dur-field-lock: 3000ms; /* A card field stays with one phone this long after its last keystroke, then is released. */
+  --cwl-dur-remote-hand: 500ms; /* The remote changing hands: holder banners slide in, controls settle. The TV never changes. Reduced motion: instant. */
+  --cwl-dur-map-field: 700ms; /* Each draft Map field rises into place on cwl-ease-calm, cwl-delay-map-step apart, in reading order. Reduced motion: at once. */
+  --cwl-delay-type-batch: 120ms; /* The TV applies typed edits at most this often, so a line never stutters. */
+  --cwl-delay-map-step: 160ms; /* Between draft Map fields assembling. */
 }
 
 /* ---------- Light screens ---------- */
@@ -301,7 +325,7 @@
   --cwl-fs-app-label: 14px; /* Base small, 600. Field labels, nav, buttons (uppercase 700). */
   --cwl-fs-app-micro: 12px; /* Base micro. Chips, table headers (uppercase), meta. */
   /* Sunrise never appears on app surfaces */
-  --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial;
+  --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial; --cwl-flag: initial;
 }
 /* Warning and Error live only on app surfaces: they do not exist on the TV or phones */
 [data-surface="tv"], [data-surface="phone"] { --cwl-app-warning: initial; --cwl-app-warning-bg: initial; --cwl-app-error: initial; --cwl-app-error-bg: initial; }
@@ -326,14 +350,22 @@
 [data-surface="tv"][data-room="large"] { --cwl-room-scale: var(--cwl-room-large); }
 [data-surface="tv"][data-room="very_large"] { --cwl-room-scale: var(--cwl-room-very-large); }
 
-/* ---------- Nesting guard (design pass 2, FAC-01 and FAC-03) ----------
-   A TV drawn inside an app surface (the control surface's mirror, the remote's mirror) keeps its own
-   theme and live-only colors. App surfaces set Sunrise to initial and light values inherit, so the
-   room surface re-declares its semantic tokens from base values here. Room surfaces themselves are unchanged. */
+/* ---------- Nesting guard (design pass 2, FAC-01 and FAC-03; completed in design pass 4) ----------
+   A TV drawn inside an app surface (the control surface's mirror, the remote's mirror, a template preview in setup,
+   the overnight review) keeps its own theme and live-only colors. App surfaces set Sunrise to initial and light values
+   inherit, so the TV re-declares its semantic tokens from base values here. A TV page of its own is unchanged.
+   Pass 4 added the dark bar track, bar label, cut line, focus ring, offline and AI tokens, so a dark mirror inside the
+   light remote no longer picks up the light bar track and cut line. */
 :root { --cwl-guard-sunrise: var(--cwl-sunrise); --cwl-guard-royal-deep: var(--cwl-royal-deep); }
-[data-surface="control"] [data-surface="tv"] { --cwl-sunrise: var(--cwl-guard-sunrise); --cwl-royal-deep: var(--cwl-guard-royal-deep); --cwl-callout: var(--cwl-sunrise); --cwl-bar-leader: var(--cwl-sunrise); --cwl-word-leader: var(--cwl-sunrise); }
-[data-surface="control"] [data-surface="tv"][data-theme="dark"] {
+:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"] {
+  --cwl-sunrise: var(--cwl-guard-sunrise); --cwl-royal-deep: var(--cwl-guard-royal-deep);
+  --cwl-callout: var(--cwl-sunrise); --cwl-bar-leader: var(--cwl-sunrise); --cwl-word-leader: var(--cwl-sunrise); --cwl-flag: var(--cwl-sunrise);
+}
+:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"][data-theme="dark"] {
   --cwl-surface: var(--cw-navy); --cwl-surface-card: var(--cw-off-white); --cwl-text: var(--cw-off-white); --cwl-text-muted: var(--cw-sky-blue);
   --cwl-border: var(--cwl-border-dark-ink); --cwl-border-strong: var(--cw-sky-blue); --cwl-presence: var(--cw-sky-blue); --cwl-scrim: var(--cwl-scrim-ink);
   --cwl-word-single: var(--cw-sky-blue); --cwl-word-repeated: var(--cw-off-white); --cwl-word-new: var(--cw-lime);
+  --cwl-bar-track: var(--cwl-bar-track-ink); --cwl-bar-label: var(--cw-off-white); --cwl-cut-line: var(--cw-off-white); --cwl-focus-ring: var(--cw-sky-blue);
+  --cwl-offline: var(--cw-gray-400); --cwl-ai-start: var(--cw-sky-blue); --cwl-ai-end: var(--cw-soft-lime);
 }
+:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"][data-theme="light"] { --cwl-word-leader: var(--cw-navy); }
