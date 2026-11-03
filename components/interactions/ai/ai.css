@@ -117,3 +117,12 @@
 .ai-notice.is-warning { background: var(--cwl-app-warning-bg); }
 .ai-notice.is-warning > svg { color: var(--cwl-app-warning); }
 .ai-notice.is-info { background: var(--cwl-app-info-bg); }
+
+/* ---------- The AI disclosure (approved November 3): room sign-in line and "How we use AI" ---------- */
+.surface .ai-disclosure-note { display: flex; align-items: flex-start; gap: var(--space-3); margin: 0; font-size: var(--cwl-fs-phone-label); line-height: 1.45; color: var(--cwl-text-muted); }
+.ai-disclosure-note .cwl-ai-badge { font-size: var(--cwl-fs-phone-micro); margin-top: 0.15em; }
+.ai-disclosure-note a { color: var(--cwl-text); font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: 0.18em; white-space: nowrap; }
+.ai-disclosure h1 { display: flex; align-items: center; gap: var(--space-3); }
+.ai-disclosure h1 .cwl-ai-badge { font-size: var(--cwl-fs-phone-label); }
+.surface .ai-disclosure p { font-size: var(--cwl-fs-phone-body); line-height: 1.55; color: var(--cwl-text); }
+.surface .ai-disclosure .ai-disclosure-credit { margin-top: var(--space-8); font-size: var(--cwl-fs-phone-label); color: var(--cwl-text-muted); }

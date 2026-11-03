@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CircleAlert } from "lucide-react";
 import { LivePhone } from "./live-phone";
+import { AiSignInNote } from "@/components/interactions/ai/ai-disclosure";
 
 import type { RoomAccessStatus as Status } from "@/lib/room/access";
 const messages: Record<string, string> = {
@@ -19,7 +20,7 @@ const messages: Record<string, string> = {
   invalid_request: "Check your details and try again.",
 };
 
-export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, initial }: { engagement: string; church?: string; practice?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string } }) {
+export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, initial, ai = false }: { engagement: string; church?: string; practice?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string }; ai?: boolean }) {
   const [state, setState] = useState<Status>(initial||{ status: "loading" });
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState("");
@@ -92,6 +93,7 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
   if(state.status==="loading")return <p role="status" aria-live="polite">Reconnecting</p>;
   if(practice)return <section className="form-stack"><p>Join with your name to try the practice room. You won’t need an email or a sign-in code.</p>
     <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="practice-name">Your name</label><input id="practice-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the practice room</button></form>
+    {ai&&<AiSignInNote />}
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
   </section>;
   if (state.status === "pending") return <section className="form-stack">
@@ -114,6 +116,7 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
       <label htmlFor="room-code">Your 6-digit code</label><input id="room-code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ""))} required />
       <button className="button-link" disabled={busy || code.length !== 6 || !email} type="submit">Sign in</button>
     </form>
+    {ai && <AiSignInNote />}
     {["not_listed", "check_facilitator", "declined"].includes(state.status) && <form className="form-stack" onSubmit={event => submit(event, "join")}>
       <label htmlFor="room-name">Your name</label><input id="room-name" autoComplete="name" maxLength={200} value={name} onChange={e => setName(e.target.value)} required />
       <button className="button-link" type="submit" disabled={busy}>Ask to join</button>

@@ -843,7 +843,13 @@ Claude does the AI work. It speeds the room up and never stands in its way.
 - Merge limits (Default, following Synrg's consolidate rules): AI never merges different kinds of input, never merges quotes, never drops a number, never merges more than four items into one in a single step, and always leaves at least 60 percent of items standing.
 - Every AI output stores the model, the prompt version and its inputs.
 - Prompts live in the repository, use Clearway's terms exactly (see "Words in the app"), and are tested against fixtures.
-- AI use is disclosed to churches before anyone submits input (wording and placement Open).
+- AI use is disclosed to churches before anyone submits input (Decided by Chris, November 3). The wording, exactly:
+  - **"How we use AI"**, a page on phones, reachable without signing in, linked from the room sign-in and the invite email: "Clearway uses Claude, an AI model made by Anthropic, to help your team see what it's saying while the conversation is happening, and to help us prepare drafts afterward." / "During the sessions, Claude groups similar answers, combines answers that say the same thing, brings matching questions together and suggests short labels. Anything it groups or writes is marked as AI on the screen, and your facilitator can undo it, rename it or turn it off. Your answers always reach the screen first, so the room keeps working even if AI is slow." / "Between and after the sessions, Claude helps us draft summaries, the read-back and the report from your team's own words. Each drafted sentence links back to what was said, and Clearway reviews every draft before your team sees it." / "AI never makes a decision. Your team decides together." / "Claude never receives your name, email or role. It does receive your answers and any easel photos as written, so if you name someone in an answer, that name goes with it. Anthropic doesn't train its models on what we send." Its last line is the icon credit (below).
+  - **Room sign-in**, under the sign-in button, when the engagement has AI on (the last three words link to the page): "We use AI to group similar answers and help draft summaries. It never receives your name or email, and anything it produces is marked as AI. How we use AI"
+  - **Invite email**, one paragraph, when the engagement has AI on: "We'll use AI in the room. Claude, an AI model from Anthropic, groups similar answers and helps us draft summaries. It never receives your name or email, everything it produces is marked as AI, and Clearway reviews every draft before your team sees it. You can read more when you sign in."
+  - **Survey intro** (milestone 6): "Your answers are anonymous. We use AI to find common themes across everyone's answers, and Clearway reviews each theme before it's used."
+  - "Use AI in live sessions" is on by default for new engagements.
+- The AI icon's license (Decided by Chris, November 3): Flaticon's free license with attribution. The credit "The AI mark is the Generative icon by LAFS from Flaticon." appears only as the last line of the "How we use AI" page, nowhere in the app chrome.
 
 **Models and cost** (Default): a fast Claude model for live folding and clustering, where speed matters, and the most capable Claude model for overnight drafts, the report and the signal. Model names live in configuration, not code. AI cost per engagement is logged.
 
@@ -1431,7 +1437,8 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | Owners without a CORE account | Goals published with no owner and flagged until the invitation is claimed, or held in the app until then | Milestone 7 |
 | CORE seats | How invitations for about 8 owners fit a church's CORE plan (the Free plan has one seat) | Milestone 7 |
 | Churches not yet in CORE | Who creates the CORE organization, and when | Milestone 7 |
-| AI disclosure | Wording drafted November 2, waiting on Chris's approval. Placement: invite email, room sign-in, a "How we use AI" page on phones, and the survey intro | Before first use with a church |
+| AI disclosure | Decided November 3: Chris approved the wording for the invite email, room sign-in, a "How we use AI" page on phones and the survey intro (see "AI") | Resolved |
+| The AI icon's license | Decided November 3: the free license with the credit "The AI mark is the Generative icon by LAFS from Flaticon." as the last line of the "How we use AI" page only | Resolved |
 | Privacy and retention | Consent wording and how long engagement data is kept, checked against Canadian privacy law | Before first use with a church |
 | Language | English only for now, or French as well for churches in Quebec | Before first use with a church |
 | Name | "Clearway app" is a working name. Chris also called it the Clearway live app on October 29. A coined word, or keep a Clearway name | Before a church sees it |

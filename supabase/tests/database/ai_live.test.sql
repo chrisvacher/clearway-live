@@ -85,7 +85,16 @@ select ok(private.ai_on(tests.id(310)) and private.ai_on(tests.id(320)) and priv
 select ok(not private.ai_on(tests.id(340)),'The run of show can turn it off for a session');
 update engagements set settings='{"ai_enabled":false}' where id=tests.id(100);
 select ok(not private.ai_on(tests.id(310)),'The engagement switch turns it off everywhere');
+select is(private.room_ai(tests.id(100)),false,'AI off: the room sign-in shows no AI line');
 update engagements set settings='{"ai_enabled":true}' where id=tests.id(100);
+-- The AI disclosure on the room sign-in follows the same switch (approved November 3).
+select is(private.room_ai(tests.id(100)),true,'AI on: the room sign-in shows the AI line');
+select is(private.room_ai(gen_random_uuid()),false,'No engagement, no line');
+select ok(not has_function_privilege('anon','public.room_ai(uuid)','execute') and not has_function_privilege('authenticated','public.room_ai(uuid)','execute')
+  and has_function_privilege('service_role','public.room_ai(uuid)','execute'),'Only the server reads the room''s AI line setting');
+set local role service_role;
+select is(public.room_ai(tests.id(100)),true,'The server reads it through the wrapper');
+reset role;
 select ok(private.ai_quoted('"Unless the Lord builds the house"') and private.ai_quoted('''faith''') and not private.ai_quoted('kids'' ministry'),'Quotes are found; an apostrophe is not a quote');
 select is(private.ai_numbers('3 baptisms and 12 new families'),array['12','3'],'Numbers in a text');
 select is(private.ai_label('  Baptisms   and   new faith '),'Baptisms and new faith','A label is one tidy line');

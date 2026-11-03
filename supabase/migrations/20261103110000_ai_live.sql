@@ -865,6 +865,14 @@ begin
  return jsonb_build_object('status','ok','answers',cardinality(cleared),'votes',n_votes,'suggestions',n_suggestions,'sessions',n_sessions,'version',r.version);
 end $$;
 
+-- ---------- The AI disclosure (approved November 3) ----------
+-- Whether the room sign-in shows the AI line: the engagement has AI on (the same reading
+-- as private.ai_on). The server's room page only (service role), before anyone signs in.
+create function private.room_ai(p_engagement uuid) returns boolean
+language sql stable security definer set search_path='' as $$
+ select coalesce((select e.settings->>'ai_enabled'='true' from public.engagements e where e.id=p_engagement and not e.deleted),false)
+$$;
+
 -- ---------- Wrappers ----------
 create function public.ai_status(p_engagement uuid,p_session uuid default null) returns jsonb
 language sql stable security invoker set search_path='' as $$ select private.ai_status(p_engagement,p_session) $$;
@@ -879,14 +887,17 @@ create function public.ai_fail(p_run uuid,p_lease uuid,p_error text,p_usage json
 language sql security invoker set search_path='' as $$ select private.ai_fail(p_run,p_lease,p_error,p_usage) $$;
 create function public.ai_due(p_engagement uuid) returns jsonb
 language sql stable security invoker set search_path='' as $$ select private.ai_due(p_engagement) $$;
+create function public.room_ai(p_engagement uuid) returns boolean
+language sql stable security invoker set search_path='' as $$ select private.room_ai(p_engagement) $$;
 
 revoke all on function private.ai_clear(uuid,uuid[]),private.ai_on(uuid),private.ai_summary_on(uuid),private.ai_quoted(text),private.ai_numbers(text),private.ai_label(text),
  private.options_word_cloud(jsonb,uuid),private.options_wall(jsonb,uuid),private.ai_wall_open(uuid),private.ai_wall_groups(uuid),
  private.ai_claim(uuid,uuid,text,jsonb),private.ai_usage(jsonb,text,numeric),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),private.ai_due(uuid),
- private.ai_status(uuid,uuid),private.ai_control(uuid,uuid,text,jsonb),
+ private.ai_status(uuid,uuid),private.ai_control(uuid,uuid,text,jsonb),private.room_ai(uuid),public.room_ai(uuid),
  public.ai_status(uuid,uuid),public.ai_control(uuid,uuid,text,jsonb),public.ai_claim(uuid,uuid,text,jsonb),public.ai_apply(uuid,uuid,jsonb,jsonb),public.ai_fail(uuid,uuid,text,jsonb),public.ai_due(uuid)
  from public,anon,authenticated;
 grant execute on function private.ai_status(uuid,uuid),private.ai_control(uuid,uuid,text,jsonb),public.ai_status(uuid,uuid),public.ai_control(uuid,uuid,text,jsonb) to authenticated;
 grant execute on function private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),private.ai_due(uuid),
- public.ai_claim(uuid,uuid,text,jsonb),public.ai_apply(uuid,uuid,jsonb,jsonb),public.ai_fail(uuid,uuid,text,jsonb),public.ai_due(uuid) to service_role;
+ public.ai_claim(uuid,uuid,text,jsonb),public.ai_apply(uuid,uuid,jsonb,jsonb),public.ai_fail(uuid,uuid,text,jsonb),public.ai_due(uuid),
+ private.room_ai(uuid),public.room_ai(uuid) to service_role;
 commit;

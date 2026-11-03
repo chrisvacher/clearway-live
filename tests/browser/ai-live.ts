@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
+import { aiIconCredit, aiPageParagraphs, aiPageTitle, aiSignInLine, aiSignInLink } from "../../lib/ai/disclosure";
 import { verdict } from "../../lib/latency/report";
 import { describe, practiceRoom, runLoad } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
@@ -53,6 +54,49 @@ async function main() {
     const fac = await facilitator(env, sql, room.id);
     const results = async () => (await sql.query("select results from public.room_states where engagement_id=$1", [room.id])).rows[0].results;
     browser = await chromium.launch();
+
+    // The AI disclosure (approved November 3): the sign-in line under the sign-in button when
+    // the engagement has AI on, its link to the public "How we use AI" page, and nothing when off.
+    await step("AI disclosure: the room sign-in line links to How we use AI, a public phone page", async () => {
+      const ctx = await browser!.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const phone = await ctx.newPage();
+      await sql.query("update public.engagements set settings=settings||'{\"ai_enabled\":false}' where id=$1", [room.id]);
+      await phone.goto(`${app.origin}/room/${room.id}`);
+      await phone.locator("#room-email").waitFor();
+      assert.equal(await phone.locator("[data-ai-disclosure]").count(), 0, "AI off: no AI line");
+      await sql.query("update public.engagements set settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
+      await phone.goto(`${app.origin}/room/${room.id}`);
+      const note = phone.locator('[data-ai-disclosure="sign-in"]');
+      await note.waitFor();
+      assert.equal((await note.innerText()).replace(/\s+/g, " ").trim(), `${aiSignInLine} ${aiSignInLink}`);
+      const link = note.locator("a");
+      assert.equal(await link.innerText(), "How we use AI");
+      assert.equal(await link.getAttribute("href"), "/how-we-use-ai");
+      const below = await phone.evaluate(() => {
+        const sign = [...document.querySelectorAll("button")].find(b => b.textContent?.trim() === "Sign in")!.getBoundingClientRect();
+        const line = document.querySelector("[data-ai-disclosure]")!.getBoundingClientRect();
+        return line.top >= sign.bottom && line.right <= innerWidth && document.documentElement.scrollWidth <= innerWidth;
+      });
+      assert.ok(below, "under the sign-in button, inside the phone's width");
+      await shot(phone, "ai-disclosure-sign-in-phone");
+      await link.click();
+      await phone.waitForURL(`${app.origin}/how-we-use-ai`);
+      const page = phone.locator('[data-ai-disclosure="page"]');
+      await page.waitFor();
+      assert.equal((await page.locator("h1").innerText()).trim(), aiPageTitle);
+      const lines = (await page.locator("p").allInnerTexts()).map(t => t.trim());
+      assert.deepEqual(lines, [...aiPageParagraphs, aiIconCredit], "the approved words, the credit last");
+      assert.doesNotMatch(await page.innerText(), /[\u2010-\u2015\u2212]|\s-\s/, "no dashes");
+      assert.ok(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), "no sideways scroll");
+      if (process.env.KIT_SHOTS) { await delay(400); await phone.screenshot({ path: `${process.env.KIT_SHOTS}/ai-disclosure-page-phone.png`, fullPage: true }); }
+      // Without signing in: a fresh phone with no cookies opens the page directly.
+      const fresh = await (await browser!.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
+      const response = await fresh.goto(`${app.origin}/how-we-use-ai`);
+      assert.equal(response?.status(), 200);
+      assert.equal(new URL(fresh.url()).pathname, "/how-we-use-ai", "no redirect to sign in");
+      await fresh.context().close();
+      await ctx.close();
+    });
 
     const tv = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
     await tv.goto(app.origin + "/tv");

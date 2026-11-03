@@ -7,6 +7,7 @@ import { teamHubReader } from "@/lib/server/team-hub";
 import { serviceClient } from "@/lib/server/supabase";
 import { sendEmailBatch } from "@/lib/server/email";
 import { invitationMessages,type InvitationSelfPaced,type InvitationSnapshot } from "@/lib/setup/invitation";
+import { engagementAi } from "@/lib/ai/disclosure";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
 import { clearwayEmail } from "@/lib/auth/policy";
@@ -21,9 +22,9 @@ async function selfPacedFor(client:SupabaseClient,engagement:string):Promise<Inv
   if(error)throw new Error("save");
   return (data||[]) as InvitationSelfPaced[];
 }
-async function deliverInvites(engagement:string,batch:InviteBatch,origin:string,selfPaced:InvitationSelfPaced[]){
+async function deliverInvites(engagement:string,batch:InviteBatch,origin:string,selfPaced:InvitationSelfPaced[],ai:boolean){
   if(batch.status!=="sent"){
-    await sendEmailBatch(batch.id,invitationMessages(engagement,batch.payload,origin,selfPaced));
+    await sendEmailBatch(batch.id,invitationMessages(engagement,batch.payload,origin,selfPaced,ai));
     const {error}=await serviceClient().rpc("mark_invites_sent",{p_batch:batch.id});
     if(error)throw new Error("save");
   }
@@ -76,7 +77,7 @@ export async function POST(request:NextRequest){
         if(!preview.people.length||preview.people.length>50)throw new Error("Choose up to 50 people to add and invite at once.");
         if(preview.people.some(p=>fictionalEmail(p.email)))throw new Error("Use real email addresses to send invites.");
         const batch=await rpc("import_and_queue_invites",{p_engagement:e.id,p_batch:body.batch,p_people:preview.people}) as InviteBatch;
-        const count=await deliverInvites(e.id,batch,config.origin,await selfPacedFor(client,e.id));
+        const count=await deliverInvites(e.id,batch,config.origin,await selfPacedFor(client,e.id),engagementAi(e.settings));
         return answer({ok:true,count,duplicates:preview.duplicates});
       }
       const count=await rpc("import_attendees",{p_engagement:e.id,p_people:preview.people});return answer({ok:true,count,duplicates:preview.duplicates});
@@ -94,8 +95,8 @@ export async function POST(request:NextRequest){
       const e=await scoped();if(!uuid(body.batch)||!Array.isArray(body.attendees)||!body.attendees.every(uuid))return answer({ok:false},400);
       const batch=await rpc("queue_engagement_invites",{p_engagement:e.id,p_batch:body.batch,p_attendees:body.attendees}) as InviteBatch;
       const selfPaced=await selfPacedFor(client,e.id);
-      if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,config.origin,selfPaced)[0]?.text});
-      return answer({ok:true,count:await deliverInvites(e.id,batch,config.origin,selfPaced)});
+      if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,config.origin,selfPaced,engagementAi(e.settings))[0]?.text});
+      return answer({ok:true,count:await deliverInvites(e.id,batch,config.origin,selfPaced,engagementAi(e.settings))});
     }
     return answer({ok:false},400);
   }catch(error){
