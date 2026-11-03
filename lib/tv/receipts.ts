@@ -1,5 +1,17 @@
 import { retryDelay } from "../live/protocol";
 import type { TvReceipt } from "./types";
+import type { LiveSnapshot } from "../live/types";
+
+// A snapshot that catches the TV up (after a gap, a rekey or a reconnect) also
+// delivers answers. They count as received when the snapshot arrives, so the
+// latency log measures them honestly instead of losing them. Only answers new
+// to the session already on screen count: the first frame after opening, and
+// a different session's existing answers, were not delivered just now.
+export function snapshotArrivals(before: LiveSnapshot | null, after: LiveSnapshot) {
+  if (!before || before.state.live_session_id !== after.state.live_session_id || !after.state.live_session_id) return [];
+  const seen = new Set(before.answers.map(a => `${a.id}:${a.revision}`));
+  return after.answers.filter(a => a.session_id === after.state.live_session_id && !seen.has(`${a.id}:${a.revision}`)).map(a => ({ id: a.id, revision: a.revision }));
+}
 export type Ack = { engagement: string; version: number; received_at: string; uncertainty_ms: number; answers: TvReceipt[] };
 // Receipt time is immutable, even when a slow network delays or batches its ack.
 // Only versions committed to the TV's DOM can be acknowledged to the remote.

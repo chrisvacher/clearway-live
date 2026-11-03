@@ -4,7 +4,7 @@ import { Maximize } from "lucide-react";
 import { RoomStream } from "@/lib/live/stream";
 import { clockSample, retryDelay } from "@/lib/live/protocol";
 import type { LiveRead, LiveSnapshot } from "@/lib/live/types";
-import { TvReceipts } from "@/lib/tv/receipts";
+import { TvReceipts, snapshotArrivals } from "@/lib/tv/receipts";
 import { TvFlow } from "@/lib/tv/flow";
 import { screenType } from "@/lib/tv/policy";
 import { tokenMs } from "@/lib/tv/board";
@@ -59,6 +59,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
     const receipts = new TvReceipts(engagement, async ack => (await fetch("/api/tv/ack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(ack) })).ok,
       () => ({ time: new Date(Date.now() + clock.current.offsetMs).toISOString(), uncertainty: clock.current.uncertaintyMs }));
     receipt.current = receipts;
+    let shown: LiveSnapshot | null = null;
     const stream = new RoomStream({
       read: async transport => {
         const sent = Date.now(), response = await fetch(`/api/live/${engagement}?surface=tv${transport ? "&transport=1" : ""}`, { cache: "no-store" });
@@ -68,6 +69,11 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
       },
       received: (event, at) => { if (event.answer) receipts.record(event.state.version, { id: event.answer.id, revision: event.answer.revision, received_at: new Date(at + clock.current.offsetMs).toISOString(), uncertainty_ms: clock.current.uncertaintyMs }); },
       render: (value, event) => {
+        if (!event) {
+          const at = new Date(Date.now() + clock.current.offsetMs).toISOString();
+          for (const arrival of snapshotArrivals(shown, value)) receipts.record(value.version, { ...arrival, received_at: at, uncertainty_ms: clock.current.uncertaintyMs });
+        }
+        shown = value;
         flowRef.current?.offer(value, event);
         boxes.current = new Map([...stage.current?.querySelectorAll<HTMLElement>("[data-name-key]") || []].map(el => [el.dataset.nameKey!, el.getBoundingClientRect()]));
         setFrame(value);
@@ -149,7 +155,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "fallback", "connecting"].includes(mode)} /></div>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

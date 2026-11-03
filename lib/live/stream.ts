@@ -42,6 +42,7 @@ export class RoomStream {
   private retry = 0;
   private wantedVersion = 0;
   private subscription = 0;
+  private topic: string | null = null;
   constructor(private options: StreamOptions) {}
   start() { if (!this.stopped) return; this.stopped = false; this.options.mode("connecting"); void this.recover(true); }
   stop() { this.stopped = true; clearTimeout(this.timer); this.unsubscribe?.(); this.unsubscribe = undefined; }
@@ -68,13 +69,17 @@ export class RoomStream {
         this.rekey = false;
         const next = await this.options.read(refresh);
         if (this.stopped) return;
+        // A rotation can happen between the first read and the completed join, so
+        // its rekey notice is missed. A snapshot naming another topic means this
+        // socket listens to a retired channel: join the current one.
+        if (!refresh && this.topic && next.topic !== this.topic) { this.rekey = true; this.dirty = true; }
         const before = this.value;
         const frame = { ...next }; delete frame.connection;
         this.value = adoptSnapshot(this.value, frame);
         if (this.value.version < this.wantedVersion) this.dirty = true;
         if (this.value !== before) this.options.render(this.value);
         if (refresh) {
-          this.refreshed = Date.now();
+          this.refreshed = Date.now(); this.topic = next.topic;
           const generation = ++this.subscription; this.connected = false; this.unsubscribe?.();
           this.unsubscribe = (this.options.subscribe || subscribeLive)(next, this.receive, () => { void this.recover(true); }, connected => {
             if (this.stopped || generation !== this.subscription) return;

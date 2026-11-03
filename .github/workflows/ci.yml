@@ -36,7 +36,7 @@ jobs:
   database:
     name: PostgreSQL 17 schema and role isolation
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -66,6 +66,16 @@ jobs:
         run: npm run test:team-hub
       - name: Test idempotent seeds and native practice sign-in/reset
         run: npm run test:practice
+      - name: Build the app for the browser failure kit
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test the milestone 2 failure states in real browsers
+        run: npm run test:browser
+      - name: Run the load script (50 simulated phones) against the latency log
+        run: npm run test:load
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

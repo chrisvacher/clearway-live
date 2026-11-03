@@ -25,7 +25,10 @@
     "test:practice": "node --import tsx tests/integration/practice-room.ts",
     "test:live": "node --import tsx tests/integration/live-room.ts",
     "test:tv": "node --import tsx tests/integration/tv-pairing.ts",
-    "test:controls": "node --import tsx tests/integration/live-controls.ts"
+    "test:controls": "node --import tsx tests/integration/live-controls.ts",
+    "test:browser": "node --import tsx tests/browser/failures.ts",
+    "test:load": "node --import tsx tests/browser/load.ts",
+    "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.6.1",
@@ -49,6 +52,7 @@
     "autoprefixer": "10.4.21",
     "eslint": "9.30.1",
     "eslint-config-next": "15.5.28",
+    "playwright": "1.63.0",
     "postcss": "8.5.23",
     "tailwindcss": "3.4.17",
     "tailwindcss-animate": "1.0.7",

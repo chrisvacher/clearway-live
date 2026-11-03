@@ -741,7 +741,8 @@ test("the live room and remote are facilitator-only, and presses are validated b
   const pressUrl = origin + `/api/control/${roomId}`, id = "57000000-0000-4000-8000-000000000001";
   assert.equal((await fetch(pressUrl)).status, 401);
   assert.equal((await fetch(pressUrl, { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify({ id, action: "next", from: null }) })).status, 401);
-  for (const path of [`/control/${roomId}`, `/remote/${roomId}`]) assert.equal((await fetch(origin + path, { redirect: "manual" })).status, 307, path);
+  for (const path of [`/control/${roomId}`, `/remote/${roomId}`, `/control/${roomId}/latency`]) assert.equal((await fetch(origin + path, { redirect: "manual" })).status, 307, path);
+  assert.equal((await fetch(origin + `/api/control/${roomId}/latency`)).status, 401, "the latency report is facilitator-only");
   const { jar } = await finishLogin("allowed"), cookie = cookieHeader(jar), headers = { origin, cookie, "Content-Type": "application/json" };
   assert.equal((await fetch(pressUrl, { method: "POST", headers: { ...headers, origin: "https://evil.example" }, body: JSON.stringify({ id, action: "next", from: null }) })).status, 403);
   for (const bad of [{ id, action: "next" }, { id, action: "start_burst", from: null, minutes: 9 }, { id: "x", action: "next", from: null }, { id, action: "delete_room", from: null }])

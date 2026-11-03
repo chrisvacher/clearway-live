@@ -53,3 +53,17 @@ test("saving phone depth triggers immediate private recovery without broadcastin
   assert.equal(applyLiveEvent({ ...current, role: "tv" }, event).value.session?.prompt, "Saved");
   assert.equal(applyLiveEvent(current, { ...event, session: sessionValue }).kind, "applied");
 });
+
+test("a stream that joined a channel as it rotated moves to the current topic", async () => {
+  let reads = 0; const joined: string[] = [];
+  const stream = new RoomStream({
+    // The first read names the old topic; by the time the join completes, the room has rotated.
+    read: async () => ({ ...snapshot(++reads), topic: reads === 1 ? "live:fixture:old" : "live:fixture:new" }),
+    render: () => {}, mode: () => {},
+    subscribe: (read, _event, _rekey, status) => { joined.push(read.topic); setImmediate(() => status(true)); return () => {}; } });
+  stream.start();
+  try {
+    for (let i = 0; i < 10 && joined.length < 2; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(joined, ["live:fixture:old", "live:fixture:new"]);
+  } finally { stream.stop(); }
+});

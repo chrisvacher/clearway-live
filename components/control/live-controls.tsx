@@ -29,7 +29,8 @@ export function SyncChip({ room }: { room: Room }) {
   const connected = screens.filter(s => s.connected);
   const title = screens.map(s => `${s.label}: ${s.connected ? `confirmed, version ${s.confirmed_version}` : "reconnecting"}`).join("\n");
   if (room.syncing) return <span className="ctl-sync is-syncing" role="status" title={title}><RefreshCw size={14} aria-hidden="true" />Syncing</span>;
-  if (!connected.length) return <span className="ctl-sync is-none" role="status" title={title || "Pair a TV in setup"}><MonitorOff size={14} aria-hidden="true" />No TV connected</span>;
+  // A paired TV silent for 12 seconds is reconnecting (FAIL-02); none paired is no TV.
+  if (!connected.length) return <span className="ctl-sync is-none" role="status" title={title || "Pair a TV in setup"}><MonitorOff size={14} aria-hidden="true" />{screens.length ? "TV reconnecting" : "No TV connected"}</span>;
   return <span className="ctl-sync" role="status" title={title}><CircleCheck size={14} aria-hidden="true" />On the TV now</span>;
 }
 
