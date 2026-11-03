@@ -5,16 +5,17 @@ This is the acceptance run for milestone 2, the live room. It takes about 75 min
 ## Before the day
 
 - **Devices:** two iPhones and two Android phones (more is better: the target is 10 real phones), the facilitator's laptop, the facilitator's phone as the remote, a co-facilitator's phone as a second remote, a separate computer at the TV, a TV with HDMI, a second way to show the TV by screen mirroring (AirPlay or Chromecast), and a video call to share the TV in.
-- **The preview link** for the build being tested, from the pull request.
+- **The address:** live.clearway.co. It runs the merged build on the clearway-live database. (Pull request previews sit behind Vercel sign-in, so they aren't used for this run.)
 - **A run of show** in the practice room with at least: Welcome and prayer (content, a Scripture passage), Celebration (word cloud, 5 answers allowed), Celebration wall (wall), and one more session in the same segment as the wall.
+- **For the replacement-phone check (FAIL-08):** practice-room phones join by name only, so a second phone becomes a new guest. In the Riverside Church engagement, replace one attendee's email with an address you can read on a phone, and add a word cloud step to Riverside's run of show.
 - **Reset practice room** before you start, so earlier guests and answers are cleared.
-- **The load test:** Claude runs 50 simulated phones against the preview while you watch. It joins 50 practice guests to the clearway-live database. Say yes to that before the day.
+- **The load test:** Claude runs 50 simulated phones against live.clearway.co while you watch. They join the practice room as guests, and Reset practice room clears them afterward.
 
 ## 1. Set up the room (10 minutes)
 
 | Do | What should happen |
 | --- | --- |
-| On the TV computer, open the preview's /tv address | A large pairing code. Nothing else on screen |
+| On the TV computer, open live.clearway.co/tv | A large pairing code. Nothing else on screen |
 | On the laptop, open the practice room's setup, choose Pair a TV, enter the code | The TV moves to the holding screen with the Clearway mark and the church name |
 | Press F on the TV computer | Full screen. Press F again to leave, then return to full screen |
 | On the laptop, show the screen check | Every Lime corner is visible, the circle is round. If not, set the TV to Just Scan, Screen Fit or 1:1 |
@@ -60,7 +61,7 @@ This is the acceptance run for milestone 2, the live room. It takes about 75 min
 | Block the TV from confirming: unplug the TV computer's network for 3 seconds while you press Phones down | The remote shows Syncing, the laptop a quiet warning, then both correct once it reconnects (FAIL-06) |
 | Close the laptop. Run the next 5 minutes from the remote only | Next, Back, bursts, Phones down, Spotlight and Hide all work (FAIL-05) |
 | Refresh phones from the remote (tap twice) | Every phone reloads and keeps its drafts. The TV does not reload |
-| Hand one person a different phone. They sign in with their email code | They see their own earlier answers with a line saying so (FAIL-08) |
+| In Riverside, go live on its word cloud step. On one phone, sign in with the email you added and send two words. Then sign in on a second phone with the same email | The second phone shows those two answers, with a line saying your earlier answers are here (FAIL-08). Go back to the practice room afterward |
 
 ## 5. Other ways to show the TV (15 minutes)
 
