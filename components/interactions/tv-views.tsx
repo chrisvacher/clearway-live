@@ -8,6 +8,7 @@ import { LiveBars, LiveScale } from "@/components/interactions/bars/tv-bars";
 import { GridView } from "@/components/interactions/grid-form-sign/grid-view";
 import { FormView, SignView } from "@/components/interactions/grid-form-sign/sign-view";
 import { QaTv } from "@/components/interactions/qa/qa-tv";
+import { BulletsTv, ConfirmTv } from "@/components/interactions/outcomes/outcomes-tv";
 import { WallView } from "@/components/interactions/ai/wall-view";
 import { LensView } from "@/components/interactions/lens/lens-view";
 
@@ -30,4 +31,6 @@ export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>
   form: FormView,
   sign: SignView,
   qa: props => <QaTv {...props} />,
+  bullets: BulletsTv,
+  confirm: ConfirmTv,
 };

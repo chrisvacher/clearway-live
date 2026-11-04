@@ -166,7 +166,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const markState = down && running ? "down" as const : isLive && view?.state === "live" && asks ? "live" as const : null;
   const marker = <>{phone.online && !waiting && isLive && frame?.state.show_tv_on_phones && <span className="ph-marker"><MonitorSmartphone size={14} aria-hidden="true" />TV view</span>}
     <LiveMark phone state={markState} reconnecting={reconnecting} label={!phone.online ? "Offline" : "Reconnecting"} /></>;
-  const structured = (answer: { text: string; value?: unknown }) => view && phone.submit({ id: crypto.randomUUID(), session: view.id, revision: 0, action: "submit", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) });
+  const structured = (answer: { text: string; value?: unknown; id?: string }) => view && phone.submit({ id: answer.id ?? crypto.randomUUID(), session: view.id, revision: 0, action: "submit", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) });
 
   return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={(takesInput || view?.interaction === "content") && !phoneContentWaits(view) ? "phone-answering" : "phone-waiting"}>
     <div className="ph-texture" aria-hidden="true" />

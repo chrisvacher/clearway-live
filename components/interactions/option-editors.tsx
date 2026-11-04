@@ -43,6 +43,8 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   grid: { options: { preset: "custom", ...gridPresets.custom, items: [] } },
   form: { options: { questions: [{ key: "q1", text: "What would make this time a win for you?" }] } },
   sign: { options: { text: "" } },
+  bullets: { max_sends: 12, max_characters: 200, max_words: 50, options: {} },
+  confirm: { max_sends: 1, max_characters: 280, max_words: 50, options: {} },
   qa: { max_sends: 10, max_characters: 200, max_words: 50, options: { any_time: false } },
   lens: { max_sends: 8, max_characters: 200, max_words: 50, options: { lens: 1 } },
 };

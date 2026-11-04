@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Copy, DoorOpen, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
-  ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Users, type LucideProps } from "lucide-react";
+  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Users, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
@@ -15,7 +15,7 @@ import "./builder.css";
 
 type Icon = ComponentType<LucideProps>;
 const kindIcons: Partial<Record<InteractionKind, Icon>> = { word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
-  points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor };
+  points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck };
 const screenIcons: Record<ContentScreen, Icon> = { scripture: BookOpen, headline: Newspaper, prayer: HandHeart, image: ImageIcon, holding: Monitor, screen_check: ScanLine };
 const iconOf = (kind: InteractionKind, screen?: ContentScreen | null) => kind === "content" && screen ? screenIcons[screen] : kindIcons[kind] ?? Monitor;
 const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", open: "Open", live: "Live", phones_down: "Phones down", closed: "Closed" };
