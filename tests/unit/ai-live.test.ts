@@ -79,7 +79,7 @@ function check(c: Case, reply: string) {
     assert.ok(!/["“”]/.test(summary), `${c.name}: no quotation marks`);
     return;
   }
-  if (c.job === "group_wall") {
+  if (c.job === "group_wall" || c.job === "group_lens") {
     const groups = (out as GroupOutput).groups, sets = groups.map(g => g.answers.map(r => textOf(c, r)));
     const all = groups.flatMap(g => g.answers);
     assert.equal(new Set(all).size, all.length, `${c.name}: each answer in one group`);

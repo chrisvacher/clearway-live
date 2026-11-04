@@ -17,7 +17,7 @@ test("lens names come from the engagement and fall back to the defaults", () => 
 });
 
 test("reserved kind names hold the Wayfinding kinds without clashing with the library", () => {
-  assert.deepEqual([...reservedKinds], ["lens", "candidates", "bullets", "confirm", "goals", "intent", "lens_summary"]);
+  assert.deepEqual([...reservedKinds], ["candidates", "bullets", "confirm", "goals", "intent", "lens_summary"]);
   assert.equal(reservedKinds.some(k => (interactionKinds as readonly string[]).includes(k)), false);
   assert.equal(isReservedKind("lens_summary"), true); assert.equal(isReservedKind("wall"), false);
 });

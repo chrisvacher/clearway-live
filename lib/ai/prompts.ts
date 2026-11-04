@@ -2,16 +2,19 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "summarize_wall" | "fold_questions";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "summarize_wall", "fold_questions"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
 export type GroupInputs = { answers: { ref: string; id: string; text: string }[];
   groups: { ref: string; id: string; label: string; pinned: boolean; renamed: boolean; count: number; examples: string[] }[] };
+// The lens wall (INT-12): the wall's inputs plus the lens, its name from the engagement, the base year
+// and the question with its years filled. Seeded sentences are in answers only once their lens opened.
+export type LensInputs = GroupInputs & { lens: number; lens_name: string; lens_names?: string[]; base_year: number; question: string };
 export type SummaryInputs = { question: string; count: number; cut_at: string; answers: string[]; groups: { label: string; count: number }[] };
 export type FoldInputs = { questions: { ref: string; id: string; text: string; asked: number }[] };
-export type AiInputs = CombineInputs | GroupInputs | SummaryInputs | FoldInputs;
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
@@ -157,6 +160,28 @@ export const prompts: Record<AiJob, Prompt> = {
       groups: i.groups.map(g => ({ ref: g.ref, label: g.label, pinned: g.pinned, answers: g.examples })),
       answers: i.answers.map(a => ({ ref: a.ref, text: a.text })) }); },
     parse: (text, inputs) => wallGroups(text, { answers: (inputs as GroupInputs).answers ?? [], groups: (inputs as GroupInputs).groups ?? [] }),
+  },
+  // The lens wall. Sentences describe the 10-year Future in the present tense; the model never rewrites
+  // them, and a label names a theme without turning it into a plan. The years ride in the user message,
+  // from the engagement's base year, so the system text stays one fixed string.
+  group_lens: {
+    job: "group_lens", version: "group-lens@1", maxTokens: 1200,
+    system: [
+      "You group sentences on a lens wall during a live Wayfinding retreat for a church team, run by Clearway Church Solutions.",
+      "Each sentence describes the church's 10-year Future for one lens, written in the present tense as if it were true today. People are still typing while you work.",
+      "Put sentences that describe the same thing into groups with short labels: one to four plain words, sentence case, no quotes, never a person's name. A label names the theme as a state, never as a plan or a wish (\"Welcome at the door\", not \"Plan to welcome\").",
+      "Use the room's own words in a label where you can. Never invent anything nobody said. Never reword, merge or add a sentence.",
+      "You see the existing groups (g1, g2...) with a few of their sentences, and the sentences not yet in a group (a1, a2...).",
+      "Add a sentence to an existing group by its ref, or start a new group with ref n1, n2... holding at least two sentences.",
+      "Every group in your reply has a \"group\" ref: g1, g2... for an existing group, n1, n2... for a new one, and a new group also has a \"label\". Name sentences by their refs (a1, a2...), never by their text.",
+      "Never add to a pinned group. Leave out a sentence that fits no theme; it stays on the wall in arrival order.",
+      `Reply as {"groups":[{"group":"g1","answers":["a3"]},{"group":"n1","label":"Welcome at the door","answers":["a1","a2"]}]}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as LensInputs; return JSON.stringify({
+      lens: i.lens_name, horizon: "10-year Future", year: i.base_year + 10, question: i.question,
+      groups: i.groups.map(g => ({ ref: g.ref, label: g.label, pinned: g.pinned, sentences: g.examples })),
+      sentences: i.answers.map(a => ({ ref: a.ref, text: a.text })) }); },
+    parse: (text, inputs) => wallGroups(text, { answers: (inputs as LensInputs).answers ?? [], groups: (inputs as LensInputs).groups ?? [] }),
   },
   summarize_wall: {
     job: "summarize_wall", version: "summarize-wall@2", maxTokens: 200,

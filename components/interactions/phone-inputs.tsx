@@ -8,6 +8,7 @@ import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
 import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
+import { LensInput } from "@/components/interactions/lens/lens-input";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
 // text form. An input sends through the phone's outbox (offline queueing, order, ids and
@@ -25,6 +26,7 @@ export type PhoneInputProps = {
 };
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
   qa: QaPhoneInput,
+  lens: LensInput,
   choice: ChoiceInput,
   scale: ScaleInput,
   ranking: RankingInput,

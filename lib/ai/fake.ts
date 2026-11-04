@@ -45,6 +45,26 @@ const words = (text: string) => new Set(text.toLowerCase().replace(/[^a-z0-9\s]/
 const sameAs: Record<string, string> = { ready: "open", finished: "open", finish: "open", done: "open", date: "open", opening: "open" };
 const shared = (a: Set<string>, b: Set<string>) => [...a].filter(w => b.has(w)).length;
 
+// The lens wall's stand-in themes, in the present tense the lens sentences are written in.
+const lensThemes: [string, RegExp][] = [
+  ["Welcome at the door", /welcom|stranger|guest|visitor/i], ["Eating together", /\beat|meal|table|food|dinner/i], ["Prayer first", /pray/i],
+  ["Leaders raised here", /lead|apprentic|mentor/i], ["Shared work", /\bserv|volunteer|share the work|share the load/i], ["Known neighbours", /neighbo/i],
+  ["Always learning", /learn|disciple|grow|teach/i],
+];
+function scriptedGroups(input: Record<string, unknown>, themes: [string, RegExp][], key: "answers" | "sentences") {
+  const answers = (input[key] ?? []) as { ref: string; text: string }[], existing = (input.groups ?? []) as { ref: string; label: string; pinned: boolean }[];
+  const out = new Map<string, { group: string; label?: string; answers: string[] }>(); let n = 0;
+  for (const a of answers) {
+    const theme = themes.find(([, re]) => re.test(a.text)); if (!theme) continue;
+    const group = existing.find(g => g.label.toLowerCase() === theme[0].toLowerCase() || themes.find(([l]) => l === theme[0])![1].test(g.label));
+    if (group?.pinned) continue;
+    const k = group ? group.ref : theme[0];
+    if (!out.has(k)) out.set(k, group ? { group: group.ref, answers: [] } : { group: `n${++n}`, label: theme[0], answers: [] });
+    out.get(k)!.answers.push(a.ref);
+  }
+  return JSON.stringify({ groups: [...out.values()] });
+}
+
 export function scripted(call: AiCall): string {
   const job = jobOf(call), input = replyJson(call.user);
   if (job === "combine_words") {
@@ -55,19 +75,8 @@ export function scripted(call: AiCall): string {
     }
     return JSON.stringify({ groups });
   }
-  if (job === "group_wall") {
-    const answers = (input.answers ?? []) as { ref: string; text: string }[], existing = (input.groups ?? []) as { ref: string; label: string; pinned: boolean }[];
-    const out = new Map<string, { group: string; label?: string; answers: string[] }>(); let n = 0;
-    for (const a of answers) {
-      const theme = themes.find(([, re]) => re.test(a.text)); if (!theme) continue;
-      const group = existing.find(g => g.label.toLowerCase() === theme[0].toLowerCase() || themes.find(([l]) => l === theme[0])![1].test(g.label));
-      if (group?.pinned) continue;
-      const key = group ? group.ref : theme[0];
-      if (!out.has(key)) out.set(key, group ? { group: group.ref, answers: [] } : { group: `n${++n}`, label: theme[0], answers: [] });
-      out.get(key)!.answers.push(a.ref);
-    }
-    return JSON.stringify({ groups: [...out.values()] });
-  }
+  if (job === "group_wall") return scriptedGroups(input, themes, "answers");
+  if (job === "group_lens") return scriptedGroups(input, lensThemes, "sentences");
   if (job === "summarize_wall") {
     const groups = (input.groups ?? []) as { label: string; count: number }[], answers = (input.answers ?? []) as string[];
     const top = groups.slice(0, 2).map(g => g.label.toLowerCase());

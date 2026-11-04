@@ -118,6 +118,18 @@ jobs:
           path: ${{ runner.temp }}/kit-shots
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the lens wall (INT-12) with AI clusters and 50 simulated phones in a real browser
+        run: mkdir -p lens-wall-shots && npm run test:lens-wall
+        env:
+          KIT_SHOTS: lens-wall-shots
+      - name: Upload the lens wall screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lens-wall-screens
+          path: lens-wall-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

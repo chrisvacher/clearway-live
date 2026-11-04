@@ -10,11 +10,11 @@ import "./ai.css";
 const stateText = (s: AiStatus) => {
   const session = s.session!;
   if (!s.engagement_ai) return "Off for this engagement";
-  if (!session.ai) return session.interaction === "wall" ? "Off: the wall shows arrival order" : "Switched off for this session";
+  if (!session.ai) return session.interaction === "wall" || session.interaction === "lens" ? "Off: the wall shows arrival order" : "Switched off for this session";
   if (s.state?.failing) return "Not responding: arrival order for now";
-  if (s.state?.slow) return `Slow: ${seconds(s.state.running_ms ?? s.state.last_ms)} to ${session.interaction === "wall" ? "group" : session.interaction === "qa" ? "fold" : "combine"}`;
+  if (s.state?.slow) return `Slow: ${seconds(s.state.running_ms ?? s.state.last_ms)} to ${session.interaction === "wall" || session.interaction === "lens" ? "group" : session.interaction === "qa" ? "fold" : "combine"}`;
   if (session.interaction === "word_cloud") return (s.different ?? 0) < (s.threshold ?? 30) ? `Combines once there are about ${s.threshold ?? 30} different answers` : "Combines near-duplicates as answers arrive";
-  return session.interaction === "wall" ? "Groups as answers arrive" : "Folds near-duplicate questions as they arrive";
+  return session.interaction === "wall" ? "Groups as answers arrive" : session.interaction === "lens" ? "Groups sentences by theme as they arrive" : "Folds near-duplicate questions as they arrive";
 };
 
 // FAIL-09 and the AI controls for the step on the TV (laptop): what AI is doing, its switch,
@@ -25,10 +25,10 @@ export function AiPanel({ room }: { room: Room }) {
   // Each new AI run that changed the room sweeps the panel's AI icon once. Undo goes back to a run already seen.
   const sweep = useAiSweep<HTMLDivElement>(status?.last_change ? [status.last_change.run] : [], s?.id ?? null);
   if (!status || !s || !isAiKind(s.interaction)) return null;
-  const notice = aiNotice(status), wall = s.interaction === "wall";
+  const notice = aiNotice(status), wall = s.interaction === "wall", grouping = wall || s.interaction === "lens";
   const live = status.combines?.filter(c => !c.undone).length ?? 0, folds = status.folds?.filter(f => !f.undone).length ?? 0;
   const meter: [string, string][] = s.interaction === "word_cloud" ? [[String(status.different ?? 0), "Different answers"], [s.ai ? String(live) : "Off", "AI combines"], [seconds(status.state?.last_ms), "AI response"]]
-    : wall ? [[String(status.answers ?? 0), "Answers"], [s.ai ? `${status.grouped ?? 0} of ${status.answers ?? 0}` : "Off", "Grouped by AI"], [seconds(status.state?.running_ms ?? status.state?.last_ms), "AI response"]]
+    : grouping ? [[String(status.answers ?? 0), s.interaction === "lens" ? "Sentences" : "Answers"], [s.ai ? `${status.grouped ?? 0} of ${status.answers ?? 0}` : "Off", "Grouped by AI"], [seconds(status.state?.running_ms ?? status.state?.last_ms), "AI response"]]
     : [[s.ai ? String(folds) : "Off", "Folded by AI"], [String(status.cost.runs), "AI calls"], [seconds(status.state?.last_ms), "AI response"]];
   return <section className="ctl-private" aria-label="AI, only you see this" data-ai-panel>
     <div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>AI for this session</span></div>
@@ -112,7 +112,7 @@ export function AiRemote({ room }: { room: Room }) {
   const { status, busy, message, press } = useAiStatus(room);
   const s = status?.session;
   if (!status || !s || !isAiKind(s.interaction) || !s.live) return null;
-  const notice = aiNotice(status), wall = s.interaction === "wall";
+  const notice = aiNotice(status), wall = s.interaction === "wall", grouping = wall || s.interaction === "lens";
   const pinAll = async () => { for (const g of (status.groups ?? []).filter(x => !x.undone && !x.pinned)) await press("pin_group", { group: g.id }); };
   return <section className="ai-remote" aria-label="AI for this session" data-ai-remote>
     <p className="ctl-eyebrow">AI for this session</p>
@@ -121,9 +121,9 @@ export function AiRemote({ room }: { room: Room }) {
       <button className="ctl-r-btn" disabled={busy || !status.last_change || !s.ai} onClick={() => void press("undo_last", { session: s.id })}><Undo2 size={18} aria-hidden="true" />Undo last</button>
       <button className="ctl-r-btn is-primary" disabled={busy || (!status.engagement_ai && !s.ai)} onClick={() => void press(s.ai ? "ai_off" : "ai_on", { session: s.id })}><AiIcon />{s.ai ? "AI off" : "AI on"}</button>
     </div>
-    {wall && <div className="ctl-grid">
+    {grouping && <div className="ctl-grid">
       <button className="ctl-r-btn" disabled={busy || !s.ai || !(status.groups ?? []).some(g => !g.undone && !g.pinned)} onClick={() => void pinAll()}><Pin size={18} aria-hidden="true" />Pin groups</button>
-      <button className="ctl-r-btn" disabled={busy || (!s.summary_shown && !s.summary_available)} onClick={() => void press(s.summary_shown ? "hide_summary" : "show_summary", { session: s.id })}><AiIcon />{s.summary_shown ? "Hide summary" : "Summary"}</button>
+      {wall && <button className="ctl-r-btn" disabled={busy || (!s.summary_shown && !s.summary_available)} onClick={() => void press(s.summary_shown ? "hide_summary" : "show_summary", { session: s.id })}><AiIcon />{s.summary_shown ? "Hide summary" : "Summary"}</button>}
     </div>}
     {message && <p className="show-message is-error" role="alert">{message}</p>}
   </section>;
