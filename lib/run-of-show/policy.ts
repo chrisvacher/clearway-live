@@ -8,6 +8,12 @@ export function fillYears(text: string, base: number) {
 export function sortSessions(sessions: ShowSession[]) {
   return [...sessions].sort((a, b) => parts.indexOf(a.part) - parts.indexOf(b.part) || a.position - b.position || a.id.localeCompare(b.id));
 }
+// A step seeded from an earlier one; empty clears it.
+function seededFrom(value: unknown): string | null {
+  if (value === null || value === "") return null;
+  if (!uuid(value)) throw new Error("Check the seeded from session.");
+  return String(value).toLowerCase();
+}
 export function sessionInput(value: unknown): SessionInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Check the session details.");
   const v = value as Record<string, unknown>;
@@ -37,6 +43,6 @@ export function sessionInput(value: unknown): SessionInput {
   return { id: v.id, revision: v.revision as number | null, title: text("title", 200, true), part: v.part as SessionInput["part"],
     planned_start: instant("planned_start"), planned_minutes: integer("planned_minutes", 1, 1440), mode: v.mode as SessionInput["mode"], opens_at: opens, closes_at: closes,
     interaction: v.interaction as SessionInput["interaction"], prompt: text("prompt", 4000), phone_depth: text("phone_depth", 20000), notes: text("notes", 30000),
-    lands_in: text("lands_in", 200), segment: typeof v.segment === "string" ? text("segment", 100) : "", state: v.state as string, max_sends: integer("max_sends", 1, 100), max_characters: integer("max_characters", 1, 280), max_words: integer("max_words", 1, 50),
+    lands_in: text("lands_in", 200), segment: typeof v.segment === "string" ? text("segment", 100) : "", state: v.state as string, ...(v.seeded_from === undefined ? {} : { seeded_from: seededFrom(v.seeded_from) }), max_sends: integer("max_sends", 1, 100), max_characters: integer("max_characters", 1, 280), max_words: integer("max_words", 1, 50),
     settings: { anonymous: settings.anonymous as boolean, burst_minutes: settings.burst_minutes as number, join_strip: settings.join_strip as boolean }, options: options as Record<string, unknown> };
 }
