@@ -855,9 +855,9 @@ $$;
 -- room's own words, word for word; an outcome already written by hand is left alone.
 create function private.overnight_apply(p_run uuid,p_lease uuid,p_output jsonb,p_usage jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare run private.ai_runs; r private.overnight_rounds; t timestamptz:=clock_timestamp(); o jsonb; b jsonb; s jsonb; v jsonb; src jsonb; did uuid; oref text; pos integer; txt text; kind text; have text[]; need text[];
- sources jsonb; rooms integer; room_row jsonb; excerpt text; refused jsonb:='[]'::jsonb; applied integer:=0; used text[]:=array[]::text[]; bid uuid; stext text; year text; nb integer; nn integer; seen text[];
- ref jsonb; p jsonb; v_ms integer; dest uuid; notes integer; note_text text; nd record; in_ jsonb;
+declare run private.ai_runs; r private.overnight_rounds; t timestamptz:=clock_timestamp(); o jsonb; b jsonb; s jsonb; did uuid; oref text; pos integer; txt text; kind text; have text[]; need text[];
+ sources jsonb; rooms integer; room_row jsonb; excerpt text; refused jsonb:='[]'::jsonb; applied integer:=0; used text[]:=array[]::text[]; bid uuid; stext text; year text; seen text[];
+ ref jsonb; p jsonb; v_ms integer; note_text text; nd record; in_ jsonb;
 begin
  if p_run is null or p_lease is null or jsonb_typeof(p_output) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  select * into run from private.ai_runs where id=p_run and job='overnight_draft';
