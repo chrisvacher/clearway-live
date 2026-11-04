@@ -110,6 +110,8 @@ jobs:
         run: npm run test:acceptance-live
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Test Outcome bullets (typed letter by letter) and Outcome confirm with 50 simulated phones in real browsers
+        run: npm run test:outcomes
       - name: Test the scribe console (capture, easel photos, offline replay, team-led off) in real browsers with Storage
         run: npm run test:scribe
         env:

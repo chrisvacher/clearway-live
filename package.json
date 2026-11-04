@@ -32,6 +32,7 @@
     "test:bars": "node --import tsx tests/browser/bars.ts",
     "test:grid-form-sign": "node --import tsx tests/browser/grid-form-sign.ts",
     "test:qa": "node --import tsx tests/browser/qa.ts",
+    "test:outcomes": "node --import tsx tests/browser/outcomes.ts",
     "test:self-paced": "node --import tsx tests/browser/self-paced.ts",
     "test:templates": "node --import tsx tests/browser/templates.ts",
     "test:ai": "node --import tsx tests/browser/ai-live.ts",
