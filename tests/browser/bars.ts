@@ -316,6 +316,23 @@ async function main() {
       await shot(tv, "int-06-added-tv"); await shot(ruth, "int-06-added-phone");
     });
 
+    await step("INT-06 Add an option: singular and plural suggestions count as one, keeping the first wording", async () => {
+      await grace.getByRole("button", { name: "Suggest an option" }).click();
+      await grace.getByLabel("Your option").fill("Prayer ministry");
+      await grace.getByRole("button", { name: "Suggest", exact: true }).click();
+      await until(async () => (await grace.locator(".ph-note").allInnerTexts()).some(t => t.includes("Sent to the facilitator")), "first suggestion sent");
+      await mateo.getByRole("button", { name: "Suggest an option" }).click();
+      await mateo.getByLabel("Your option").fill("Prayer ministries");
+      await mateo.getByRole("button", { name: "Suggest", exact: true }).click();
+      await until(async () => (await mateo.locator(".ph-note").allInnerTexts()).some(t => t.includes("Sent to the facilitator")), "second suggestion sent");
+      const card = control.locator(".bars-suggestion");
+      await until(async () => await card.count() === 1 && (await card.innerText()).includes("Suggested by 2 people"), "one suggestion for both forms", 15000);
+      assert.equal(await card.locator("input").inputValue(), "Prayer ministry", "the first wording leads");
+      await card.scrollIntoViewIfNeeded(); await shot(control, "int-06-plural-suggestion-control");
+      await card.getByRole("button", { name: "Dismiss" }).click();
+      await until(async () => await control.locator(".bars-suggestion").count() === 0, "dismissed", 8000);
+    });
+
     await step("INT-07 100 points: five lines, the overage comes from the others, counted once all 100 are placed", async () => {
       await live(points);
       await until(async () => (await tvRows()).length === 5 && await layer().locator(".tv-cut").count() === 1, "five empty bars and the cut line", 10000);
