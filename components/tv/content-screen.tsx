@@ -31,7 +31,7 @@ export function ContentScreen({ frame }: { frame: LiveSnapshot }) {
   switch (o.screen) {
     case "scripture":
       return <div className="tv-content tv-scripture">
-        <p className="tv-passage"><Bold text={session.prompt} /></p>
+        <p className={o.size === "body" ? "tv-passage is-body" : "tv-passage"}><Bold text={session.prompt} /></p>
         {(o.reference || o.translation) && <p className="tv-reference">{o.reference && <b>{o.reference}</b>}{o.translation && <span>{o.translation}</span>}</p>}
       </div>;
     case "prayer":
