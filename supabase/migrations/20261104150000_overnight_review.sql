@@ -20,7 +20,7 @@ begin;
 
 alter table private.ai_runs alter column session_id drop not null;
 alter table private.ai_runs drop constraint ai_runs_job_check;
-alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','overnight_draft'));
+alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft'));
 alter table private.ai_runs add constraint ai_runs_session_check check(session_id is not null or job='overnight_draft');
 
 -- ---------- Tables ----------
