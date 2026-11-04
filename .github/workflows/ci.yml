@@ -47,7 +47,7 @@ jobs:
           node-version: 22.x
       - run: npm ci
       - name: Start isolated PostgreSQL 17 and Auth
-        run: supabase start --exclude storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Replay migrations from an empty database
         run: supabase db reset --local --no-seed
       - name: Lint database functions
@@ -112,6 +112,8 @@ jobs:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Test Outcome bullets (typed letter by letter) and Outcome confirm with 50 simulated phones in real browsers
         run: npm run test:outcomes
+      - name: Test the scribe console (capture, easel photos, offline replay, team-led off) in real browsers with Storage
+        run: npm run test:scribe
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Upload the acceptance and failure kit screenshots

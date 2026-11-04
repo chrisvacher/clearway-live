@@ -37,6 +37,7 @@
     "test:templates": "node --import tsx tests/browser/templates.ts",
     "test:ai": "node --import tsx tests/browser/ai-live.ts",
     "test:team-workshop": "node --import tsx tests/browser/team-workshop.ts",
+    "test:scribe": "node --import tsx tests/browser/scribe.ts",
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },

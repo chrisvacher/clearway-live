@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CircleAlert } from "lucide-react";
 import { LivePhone } from "./live-phone";
+import { ScribeRoom } from "@/components/scribe/scribe-room";
 import { AiSignInNote } from "@/components/interactions/ai/ai-disclosure";
 
 import type { RoomAccessStatus as Status } from "@/lib/room/access";
@@ -83,6 +84,7 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
     finally { setBusy(false); setSubmitting(null); }
   }
   // Signed in on the room page: the phone becomes the live room.
+  if (state.status === "signed_in" && church !== undefined && !confirm && state.role === "scribe") return <ScribeRoom engagement={engagement} church={church} />;
   if (state.status === "signed_in" && church !== undefined && !confirm) return <LivePhone engagement={engagement} church={church} name={state.name} />;
   if (state.status === "signed_in") return <section aria-live="polite"><h2>{state.name ? `You’re in, ${state.name}.` : "You’re in."}</h2><p>{state.role === "scribe" ? "You’re joining as the scribe." : "Your place in the room is ready."}</p><p>Your facilitator will let you know what happens next.</p></section>;
   if (state.status === "closed") return <p role="status">{messages.closed}</p>;
