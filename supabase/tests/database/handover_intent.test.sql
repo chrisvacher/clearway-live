@@ -177,6 +177,11 @@ select is((select count(*) from (select card_id from tests.intent_card_people wh
 select is(tests.ictl(43,'assign',jsonb_build_object('card',tests.card(0),'attendees',jsonb_build_array(tests.id(503),tests.id(505),tests.id(508),tests.id(509))))->>'status','invalid_request','A card takes at most three people');
 select is(tests.ictl(44,'assign',jsonb_build_object('card',tests.card(0),'attendees',jsonb_build_array(tests.id(503),tests.id(505),tests.id(508))))->>'status','ok','A trio can be assigned');
 select is(tests.ictl(45,'assign',jsonb_build_object('card',tests.card(1),'attendees',jsonb_build_array(tests.id(509))))->>'status','ok','One person can hold the other card');
+select is(tests.ictl(48,'present',jsonb_build_object('card',tests.card(1)))->>'status','ok','The facilitator puts one card on the TV at full size');
+select is((select spotlight_key from tests.room()),tests.card(1)::text,'The room names the card on the TV');
+select is(tests.ictl(49,'present',jsonb_build_object('card',tests.id(9999)))->>'status','missing','A card that is not in this engagement cannot be presented');
+select is(tests.ictl(50,'present',jsonb_build_object('card',null))->>'status','ok','And back to every card');
+select is((select spotlight_key from tests.room()),null,'The TV shows every card again');
 select is(tests.ictl(46,'assign',jsonb_build_object('card',tests.card(1),'attendees',jsonb_build_array(tests.id(506))))->>'status','missing','An unverified person cannot be assigned');
 select is(tests.ictl(47,'assign',jsonb_build_object('card',tests.card(0),'attendees',jsonb_build_array(tests.id(510))))->>'status','missing','A person from another engagement cannot be assigned');
 reset role;

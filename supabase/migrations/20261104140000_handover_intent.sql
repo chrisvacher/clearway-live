@@ -501,7 +501,7 @@ end $$;
 -- follow-up remote. Actions: assign {card,attendees}, auto, clear {card?}, affirm_text {session}.
 create function private.intent_control(p_engagement uuid,p_id uuid,p_action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r public.room_states; cur public.sessions; done private.room_controls; actor text; who text; v_card uuid; ids uuid[]; people uuid[]; cards uuid[]; m integer; i integer; txt text; target public.sessions;
+declare r public.room_states; cur public.sessions; done private.room_controls; actor text; who text; v_card uuid; ids uuid[]; people uuid[]; cards uuid[]; m integer; i integer; txt text; target public.sessions; v_spot text;
 begin
  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
  select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
@@ -509,7 +509,7 @@ begin
  actor:=private.remote_actor(p_engagement);
  if actor is null or (p_action='affirm_text' and actor<>'facilitator') then return jsonb_build_object('status','denied'); end if;
  if exists(select 1 from public.engagements where id=p_engagement and status='closed') then return jsonb_build_object('status','closed'); end if;
- if p_id is null or p_action is null or p_action not in ('assign','auto','clear','affirm_text') or jsonb_typeof(p) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
+ if p_id is null or p_action is null or p_action not in ('assign','auto','clear','present','affirm_text') or jsonb_typeof(p) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  select * into done from private.room_controls where id=p_id;
  if found then
   if done.engagement_id<>p_engagement or done.action<>'intent_'||p_action then return jsonb_build_object('status','conflict'); end if;
@@ -549,6 +549,14 @@ begin
   if p ? 'card' and (p->>'card' is null or p->>'card' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') then return jsonb_build_object('status','invalid_request'); end if;
   update private.intent_card_people set deleted=true where engagement_id=p_engagement and not deleted and (not (p ? 'card') or card_id=(p->>'card')::uuid);
   if not found then return jsonb_build_object('status','unchanged','version',r.version); end if;
+ elsif p_action='present' then
+  -- One card at full size on the TV, or back to all of them. The spotlight clears with the step.
+  if p ? 'card' and p->'card'<>'null'::jsonb then
+   if jsonb_typeof(p->'card') is distinct from 'string' or p->>'card' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+     or not exists(select 1 from private.intent_cards where id=(p->>'card')::uuid and engagement_id=p_engagement and not deleted) then return jsonb_build_object('status','missing'); end if;
+   v_spot:=p->>'card';
+  end if;
+  if v_spot is not distinct from r.spotlight_key then return jsonb_build_object('status','unchanged','version',r.version); end if;
  else
   -- Affirm together reuses sign together: the cards become the text the room signs.
   if p->>'session' is null or p->>'session' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return jsonb_build_object('status','invalid_request'); end if;
@@ -559,7 +567,7 @@ begin
   update public.sessions set options=options||jsonb_build_object('text',txt) where id=target.id;
  end if;
 
- update public.room_states set results=private.live_results(p_engagement) where engagement_id=p_engagement returning * into r;
+ update public.room_states set results=private.live_results(p_engagement),spotlight_key=case when p_action='present' then v_spot else spotlight_key end where engagement_id=p_engagement returning * into r;
  insert into private.room_controls(id,engagement_id,actor_id,action,session_id,room_version,created_at) values(p_id,p_engagement,private.clearway_user_id(),'intent_'||p_action,r.live_session_id,r.version,clock_timestamp());
  who:=case when actor='team' then (select private.first_name(a.name) from public.attendees a where a.id=r.remote_holder_id) else (select private.first_name(name) from public.clearway_users where id=private.clearway_user_id()) end;
  perform private.fac_notice(p_engagement,jsonb_build_object('kind','control','id',p_id,'action','intent_'||p_action,'by',who,'version',r.version,'changed',true));

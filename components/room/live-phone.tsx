@@ -11,6 +11,7 @@ import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { useLivePhone } from "./use-live-phone";
 import { QaAsk } from "@/components/interactions/qa/qa-ask";
+import { PhoneTeamRemote } from "@/components/interactions/intent/phone-team-remote";
 import { recheckDelay, requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
 import "./self-paced.css";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
@@ -172,6 +173,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
     <div className="ph-texture" aria-hidden="true" />
     <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} />{marker}</header>
     <div className="ph-body">
+      <PhoneTeamRemote engagement={engagement} frame={frame} />
       {phone.fresh && !bannerSeen && room && room.answers.length > 0 && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
         <span>Signed in on this phone. Your earlier answers are here.</span><button type="button" onClick={() => setBannerSeen(true)}>OK</button></p>}
       {room?.rehearsal && <p className="ph-banner" role="status"><FlaskConical size={16} aria-hidden="true" /><span>Rehearsal. Your answers are test answers and will be cleared.</span></p>}
