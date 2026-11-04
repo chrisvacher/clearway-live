@@ -547,7 +547,7 @@ end $$;
 alter table public.sessions add column seeded_from uuid;
 alter table public.sessions add constraint sessions_seeded_from_fk foreign key(seeded_from,engagement_id) references public.sessions(id,engagement_id);
 alter table public.sessions add constraint sessions_seeded_from_self check(seeded_from is null or seeded_from<>id);
-create index sessions_seeded_from_idx on public.sessions(seeded_from,engagement_id) where seeded_from is not null;
+create index sessions_seeded_from_idx on public.sessions(seeded_from,engagement_id);
 -- Removing a step frees the steps seeded from it.
 create function private.wf_seed_cleanup() returns trigger
 language plpgsql security definer set search_path='' as $$
