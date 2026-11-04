@@ -153,3 +153,13 @@ test("file bytes wait on the device until they are sent", async () => {
   await blobs.delete("a");
   assert.equal(await blobs.get("a"), null);
 });
+
+test("a card that has just been sent stays on the screen, as Synced, until the server's state shows it", () => {
+  const sent: OutboxEntry[] = [{ item: capture(7, { kind: "mitigation", detail: { risk: "Volunteer burnout" } }), state: "sent" }];
+  const waiting: OutboxEntry[] = [{ item: capture(8), state: "saved" }];
+  const shown = shownCards(state(), [...sent, ...waiting], true, "2026-11-04T14:00:05.000Z");
+  assert.deepEqual(shown.map(c => [c.id, c.state, c.order]), [[id(8), "queued", 1], [id(7), "synced", undefined]], "the waiting card is still number 1");
+  assert.deepEqual(shown[1].detail, { risk: "Volunteer burnout" });
+  const once = shownCards(state({ cards: [{ id: id(7), session_id: id(900), kind: "mitigation", text: "Card 7", detail: { risk: "Volunteer burnout" }, has_speaker: false, captured_at: "2026-11-04T14:00:00.000Z", received_at: "2026-11-04T14:00:01.000Z", seq: "7", revision: 0, refiled: false }] }), sent, true, "2026-11-04T14:00:05.000Z");
+  assert.equal(once.length, 1, "never doubled once the server holds it");
+});

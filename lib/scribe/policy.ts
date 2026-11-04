@@ -56,6 +56,8 @@ export type CardState = "queued" | "syncing" | "synced" | "failed";
 export type ShownCard = ScribeCardRow & { state: CardState; order?: number; reason?: string; pending?: boolean };
 export type ShownFile = ScribeFileRow & { state: CardState; order?: number; reason?: string };
 
+const cardState = (entry: OutboxEntry, online: boolean): CardState => entry.state === "sent" ? "synced" : entry.state === "failed" ? "failed" : online && entry.state === "sending" ? "syncing" : "queued";
+
 // The server's cards overlaid with what is still waiting on this device. Waiting cards come first,
 // newest first, numbered in the order they will send. A card the server holds shows Synced.
 export function shownCards(state: Pick<ScribeState, "cards"> | null, outbox: OutboxEntry[], online: boolean, now: string): ShownCard[] {
@@ -63,18 +65,19 @@ export function shownCards(state: Pick<ScribeState, "cards"> | null, outbox: Out
   const waiting: ShownCard[] = [];
   let order = 0;
   for (const entry of outbox) {
-    order++;
+    if (entry.state !== "sent") order++;
     const item = entry.item;
     if (item.type !== "capture" || server.has(item.id)) continue;
     waiting.push({ id: item.id, session_id: item.session, kind: item.kind, text: item.text, detail: item.detail, has_speaker: Boolean(item.speaker), captured_at: item.capturedAt, received_at: now,
-      seq: "", revision: 0, refiled: false, state: entry.state === "failed" ? "failed" : online && entry.state === "sending" ? "syncing" : "queued", order, reason: entry.reason, pending: true });
+      seq: "", revision: 0, refiled: false, state: cardState(entry, online), order: entry.state === "sent" ? undefined : order, reason: entry.reason, pending: true });
   }
   const edits = new Map<string, Extract<OutboxEntry["item"], { type: "edit" }>>();
   const refiles = new Map<string, string>();
   for (const entry of outbox) { if (entry.item.type === "edit") edits.set(entry.item.id, entry.item); if (entry.item.type === "refile") refiles.set(entry.item.id, entry.item.session); }
+  const pendingEdit = (list: OutboxEntry[], id: string) => list.some(e => e.state !== "sent" && e.item.id === id && (e.item.type === "edit" || e.item.type === "refile"));
   const held = [...server.values()].map<ShownCard>(c => {
     const edit = edits.get(c.id), session = refiles.get(c.id);
-    return { ...c, ...(edit ? { text: edit.text, detail: edit.detail } : {}), ...(session ? { session_id: session, refiled: true } : {}), state: edit || session ? "queued" : "synced" };
+    return { ...c, ...(edit ? { text: edit.text, detail: edit.detail } : {}), ...(session ? { session_id: session, refiled: true } : {}), state: edit || session ? (pendingEdit(outbox, c.id) ? "queued" : "synced") : "synced" };
   });
   return [...waiting.reverse(), ...held];
 }
@@ -83,11 +86,11 @@ export function shownFiles(state: Pick<ScribeState, "files"> | null, outbox: Out
   const waiting: ShownFile[] = [];
   let order = 0;
   for (const entry of outbox) {
-    order++;
+    if (entry.state !== "sent") order++;
     const item = entry.item;
     if (item.type !== "file" || (server.get(item.id)?.uploaded)) continue;
     waiting.push({ id: item.id, session_id: item.session, kind: item.fileKind, name: item.name, content_type: item.contentType, bytes: item.bytes, uploaded: false, captured_at: item.capturedAt, received_at: now,
-      seq: "", refiled: false, state: entry.state === "failed" ? "failed" : online && entry.state === "sending" ? "syncing" : "queued", order, reason: entry.reason });
+      seq: "", refiled: false, state: cardState(entry, online), order: entry.state === "sent" ? undefined : order, reason: entry.reason });
   }
   return [...waiting.reverse(), ...[...server.values()].filter(f => f.uploaded).map<ShownFile>(f => ({ ...f, state: "synced" }))];
 }

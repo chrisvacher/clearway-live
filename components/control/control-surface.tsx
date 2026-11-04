@@ -1,4 +1,5 @@
 "use client";
+import { HandoverPanel } from "@/components/interactions/intent/handover";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -79,6 +80,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           <label className="ctl-size" htmlFor="ctl-room-size">Room size<select id="ctl-room-size" value={frame?.display?.room_size ?? "very_small"} disabled={Boolean(room.pending) || !frame} onChange={e => void room.press("room_size", { size: e.target.value as RoomSize })}>{roomSizes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="show-help">Scales all TV type at once.</span></label>
           <ItemList room={room} />
           <QaAnyTime room={room} />
+          <HandoverPanel room={room} />
           {KindPanel && <KindPanel room={room} />}
         </>}
       </main>
