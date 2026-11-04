@@ -8,6 +8,9 @@ export type AiConfig = {
   timeoutMs: number; // a call slower than this fails and the room carries on in arrival order
   budgetMs: number; // how long one trigger may keep working after the response
   debounceMs: number; // answers arriving together share one call
+  deepModel: string; // the deeper Claude model for the overnight draft, which also reads easel photos
+  deepTimeoutMs: number; // the overnight draft may take longer than a live call
+  deepBudgetMs: number;
 };
 
 const number = (value: string | undefined, fallback: number, min: number, max: number) => {
@@ -24,6 +27,9 @@ export function aiConfig(env: Record<string, string | undefined> = process.env):
     timeoutMs: number(env.CLEARWAY_AI_TIMEOUT_MS, 20000, 1000, 60000),
     budgetMs: number(env.CLEARWAY_AI_BUDGET_MS, 40000, 2000, 240000),
     debounceMs: number(env.CLEARWAY_AI_DEBOUNCE_MS, 700, 0, 5000),
+    deepModel: /^[a-z0-9][a-z0-9._-]{0,99}$/i.test(env.CLEARWAY_AI_MODEL_DEEP ?? "") ? env.CLEARWAY_AI_MODEL_DEEP! : "claude-sonnet-4-5",
+    deepTimeoutMs: number(env.CLEARWAY_AI_DEEP_TIMEOUT_MS, 50000, 1000, 280000),
+    deepBudgetMs: number(env.CLEARWAY_AI_DEEP_BUDGET_MS, 55000, 2000, 290000),
   };
 }
 
