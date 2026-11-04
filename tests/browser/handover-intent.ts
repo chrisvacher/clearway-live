@@ -76,7 +76,7 @@ async function main() {
       void c; await shot(priya.page, "int-16-pair-phone");
     });
     await step("INT-16 Two phones edit one card: one person per line, and the TV follows the typing", async () => {
-      const [a] = await cards(), line = (p: Page, f: string) => p.locator(`#${a}-${f}`);
+      const [a] = await cards(), line = (p: Page, f: string) => p.locator(`[id="${a}-${f}"]`);
       const mark = layer().locator(`.int-card[data-card="${a}"] .int-line`);
       await mark.evaluate(el => { el.setAttribute("data-mark", "1"); });
       const t0 = Date.now();
@@ -95,8 +95,8 @@ async function main() {
     });
     await step("INT-16 An edit replaces the old line on the TV", async () => {
       const [a] = await cards();
-      await ben.page.locator(`#${a}-intent`).fill("Every neighbour can name three of us");
-      await ben.page.locator(`#${a}-intent`).blur();
+      await ben.page.locator(`[id="${a}-intent"]`).fill("Every neighbour can name three of us");
+      await ben.page.locator(`[id="${a}-intent"]`).blur();
       await until(async () => (await layer().locator(`.int-card[data-card="${a}"] .int-line`).innerText()) === "Every neighbour can name three of us", "the new line replaces the old", 4000);
       assert.equal(await layer().locator(`.int-card[data-card="${a}"] .int-line .int-old`).count() <= 1, true, "at most the fading old line remains");
     });
