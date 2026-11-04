@@ -13,6 +13,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --import tsx --test tests/unit/*.test.ts",
     "test:smoke": "node --import tsx --test tests/smoke/*.test.ts",
+    "home:shots": "node --import tsx scripts/refresh-home-shots.ts",
     "check": "npm run lint && npm run typecheck && npm test && npm run build && npm run test:smoke",
     "db:start": "supabase db start",
     "db:reset": "supabase db reset --local --no-seed",

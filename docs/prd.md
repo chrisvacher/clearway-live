@@ -567,6 +567,8 @@ The live room is the heart of the product and the riskiest part to build. These 
 
 Every interaction is a TV and phone pair, and every one follows the live room engine and the motion rules. Defaults are starting values the facilitator can change per session. Where Synrg's behaviour is a useful reference, it's noted.
 
+**Interaction refresh** (Decided November 3). Four TV screens had come out too close to Synrg's: the 2x2 grid (INT-08), scale (INT-05), Q&A (INT-03) and the private form count (INT-09). Claude Design is reworking them in the Clearway Live design system so each is clearly Clearway's own and they read as one family with the rest. The grid's axes stay the facilitator's to set, so the change comes from how items and agreement are drawn, not from named or tinted quadrants. Scale and Q&A get refinements rather than new designs. The word cloud, multiple choice and ranking stay as they are. The entries below describe the current screens until the refresh is built, and the front page's screenshots are refreshed in the same pull request.
+
 **General rules for every interaction**
 
 - Before anyone answers, structured interactions (choice, scale, ranking, 100 points, grid) show their empty structure on the TV, and text interactions show a quiet "Waiting for answers".
@@ -1196,6 +1198,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | 5 | Scribe console, overnight review, read-back | Milestone 5 | Delivered November 3 (PR #39) |
 | 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Not started |
 | 7 | Publish to CORE, report, communication plan, read-only copy, check-ins | Milestone 7 | Not started |
+| Interaction refresh | The 2x2 grid, scale, Q&A and private form count, reworked as one family (see "The interaction library") | Before the first retreat | In progress (November 3) |
 
 **Done when**
 
