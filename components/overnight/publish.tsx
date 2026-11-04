@@ -32,7 +32,7 @@ export function PublishView({ state, api, zone, blockers, ready, back }: { state
       {published ? <><div className="ovr-published" role="status" data-testid="ovn-published"><BadgeCheck aria-hidden="true" />Published at {clock(round.published_at, zone)} by {round.published_by}. The confirm opens when you go live on Day 2 at 9:00, and the outcomes at 9:30. Until then the TV and phones show nothing from it.</div>
         <button type="button" className="ovr-btn" disabled={!state.lead || api.busy} onClick={() => void api.act({ action: "unpublish" })}><Undo2 aria-hidden="true" />Unpublish</button>
         {!state.lead && <p className="ovr-muted">Only the lead facilitator can unpublish.</p>}</>
-        : <><button type="button" className="ovr-btn is-lime" disabled={!ready || !state.lead || api.busy} onClick={() => void api.act({ action: "publish", id })} data-testid="ovn-publish-button"><BadgeCheck aria-hidden="true" />Publish for Day 2</button>
+        : <><button type="button" className="ovr-btn is-lime" disabled={!ready || blockers.length > 0 || !state.lead || api.busy} onClick={() => void api.act({ action: "publish", id })} data-testid="ovn-publish-button"><BadgeCheck aria-hidden="true" />Publish for Day 2</button>
           {!state.lead && <p className="ovr-muted">Only the lead facilitator publishes. Tell them when the checklist is clear.</p>}
           {state.lead && blockers.length > 0 && <ul className="ovr-blockers" data-testid="ovn-blockers">{blockers.map(b => <li key={b}>{b}</li>)}</ul>}
           {state.lead && blockers.length === 0 && <p className="ovr-muted">Nothing is in the way. Publishing keeps every version, and you can unpublish.</p>}</>}
