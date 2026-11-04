@@ -936,7 +936,7 @@ begin
   for p in select value from jsonb_array_elements(case when jsonb_typeof(p_output->'unreadable')='array' then p_output->'unreadable' else '[]'::jsonb end) loop
    if jsonb_typeof(p)='object' and p->>'outcome'=oref then
     ref:=private.ov_ref(in_,p->>'photo');
-    if ref->>'kind'='photo' and not (ref->>'id')::uuid=any((select unreadable from private.draft_outcomes where id=did)) then
+    if ref->>'kind'='photo' and not coalesce((select (ref->>'id')::uuid = any(d.unreadable) from private.draft_outcomes d where d.id=did),false) then
      update private.draft_outcomes set unreadable=unreadable||(ref->>'id')::uuid where id=did;
     end if;
    end if;
