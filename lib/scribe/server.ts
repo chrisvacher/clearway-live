@@ -96,6 +96,8 @@ export async function fileResponse(request: NextRequest, engagement: string, fil
   const client = surface === "control" ? facilitatorClient(jar) : participantClient(jar, engagement);
   if (!client) return denied(403);
   try {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) return denied(403);
     const { data: where, error } = await client.rpc("scribe_file_read", { p_engagement: engagement, p_id: file });
     if (error) throw error;
     if (where.status !== "ok") return denied(where.status === "denied" ? 403 : 404);
