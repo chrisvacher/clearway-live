@@ -369,7 +369,7 @@ async function main() {
       assert.equal(jumps, 0, `no row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
       const final = ((await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results) as { total: number; questions: Q[] };
       const player = ptv.locator(".tv-layer:not(.is-leaving)").last();
-      await until(async () => (await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === `${final.total} questions`, "the TV count matches the server", 5000);
+      await until(async () => (await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim().startsWith(`${final.total} questions from `), "the TV count matches the server", 5000);
       const shownTexts = await player.locator(".qa-row").evaluateAll(els => els.filter(e => !(e as HTMLElement).style.opacity).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(e => e.querySelector(".qa-text")!.textContent));
       assert.deepEqual(shownTexts, final.questions.slice(0, 3).map(q => q.text), "the TV shows the server's top three");
       assert.equal((await player.locator(".qa-more").innerText()).trim(), `+ ${final.total - 3} more on your phones`);
