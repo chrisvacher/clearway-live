@@ -6,7 +6,7 @@ import { TeamRemote, type TeamBlockStep, type TeamRoom } from "@/components/inte
 import { post } from "@/components/interactions/intent/use-intent";
 import "@/components/interactions/intent/handover.css";
 
-type Snapshot = { status: string; kind: "tv" | "remote" | null; first?: string; church?: string; closes_at?: string; opens_at?: string; holder?: "team" | "lead" | null; lead?: string; block?: TeamBlockStep[]; room?: TeamRoom; pairs?: { card: string; people: string[] }[] };
+type Snapshot = { status: string; kind: "tv" | "remote" | null; first?: string; church?: string; closes_at?: string; opens_at?: string; holder?: "team" | "lead" | null; lead?: string; block?: TeamBlockStep[]; room?: { state?: TeamRoom }; pairs?: { card: string; people: string[] }[] };
 
 // The page behind the follow-up link (Chris's November 3 decision). The team's own facilitator enters
 // the code, then pairs the shared TV view in a tab and takes the remote on a phone. No Clearway sign-in.
@@ -56,7 +56,7 @@ export function FollowupClient({ token, as }: { token: string; as: "tv" | "remot
         <p className="show-help">Take the remote on this phone for your block{snap.lead ? `. ${snap.lead} stays in the room and can take it back` : ""}.</p>
         <button type="button" className="show-button is-primary" disabled={busy} onClick={() => void take()}><Smartphone size={16} aria-hidden="true" />Take the remote</button>
       </section> : <>
-        <TeamRemote block={snap.block ?? []} room={snap.room ?? null} holds={holds} send={send} ends={snap.closes_at} pairs={snap.pairs} />
+        <TeamRemote block={snap.block ?? []} room={snap.room?.state ?? null} holds={holds} send={send} ends={snap.closes_at} pairs={snap.pairs} />
         {!holds && <button type="button" className="show-button" disabled={busy} onClick={() => void ask()}>Ask for the remote</button>}
         {!holds && <button type="button" className="show-button" disabled={busy} onClick={() => void take()}>Take the remote</button>}
       </>}
