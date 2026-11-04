@@ -50,13 +50,13 @@ create index grid_merges_run_idx on private.grid_merges(run_id);
 alter table private.ai_sessions add column reasons_seen integer not null default 0 check(reasons_seen>=0);
 
 alter table private.ai_runs drop constraint ai_runs_job_check;
-alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons'));
+alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','group_lens','fold_questions','merge_reasons'));
 
 -- ---------- Switches ----------
 create or replace function private.ai_on(p_session uuid) returns boolean
 language sql stable security definer set search_path='' as $$
  select coalesce((select coalesce(e.settings->>'ai_enabled','false')='true'
-   and (s.interaction in ('word_cloud','wall','qa') or (s.interaction='grid' and s.options->>'preset'='pre_mortem'))
+   and (s.interaction in ('word_cloud','wall','qa') or (s.interaction='grid' and s.options->>'preset'='pre_mortem') or (s.interaction='lens' and coalesce(s.options->>'seed','false')<>'true'))
    and coalesce(a.ai,case when jsonb_typeof(s.options->'ai')='boolean' then (s.options->>'ai')::boolean end,true)
   from public.sessions s join public.engagements e on e.id=s.engagement_id and not e.deleted
   left join private.ai_sessions a on a.session_id=s.id and not a.deleted

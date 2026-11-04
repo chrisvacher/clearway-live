@@ -5,6 +5,7 @@ import type { Room } from "@/components/control/live-controls";
 import { FormAnswers, GridItems, SignNames } from "@/components/interactions/grid-form-sign/control";
 import { IntentCards } from "@/components/interactions/intent/intent-control";
 import { QaPanel } from "@/components/interactions/qa/qa-panel";
+import { LensPanel } from "@/components/interactions/lens/lens-panel";
 import { AiWallPanel, AiWordsPanel } from "@/components/interactions/ai/ai-panel";
 
 // The control surface's item list for a kind that needs its own (merging grid items,
@@ -19,4 +20,5 @@ export const controlItems: Partial<Record<InteractionKind, ComponentType<Control
   qa: QaPanel,
   word_cloud: AiWordsPanel,
   wall: AiWallPanel,
+  lens: LensPanel,
 };

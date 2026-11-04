@@ -12,6 +12,7 @@ import { QaTv } from "@/components/interactions/qa/qa-tv";
 import { BulletsTv, ConfirmTv } from "@/components/interactions/outcomes/outcomes-tv";
 import { GoalsView } from "@/components/interactions/goals/goals-view";
 import { WallView } from "@/components/interactions/ai/wall-view";
+import { LensView } from "@/components/interactions/lens/lens-view";
 
 // The TV view for each kind that takes input. A view draws from the server's results and
 // animates from what is on screen to what arrives: it never redraws, never resets a bar to
@@ -22,6 +23,7 @@ export type TvViewProps = { session: string; frame: LiveSnapshot; flow?: TvFlow 
 export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>>> = {
   word_cloud: props => <LiveBoard kind="word_cloud" {...props} />,
   wall: WallView,
+  lens: LensView,
   choice: props => <LiveBars kind="choice" {...props} />,
   scale: props => <LiveScale {...props} />,
   ranking: props => <LiveBars kind="ranking" {...props} />,
