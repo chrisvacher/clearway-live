@@ -137,7 +137,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - name: Test the lens wall (INT-12) with AI clusters and 50 simulated phones in a real browser
-        if: ${{ !cancelled() }}
         run: mkdir -p lens-wall-shots && npm run test:lens-wall
         env:
           KIT_SHOTS: lens-wall-shots
