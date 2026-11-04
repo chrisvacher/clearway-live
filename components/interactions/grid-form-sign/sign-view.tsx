@@ -23,6 +23,21 @@ export class Count {
 
 // The 1080p TV minimum in stage pixels: names never shrink below it (Design system, TV type).
 const tvMinimum = 36;
+// The most a card, or the rolling wall, travels in one frame (stage pixels). A reflow can send a
+// card many rows away; it still glides there on its spring, only never faster than this, so
+// nothing on the wall jumps however far it goes or however slow a frame is.
+const maxStep = 48;
+// One spring step (or a pair, moving together), its travel this frame held to maxStep.
+function glide(springs: Spring[], rate: number, dt: number, snap: boolean) {
+  const from = springs.map(s => s.x);
+  const done = springs.map(s => step(s, rate, dt, snap)).every(Boolean);
+  if (snap) return done;
+  const moved = Math.hypot(...springs.map((s, i) => s.x - from[i]));
+  if (moved <= maxStep) return done;
+  const k = maxStep / moved;
+  springs.forEach((s, i) => { s.x = from[i] + (s.x - from[i]) * k; s.v *= k; });
+  return false;
+}
 
 // INT-10 on the TV (pass 3 change 13). The text's title is the headline; each signature
 // arrives on its own with the name under it, one at a time in the arrival flow, and the
@@ -153,7 +168,7 @@ class SignWall extends LiveView {
     if (sized !== this.sized) { this.sized = sized; for (const card of this.cards.values()) this.sizeCard(card.el); }
     if (resized) busy = true;
     for (const [id, card] of this.cards) {
-      const done = [step(card.x, w, dt, snap), step(card.y, w, dt, snap), step(card.o, w, dt, snap)].every(Boolean);
+      const done = [glide([card.x, card.y], w, dt, snap), step(card.o, w, dt, snap)].every(Boolean);
       if (done && card.still) continue;
       card.still = done; busy = true;
       card.el.style.transform = `translate(${card.x.x.toFixed(2)}px,${card.y.x.toFixed(2)}px)`;
@@ -163,7 +178,9 @@ class SignWall extends LiveView {
     const quiet = this.ms("cwl-delay-quiet", 3000);
     // A full wall keeps the loop awake: it waits for quiet, then rolls.
     if (this.over > 0 && !snap) busy = true;
-    if (this.over <= 0 || snap) { this.rolling = false; this.roll.t = this.over; step(this.roll, w, dt, true); }
+    if (snap) { this.rolling = false; this.roll.t = this.over; step(this.roll, w, dt, true); }
+    // A wall that no longer rolls, or a roll left past a shorter wall's end, glides back.
+    else if (this.over <= 0 || this.roll.x > this.over + 0.5) { this.rolling = false; this.roll.t = Math.max(0, this.over); if (!glide([this.roll], w, dt, false)) busy = true; }
     else if (now - this.lastArrival > quiet) {
       // The slow roll: one row per cwl-dur-roll-row, a quiet pause at each end.
       if (!this.rolling) { this.rolling = true; this.roll.t = this.roll.x; this.roll.v = 0; this.dir = this.roll.x >= this.over - 1 ? -1 : 1; this.pauseUntil = now + quiet; }
@@ -172,7 +189,7 @@ class SignWall extends LiveView {
         this.roll.x = Math.max(0, Math.min(this.over, this.roll.x + this.dir * speed * dt)); this.roll.t = this.roll.x;
         if (this.roll.x <= 0 || this.roll.x >= this.over) { this.dir = -this.dir; this.pauseUntil = now + quiet; }
       }
-    } else if (!step(this.roll, w, dt, false)) busy = true;
+    } else if (!glide([this.roll], w, dt, false)) busy = true;
     const rolled = `translateY(${(-this.roll.x).toFixed(2)}px)`;
     if (rolled !== this.rolled) { this.rolled = rolled; this.names.style.transform = rolled; }
     return busy;
