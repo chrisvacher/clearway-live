@@ -737,8 +737,9 @@ test("live.clearway.co/CODE and the front page's join box open the room, and any
  const to=async(path:string)=>{const response=await fetch(origin+path,{redirect:"manual"});return {status:response.status,location:response.headers.get("location")??""};};
  for(const path of ["/ABCDEF12","/abcdef12","/join?code=abcd-ef12","/join?code="+encodeURIComponent("https://live.clearway.co/ABCDEF12"),"/join?code=ABCD%20EF12"]){
   const r=await to(path);assert.equal(r.status,307,path);assert.ok(r.location.endsWith("/room/"+roomId),path);}
- for(const [path,status] of [["/ZZZZZZZZ","unknown"],["/FFFFFFFF","unknown"],["/join?code=","empty"],["/join?code=nonsense","unknown"]]){
-  const r=await to(path);assert.equal(r.status,303,path);const url=new URL(r.location,origin);assert.equal(url.pathname,"/");assert.equal(url.searchParams.get("status"),status,path);assert.ok(!r.location.includes(roomId));}
+ for(const [path,status,code] of [["/FFFFFFFF","unknown",307],["/join?code=FFFFFFFF","unknown",303],["/join?code=","empty",303],["/join?code=nonsense","unknown",303]] as const){
+  const r=await to(path);assert.equal(r.status,code,path);const url=new URL(r.location,origin);assert.equal(url.pathname,"/");assert.equal(url.searchParams.get("status"),status,path);assert.ok(!r.location.includes(roomId));}
+ for(const path of ["/ZZZZZZZZ","/remote","/nonsense"]){const r=await fetch(origin+path);assert.equal(r.status,404,path);assert.match(await r.text(),/Check the room link with your facilitator/);}
  assert.ok((await to("/join?code=practice")).location.endsWith("/practice"));
  assert.ok((await to("/A7C3E91F")).location.endsWith("/practice"),"The front page's demo join screen opens the practice room");
  assert.equal((await fetch(origin+"/practice")).status,200,"Named routes win over codes");

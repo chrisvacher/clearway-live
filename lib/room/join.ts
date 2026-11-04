@@ -1,29 +1,31 @@
-import { NextResponse, type NextRequest } from "next/server";
 import { serviceClient } from "@/lib/server/supabase";
-import { privateResponse } from "@/lib/auth/response";
 import { practiceCode, roomCode, typedRoomCode } from "@/lib/tv/policy";
 import { demoDisplay } from "@/lib/public/demo-room";
 
-// live.clearway.co/CODE and the join box on the front page. A known code opens its
-// room (which still asks for the person's email, checked against the attendee list).
+// live.clearway.co/CODE and the front page's join box share one rule. A known code opens
+// its room (which still asks for the person's email, checked against the attendee list).
 // Anything else returns to the join box with a quiet note. The engagement's id never
 // appears unless the code is right.
-export async function joinByCode(request: NextRequest, raw: unknown) {
+export type JoinTarget = { path: string; found: boolean };
+
+// The practice room, by name, and the code on the front page's demo join screen.
+const practice = (code: string) => code === practiceCode || code === demoDisplay.room_code;
+// A path segment counts as a room link only when it is shaped like one, so a mistyped
+// page (live.clearway.co/remote) gets the app's not-found page instead of the join box.
+export const codeShaped = (segment: string) => { const code = typedRoomCode(segment); return roomCode(code) || practice(code); };
+
+export async function joinTarget(raw: unknown): Promise<JoinTarget> {
   const code = typedRoomCode(raw);
-  const back = (status: string) => {
-    const url = new URL("/", request.url);
-    if (code) url.searchParams.set("code", code);
-    url.searchParams.set("status", status);
-    url.hash = "join";
-    return privateResponse(NextResponse.redirect(url, 303));
+  const back = (status: string): JoinTarget => {
+    const query = new URLSearchParams(code ? { code, status } : { status });
+    return { path: `/?${query}#join`, found: false };
   };
   if (!code) return back("empty");
-  // The front page's demo join screen shows a code too, and it opens the practice room.
-  if (code === practiceCode || code === demoDisplay.room_code) return privateResponse(NextResponse.redirect(new URL("/practice", request.url), 307));
+  if (practice(code)) return { path: "/practice", found: true };
   if (!roomCode(code)) return back("unknown");
   try {
     const { data, error } = await serviceClient().rpc("tv_room_link", { p_code: code });
     if (error) return back("unavailable");
-    return data ? privateResponse(NextResponse.redirect(new URL(`/room/${data}`, request.url), 307)) : back("unknown");
+    return data ? { path: `/room/${data}`, found: true } : back("unknown");
   } catch { return back("unavailable"); }
 }

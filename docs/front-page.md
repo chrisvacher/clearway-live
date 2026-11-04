@@ -8,9 +8,9 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 | --- | --- |
 | `app/(public)/page.tsx` | The page: the join box, then How it works, the live demo, Ask the room, Wayfinding, In the room, Privacy, and the close |
 | `app/(public)/home.css` | Its styles, in Clearway Live tokens only |
-| `app/(public)/[code]/route.ts` | live.clearway.co/CODE |
+| `app/(public)/[code]/page.tsx` | live.clearway.co/CODE. Only a code-shaped segment redirects. Anything else (live.clearway.co/remote) gets the app's not-found page |
 | `app/(public)/join/route.ts` | The join box's GET target, so joining works without script |
-| `lib/room/join.ts` | One rule for both: the room, the practice room, or back to the join box with `status` (empty, unknown, unavailable) |
+| `lib/room/join.ts` | One rule for both (`joinTarget`): the room, the practice room, or back to the join box with `status` (empty, unknown, unavailable). `codeShaped` decides which paths count as codes |
 | `lib/tv/policy.ts` | `shortRoomLink` (now live.clearway.co/CODE) and `typedRoomCode` |
 | `lib/public/demo-room.ts` | The demo's scripts and results, mirroring the database's results functions |
 | `components/public/demo-room.tsx` | `DemoRoom` (the TV beside a phone) and `DemoJoin` (the join screen in the hero) |
