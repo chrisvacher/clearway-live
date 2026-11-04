@@ -173,9 +173,11 @@ async function main() {
       await shot(leadReview, "07-blocked");
       for (const id of outcomeIds) {
         const r = await lead.client.rpc("overnight_state", { p_engagement: room.id });
-        const draft = (r.data.outcomes as { outcome_id: string; revision: number; thin: boolean }[]).find(o => o.outcome_id === id)!;
-        if (draft.thin) await lead.client.rpc("overnight_ack_thin", { p_engagement: room.id, p_outcome: id, p_value: true });
-        const accepted = await lead.client.rpc("overnight_accept", { p_engagement: room.id, p_outcome: id, p_revision: draft.revision });
+        const draft = (r.data.outcomes as { id: string; outcome_id: string; revision: number; thin: boolean }[]).find(o => o.outcome_id === id)!;
+        if (draft.thin) await lead.client.rpc("overnight_ack_thin", { p_engagement: room.id, p_outcome: draft.id, p_value: true });
+        let revision = draft.revision;
+        if (draft.thin) revision = ((await lead.client.rpc("overnight_state", { p_engagement: room.id })).data.outcomes as { outcome_id: string; revision: number }[]).find(o => o.outcome_id === id)!.revision;
+        const accepted = await lead.client.rpc("overnight_accept", { p_engagement: room.id, p_outcome: draft.id, p_revision: revision });
         assert.ok(["ok", "unchanged", "locked"].includes(accepted.data?.status), JSON.stringify(accepted.data));
       }
     });
