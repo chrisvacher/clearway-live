@@ -647,3 +647,17 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .show-media { display: grid; gap: var(--space-2); justify-items: start; }
 .show-media-preview { width: 320px; height: auto; border-radius: 6px; border: 1px solid var(--cwl-app-border, currentColor); object-fit: contain; }
 .surface .ph-content .ph-quote .ph-source { color: var(--cwl-text-on-card); opacity: 0.8; }
+
+/* The Clearway Live lockup (design system LiveWordmark), drawn from the cwl-wordmark tokens. */
+.cwl-wordmark { display: inline-flex; flex: none; line-height: 0; height: var(--cwl-wordmark-h-app); }
+.cwl-wordmark svg { height: 100%; width: auto; display: block; overflow: visible; }
+.cwl-wordmark .i { fill: var(--cwl-wordmark-icon); } .cwl-wordmark .w { fill: var(--cwl-wordmark-word); } .cwl-wordmark .t { fill: var(--cwl-wordmark-tag); } .cwl-wordmark .l { fill: var(--cwl-wordmark-on-tag); }
+[data-theme="dark"] .cwl-wordmark:not(.is-light) .i, .cwl-wordmark.is-dark .i { fill: var(--cwl-wordmark-icon-dark); }
+[data-theme="dark"] .cwl-wordmark:not(.is-light) .w, .cwl-wordmark.is-dark .w { fill: var(--cwl-wordmark-word-dark); }
+[data-theme="dark"] .cwl-wordmark:not(.is-light) .t, .cwl-wordmark.is-dark .t { fill: var(--cwl-wordmark-tag-dark); }
+[data-theme="dark"] .cwl-wordmark:not(.is-light) .l, .cwl-wordmark.is-dark .l { fill: var(--cwl-wordmark-on-tag-dark); }
+.cwl-wordmark.is-remote { height: var(--cwl-wordmark-h-remote); }
+.cwl-wordmark.is-phone { height: var(--cwl-wordmark-h-phone); }
+.cwl-wordmark.is-tv { height: var(--cwl-wordmark-h-tv); }
+.cwl-wordmark.is-print { height: var(--cwl-wordmark-h-print); }
+.cwl-wordmark.is-page { height: var(--cwl-wordmark-h-page); }

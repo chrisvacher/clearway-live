@@ -1,26 +1,27 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowRight, BookOpen, ChartPie, Cloud, Gauge, Grid2x2, Laptop, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareText,
-  Monitor, NotebookPen, PenLine, ALargeSmall, Ear, Flag, ScanEye, SlidersHorizontal, Smartphone, Timer, UserCheck, Users, WifiOff, EyeOff,
+  ALargeSmall, ArrowRight, Check, Ear, EyeOff, Flag, Laptop, Lock, Monitor, NotebookPen, Quote, ScanEye, Smartphone, Timer, UserCheck, Users, WifiOff, X,
 } from "lucide-react";
 import { DemoRoom } from "@/components/public/demo-room";
+import { Gallery, Reveal, ThreeScreens, type GalleryItem } from "@/components/public/home-parts";
+import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { AiIcon } from "@/components/interactions/ai/ai-icon";
 import "./home.css";
 
 export const metadata: Metadata = {
   title: { absolute: "Clearway Live" },
-  description: "Type the code on the screen to join your team's room. Clearway Live is how Clearway runs Wayfinding retreats and team workshops: the room's answers on the screen the moment they're sent.",
+  description: "Enter the room code from the TV to join your team's room. Clearway Live is how Clearway runs Wayfinding retreats and team workshops: every voice in the room, on one screen.",
 };
 
 const notes: Record<string, string> = {
-  empty: "Type the code you see on the screen.",
+  empty: "Enter the room code from the TV.",
   unknown: "We couldn't find a room with that code. Check the screen and try again.",
-  unavailable: "We can't reach the room right now. Try again in a moment, or scan the QR code on the screen.",
+  unavailable: "We can't reach the room right now. Try again in a moment, or point your camera at the QR code on the TV.",
 };
 
-// The hero's right column: what Clearway Live is for, for someone who has only heard
-// that their church is using it to plan.
+// For someone who has only heard that their church is using Clearway Live to plan.
 const why = [
   { icon: Ear, name: "The quiet voices count too", text: "Everyone writes before anyone speaks, so the newest leader is heard as clearly as the most confident one." },
   { icon: EyeOff, name: "Honest, because it's anonymous", text: "Answers show on the screen without names, so people say what they actually think." },
@@ -28,37 +29,72 @@ const why = [
   { icon: Flag, name: "Leave with a plan you own", text: "What the team decides becomes Vision Outcomes and goals with an owner and a date, ready for the year ahead." },
 ];
 
-const interactions = [
-  { icon: Cloud, name: "Word cloud", text: "One to three words each. Words that come up again grow larger, similar answers count together, and the room's most common answer stands out." },
-  { icon: MessageSquareText, name: "Open text", text: "Sentences land on a wall as cards. AI gathers similar answers into labelled groups as they arrive, and every grouping can be undone." },
-  { icon: MessageCircleQuestion, name: "Q&A", text: "Anonymous questions the room can upvote. The most asked rise to the top, and the facilitator spotlights one at a time." },
-  { icon: ListChecks, name: "Multiple choice", text: "One tap each. Live bars grow and trade places as answers arrive." },
-  { icon: Gauge, name: "Scale", text: "A quick read of the room. The screen shows the average and how the room is spread." },
-  { icon: ListOrdered, name: "Ranking", text: "Tap options in order of priority. The screen shows the room's combined order, and the facilitator can let people suggest an option that's missing." },
-  { icon: ChartPie, name: "100 points", text: "Spread a budget across priorities. Each one's share of the room's points grows as answers land." },
-  { icon: Grid2x2, name: "2x2 grid", text: "Place each item between two axes, such as impact and effort. The screen shows where the room put it." },
-  { icon: SlidersHorizontal, name: "Statements", text: "Rate statements from disagree to agree. The screen shows where the room stands on each one." },
-  { icon: Lock, name: "Private form", text: "Answers only the facilitators read. The screen shows how many have answered and nothing more." },
-  { icon: PenLine, name: "Sign together", text: "Each person signs on their phone, and the signatures gather on the screen as one shared commitment." },
-  { icon: BookOpen, name: "Content screens", text: "Headlines with the detail on every phone, Scripture with its translation, prayer and silence, images and walk-in screens." },
+// Real screens from the Riverside Church team workshop run in CI.
+const gallery: GalleryItem[] = [
+  { key: "word-cloud", tag: "Word cloud", name: "One word each, and the room's words grow", text: "Words that come up again grow larger and the most common one stands out. Similar answers count together, and AI can combine near-duplicates with an undo.",
+    tv: "/home/tv-word-cloud.webp", tvAlt: "The TV: a word cloud with youth largest, then hope and joy", phone: "/home/phone-word-cloud.webp", phoneAlt: "The phone: a word or two, with two answers sent" },
+  { key: "wall", tag: "Open text", name: "Sentences that gather into themes", text: "Answers land on a wall as cards. AI groups similar answers into labelled themes as they arrive, and a short summary can go up when the facilitator chooses.",
+    tv: "/home/tv-wall.webp", tvAlt: "The TV: an AI summary above a theme called Baptisms, with the newest answers", phone: "/home/phone-wall.webp", phoneAlt: "The phone: a sentence sent, with room to write another" },
+  { key: "points", tag: "100 points", name: "Where would you spend it?", text: "Everyone spreads 100 points across the priorities. Bars grow and trade places as answers land, and a line shows where the top few end.",
+    tv: "/home/tv-points.webp", tvAlt: "The TV: five priorities as bars, Shared priorities leading at 33 percent", phone: "/home/phone-points.webp", phoneAlt: "The phone: sliders placing 100 points" },
+  { key: "grid", tag: "2x2 grid", name: "Effort and impact, placed by everyone", text: "Each person places each item between two axes. The screen shows where the room put it, one numbered dot per item.",
+    tv: "/home/tv-grid.webp", tvAlt: "The TV: a 2x2 grid of effort and impact with five numbered focus areas", phone: "/home/phone-grid.webp", phoneAlt: "The phone: placing focus areas on the grid" },
+  { key: "qa", tag: "Q&A", name: "The questions people actually have", text: "Anonymous questions the room can upvote. The most asked rise to the top, and the facilitator spotlights one at a time.",
+    tv: "/home/tv-qa.webp", tvAlt: "The TV: questions ranked by votes, Who decides what we stop doing on top with 8", phone: "/home/phone-qa.webp", phoneAlt: "The phone: questions with upvote buttons and a box to ask" },
+  { key: "sign", tag: "Sign together", name: "A commitment the whole team signs", text: "Each person signs on their phone, and the signatures gather on the screen as one shared commitment.",
+    tv: "/home/tv-sign.webp", tvAlt: "The TV: signatures with names, 8 of 8 signed", phone: "/home/phone-sign.webp", phoneAlt: "The phone: the commitment, signed" },
+  { key: "prayer", tag: "Prayer and Scripture", name: "Room for prayer and the Word", text: "Content screens hold prayer and silence, Scripture with its translation, and headlines with the detail on every phone. During prayer, phones say Phones away.",
+    tv: "/home/tv-prayer.webp", tvAlt: "The TV: Let's begin in prayer", phone: "/home/phone-prayer.webp", phoneAlt: "The phone: Phones away, we're praying together" },
+];
+
+const compare = [
+  { topic: "Who gets heard", without: "The first few voices set the direction for everyone else.", with: "Everyone writes first, on their own phone, before anyone speaks." },
+  { topic: "How honest it gets", without: "People soften what they think when everyone can see who said it.", with: "Answers show on the screen without names." },
+  { topic: "Reading the room", without: "The facilitator senses agreement by feel.", with: "Agreement and tension show on the screen as they form." },
+  { topic: "What's kept", without: "Easel sheets photographed and retyped afterwards.", with: "Every answer is kept with the step it belongs to, and the easel is still there." },
+  { topic: "Leaving the room", without: "A plan that arrives weeks later in a report.", with: "Goals with an owner and a date before you leave, ready for CORE." },
 ];
 
 const steps = [
-  { name: "Discover", text: "Your congregational survey, the Four Helpful Lists and leadership interviews come into one place, with themes your facilitator reviews before anyone sees them." },
-  { name: "Pre-call", text: "Ninety minutes on video, one to two weeks before the retreat. The team signs in, looks at what the survey said, celebrates what God has done and starts writing." },
-  { name: "Day 1", text: "The 10-year Future through the Five Lenses: Congregation, Community, Leadership, Operations and Learning, written in the present tense. Then the 3-year Vision and its Vision Outcomes, held provisionally overnight." },
-  { name: "Overnight", text: "Your facilitators review a draft of each lens built from the room's own words, every sentence traced to the answers it came from. Nothing reaches the room until they've reviewed it." },
-  { name: "Day 2", text: "A read-back to confirm the room was heard, a pre-mortem on what could stop the plan, and the 1-year Outlook as CORE goals. Then your own team takes the remote for commander's intent." },
-  { name: "After", text: "Vision Outcomes and goals go to CORE in one step. Your report and a draft visibility plan are assembled from the engagement, so your facilitator edits rather than starts from a blank page." },
+  { name: "Discover", photo: "/home/room-sticky-wall.webp", text: "Your congregational survey, the Four Helpful Lists and leadership interviews come into one place, with themes your facilitator reviews before anyone sees them." },
+  { name: "Pre-call", photo: "/home/room-boardroom.webp", text: "Ninety minutes on video, one to two weeks out. The team signs in, looks at what the survey said, celebrates what God has done and starts writing." },
+  { name: "Day 1", photo: "/home/room-five-lenses.webp", text: "The 10-year Future through the Five Lenses, written in the present tense. Then the 3-year Vision and its Vision Outcomes, held provisionally overnight." },
+  { name: "Overnight", photo: "/home/room-retreat-venue.webp", text: "Your facilitators review a draft of each lens built from the room's own words, every sentence traced to the answers it came from." },
+  { name: "Day 2", photo: "/home/room-u-table.webp", text: "A read-back to confirm the room was heard, a pre-mortem on what could stop the plan, the 1-year Outlook as CORE goals, then your own team takes the remote." },
+  { name: "After", photo: "/home/room-calendar.webp", text: "Vision Outcomes and goals go to CORE in one step, and your report and a draft visibility plan are assembled from the engagement." },
 ];
 
 const room = [
-  { icon: Monitor, name: "One TV, on its own computer", text: "The church sets up a computer at the TV. It opens live.clearway.co/tv and pairs with a six-digit code, so the screen never depends on the facilitator's laptop." },
-  { icon: ALargeSmall, name: "Type sized for the room", text: "One setting scales every word on the screen, from a large hall down to a U-shape of eight, where the type is largest." },
-  { icon: Timer, name: "Phones in short bursts", text: "Phones come out for three to five minutes at a time with a quiet countdown, then go back down so the team can talk." },
-  { icon: WifiOff, name: "Ready for weak wifi", text: "Answers save on the phone and send in order when the signal returns. The screen holds its last picture, and the easel stays the room's first record." },
-  { icon: NotebookPen, name: "A scribe at the side table", text: "Clearway's scribe captures quotes, decisions, tensions and actions as tagged cards, with photos of the easel, each attached to the moment it happened." },
-  { icon: Users, name: "The room decides together", text: "Votes and points show where the room is. They don't decide. The team reaches its decisions together, by consensus." },
+  { icon: Monitor, name: "One TV, on its own computer", text: "The church sets up a computer at the TV. It opens live.clearway.co/tv and pairs with a six-digit code." },
+  { icon: ALargeSmall, name: "Type sized for the room", text: "One setting scales every word on the screen, down to a U-shape of eight, where the type is largest." },
+  { icon: Timer, name: "Phones in short bursts", text: "Phones come out for three to five minutes with a quiet countdown, then go back down so the team can talk." },
+  { icon: WifiOff, name: "Ready for weak wifi", text: "Answers save on the phone and send in order when the signal returns. The screen holds its last picture." },
+  { icon: NotebookPen, name: "A scribe at the side table", text: "Quotes, decisions, tensions and actions captured as tagged cards, with photos of the easel." },
+  { icon: Users, name: "The room decides together", text: "Votes and points show where the room is. They don't decide. The team decides together, by consensus." },
+];
+
+const strip = [
+  { src: "/home/room-team-discussion.webp", alt: "A church team around a table, talking with a facilitator" },
+  { src: "/home/room-values-voting.webp", alt: "Leaders voting with sticky dots on values written on the wall" },
+  { src: "/home/room-round-tables.webp", alt: "A larger group at round tables with two screens at the front" },
+  { src: "/home/room-sticky-wall.webp", alt: "A team placing sticky notes on a wall of easel sheets" },
+  { src: "/home/room-calendar.webp", alt: "Leaders building a season calendar with sticky notes" },
+  { src: "/home/room-five-lenses.webp", alt: "A team at a table with the Five Lenses on the screen" },
+];
+
+const quotes = [
+  { quote: "Our team came out with a clear set of strategic priorities for the future and clarity on what it will take to get us there. Chris leads skillfully and with intention creating a collaborative environment where everyone feels heard and valued.", name: "Tammy Giffen", role: "Lead Pastor, Groundswell Church" },
+  { quote: "Chris' presentations, consulting as well as pointed questions to lead our discussions, enabled us to land on a clear path for the future and provided us with the tools to have successful team dynamics.", name: "Al Heath", role: "Executive Pastor, King Street Church" },
+  { quote: "Chris listened well to our needs and worked with us through the process so we could clarify our values and vision in following Jesus Christ, and agree on plans we will pursue.", name: "Andrew Swanson", role: "President, Fellowship Atlantic" },
+];
+
+const faqs = [
+  { q: "Do I need to download an app?", a: "No. Clearway Live runs in your phone's browser. Point your camera at the QR code on the TV, or enter the room code at live.clearway.co." },
+  { q: "Do I need an account?", a: "No account or password. The first time, you confirm your email with a six-digit code, so the room knows you're on your team's list. After that your phone stays signed in for the engagement." },
+  { q: "Who sees what I write?", a: "On the screen, nobody sees your name. Nobody in the room sees who wrote what, the facilitator included. Your name is kept with your answers only for the record. When a step needs a name, like signing a commitment, your phone tells you before you answer." },
+  { q: "What if the wifi drops?", a: "Your answers save on your phone and send in order when the signal comes back. The screen keeps its last picture, and the easel is still the room's first record." },
+  { q: "What does our church need to set up?", a: "A TV or projector with a computer connected to it, and wifi for the room. The computer opens live.clearway.co/tv, and your facilitator pairs it with a code." },
+  { q: "How is AI used?", a: "AI groups similar answers and drafts summaries. Every grouping on the screen is marked and can be undone, and nothing drafted overnight reaches the room until your facilitators have reviewed it." },
 ];
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ code?: string; status?: string }> }) {
@@ -68,138 +104,214 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
     <a className="skip-link button-link" href="#main">Skip to content</a>
     <header className="home-header">
       <div className="home-width home-bar">
-        <Link href="/" className="brand" aria-label="Clearway Live home">clearway<span>live</span></Link>
+        <Link href="/" className="home-brand" aria-label="Clearway Live home"><LiveWordmark theme="dark" size="page" label={null} /></Link>
         <nav className="home-nav" aria-label="On this page">
-          <a href="#how">How it works</a><a href="#ask">Ask the room</a><a href="#wayfinding">Wayfinding</a><a href="#privacy">Privacy</a>
+          <a href="#how">How it works</a><a href="#ask">Ways to answer</a><a href="#wayfinding">Wayfinding</a><a href="#faq">Questions</a>
         </nav>
         <Link href="/sign-in" className="home-signin">Facilitator sign-in</Link>
       </div>
     </header>
 
     <main id="main">
-      <section className="home-width home-hero" id="join" aria-labelledby="join-title">
-        <div className="home-hero-copy">
-          <p className="home-eyebrow"><Smartphone size={16} aria-hidden="true" />Joining your team?</p>
-          <h1 id="join-title" className="home-h1">Type the code <strong>on the screen.</strong></h1>
-          <p className="home-lead">It&apos;s on the TV at the front of the room, beside the QR code. There&apos;s no app to install, and your answers show on the screen without your name.</p>
-          <form className="join-form" action="/join" method="get">
-            <label htmlFor="room-code" className="join-label">Room code</label>
-            <div className="join-row">
-              <input id="room-code" name="code" className="join-input" defaultValue={code ?? ""} placeholder={"A7C3E91F"} autoComplete="off" autoCapitalize="characters"
-                spellCheck={false} maxLength={40} enterKeyHint="go" aria-invalid={Boolean(note)} aria-describedby="join-help" />
-              <button className="join-button" type="submit">Join<ArrowRight size={20} aria-hidden="true" /></button>
+      {/* Joining comes first: the code from the screen, then everything else. */}
+      <section className="home-hero" id="join" aria-labelledby="join-title">
+        <div className="home-width home-hero-grid">
+          <div className="home-hero-copy">
+            <p className="home-eyebrow"><Smartphone size={16} aria-hidden="true" />Joining your team?</p>
+            <h1 id="join-title" className="home-h1">Join your team <strong>in the room.</strong></h1>
+            <p className="home-lead">The room code is on the TV at the front of the room. Enter it here and you&apos;re in, right in your phone&apos;s browser. Your answers reach the screen without your name.</p>
+            <form className="join-form" action="/join" method="get">
+              <label htmlFor="room-code" className="join-label">Room code</label>
+              <div className="join-row">
+                <input id="room-code" name="code" className="join-input" defaultValue={code ?? ""} placeholder="A7C3E91F" autoComplete="off" autoCapitalize="characters"
+                  spellCheck={false} maxLength={40} enterKeyHint="go" aria-invalid={Boolean(note)} aria-describedby="join-help" />
+                <button className="join-button" type="submit">Join<ArrowRight size={20} aria-hidden="true" /></button>
+              </div>
+              <p id="join-help" className={`join-help${note ? " is-note" : ""}`} role={note ? "status" : undefined}>{note ?? "Or point your phone's camera at the QR code on the TV."}</p>
+            </form>
+            <div className="home-links">
+              <Link href="/tv" prefetch={false} className="home-link"><Monitor size={18} aria-hidden="true" />Setting up the TV? Open the TV screen</Link>
+              <Link href="/practice" className="home-link"><Smartphone size={18} aria-hidden="true" />Trying it first? Join the practice room</Link>
             </div>
-            <p id="join-help" className={`join-help${note ? " is-note" : ""}`} role={note ? "status" : undefined}>{note ?? "Most people scan the QR code on the screen. Typing the code is for when you can't."}</p>
-          </form>
-          <p className="home-small">The first time, you&apos;ll confirm your email so your facilitator knows you&apos;re on the team&apos;s list.</p>
-          <div className="home-links">
-            <Link href="/tv" prefetch={false} className="home-link"><Monitor size={18} aria-hidden="true" />Setting up the TV? Open the TV screen</Link>
-            <Link href="/practice" className="home-link"><Smartphone size={18} aria-hidden="true" />Trying it first? Join the practice room</Link>
+          </div>
+          <div className="home-hero-visual" aria-label="A Clearway retreat room, with the screen and a phone">
+            <div className="hero-photo"><Image src="/home/room-stained-glass.webp" alt="A church leadership team around a U-shaped table, facing a Clearway screen" fill priority sizes="(max-width: 1024px) 92vw, 640px" /></div>
+            <DemoRoom variant="hero" />
           </div>
         </div>
-        <aside className="home-why" data-theme="light" aria-labelledby="why-title">
-          <p className="home-why-eyebrow">New to Clearway Live?</p>
-          <h2 id="why-title" className="home-why-title">Every voice in the room, <strong>on one screen.</strong></h2>
-          <p className="home-why-lead">Your church is planning its next season with Clearway. Clearway Live is how your leadership team thinks out loud together: everyone answers on their own phone, and the room&apos;s answers appear on the screen as they&apos;re sent.</p>
-          <ul className="home-why-list">
-            {why.map(({ icon: Icon, name, text }) => <li key={name}><span className="home-why-icon"><Icon size={20} aria-hidden="true" /></span>
-              <div><h3 className="home-why-name">{name}</h3><p>{text}</p></div></li>)}
-          </ul>
-          <a href="#how" className="home-why-more">See how it works<ArrowRight size={18} aria-hidden="true" /></a>
-        </aside>
+      </section>
+
+      <section className="home-section is-why" data-theme="light" aria-labelledby="why-title">
+        <div className="home-width">
+          <Reveal className="why-head">
+            <p className="home-eyebrow">New to Clearway Live?</p>
+            <h2 id="why-title" className="home-h2">Every voice in the room, <strong>on one screen.</strong></h2>
+            <p className="home-lead">Your church is planning its next season with Clearway. Clearway Live is how your leadership team thinks out loud together: everyone answers on their own phone, and the room&apos;s answers appear on the screen as they&apos;re sent.</p>
+          </Reveal>
+          <div className="why-grid">
+            {why.map(({ icon: Icon, name, text }, i) => <Reveal key={name} step={i} className="why-card">
+              <span className="home-icon"><Icon size={22} aria-hidden="true" /></span><h3 className="home-h3">{name}</h3><p>{text}</p></Reveal>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="photo-strip" aria-label="Clearway retreat rooms">
+        <div className="photo-track">
+          {[...strip, ...strip].map((p, i) => <figure key={i} className="photo-tile" aria-hidden={i >= strip.length}><Image src={p.src} alt={i >= strip.length ? "" : p.alt} width={600} height={450} sizes="320px" /></figure>)}
+        </div>
+        <p className="home-width photo-caption">Church leadership teams at Clearway Wayfinding retreats. These are the rooms Clearway Live is built for.</p>
       </section>
 
       <section className="home-section" id="how" data-theme="light" aria-labelledby="how-title">
         <div className="home-width">
-          <p className="home-eyebrow">How it works</p>
-          <h2 id="how-title" className="home-h2">One room, <strong>three screens.</strong></h2>
-          <p className="home-lead">A single screen can&apos;t be readable from the back of the room, hold every detail and remind the facilitator what comes next. Clearway Live gives each job its own screen, and all three follow the room together.</p>
-          <div className="home-grid three">
-            <article className="home-card"><span className="home-icon"><Monitor size={22} aria-hidden="true" /></span><h3 className="home-h3">The TV</h3>
-              <p>The headline. Large type, one idea, and the room&apos;s answers landing the moment they&apos;re sent.</p></article>
-            <article className="home-card"><span className="home-icon"><Smartphone size={22} aria-hidden="true" /></span><h3 className="home-h3">Your phone</h3>
-              <p>The depth. The full prompt, the detail and Scripture behind it, and your answer box. You can look back at earlier steps, never ahead of the room.</p></article>
-            <article className="home-card"><span className="home-icon"><Laptop size={22} aria-hidden="true" /></span><h3 className="home-h3">The facilitator&apos;s view</h3>
-              <p>What&apos;s next, presenter notes, who&apos;s here and how many have answered, with a phone remote to run the room from anywhere in it. The room never sees it.</p></article>
-          </div>
+          <Reveal>
+            <p className="home-eyebrow">How it works</p>
+            <h2 id="how-title" className="home-h2">Look up together. <strong>Answer on your own.</strong></h2>
+            <p className="home-lead">Your team watches one screen at the front of the room and answers on their own phones, while your facilitator moves the room from one step to the next.</p>
+          </Reveal>
+          <Reveal><ThreeScreens /></Reveal>
         </div>
       </section>
 
       <section className="home-section is-demo" aria-labelledby="alive-title">
         <div className="home-width">
-          <p className="home-eyebrow">The screen is alive</p>
-          <h2 id="alive-title" className="home-h2">Watch your answer <strong>land.</strong></h2>
-          <p className="home-lead">Every answer reaches the screen in under a second. Nothing refreshes and nothing waits for a reveal. Words grow as more people say them, bars trade places as answers arrive, and quieter voices see their own words on the screen with everyone else&apos;s.</p>
+          <Reveal>
+            <p className="home-eyebrow">Try it</p>
+            <h2 id="alive-title" className="home-h2">Watch your answer <strong>land.</strong></h2>
+            <p className="home-lead">Every answer reaches the screen in under a second. Nothing refreshes and nothing waits for a reveal. Words grow as more people say them, and bars trade places as answers arrive. Answer on the phone below and see your own answer join the room.</p>
+          </Reveal>
           <DemoRoom />
-          <p className="home-small">This is the same screen and phone your team uses, with eight Riverside Church phones answering on a script. What you send here stays in your browser.</p>
+          <p className="home-small">The same screen and phone your team uses, with eight Riverside Church phones answering on a script. What you send here stays in your browser.</p>
+        </div>
+      </section>
+
+      <section className="stats" aria-label="Clearway Live in numbers">
+        <div className="home-width stats-row">
+          <div className="stat"><span className="stat-n">&lt;1<small>s</small></span><span className="stat-l">from a phone to the screen</span></div>
+          <div className="stat"><span className="stat-n">0</span><span className="stat-l">apps to install</span></div>
+          <div className="stat"><span className="stat-n">11</span><span className="stat-l">ways to ask the room</span></div>
+          <div className="stat"><span className="stat-n">1</span><span className="stat-l">code to join the room</span></div>
         </div>
       </section>
 
       <section className="home-section" id="ask" data-theme="light" aria-labelledby="ask-title">
         <div className="home-width">
-          <p className="home-eyebrow">Ask the room</p>
-          <h2 id="ask-title" className="home-h2">Any moment can <strong>ask the room.</strong></h2>
-          <p className="home-lead">Your facilitator chooses how the room answers. Most steps begin with everyone writing before anyone speaks, so the first voice in the room doesn&apos;t set the direction for everyone else.</p>
-          <div className="home-grid four">
-            {interactions.map(({ icon: Icon, name, text }) => <article key={name} className="home-card is-compact">
-              <span className="home-icon"><Icon size={20} aria-hidden="true" /></span><h3 className="home-h3">{name}</h3><p>{text}</p></article>)}
-          </div>
-          <p className="home-small">The same tools run Clearway team workshops, so a single session is as easy to open as a two-day retreat.</p>
+          <Reveal>
+            <p className="home-eyebrow">Ways to answer</p>
+            <h2 id="ask-title" className="home-h2">See it on the screen, <strong>and in your hand.</strong></h2>
+            <p className="home-lead">Your facilitator chooses how the room answers. Pick one to see it on the TV and on a phone. These are real screens from a Riverside Church team workshop.</p>
+          </Reveal>
+          <Reveal><Gallery items={gallery} /></Reveal>
+          <p className="home-small">Also multiple choice, scale, ranking, statements and private forms, where only the facilitators read the answers and the screen shows a count.</p>
         </div>
       </section>
 
-      <section className="home-section" id="wayfinding" aria-labelledby="wf-title">
+      <section className="home-section" aria-labelledby="compare-title">
         <div className="home-width">
-          <p className="home-eyebrow">Built for Wayfinding</p>
-          <h2 id="wf-title" className="home-h2">The whole engagement, <strong>in one place.</strong></h2>
-          <p className="home-lead">Wayfinding is how Clearway helps a church discern where God is leading and decide what comes next. Clearway Live holds the engagement from the first survey to the plan your team will live by, so nothing is retyped between steps.</p>
-          <ol className="home-steps">
-            {steps.map((step, i) => <li key={step.name} className="home-step"><span className="home-step-n" aria-hidden="true">{i + 1}</span>
-              <div><h3 className="home-h3">{step.name}</h3><p>{step.text}</p></div></li>)}
+          <Reveal>
+            <p className="home-eyebrow">What changes</p>
+            <h2 id="compare-title" className="home-h2">The same room, <strong>with every voice in it.</strong></h2>
+          </Reveal>
+          <div className="compare">
+            <div className="compare-row is-head" aria-hidden="true"><span /><span>Easel sheets alone</span><span>With Clearway Live</span></div>
+            {compare.map((row, i) => <Reveal key={row.topic} step={i}><div className="compare-row">
+              <h3 className="compare-topic">{row.topic}</h3>
+              <p className="compare-without"><X size={18} aria-hidden="true" /><span><span className="compare-label">Easel sheets alone</span>{row.without}</span></p>
+              <p className="compare-with"><Check size={18} aria-hidden="true" /><span><span className="compare-label">With Clearway Live</span>{row.with}</span></p>
+            </div></Reveal>)}
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section" id="wayfinding" data-theme="light" aria-labelledby="wf-title">
+        <div className="home-width">
+          <Reveal>
+            <p className="home-eyebrow">Built for Wayfinding</p>
+            <h2 id="wf-title" className="home-h2">The whole engagement, <strong>in one place.</strong></h2>
+            <p className="home-lead">Wayfinding is how Clearway helps a church discern where God is leading and decide what comes next. Clearway Live holds the engagement from the first survey to the plan your team will live by, so nothing is retyped between steps.</p>
+          </Reveal>
+          <ol className="journey">
+            {steps.map((step, i) => <li key={step.name}><Reveal step={i} className="journey-step">
+              <div className="journey-photo"><Image src={step.photo} alt="" width={600} height={450} sizes="(max-width: 640px) 92vw, 360px" /><span className="journey-n">{i + 1}</span></div>
+              <div className="journey-copy"><h3 className="home-h3">{step.name}</h3><p>{step.text}</p></div>
+            </Reveal></li>)}
           </ol>
-          <div className="home-panel">
+          <Reveal className="home-panel">
             <div><h3 className="home-h3">Every goal meets CORE before it leaves the room</h3>
               <p>Each 1-year goal is <strong>Connected</strong> to a Vision Outcome, <strong>Owned</strong> by one person, has a clear <strong>Result</strong> and an agreed <strong>End date</strong>. The goal builder asks for an owner and a date on every goal while the team is still together.</p></div>
             <a href="https://www.clearway.co/services/strategic-planning" className="home-button is-light">Learn about Wayfinding<ArrowRight size={18} aria-hidden="true" /></a>
+          </Reveal>
+        </div>
+      </section>
+
+      <section className="home-section is-room" id="room" aria-labelledby="room-title">
+        <div className="home-width room-grid">
+          <Reveal className="room-photo"><Image src="/home/room-u-table.webp" alt="A facilitator at the front of a retreat room, a team around a U-shaped table" width={600} height={800} sizes="(max-width: 1024px) 92vw, 420px" /></Reveal>
+          <div>
+            <Reveal>
+              <p className="home-eyebrow">In the room</p>
+              <h2 id="room-title" className="home-h2">Made for a team <strong>around one table.</strong></h2>
+              <p className="home-lead">A Wayfinding retreat is usually about eight leaders in a U-shape with one TV, a facilitator, a co-facilitator and a scribe.</p>
+            </Reveal>
+            <div className="room-list">
+              {room.map(({ icon: Icon, name, text }, i) => <Reveal key={name} step={i} className="room-item"><span className="home-icon"><Icon size={20} aria-hidden="true" /></span>
+                <div><h3 className="home-h3">{name}</h3><p>{text}</p></div></Reveal>)}
+            </div>
+            <Reveal className="home-setup">
+              <h3 className="home-h3">Setting up the TV</h3>
+              <ol className="home-setup-list">
+                <li>On the computer connected to the TV or projector, open <strong>live.clearway.co/tv</strong>.</li>
+                <li>A six-digit code appears. Your facilitator enters it on their laptop, and the screen is paired.</li>
+                <li>Press <kbd>F</kbd> for full screen. The screen stays awake on its own.</li>
+              </ol>
+              <Link href="/tv" prefetch={false} className="home-button">Open the TV screen<ArrowRight size={18} aria-hidden="true" /></Link>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      <section className="home-section" id="room" data-theme="light" aria-labelledby="room-title">
+      <section className="home-section" id="privacy" data-theme="light" aria-labelledby="privacy-title">
         <div className="home-width">
-          <p className="home-eyebrow">In the room</p>
-          <h2 id="room-title" className="home-h2">Made for a team <strong>around one table.</strong></h2>
-          <p className="home-lead">A Wayfinding retreat is usually about eight leaders in a U-shape with one TV, a facilitator, a co-facilitator and a scribe. Everything is built for that room.</p>
+          <Reveal>
+            <p className="home-eyebrow">Privacy</p>
+            <h2 id="privacy-title" className="home-h2">Say what you actually think. <strong>The screen won&apos;t say it was you.</strong></h2>
+          </Reveal>
+          <div className="home-grid four">
+            <Reveal className="home-card"><span className="home-icon"><EyeOff size={22} aria-hidden="true" /></span><h3 className="home-h3">No names on the screen</h3>
+              <p>Nobody in the room sees who wrote what, the facilitator included. Names stay with answers only for the record.</p></Reveal>
+            <Reveal step={1} className="home-card"><span className="home-icon"><UserCheck size={22} aria-hidden="true" /></span><h3 className="home-h3">Names only where they belong</h3>
+              <p>A name appears only when a step calls for one, like signing a commitment, and your phone says so first.</p></Reveal>
+            <Reveal step={2} className="home-card"><span className="home-icon"><Lock size={22} aria-hidden="true" /></span><h3 className="home-h3">Private forms stay private</h3>
+              <p>Your facilitators read the answers. The screen shows how many people have answered, and the answers are kept out of its data entirely.</p></Reveal>
+            <Reveal step={3} className="home-card"><span className="home-icon"><AiIcon size={22} /></span><h3 className="home-h3">AI you can see</h3>
+              <p>Every AI grouping is marked and can be undone. <Link href="/how-we-use-ai" className="home-inline">How we use AI</Link></p></Reveal>
+          </div>
+        </div>
+      </section>
+
+      <section className="home-section is-quotes" aria-labelledby="quotes-title">
+        <div className="home-width">
+          <Reveal>
+            <p className="home-eyebrow">From the churches we serve</p>
+            <h2 id="quotes-title" className="home-h2">Leaders on planning <strong>with Clearway.</strong></h2>
+          </Reveal>
           <div className="home-grid three">
-            {room.map(({ icon: Icon, name, text }) => <article key={name} className="home-card"><span className="home-icon"><Icon size={22} aria-hidden="true" /></span>
-              <h3 className="home-h3">{name}</h3><p>{text}</p></article>)}
-          </div>
-          <div className="home-setup">
-            <h3 className="home-h3">Setting up the TV</h3>
-            <ol className="home-setup-list">
-              <li>On the computer connected to the TV or projector, open <strong>live.clearway.co/tv</strong>.</li>
-              <li>A six-digit code appears. Your facilitator enters it on their laptop, and the screen is paired.</li>
-              <li>Press <kbd>F</kbd> for full screen. The screen stays awake on its own.</li>
-            </ol>
-            <Link href="/tv" prefetch={false} className="home-button">Open the TV screen<ArrowRight size={18} aria-hidden="true" /></Link>
+            {quotes.map((q, i) => <Reveal key={q.name} step={i} className="quote-card">
+              <Quote size={28} aria-hidden="true" className="quote-mark" /><blockquote><p>{q.quote}</p></blockquote>
+              <p className="quote-who"><strong>{q.name}</strong>{q.role}</p></Reveal>)}
           </div>
         </div>
       </section>
 
-      <section className="home-section" id="privacy" aria-labelledby="privacy-title">
-        <div className="home-width">
-          <p className="home-eyebrow">Privacy</p>
-          <h2 id="privacy-title" className="home-h2">Anonymous on the screen, <strong>so the room can be honest.</strong></h2>
-          <p className="home-lead">People say what they actually think when nobody in the room can tell who wrote it. These commitments hold in every session.</p>
-          <div className="home-grid two">
-            <article className="home-card"><span className="home-icon"><EyeOff size={22} aria-hidden="true" /></span><h3 className="home-h3">No names on the screen</h3>
-              <p>Answers show without names. Nobody in the room sees who wrote what, the facilitator included. Names stay with answers only for the record.</p></article>
-            <article className="home-card"><span className="home-icon"><UserCheck size={22} aria-hidden="true" /></span><h3 className="home-h3">Names only where they belong</h3>
-              <p>A name appears only when a step calls for one, such as owning a goal or signing a shared commitment, and your phone says so before you answer.</p></article>
-            <article className="home-card"><span className="home-icon"><Lock size={22} aria-hidden="true" /></span><h3 className="home-h3">Private means private</h3>
-              <p>A private form sends the screen a count and nothing else. The database enforces it, so it never depends on what a screen chooses to show.</p></article>
-            <article className="home-card"><span className="home-icon"><AiIcon size={22} /></span><h3 className="home-h3">AI you can see</h3>
-              <p>AI groups similar answers and drafts overnight summaries. Every grouping on the screen is marked and can be undone, and nothing drafted overnight reaches the room until your facilitators have reviewed it. <Link href="/how-we-use-ai" className="home-inline">How we use AI</Link></p></article>
+      <section className="home-section" id="faq" data-theme="light" aria-labelledby="faq-title">
+        <div className="home-width faq-grid">
+          <Reveal>
+            <p className="home-eyebrow">Questions</p>
+            <h2 id="faq-title" className="home-h2">Before <strong>you join.</strong></h2>
+            <p className="home-lead">The things people ask on the morning of a retreat.</p>
+          </Reveal>
+          <div className="faq">
+            {faqs.map((f, i) => <details key={f.q} className="faq-item" open={i === 0}><summary>{f.q}</summary><p>{f.a}</p></details>)}
           </div>
         </div>
       </section>
@@ -220,7 +332,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
     <footer className="home-footer">
       <div className="home-width home-footer-row">
-        <span>Clearway Live · Clearway Church Solutions</span>
+        <LiveWordmark theme="dark" size="app" />
         <nav aria-label="Footer"><Link href="/how-we-use-ai">How we use AI</Link><Link href="/practice">Practice room</Link><Link href="/sign-in">Facilitator sign-in</Link><a href="https://www.clearway.co">clearway.co</a></nav>
       </div>
     </footer>

@@ -293,7 +293,7 @@ after(async () => {
 });
 
 for (const [route, heading, surface] of [
-  ["/", "Type the code", "phone"],
+  ["/", "Join your team", "phone"],
   ["/sign-in", "Prepare the room.", "control"],
   ["/room", "Your place in the room.", "phone"],
 ]) {

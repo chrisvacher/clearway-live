@@ -406,7 +406,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 **The front page and room codes (HOME-01)** (Chris asked for it November 3, modelled on synrg.live)
 
-- live.clearway.co is the front door. It opens on a join box, "Type the code on the screen", beside a short "New to Clearway Live?" panel on what it helps a team do, followed by a product page in the Clearway voice: three screens, the screen is alive, the interaction library, the Wayfinding engagement, the room, and privacy. It is a dark phone surface in Clearway Live tokens. The mark texture stays inside the TV and phone screens it shows.
+- live.clearway.co is the front door. It opens on a join box, "Join your team in the room", beside a short "New to Clearway Live?" panel on what it helps a team do, followed by a product page in the Clearway voice: three screens, the screen is alive, the interaction library, the Wayfinding engagement, the room, and privacy. It is a dark phone surface in Clearway Live tokens. The mark texture stays inside the TV and phone screens it shows.
 - The room link is live.clearway.co/CODE. The TV's join screen, join strip, corner link and QR code all use it. live.clearway.co/r/CODE keeps working for links already sent.
 - The join box takes the code alone, spaced or hyphenated, in any case, or the whole link pasted. It works without script (a GET to /join). A known code opens the room, which still signs the person in by email against the attendee list. A code that isn't found returns to the join box with a quiet note and never reveals an engagement. A path that isn't shaped like a code (live.clearway.co/remote) gets the app's not-found page.
 - PRACTICE opens the practice room.
@@ -567,6 +567,8 @@ The live room is the heart of the product and the riskiest part to build. These 
 ## The interaction library
 
 Every interaction is a TV and phone pair, and every one follows the live room engine and the motion rules. Defaults are starting values the facilitator can change per session. Where Synrg's behaviour is a useful reference, it's noted.
+
+**Interaction refresh** (Decided November 3). Four TV screens had come out too close to Synrg's: the 2x2 grid (INT-08), scale (INT-05), Q&A (INT-03) and the private form count (INT-09). Claude Design is reworking them in the Clearway Live design system so each is clearly Clearway's own and they read as one family with the rest. The grid's axes stay the facilitator's to set, so the change comes from how items and agreement are drawn, not from named or tinted quadrants. Scale and Q&A get refinements rather than new designs. The word cloud, multiple choice and ranking stay as they are. The entries below describe the current screens until the refresh is built, and the front page's screenshots are refreshed in the same pull request.
 
 **General rules for every interaction**
 
@@ -1209,6 +1211,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | 5 | Scribe console, overnight review, read-back | Milestone 5 | Delivered November 3 (PR #39) |
 | 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Not started |
 | 7 | Publish to CORE, report, communication plan, read-only copy, check-ins | Milestone 7 | Not started |
+| Interaction refresh | The 2x2 grid, scale, Q&A and private form count, reworked as one family (see "The interaction library") | Before the first retreat | In progress (November 3) |
 
 **Done when**
 
