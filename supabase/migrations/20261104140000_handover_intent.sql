@@ -501,7 +501,7 @@ end $$;
 -- follow-up remote. Actions: assign {card,attendees}, auto, clear {card?}, affirm_text {session}.
 create function private.intent_control(p_engagement uuid,p_id uuid,p_action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r public.room_states; cur public.sessions; done private.room_controls; actor text; who text; v_card uuid; ids uuid[]; people uuid[]; cards uuid[]; m integer; i integer; txt text; target public.sessions; v_spot text;
+declare r public.room_states; cur public.sessions; done private.room_controls; actor text; who text; v_card uuid; ids uuid[]; people uuid[]; cards uuid[]; m integer; txt text; target public.sessions; v_spot text;
 begin
  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
  select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
@@ -596,7 +596,7 @@ $$;
 -- Taking it back never touches the TV: the live step, the spotlight and the hidden items stay.
 create function private.handover_control(p_engagement uuid,p_id uuid,p_action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r public.room_states; done private.room_controls; blk private.team_blocks; v_att uuid; sess uuid[]; who text; person text; bad integer; same boolean:=false;
+declare r public.room_states; done private.room_controls; blk private.team_blocks; v_att uuid; sess uuid[]; who text; person text; bad integer;
 begin
  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
  select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
@@ -683,10 +683,10 @@ end $$;
 -- only their hashes: the database never holds either one.
 create function private.followup_manage(p_engagement uuid,p_action text,p jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r public.room_states; a private.followup_access; v_att public.attendees; sess uuid[]; bad integer; v_open timestamptz; v_close timestamp with time zone; st text; tv boolean; remote boolean; blk private.team_blocks;
+declare a private.followup_access; v_att public.attendees; sess uuid[]; bad integer; v_open timestamptz; v_close timestamp with time zone; st text; tv boolean; remote boolean; blk private.team_blocks;
 begin
  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
- select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
+ perform 1 from public.room_states where engagement_id=p_engagement and not deleted for update;
  if not found or not coalesce(private.show_allowed(p_engagement),false) then return jsonb_build_object('status','denied'); end if;
  if p_action is null or p_action not in ('status','issue','extend','reissue','revoke') or jsonb_typeof(p) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  if p_action<>'status' and not private.is_lead(p_engagement) then return jsonb_build_object('status','denied'); end if;
@@ -752,7 +752,7 @@ end $$;
 -- Entering the link and code. Three wrong codes lock the link for ten minutes.
 create function private.followup_enter(p_token_hash text,p_code_hash text,p_grant_hash text) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare a private.followup_access; g private.followup_grants; left integer;
+declare a private.followup_access; 
 begin
  if p_token_hash is null or p_token_hash !~ '^[a-f0-9]{64}$' or p_code_hash is null or p_code_hash !~ '^[a-f0-9]{64}$' or p_grant_hash is null or p_grant_hash !~ '^[a-f0-9]{64}$' then return jsonb_build_object('status','invalid_request'); end if;
  select * into a from private.followup_access where token_hash=p_token_hash and not deleted for update;
@@ -770,7 +770,7 @@ begin
   return jsonb_build_object('status','wrong','tries_left',3-a.attempts);
  end if;
  update private.followup_access set attempts=0,locked_until=null where id=a.id;
- insert into private.followup_grants(access_id,engagement_id,grant_hash) values(a.id,a.engagement_id,p_grant_hash) returning * into g;
+ insert into private.followup_grants(access_id,engagement_id,grant_hash) values(a.id,a.engagement_id,p_grant_hash);
  return jsonb_build_object('status','ok','access',a.id,'closes_at',a.closes_at);
 exception when unique_violation then return jsonb_build_object('status','invalid_request');
 end $$;
