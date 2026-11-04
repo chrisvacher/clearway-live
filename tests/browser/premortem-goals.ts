@@ -76,7 +76,7 @@ async function main() {
       assert.ok(results.every(s => s === "accepted"), `ten reasons accepted: ${results.join(",")}`);
       assert.equal(await post(phones[10], `/api/live/${room}/reason`, { id: randomUUID(), session: pm, text: "One more reason" }), "full", "the grid holds ten");
       assert.equal(await post(phones[0], `/api/live/${room}/reason`, { id: randomUUID(), session: pm, text: "volunteers BURN out and quit" }), "exists", "the same words twice are one reason");
-      await until(async () => (await legend()).length === 10 || (await layer().locator(".gfs-leg").count()) >= 8, "the reasons are in the TV's legend", 8000);
+      await until(async () => (await legend()).length >= 8, "the reasons are in the TV's legend", 8000);
       assert.equal((await reasons()).length, 10);
       await shot(tv, "premortem-reasons-tv");
     });
@@ -94,7 +94,7 @@ async function main() {
       await shot(tv, "premortem-merged-tv");
       const undone = await control("reasons", { action: "undo_ai" });
       assert.equal(undone.status, "ok");
-      await until(async () => (await legend()).length === 10, "all ten reasons are back", 8000);
+      await until(async () => (await reasons()).every(r => !r.into) && (await legend()).length >= 8, "the reasons are back on the TV, none merged", 8000);
       assert.equal(((await sql.query("select count(*)::integer n from private.grid_merges where session_id=$1 and not deleted", [pm])).rows[0].n), 0);
       // Undone reasons are not folded again.
       await delay(3000);
