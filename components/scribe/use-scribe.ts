@@ -24,16 +24,21 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
   const store = useRef<BlobStore | null>(null);
   const live = useRef<ScribeState["live"]>(null);
   const loading = useRef(false);
+  // Items the server has settled whose state read has not come back yet. They stay on the screen
+  // as Synced so a card never blinks out between leaving the outbox and arriving in the state.
+  const sentRef = useRef<{ entry: OutboxEntry; since: number }[]>([]);
+  const [sent, setSent] = useState<OutboxEntry[]>([]);
   const wasOnline = useRef(true);
 
   const load = useCallback(async () => {
     if (loading.current) return;
     loading.current = true;
+    const started = Date.now();
     try {
       const response = await fetch(`/api/scribe/${engagement}`, { cache: "no-store" });
       if (response.status === 403) { setSignedOut(true); setOnline(true); return; }
       const data = await response.json() as ScribeState;
-      if (data.status === "ok") { setState(data); live.current = data.live; setSignedOut(false); setOnline(true); if (!wasOnline.current) outbox.current?.kick(); wasOnline.current = true; }
+      if (data.status === "ok") { setState(data); live.current = data.live; setSignedOut(false); setOnline(true); if (!wasOnline.current) outbox.current?.kick(); wasOnline.current = true; const left = sentRef.current.filter(s => s.since >= started); if (left.length !== sentRef.current.length) { sentRef.current = left; setSent(left.map(s => s.entry)); } }
     } catch { setOnline(false); wasOnline.current = false; } finally { loading.current = false; }
   }, [engagement]);
 
@@ -60,8 +65,9 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
       }
       return post({ action: "file_done", id: item.id });
     };
-    const box = new ScribeOutbox(`cw-scribe-outbox-${engagement}`, send, setEntries, item => {
+    const box = new ScribeOutbox(`cw-scribe-outbox-${engagement}`, send, setEntries, (item, reason) => {
       if (item.type === "file") void store.current?.delete(item.id).catch(() => {});
+      if (!reason) { sentRef.current = [...sentRef.current, { entry: { item, state: "sent" }, since: Date.now() }]; setSent(sentRef.current.map(s => s.entry)); }
       void load();
     }, undefined, () => navigator.onLine);
     outbox.current = box; setEntries(box.entries); box.kick();
@@ -76,8 +82,9 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
   }, [engagement, blobs, load]);
 
   const mode = consoleMode(signedOut ? null : state);
-  const cards = useMemo(() => shownCards(state, entries, online, now), [state, entries, online, now]);
-  const files = useMemo(() => shownFiles(state, entries, online, now), [state, entries, online, now]);
+  const overlay = useMemo(() => [...sent, ...entries], [sent, entries]);
+  const cards = useMemo(() => shownCards(state, overlay, online, now), [state, overlay, online, now]);
+  const files = useMemo(() => shownFiles(state, overlay, online, now), [state, overlay, online, now]);
 
   const capture = useCallback((input: CaptureInput) => {
     const where = live.current;
