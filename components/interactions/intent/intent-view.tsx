@@ -97,7 +97,7 @@ class IntentWall extends LiveView {
     const line = el.querySelector<Line>(".int-s")!, before = line._text ?? "";
     this.line(line, s.text, instant);
     this.typing(line, Boolean(s.typing), `step:${s.id}`, before !== s.text, instant);
-    el.querySelector(".int-w")!.innerHTML = `<span>${s.owner ? esc(s.owner) : "No owner"}</span><span>${s.date ? shortDate(s.date) : "No date"}</span>${s.missing.length ? `<span class="int-flag-tag">${needsText(s.missing)}</span>` : ""}`;
+    el.querySelector(".int-w")!.innerHTML = `<span>${s.owner ? "Owner set" : "No owner"}</span><span>${s.date ? shortDate(s.date) : "No date"}</span>${s.missing.length ? `<span class="int-flag-tag">${needsText(s.missing)}</span>` : ""}`;
     el.classList.toggle("is-flagged", s.missing.length > 0);
     el.style.order = String(i);
   }
@@ -115,7 +115,6 @@ class IntentWall extends LiveView {
   }
   protected frame() { return false; }
 }
-const esc = (s: string) => s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch] as string);
 
 export function IntentView({ session, frame, flow }: { session: string; frame: LiveSnapshot; flow?: TvFlow | null }) {
   const host = useLiveView((root, id) => new IntentWall(root, id), session, frame, flow);

@@ -15,7 +15,7 @@ Milestone 4, step 6 (D2-11 to D2-14, INT-16). Migration: `supabase/migrations/20
 - Every change goes to the TV as it is typed. Typing grows a line in place; a rewrite crossfades over `cwl-dur-line-replace`.
 - A first step with no owner or no date is flagged on the TV and the phone. The rule lives in `private.first_step_flags` and `stepMissing` in `lib/interactions/intent.ts`.
 - Affirm together fills the sign step's text from the cards (`intent_control` with `affirm_text`) and reuses sign together (INT-10).
-- Names never show on the TV. Pairs show as first names on phones and the control surface only.
+- Names never show on the TV: a first step shows "Owner set", not who. Pairs show as first names on phones and the control surface only.
 
 ## Follow-up access (Chris's November 3 decision)
 
