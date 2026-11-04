@@ -29,10 +29,13 @@
 .ai-cards:not(.is-turns) { -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent); mask-image: linear-gradient(to bottom, black 85%, transparent); }
 .ai-wall > .ai-wall-split, .ai-wall > .ai-cards { grid-area: 1 / 1; min-height: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .ai-wall[data-ai="on"] > .ai-cards, .ai-wall[data-ai="off"] > .ai-wall-split { opacity: 0; pointer-events: none; }
-.ai-wall-split { display: grid; grid-template-columns: minmax(0, 1fr) calc(600px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px;
+.ai-wall-split { --ai-feed: calc(600px * var(--cwl-tv-scale)); --ai-feed-summary: calc(440px * var(--cwl-tv-scale));
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--ai-feed); grid-template-rows: minmax(0, 1fr); gap: 56px;
   transition: grid-template-columns var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 /* While the summary shows, the answers column gives it room and stays in view. */
-.ai-wall-split.has-summary { grid-template-columns: minmax(0, 1fr) calc(440px * var(--cwl-tv-scale)); }
+.ai-wall-split.has-summary { grid-template-columns: minmax(0, 1fr) var(--ai-feed-summary); }
+/* Measures the answers column's width with the summary open, for the summary's fit. */
+.ai-summary-probe { position: absolute; top: 0; left: 0; width: var(--ai-feed-summary); height: 0; visibility: hidden; pointer-events: none; }
 .ai-groups { --ai-gap: 28px; position: relative; display: flex; flex-direction: column; gap: var(--ai-gap); min-width: 0; min-height: 0; }
 .ai-groups-head { display: flex; align-items: center; gap: 0.5em; min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; color: var(--cwl-text-muted); }
 /* While the summary shows, its AI band heads the column, so the groups' own heading steps aside to make room. */
@@ -52,15 +55,16 @@
 .ai-more:empty { display: none; }
 
 /* The AI summary: top of the groups column, under the question. Opening grows its row, so
-   the groups glide down; a refresh cross-fades its text. Never on its own. */
-.ai-summary { flex: 0 1 auto; min-height: 0; display: grid; grid-template-rows: 1fr; margin-bottom: 0; opacity: 1;
+   the groups glide down; a refresh cross-fades its text. Never on its own. Its words wrap
+   and are never cut: the groups give way, and its text fits (wall-board.ts fitSummary). */
+.ai-summary { flex: none; min-height: 0; display: grid; grid-template-rows: 1fr; margin-bottom: 0; opacity: 1;
   transition: grid-template-rows var(--cwl-dur-make-room) var(--cwl-ease-signature), margin-bottom var(--cwl-dur-make-room) var(--cwl-ease-signature), opacity var(--cwl-dur-arrive) var(--cwl-ease-arrive); }
 .ai-summary.is-off { grid-template-rows: 0fr; margin-bottom: calc(-1 * var(--ai-gap)); opacity: 0; pointer-events: none; }
 .ai-summary-clip { min-height: 0; overflow: hidden; }
 .ai-summary-box { border-radius: var(--cwl-radius-tv-card); overflow: hidden; background: var(--cwl-surface-panel-small); color: var(--cwl-text-on-panel); }
 .ai-summary-head { display: flex; align-items: center; gap: 14px; padding: 10px 32px; background: var(--cwl-ai); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); color: var(--cwl-on-ai); line-height: 1.2; }
 .ai-summary-head .cwl-ai-icon { width: 1em; height: 1em; }
-.ai-summary-text { margin: 0; padding: 14px 32px 18px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-medium); line-height: 1.2; color: var(--cwl-text-on-panel); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
+.ai-summary-text { margin: 0; padding: 14px 32px 18px; font-size: calc(var(--cwl-fs-tv-floor) * var(--ai-summary-fit, 1)); overflow-wrap: break-word; font-weight: var(--fw-medium); line-height: 1.2; color: var(--cwl-text-on-panel); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
 .ai-summary-text.is-fading { opacity: 0; }
 
 /* AI off: answer cards in arrival order, oldest first, so each card keeps its place. A crowded
