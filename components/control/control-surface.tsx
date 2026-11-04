@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Clock, EyeOff, LayoutGrid, Printer, Smartphone } from "lucide-react";
 import { stateLabels, timing } from "@/lib/control/policy";
 import { parts, type RunOfShow, type ShowSession } from "@/lib/run-of-show/types";
+import { partOpen } from "@/lib/run-of-show/self-paced";
 import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, burstLeft, roomSizes, useSecondTap } from "./live-controls";
@@ -48,16 +49,17 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
         <div className="ctl-row is-between"><h2>Run of show</h2>{clock && <span className={`ctl-chip${clock.onTime ? " is-success" : ""}`}><Clock size={14} aria-hidden="true" />{clock.label}</span>}</div>
         {parts.map(part => {
           const list = show.sessions.filter(s => s.part === part && s.mode === "live");
-          if (!list.length) return null;
-          const open = list.some(s => ["live", "phones_down", "open"].includes(s.state));
+          const selfPaced = (status?.self_paced ?? []).map(s => ({ ...s, mode: "self_paced" }));
+          const open = partOpen(part, [...list, ...selfPaced], room.now + room.clockOffset);
+          if (!list.length && !open) return null;
           return <section key={part} className="ctl-part">
             <div className="ctl-row is-between"><h3>{part}</h3>{open && <button className="show-button is-small" disabled={Boolean(room.pending) || context.closed} onClick={() => confirm.tap(part, () => void room.press("close_part", { part }))}>{confirm.armed === part ? `Tap again to close ${part}` : `Close ${part}`}</button>}</div>
-            <ol className="ctl-run-list">{list.map(s => <li key={s.id} className={`${s.id === shownId ? "is-current" : ""}${s.id === room.upNext?.id ? " is-next" : ""}`}>
+            {list.length > 0 && <ol className="ctl-run-list">{list.map(s => <li key={s.id} className={`${s.id === shownId ? "is-current" : ""}${s.id === room.upNext?.id ? " is-next" : ""}`}>
               <span className="ctl-time">{time(s.planned_start, context.timezone)}</span>
               <span className="ctl-run-title"><strong>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min</small></span>
               <span className="ctl-run-meta"><span className={`show-state is-${s.state}`}>{stateLabels[s.state] ?? s.state}</span>
                 <button className="show-button is-small" onClick={() => setPreview(s)} aria-label={`Preview ${s.title}`}>Preview</button></span>
-            </li>)}</ol>
+            </li>)}</ol>}
           </section>;
         })}
         <SelfPacedList room={room} timezone={context.timezone} />

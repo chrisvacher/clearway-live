@@ -11,7 +11,7 @@ import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { useLivePhone } from "./use-live-phone";
 import { QaAsk } from "@/components/interactions/qa/qa-ask";
-import { requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
+import { recheckDelay, requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
 import "./self-paced.css";
 import { AiBadge } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
@@ -82,6 +82,18 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const boundary = (room?.self_paced ?? []).some(s => selfPacedState(s, serverNow) !== s.state);
   const lastReload = useRef(0), reloadRoom = phone.reload;
   useEffect(() => { if (boundary && Date.now() - lastReload.current > 2000) { lastReload.current = Date.now(); reloadRoom(); } }, [boundary, now, reloadRoom]);
+  // Close the day can close a self-paced session early. With one open on this phone, read the
+  // phone's own view again when the room's version rises, so its new close time arrives.
+  const selfOpen = selfPaced.some(s => s.state === "open");
+  const roomVersion = frame?.state.version ?? null;
+  const seenVersion = useRef(roomVersion);
+  useEffect(() => {
+    if (roomVersion === null || roomVersion === seenVersion.current) return;
+    seenVersion.current = roomVersion;
+    if (!selfOpen) return;
+    const t = setTimeout(() => { lastReload.current = Date.now(); reloadRoom(); }, recheckDelay(lastReload.current, Date.now()));
+    return () => clearTimeout(t);
+  }, [roomVersion, selfOpen, reloadRoom]);
   // The invite email links to a self-paced session: open it once the phone's view arrives.
   const asked = useRef<string | null | undefined>(undefined);
   useEffect(() => {
