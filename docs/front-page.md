@@ -13,7 +13,10 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 | `lib/room/join.ts` | One rule for both (`joinTarget`): the room, the practice room, or back to the join box with `status` (empty, unknown, unavailable). `codeShaped` decides which paths count as codes |
 | `lib/tv/policy.ts` | `shortRoomLink` (now live.clearway.co/CODE) and `typedRoomCode` |
 | `lib/public/demo-room.ts` | The demo's scripts and results, mirroring the database's results functions |
-| `components/public/demo-room.tsx` | `DemoRoom`: the TV beside a phone |
+| `components/public/demo-room.tsx` | `DemoRoom`: the TV beside a phone (`variant="tv"`: the screen alone, in the hero) |
+| `components/public/home-parts.tsx` | `ThreeScreens` (the stepper), `Gallery` (each interaction on the TV and a phone), `TvShot` and `PhoneShot` frames, `Reveal` |
+| `components/brand/live-wordmark.tsx` | The Clearway Live lockup, ported from the design system's LiveWordmark, with its `cwl-wordmark` tokens appended to `live_tokens.css` |
+| `public/home/` | The page's images: real TV, phone and facilitator screens from the Riverside team workshop run in CI (`team-workshop-screens`), and Clearway retreat photos from the clearway.co site |
 
 ## How the demo works
 
@@ -26,3 +29,19 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 
 - Unit: `tests/unit/public-demo.test.ts` (typed codes, word keys, sizes and levels, one answer per person, frames).
 - Smoke: `tests/smoke/routes.test.ts` (the page's surface and links, /CODE and /join for known, unknown, empty and practice codes, named routes winning over codes, and the note on the page).
+
+## Page order (rebuilt November 3, after research on Mentimeter, Slido, AhaSlides, ThoughtExchange and Synrg)
+
+1. Join first: the code box, beside a real retreat photo with the live TV and a phone over it, then chips for each interaction.
+2. New to Clearway Live? Four things it helps a team do.
+3. A moving strip of retreat photos (paused on hover, still with reduced motion).
+4. One room, three screens: a stepper that moves on by itself, with the real TV, phone and facilitator screens.
+5. Try it: the live demo.
+6. Numbers.
+7. Ask the room: pick an interaction, see it on the TV and a phone.
+8. What changes: easel sheets alone, and with Clearway Live.
+9. Wayfinding: each stage with a room photo, then CORE.
+10. In the room, with setting up the TV.
+11. Privacy, quotes from Team Hub's testimonial library (about planning with Clearway, not the app), questions, and the close.
+
+To refresh the screens, download the latest `team-workshop-screens` CI artifact and convert each `team-NN-*-tv.png` to a 1600 wide WebP and each phone shot to WebP at its own size, keeping the names in `public/home/`.

@@ -1,0 +1,83 @@
+"use client";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import Image from "next/image";
+import { Laptop, Monitor, Smartphone } from "lucide-react";
+
+// The front page's interactive parts. Every screen shown is a real screenshot of the app
+// from the Riverside Church team workshop run in CI (tests/browser/team-workshop.ts), so
+// the page shows exactly what a room sees. See docs/front-page.md.
+
+// A device frame around a screenshot: a TV with a thin bezel, or a phone.
+export function TvShot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
+  return <div className="shot-tv"><Image src={src} alt={alt} width={1600} height={900} sizes="(max-width: 1024px) 92vw, 760px" priority={priority} /></div>;
+}
+export function PhoneShot({ src, alt, priority = false }: { src: string; alt: string; priority?: boolean }) {
+  return <div className="shot-phone"><Image src={src} alt={alt} width={390} height={844} sizes="240px" priority={priority} /></div>;
+}
+
+// Things fade up as they come into view. With reduced motion, or before script, they're simply there.
+export function Reveal({ children, className = "", step = 0 }: { children: ReactNode; className?: string; step?: number }) {
+  const el = useRef<HTMLDivElement>(null), [shown, setShown] = useState(false);
+  useEffect(() => {
+    const node = el.current; if (!node) return;
+    if (typeof IntersectionObserver !== "function" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { setShown(true); return; }
+    const observer = new IntersectionObserver(([entry]) => { if (entry.isIntersecting) { setShown(true); observer.disconnect(); } }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+    observer.observe(node); return () => observer.disconnect();
+  }, []);
+  return <div ref={el} className={`reveal${shown ? " is-in" : ""}${step ? ` is-step-${Math.min(step, 6)}` : ""} ${className}`}>{children}</div>;
+}
+
+// One room, three screens: a stepper that moves on by itself until someone picks a screen.
+const screens = [
+  { key: "tv", icon: Monitor, name: "The TV", line: "The headline", text: "Large type, one idea, and the room's answers landing the moment they're sent. It runs on its own computer at the front of the room.", shot: { kind: "tv", src: "/home/tv-word-cloud.webp", alt: "The TV: a word cloud where youth has grown largest, with 45 answers" } },
+  { key: "phone", icon: Smartphone, name: "Your phone", line: "The depth", text: "The full prompt, the detail and Scripture behind it, and your answer box. You see your own answers and can change them while the step is open.", shot: { kind: "phone", src: "/home/phone-word-cloud.webp", alt: "A phone answering the word cloud, with two answers sent" } },
+  { key: "control", icon: Laptop, name: "The facilitator's view", line: "Private", text: "The run of show, what's on the TV and on phones, counts and who's at the door, with a phone remote to run the room from anywhere in it. The room never sees it.", shot: { kind: "control", src: "/home/control-live-room.webp", alt: "The facilitator's live room: the run of show, a mirror of the TV, the controls and a private panel" } },
+] as const;
+export function ThreeScreens() {
+  const [at, setAt] = useState(0), [auto, setAuto] = useState(true), root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!auto || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = setInterval(() => setAt(i => (i + 1) % screens.length), 6500);
+    return () => clearInterval(timer);
+  }, [auto]);
+  const pick = (i: number) => { setAuto(false); setAt(i); };
+  const current = screens[at];
+  return <div ref={root} className="three">
+    <div className="three-tabs" role="tablist" aria-label="The three screens">
+      {screens.map((s, i) => { const Icon = s.icon; return <button key={s.key} type="button" role="tab" id={`three-tab-${s.key}`} aria-selected={i === at} aria-controls="three-panel"
+        className={`three-tab${i === at ? " is-on" : ""}${i === at && auto ? " is-timing" : ""}`} onClick={() => pick(i)}>
+        <span className="three-tab-icon"><Icon size={20} aria-hidden="true" /></span>
+        <span className="three-tab-copy"><span className="three-tab-line">{s.line}</span><span className="three-tab-name">{s.name}</span><span className="three-tab-text">{s.text}</span></span>
+        <span className="three-tab-bar" aria-hidden="true" />
+      </button>; })}
+    </div>
+    <div className="three-panel" id="three-panel" role="tabpanel" aria-labelledby={`three-tab-${current.key}`}>
+      {screens.map((s, i) => <div key={s.key} className={`three-shot is-${s.shot.kind}${i === at ? " is-on" : ""}`} aria-hidden={i !== at}>
+        {s.shot.kind === "phone" ? <PhoneShot src={s.shot.src} alt={s.shot.alt} /> : s.shot.kind === "tv" ? <TvShot src={s.shot.src} alt={s.shot.alt} />
+          : <div className="shot-laptop"><Image src={s.shot.src} alt={s.shot.alt} width={1440} height={1100} sizes="(max-width: 1024px) 92vw, 720px" /></div>}
+      </div>)}
+    </div>
+  </div>;
+}
+
+// The interaction gallery: pick one, see it on the TV and on a phone.
+export type GalleryItem = { key: string; name: string; tag: string; text: string; tv: string; tvAlt: string; phone: string; phoneAlt: string };
+export function Gallery({ items }: { items: GalleryItem[] }) {
+  const [at, setAt] = useState(0), item = items[at];
+  return <div className="gallery">
+    <div className="gallery-list" role="tablist" aria-label="Ways to ask the room" aria-orientation="vertical">
+      {items.map((it, i) => <button key={it.key} type="button" role="tab" id={`gallery-tab-${it.key}`} aria-selected={i === at} aria-controls="gallery-panel"
+        className={`gallery-item${i === at ? " is-on" : ""}`} onClick={() => setAt(i)}
+        onKeyDown={e => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const n = (i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length; setAt(n); document.getElementById(`gallery-tab-${items[n].key}`)?.focus(); } }}>
+        <span className="gallery-item-tag">{it.tag}</span><span className="gallery-item-name">{it.name}</span>
+      </button>)}
+    </div>
+    <div className="gallery-panel" id="gallery-panel" role="tabpanel" aria-labelledby={`gallery-tab-${item.key}`}>
+      <div className="gallery-devices" key={item.key}>
+        <TvShot src={item.tv} alt={item.tvAlt} />
+        <PhoneShot src={item.phone} alt={item.phoneAlt} />
+      </div>
+      <div className="gallery-copy"><h3 className="gallery-name">{item.name}</h3><p>{item.text}</p></div>
+    </div>
+  </div>;
+}

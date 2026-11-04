@@ -380,3 +380,21 @@
   --cwl-offline: var(--cw-gray-400); --cwl-ai-start: var(--cw-sky-blue); --cwl-ai-end: var(--cw-soft-lime);
 }
 :is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"][data-theme="light"] { --cwl-word-leader: var(--cw-navy); }
+
+/* ---------- The Clearway Live lockup (liveWordmark). Base colors only; never Lime or Sunrise. ---------- */
+:root {
+  --cwl-wordmark-icon: var(--cw-royal-blue, #3F72DE); /* Lockup, light: the logo's icon, as in the base horizontal logo. */
+  --cwl-wordmark-word: var(--cw-navy, #03294E); /* Lockup, light: the clearway wordmark, as in the base horizontal logo. */
+  --cwl-wordmark-tag: var(--cwl-royal-deep, #3868D4); /* Lockup, light: the LIVE tag. Deeper Royal so the small LIVE passes (4.9:1). */
+  --cwl-wordmark-on-tag: var(--cw-off-white, #F9F9FB); /* Lockup, light: the LIVE letters. */
+  --cwl-wordmark-icon-dark: var(--cw-sky-blue, #99C5FE); /* Lockup, dark: the icon on Navy. */
+  --cwl-wordmark-word-dark: var(--cw-off-white, #F9F9FB); /* Lockup, dark: the wordmark on Navy (14.0:1). */
+  --cwl-wordmark-tag-dark: var(--cw-sky-blue, #99C5FE); /* Lockup, dark: the LIVE tag on Navy. */
+  --cwl-wordmark-on-tag-dark: var(--cw-navy, #03294E); /* Lockup, dark: the LIVE letters on the Sky tag. */
+  --cwl-wordmark-h-app: 28px; /* Lockup height: app sidebar, control surface and scribe console headers, overnight review. */
+  --cwl-wordmark-h-remote: 20px; /* Lockup height: the remote and the scribe's phone header. */
+  --cwl-wordmark-h-phone: 20px; /* Lockup height: a participant phone's sign-in header. */
+  --cwl-wordmark-h-tv: 56px; /* Lockup height: the TV before pairing, the height of the TV's top row. */
+  --cwl-wordmark-h-print: 28px; /* Lockup height: printouts. */
+  --cwl-wordmark-h-page: 32px; /* Lockup height: review pages and documents about the app. */
+}

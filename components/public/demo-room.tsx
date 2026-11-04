@@ -28,7 +28,9 @@ function useInView(el: React.RefObject<HTMLElement | null>) {
   return seen;
 }
 
-export function DemoRoom() {
+// variant "tv": the screen alone, cycling on its own (the front page's hero). "full": the
+// screen beside a phone the visitor can answer on, with tabs to pick the interaction.
+export function DemoRoom({ variant = "full" }: { variant?: "full" | "tv" }) {
   const root = useRef<HTMLDivElement>(null), tv = useRef<HTMLDivElement>(null);
   const inView = useInView(root);
   const [pick, setPick] = useState<{ kind: DemoKind; auto: boolean; run: number }>({ kind: "word_cloud", auto: true, run: 0 });
@@ -107,12 +109,13 @@ export function DemoRoom() {
   }, [script, session]);
   const Input = phoneInputs[pick.kind];
 
-  return <div ref={root} className="demo-room">
-    <div className="demo-tabs" role="tablist" aria-label="Choose an interaction to watch">
+  const tvOnly = variant === "tv";
+  return <div ref={root} className={`demo-room${tvOnly ? " is-tv-only" : ""}`}>
+    {!tvOnly && <div className="demo-tabs" role="tablist" aria-label="Choose an interaction to watch">
       {demoKinds.map(kind => <button key={kind} type="button" role="tab" aria-selected={pick.kind === kind} aria-controls="demo-stage"
         className="demo-tab" onClick={() => choose(kind)}>{demoScripts[kind].label}</button>)}
-    </div>
-    <div className="demo-stage" id="demo-stage">
+    </div>}
+    <div className="demo-stage" id={tvOnly ? undefined : "demo-stage"}>
       <figure className="demo-screen">
         <div ref={tv} className="tv-demo" role="img" aria-label={`The room's screen: ${script.prompt}`} data-surface="tv" data-theme="dark" data-room="very_small"
           data-screen={screenType(frame)} data-texture="on">
@@ -120,9 +123,9 @@ export function DemoRoom() {
             {frame && <TvScenes status={{ status: "paired", engagement: demoEngagement, tv: "demo" }} frame={frame} flow={flow} nameLimit={14} reconnecting={false} />}
           </div>
         </div>
-        <figcaption className="demo-caption">The screen at the front of the room</figcaption>
+        {!tvOnly && <figcaption className="demo-caption">The screen at the front of the room</figcaption>}
       </figure>
-      <figure className="demo-phone">
+      {!tvOnly && <figure className="demo-phone">
         <div className="demo-phone-frame" data-surface="phone" data-theme="dark">
           <div className="ph-app" data-screen="phone-answering">
             <header className="ph-head"><span className="ph-church">{demoDisplay.church}</span><LiveMark phone state="live" reconnecting={false} /></header>
@@ -137,7 +140,7 @@ export function DemoRoom() {
           </div>
         </div>
         <figcaption className="demo-caption">Try it: answer here and watch it land</figcaption>
-      </figure>
+      </figure>}
     </div>
   </div>;
 }
