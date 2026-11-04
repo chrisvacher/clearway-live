@@ -128,6 +128,18 @@ jobs:
           path: ${{ runner.temp }}/kit-shots
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the Pre-mortem and the CORE goal builder with the fake model and 50 simulated phones in real browsers (milestone 4, step 5)
+        run: mkdir -p ${{ runner.temp }}/premortem-goals-shots && npm run test:premortem-goals
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/premortem-goals-shots
+      - name: Upload the Pre-mortem and goals screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: premortem-goals-screens
+          path: ${{ runner.temp }}/premortem-goals-shots
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the remote changing hands, commander's intent and the follow-up access in real browsers
         run: mkdir -p handover-intent-shots && npm run test:handover-intent
         env:
