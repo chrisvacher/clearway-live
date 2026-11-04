@@ -83,9 +83,9 @@ const strip = [
 ];
 
 const quotes = [
-  { quote: "Our team came out with a clear set of strategic priorities for the future and clarity on what it will take to get us there. Chris leads skillfully and with intention creating a collaborative environment where everyone feels heard and valued.", title: "Lead Pastor", org: "A church in Nova Scotia" },
-  { quote: "Chris' presentations, consulting as well as pointed questions to lead our discussions, enabled us to land on a clear path for the future and provided us with the tools to have successful team dynamics.", title: "Executive Pastor", org: "A church in Ontario" },
-  { quote: "Chris listened well to our needs and worked with us through the process so we could clarify our values and vision in following Jesus Christ, and agree on plans we will pursue.", title: "President", org: "A family of churches in Atlantic Canada" },
+  { quote: "Our team came out with a clear set of strategic priorities for the future and clarity on what it will take to get us there. Chris leads skillfully and with intention creating a collaborative environment where everyone feels heard and valued.", title: "Lead Pastor" },
+  { quote: "Chris' presentations, consulting as well as pointed questions to lead our discussions, enabled us to land on a clear path for the future and provided us with the tools to have successful team dynamics.", title: "Executive Pastor" },
+  { quote: "Chris listened well to our needs and worked with us through the process so we could clarify our values and vision in following Jesus Christ, and agree on plans we will pursue.", title: "Denominational Regional President" },
 ];
 
 const faqs = [
@@ -298,7 +298,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <div className="home-grid three">
             {quotes.map((q, i) => <Reveal key={q.quote} step={i} className="quote-card">
               <Quote size={28} aria-hidden="true" className="quote-mark" /><blockquote><p>{q.quote}</p></blockquote>
-              <p className="quote-who"><strong>{q.title}</strong>{q.org}</p></Reveal>)}
+              <p className="quote-who"><strong>{q.title}</strong></p></Reveal>)}
           </div>
         </div>
       </section>
