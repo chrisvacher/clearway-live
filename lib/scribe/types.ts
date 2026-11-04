@@ -19,4 +19,5 @@ export type EditItem = { type: "edit"; id: string; text: string; detail: CardDet
 export type RefileItem = { type: "refile"; id: string; session: string };
 export type FileItem = { type: "file"; id: string; session: string; fileKind: FileKind; name: string; contentType: string; bytes: number; capturedAt: string; queuedAt?: string };
 export type OutboxItem = CaptureItem | EditItem | RefileItem | FileItem;
-export type OutboxEntry = { item: OutboxItem; state: "saved" | "sending" | "failed"; reason?: string };
+export type OutboxEntry = { item: OutboxItem; state: "saved" | "sending" | "failed" | "sent"; reason?: string };
+// "sent" is only ever on the screen's overlay: the server has settled the item, but the state read that shows it has not come back yet.
