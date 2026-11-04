@@ -183,8 +183,10 @@ async function main() {
     });
 
     await step("After the lead publishes, the snapshot is readable and the TV and phones still show nothing of it", async () => {
-      await until(async () => { await leadReview.reload(); return await leadReview.getByRole("button", { name: "Publish for Day 2" }).isEnabled(); }, "publish opens", 20000);
-      await leadReview.getByRole("button", { name: "Publish for Day 2" }).click();
+      await leadReview.reload();
+      const nav = leadReview.locator(".ovr-nav button", { hasText: "Publish for Day 2" });
+      await until(async () => nav.isEnabled(), "publish opens", 20000);
+      await nav.click();
       await until(async () => (await leadReview.locator("[data-testid=ovn-publish-button]").isEnabled()), "the button is ready", 15000);
       await leadReview.locator("[data-testid=ovn-publish-button]").click();
       await leadReview.locator("[data-testid=ovn-published]").waitFor({ timeout: 15000 });
