@@ -1,0 +1,15 @@
+/* INT-16 on the phone. Tokens only. */
+.hi-ph { display: flex; flex-direction: column; gap: var(--space-3); }
+.hi-ph-title { margin: 0; font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-bold); }
+.hi-ph-sub { margin: 0; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); }
+.hi-ph-cards, .hi-ph-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hi-ph-cards li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--cwl-radius-button); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-label); }
+.hi-ph-cards small { display: block; font-size: var(--cwl-fs-phone-micro); }
+.hi-ph-editor { display: flex; flex-direction: column; gap: 14px; }
+.hi-ph-line { display: flex; flex-direction: column; gap: 4px; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); }
+.hi-ph-steps li { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--cwl-radius-card); box-shadow: inset 0 0 0 2px var(--cwl-border-strong); }
+.hi-ph-steps li.is-flagged { box-shadow: inset 0 0 0 2px var(--cwl-border-strong), 0 0 0 var(--cwl-flag-gap) var(--cwl-surface), 0 0 0 calc(var(--cwl-flag-gap) + var(--cwl-flag-width)) var(--cwl-flag); }
+.hi-ph-who { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; font-size: var(--cwl-fs-phone-micro); }
+.hi-ph-who label { display: flex; flex-direction: column; gap: 2px; }
+.hi-ph-flag { margin: 0; font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-bold); }
+.hi-ph-add { display: flex; flex-direction: column; gap: 8px; }

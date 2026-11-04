@@ -1,0 +1,36 @@
+/* INT-16 on the TV: the commander's intent wall and the one-card present view.
+   Tokens only. Built from design pass 4 (IntentCard, wayfinding.js and pass4.css). */
+.tv-board.int-board { display: flex; flex-direction: column; min-height: 0; font-size: var(--cwl-fs-tv-floor); }
+.int-empty { margin: auto; font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.int-empty[hidden], .int-grid[hidden], .int-present[hidden] { display: none; }
+.int-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(var(--int-cols, 3), minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); gap: 24px; }
+.int-card { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 20px 24px; min-height: 0; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); will-change: transform, opacity; }
+.int-card.is-flagged { box-shadow: 0 0 0 var(--cwl-flag-gap) var(--cwl-surface), 0 0 0 calc(var(--cwl-flag-gap) + var(--cwl-flag-width)) var(--cwl-flag); }
+.int-hd { display: flex; align-items: center; gap: 14px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); line-height: 1.15; }
+.int-title { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.int-num { flex: none; display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; border-radius: var(--cwl-radius-marker); background: var(--cwl-text-on-card); color: var(--cwl-surface-card); font-variant-numeric: tabular-nums; }
+.int-line { position: relative; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.int-line.is-blank, .int-tx.is-blank { font-weight: var(--fw-semibold); font-style: italic; }
+.int-prog { margin-top: auto; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-weight: var(--fw-bold); }
+.int-prog i { width: 40px; height: 14px; border-radius: var(--cwl-radius-marker); box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
+.int-prog i.is-on { background: var(--cwl-text-on-card); }
+.int-flag-tag { display: inline-flex; align-items: center; padding: 0.1em 0.6em; border-radius: var(--cwl-radius-marker); background: var(--cwl-flag); color: var(--cwl-on-flag); font-weight: var(--fw-bold); }
+/* The field someone is typing in: a quiet underline shrinks under it for the field lock. */
+.is-typing { position: relative; }
+.is-typing::after { content: ""; position: absolute; left: 0; bottom: 0; height: 6px; width: 100%; border-radius: 3px; background: var(--cwl-typing); transform-origin: 0 50%; animation: int-typing var(--cwl-dur-field-lock) linear forwards; }
+@keyframes int-typing { from { transform: scaleX(1); } to { transform: scaleX(0.15); } }
+[data-motion="reduced"] .is-typing::after { animation: none; }
+.int-old { position: absolute; left: 0; top: 0; right: 0; }
+.int-old, .int-new { display: block; }
+/* Presenting one card at full size. */
+.int-present { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px 48px; align-content: start; padding: 36px 40px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); will-change: transform, opacity; }
+.int-present .int-hd { grid-column: 1 / -1; font-size: var(--cwl-fs-tv-main); line-height: 1.1; gap: 20px; }
+.int-field[data-f="steps"] { grid-column: 1 / -1; }
+.int-lb { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+.int-tx { position: relative; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); line-height: 1.2; overflow-wrap: anywhere; min-height: 1.2em; }
+.int-tx.int-steps { display: flex; flex-direction: column; gap: 14px; font-size: var(--cwl-fs-tv-floor); }
+.int-steps[data-empty="true"]::before { content: "No first steps yet"; font-style: italic; font-weight: var(--fw-semibold); }
+.int-step { display: grid; gap: 4px; padding: 12px 16px; border-radius: var(--cwl-radius-card); box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
+.int-step.is-flagged { box-shadow: inset 0 0 0 3px var(--cwl-text-on-card), 0 0 0 var(--cwl-flag-gap) var(--cwl-surface-card), 0 0 0 calc(var(--cwl-flag-gap) + var(--cwl-flag-width)) var(--cwl-flag); }
+.int-s { position: relative; font-weight: var(--fw-bold); line-height: 1.2; }
+.int-w { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; font-weight: var(--fw-semibold); }

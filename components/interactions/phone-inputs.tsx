@@ -9,6 +9,7 @@ import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
 import { GoalsInput } from "@/components/interactions/goals/goals-input";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
+import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
@@ -38,4 +39,5 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   form: FormInput,
   sign: SignInput,
   goals: GoalsInput,
+  intent: IntentInput,
 };

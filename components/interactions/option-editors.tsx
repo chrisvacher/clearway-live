@@ -6,6 +6,7 @@ import { ContentOptions } from "@/components/run-of-show/content-options";
 import { barDefaults, ChoiceOptions, PointsOptions, RankingOptions, ScaleOptions, StatementsOptions } from "@/components/interactions/bars/bar-options";
 import { FormOptionsEditor, GridOptionsEditor, SignOptionsEditor } from "@/components/interactions/grid-form-sign/options";
 import { gridPresets } from "@/lib/interactions/grid-form-sign";
+import { IntentOptionsEditor } from "@/components/interactions/intent/intent-options";
 import { QaOptions } from "@/components/interactions/qa/qa-options";
 import { GoalsOptions } from "@/components/interactions/goals/goals-options";
 import { WallOptions, WordCloudOptions } from "@/components/interactions/ai/ai-options";
@@ -29,6 +30,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
   form: FormOptionsEditor,
   sign: SignOptionsEditor,
   goals: GoalsOptions,
+  intent: IntentOptionsEditor,
   qa: QaOptions,
 };
 // Each kind's starting options and limits when it is chosen.
@@ -48,5 +50,6 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   bullets: { max_sends: 12, max_characters: 200, max_words: 50, options: {} },
   confirm: { max_sends: 1, max_characters: 280, max_words: 50, options: {} },
   goals: { options: { risk_links: "required" } },
+  intent: { options: { assign: "remote" } },
   qa: { max_sends: 10, max_characters: 200, max_words: 50, options: { any_time: false } },
 };
