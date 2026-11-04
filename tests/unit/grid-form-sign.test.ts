@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   addPoint, clamp01, dotRadius, formAnswer, formAnswersOf, formOf, gridAnswer, gridColor, gridOf, gridResults, inkLength, kindPress, maxFormAnswer, maxInk,
-  newKey, nextOpen, placesOf, separate, signaturePath, signersOf, signSpot, signText, strokesOf, wallLayout,
+  fitWall, newKey, nextOpen, placesOf, separate, signaturePath, signersOf, signSpot, signText, strokesOf, wallLayout, wallUnits,
 } from "../../lib/interactions/grid-form-sign";
 import { applyLiveEvent } from "../../lib/live/protocol";
 import { ownAnswers } from "../../lib/phone/policy";
@@ -130,6 +130,63 @@ test("names arrive in the order people signed, and the wall is three columns", (
   assert.deepEqual(cells.map(c => [Math.round(c.x), c.y]), [[0, 0], [413, 0], [827, 0], [0, 210], [413, 210]]);
   assert.equal(wallLayout(50, 1200, 3, 180, 40, 30).at(-1)!.y, 16 * 210, "crowded: fifty names, seventeen rows to roll through");
   assert.equal(signText({ text: "  We commit.\n\n## Our first goal\nLaunch it.  " }), "We commit.\n\n## Our first goal\nLaunch it.");
+});
+
+// A stand-in for the TV's typeface: each character about 0.55 of the type size wide.
+const ruler = (names: string[]) => (font: number, width: number) => {
+  let lines = 1, words = true, over = 0;
+  for (const name of names) {
+    let n = 1, used = 0;
+    for (const word of name.split(/\s+|(?<=-)/).filter(Boolean)) {
+      const wide = word.length * 0.55 * font;
+      if (wide > width) { words = false; n += (used ? 1 : 0) + Math.ceil(wide / width) - 1; used = wide % width; continue; }
+      if (used && used + 0.28 * font + wide > width) { n++; used = wide; } else used += (used ? 0.28 * font : 0) + wide;
+    }
+    lines = Math.max(lines, n); if (n > 2) over++;
+  }
+  return { lines, words, over };
+};
+const people = ["Priya Shah", "Ben Ortiz", "Ruth Morrison", "Grace Okonkwo-Lindqvist", "Mateo Alvarez", "Jonathan Whitfield", "Ama Mensah", "Daniel Kim",
+  "Sarah-Louise Fitzgerald", "Tom Li", "Hannah Brooks", "Samuel Adeyemi", "Isabelle Tremblay", "Noah Patel", "Esther Wong", "Christopher Montgomery"];
+// The wall's space on a 1080p TV at the very small room size (type 1.5 times the floor),
+// and at the very large room size (the floor itself), as the practice room measured it.
+const rooms = [{ label: "very small room", w: 1124, h: 611, floor: 54 }, { label: "very large room", w: 1304, h: 700, floor: 36 }];
+
+test("sign together on the TV: every signer has a place up to sixteen, and the rest are counted, never dropped", () => {
+  for (const room of rooms) {
+    for (const n of [1, 3, 8, 12, 16]) {
+      const names = Array.from({ length: n }, (_, i) => people[i]);
+      const fit = fitWall(n, room.w, room.h, room.floor, 36, ruler(names));
+      assert.equal(fit.more, 0, `${room.label}, ${n} signed: no "+ more"`);
+      assert.ok(fit.capacity >= n, `${room.label}, ${n} signed: every card on the wall at once`);
+      const cells = wallLayout(n, room.w, fit.cols, fit.rowH, fit.gapX, fit.gapY);
+      assert.ok(cells.every(c => c.x >= -0.5 && c.x + c.w <= room.w + 0.5 && c.y + fit.rowH <= room.h + 0.5), `${room.label}, ${n} signed: every card inside the wall`);
+      assert.ok(fit.font >= 36 && fit.font <= room.floor, `${room.label}, ${n} signed: names between the TV minimum and the room's floor (${fit.font})`);
+      assert.ok(fit.lines <= 2, "a name takes two lines at most");
+      const sig = Math.min(fit.rowH - (fit.lines * wallUnits.line + wallUnits.rule) * fit.font, fit.w / 3);
+      assert.ok(sig >= fit.font * wallUnits.sigLeast - 0.01, `${room.label}, ${n} signed: the signature at least a line of type tall`);
+    }
+    // A few names fit at the room's own floor; a crowd shrinks toward the TV minimum.
+    assert.equal(fitWall(3, room.w, room.h, room.floor, 36, ruler(people.slice(0, 3))).font, room.floor, `${room.label}: three names at the room's floor`);
+    assert.ok(fitWall(16, room.w, room.h, room.floor, 36, ruler(people)).font <= fitWall(8, room.w, room.h, room.floor, 36, ruler(people.slice(0, 8))).font, "more names, smaller or equal type");
+    // Past what the wall holds at the TV minimum: smallest cards, a roll, and "+ N more" for the rest.
+    for (const n of [24, 50, 80]) {
+      const names = Array.from({ length: n }, (_, i) => people[i % people.length]);
+      const fit = fitWall(n, room.w, room.h, room.floor, 36, ruler(names));
+      assert.equal(fit.font, 36, `${room.label}, ${n} signed: the TV minimum`);
+      assert.ok(fit.more > 0 && fit.capacity + fit.more === n, `${room.label}, ${n} signed: ${fit.capacity} on the wall at once and "+ ${fit.more} more"`);
+      assert.ok(fit.capacity < n && fit.rows * fit.cols >= n, "every name still has a card to roll to");
+      const shown = fit.capacity / fit.cols;
+      assert.ok(shown * fit.rowH + (shown - 1) * fit.gapY + wallUnits.more * fit.font <= room.h + 0.5, "the rows held and the more line fit the wall");
+    }
+  }
+  // Very long names: one name too long for two lines ends with an ellipsis rather than
+  // pushing everyone else off; a name of one very long word may break inside it.
+  const long = [...people.slice(0, 15), "Bartholomew Alexander Featherstonehaugh-Worthington"];
+  const fit = fitWall(16, 1124, 611, 54, 36, ruler(long));
+  assert.equal(fit.more, 0, "sixteen with one very long name still all on the wall");
+  assert.equal(fitWall(8, 1124, 611, 54, 36, ruler([...people.slice(0, 7), "Wolfeschlegelsteinhausenbergerdorff"])).more, 0, "one very long word still all on the wall");
+  assert.equal(fitWall(0, 1124, 611, 54, 36, ruler([])).more, 0, "empty: nothing to count");
 });
 
 test("the phone's own signature stands alone: signing again replaces it", () => {

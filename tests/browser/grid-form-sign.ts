@@ -438,11 +438,46 @@ async function main() {
       assert.ok(!(await ptv.content()).includes("kitprivate"), "nothing private on the TV");
       await shot(ptv, "int-09-crowded-tv");
     });
+    // Every signer's card sits whole inside the wall, its name unclipped, with no "+ more";
+    // or, past what the wall holds, the rest are counted: no one is silently dropped.
+    const wall = async (page: Page) => page.locator(".tv-layer:not(.is-leaving)").last().locator(".gfs-sign").evaluate(board => {
+      const clip = board.querySelector(".gfs-names-clip")!.getBoundingClientRect(), box = board.querySelector<HTMLElement>(".gfs-names-box")!;
+      const cards = [...board.querySelectorAll<HTMLElement>(".gfs-name")].filter(el => Number(getComputedStyle(el).opacity) > 0.5);
+      const inside = cards.filter(el => { const r = el.getBoundingClientRect(); return r.left >= clip.left - 1 && r.right <= clip.right + 1 && r.top >= clip.top - 1 && r.bottom <= clip.bottom + 1; });
+      const clipped = cards.map(el => el.querySelector<HTMLElement>(".nm")!).filter(nm => nm.scrollWidth > nm.clientWidth + 1 || nm.scrollHeight > nm.clientHeight + 2).map(nm => nm.textContent);
+      return { cards: cards.length, inside: inside.length, clipped, more: board.querySelector(".gfs-more")!.textContent ?? "", hold: Number(box.dataset.hold), big: board.querySelector(".gfs-big")!.textContent };
+    });
+    await step("INT-10 Room sizes: 8 and then 16 signers each land whole on the wall at 1920x1080 and 1280x720, shrinking and reflowing as they arrive, no \"+ more\"", async () => {
+      const small = await browser!.newContext({ viewport: { width: 1280, height: 720 } });
+      const stv = await small.newPage(); await stv.goto(app.origin + "/tv");
+      await pairTv(pfac, practiceRoom, app.secret, await pairCode(stv), "Grid form sign kit small TV");
+      await stv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
+      const fitSign = await psession("sign", { text: signText }, true);
+      await press(pfac, sql, practiceRoom, "go_live", { session: fitSign });
+      for (const page of [ptv, stv]) await page.locator('.tv-layer:not(.is-leaving)[data-kind="sign"] .gfs-sign').waitFor({ timeout: 10000 });
+      const pen = (k: number) => [`M${20 + k} 120L${120 + k} ${60 + k}L${260} 140L${380 - k} 70L560 110`];
+      for (const n of [8, 16]) {
+        for (let i = n === 8 ? 0 : 8; i < n; i++) { assert.equal(await phones[i].send(fitSign, randomUUID(), 0, { strokes: pen(i) }), "accepted"); await delay(250); }
+        for (const [page, size] of [[ptv, "1920x1080"], [stv, "1280x720"]] as const) {
+          const seen = await until(async () => { const w = await wall(page); return w.big === String(n) && w.cards === n && w.inside === n ? w : null; }, `${n} signers whole on the ${size} wall`, 8000)
+            .catch(async error => { throw new Error(`${error.message}: ${JSON.stringify(await wall(page))}`); });
+          assert.deepEqual(seen.clipped, [], `${size}, ${n} signed: every name shows whole`);
+          assert.equal(seen.more, "", `${size}, ${n} signed: no "+ more" while everyone fits`);
+          await shot(page, `int-10-${n}-signers-${size}-tv`);
+        }
+      }
+      await small.close();
+    });
     await step("INT-10 Crowded, 50 phones: fifty signatures fill the wall, then it rolls slowly once quiet; names never jump", async () => {
       const stroke = () => { let x = 20 + Math.floor(rnd() * 40), s = `M${x} ${100 + Math.floor(rnd() * 40)}`; for (let k = 0; k < 14; k++) { x += 20 + Math.floor(rnd() * 15); s += `L${Math.min(600, x)} ${40 + Math.floor(rnd() * 120)}`; } return s; };
       await crowd("sign", psign, async p => [await p.send(psign, randomUUID(), 0, { strokes: [stroke(), stroke()] })]);
       await until(async () => (await pLayer().locator(".gfs-big").innerText()) === "50", "50 signed", 8000);
       assert.equal((await results(practiceRoom)).signers.length, 50, "the server's names");
+      // Past what the wall holds: every card is there to roll to, and the rest are counted.
+      const full = await until(async () => { const w = await wall(ptv); return w.cards === 50 && /^\+ \d+ more$/.test(w.more) ? w : null; }, "fifty cards and a \"+ more\" count", 8000);
+      assert.equal(Number(full.more.replace(/\D/g, "")) + full.hold, 50, `"${full.more}" plus the ${full.hold} the wall holds at once is everyone`);
+      assert.ok(full.inside <= full.hold && full.inside > 0, `${full.inside} whole on the wall right now`);
+      assert.deepEqual(full.clipped, [], "names on the crowded wall show whole");
       const positions = async () => pLayer().locator(".gfs-name").evaluateAll(els => els.map(el => (el as HTMLElement).style.transform));
       const before = await positions(); await delay(400);
       assert.deepEqual(await positions(), before, "settled names hold their places");
