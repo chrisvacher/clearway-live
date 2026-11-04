@@ -24,10 +24,11 @@ const fake = (value: { delayMs?: number; fail?: boolean }) => writeFileSync(cont
 fake({});
 Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTROL: controlFile, CLEARWAY_AI_DEBOUNCE_MS: "250", ANTHROPIC_API_KEY: "" });
 
-// Samples every sentence row's place on every frame, as a plain script so no bundler helper reaches the page.
-const sampler = `(() => { window.lensSamples = {}; window.lensStop = false;
-  const read = () => { const list = document.querySelector('.tv-layer:not(.is-leaving) .lens-feed .tv-feed-list'); const base = list ? list.getBoundingClientRect() : null;
-    if (base) for (const el of document.querySelectorAll('.tv-layer:not(.is-leaving) .lens-feed .tv-feed-row')) { const r = el.getBoundingClientRect(); (window.lensSamples[el.dataset.key] ??= []).push([r.left - base.left, r.top - base.top]); }
+// Samples every cluster's and every drifting sentence's place on every frame, as a plain script so no bundler
+// helper reaches the page. Clusters keep their order of first appearance, so none should ever leap.
+const sampler = `(() => { window.lensSamples = {}; window.lensStop = false; const ids = new WeakMap(); let n = 0;
+  const read = () => { for (const el of document.querySelectorAll('.tv-layer:not(.is-leaving) .lens-cluster, .tv-layer:not(.is-leaving) .lens-ghost')) {
+      if (!ids.has(el)) ids.set(el, ++n); const r = el.getBoundingClientRect(); (window.lensSamples[ids.get(el)] ??= []).push([r.left, r.top]); }
     if (!window.lensStop) requestAnimationFrame(read); };
   requestAnimationFrame(read); })()`;
 const jump = 150;
@@ -84,15 +85,15 @@ async function main() {
         const samples = await tv.evaluate(() => { const w = window as unknown as { lensSamples: Record<string, [number, number][]>; lensStop: boolean }; w.lensStop = true; return w.lensSamples; });
         let jumps = 0, frames = 0, largest = 0;
         for (const pts of Object.values(samples)) for (let i = 1; i < pts.length; i++) { frames++; const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); largest = Math.max(largest, d); if (d >= jump) jumps++; }
-        assert.ok(frames > 0, "rows were sampled");
-        assert.equal(jumps, 0, `no sentence row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
+        assert.ok(frames > 0, "clusters were sampled");
+        assert.equal(jumps, 0, `no cluster or drifting sentence jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
         const final = (await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results as { total: number; groups: { label: string; count: number }[] };
         await until(async () => Number(((await tv.locator(".tv-foot .tv-tally").innerText()).match(/\d+/) ?? [])[0]) === final.total, "the TV count matches the server", 8000);
         const tvClusters = async () => (await tv.locator(".tv-layer:not(.is-leaving) .lens-cluster:not(.is-going)").evaluateAll(els => els.map(e => `${e.querySelector(".lens-label")!.textContent!.trim()}:${e.querySelector(".lens-count")!.textContent}`))).sort();
         const want = final.groups.map(g => `${g.label}:${g.count}`).sort();
         await until(async () => JSON.stringify(await tvClusters()) === JSON.stringify(want), `the TV's clusters match the server (${want.join(", ")})`, 8000);
         assert.ok(await tv.locator(".tv-layer:not(.is-leaving) .lens-cluster .cwl-ai-mark, .tv-layer:not(.is-leaving) [data-ai-foot]").count() > 0, "the AI icon marks the clusters");
-        console.log(`50 phones, AI slow (2.5s a call): ${aiRuns.n} AI runs beside ${result.sent} sentences. Phone to TV: median ${result.report!.phone_tv.p50} ms, 95th ${result.report!.phone_tv.p95} ms, slowest ${result.report!.phone_tv.max} ms. Largest row step ${Math.round(largest)}px over ${frames} frames.`);
+        console.log(`50 phones, AI slow (2.5s a call): ${aiRuns.n} AI runs beside ${result.sent} sentences. Phone to TV: median ${result.report!.phone_tv.p50} ms, 95th ${result.report!.phone_tv.p95} ms, slowest ${result.report!.phone_tv.max} ms. Largest cluster or drift step ${Math.round(largest)}px over ${frames} frames.`);
         await shot(tv, "lens-wall-50-phones-ai");
       });
       await step("No AI input carried a name or an email", async () => {
