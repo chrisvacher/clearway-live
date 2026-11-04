@@ -62,9 +62,11 @@ export function Tally({ flow, results, counts, kind }: { flow?: TvFlow | null; r
     });
     return () => { off(); cancelAnimationFrame(raf); };
   }, [flow, counts, kind, flow ? 0 : results.people, flow ? 0 : results.total]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <span ref={el} className={`tv-tally tv-counts${several ? " is-several" : ""}`} role="status" aria-label={countLabel(results.people, results.total, counts, kind)}>
-    <span className="tv-count tv-count-people"><i /><b>{results.people}</b></span>
-    <span className="tv-count tv-count-sent"><i /><b>{results.total}</b></span>
+  // On the TV the numbers follow the arrival flow and are written by the effect above, never by
+  // React: a re-render with the server's newest count would run ahead of the answers on screen.
+  return <span ref={el} className={`tv-tally tv-counts${several ? " is-several" : ""}`} role="status" aria-label={flow ? undefined : countLabel(results.people, results.total, counts, kind)}>
+    <span className="tv-count tv-count-people"><i /><b>{flow ? null : results.people}</b></span>
+    <span className="tv-count tv-count-sent"><i /><b>{flow ? null : results.total}</b></span>
   </span>;
 }
 
