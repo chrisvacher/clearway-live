@@ -221,7 +221,7 @@ async function main() {
       await until(async () => (await sql.query("select count(*) c from private.draft_outcomes where engagement_id=$1 and tidy='by_hand'", [second.id])).rows[0].c > 0, "the outcomes are by hand");
       await page.locator("[data-testid=ovn-row]").first().click();
       await page.locator("[data-testid=ovn-outcome]").waitFor();
-      assert.equal(await page.getByRole("button", { name: "Edit" }).count() + await page.getByRole("button", { name: /Add a bullet|Add/ }).count() > 0, true, "the facilitator can write the draft");
+      await until(async () => await page.getByRole("button", { name: "Edit" }).count() + await page.getByRole("button", { name: /Add a bullet|Add/ }).count() > 0, "the facilitator can write the draft", 15000);
       fake({});
       await context.close();
     });
