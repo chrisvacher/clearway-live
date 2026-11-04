@@ -41,6 +41,7 @@
     "test:lens-wall": "node --import tsx tests/browser/lens-wall.ts",
     "test:scribe": "node --import tsx tests/browser/scribe.ts",
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
+    "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

@@ -41,6 +41,9 @@
   background: var(--cwl-card-fill, var(--cwl-accent)); color: var(--cw-navy); font-variant-numeric: tabular-nums; transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
 .gfs-leg span { overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .gfs-leg small { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); font-variant-numeric: tabular-nums; }
+.gfs-leg .gfs-mit { grid-column: 2 / -1; font-style: normal; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); line-height: 1.15;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.gfs-leg .gfs-mit:empty { display: none; }
 .gfs-leg.is-new i { background: var(--cwl-live); color: var(--cwl-on-live); }
 .gfs-leg.is-spot span { color: var(--cwl-callout); }
 [data-surface="tv"][data-theme="light"] .gfs-leg.is-spot span { color: var(--cwl-text); text-decoration: underline; text-decoration-color: var(--cwl-callout); text-decoration-thickness: 0.12em; }

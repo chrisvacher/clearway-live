@@ -10,6 +10,7 @@ import { FormView, SignView } from "@/components/interactions/grid-form-sign/sig
 import { IntentView } from "@/components/interactions/intent/intent-view";
 import { QaTv } from "@/components/interactions/qa/qa-tv";
 import { BulletsTv, ConfirmTv } from "@/components/interactions/outcomes/outcomes-tv";
+import { GoalsView } from "@/components/interactions/goals/goals-view";
 import { WallView } from "@/components/interactions/ai/wall-view";
 import { LensView } from "@/components/interactions/lens/lens-view";
 
@@ -31,6 +32,7 @@ export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>
   grid: GridView,
   form: FormView,
   sign: SignView,
+  goals: GoalsView,
   intent: IntentView,
   qa: props => <QaTv {...props} />,
   bullets: BulletsTv,

@@ -92,6 +92,17 @@ export function scripted(call: AiCall): string {
     }
     return JSON.stringify({ groups });
   }
+  if (job === "merge_reasons") {
+    // The same rule as folding questions: two shared words and the same numbers.
+    const list = (input.reasons ?? []) as { ref: string; text: string; placed: number }[], used = new Set<string>(), groups: { survivor: string; members: string[] }[] = [];
+    for (const q of [...list].sort((a, b) => (b.placed ?? 0) - (a.placed ?? 0))) {
+      if (used.has(q.ref)) continue;
+      const mine = words(q.text), digits = q.text.match(/\d+/g)?.join(",") ?? "";
+      const same = list.filter(o => o.ref !== q.ref && !used.has(o.ref) && shared(mine, words(o.text)) >= 2 && (o.text.match(/\d+/g)?.join(",") ?? "") === digits).slice(0, 3);
+      if (same.length) { groups.push({ survivor: q.ref, members: same.map(o => o.ref) }); used.add(q.ref); same.forEach(o => used.add(o.ref)); }
+    }
+    return JSON.stringify({ groups });
+  }
   return "{}";
 }
 

@@ -6,6 +6,7 @@ import { ChoiceInput, PointsInput, RankingInput, ScaleInput, StatementsInput } f
 import { GridInput } from "@/components/interactions/grid-form-sign/grid-input";
 import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
 import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
+import { GoalsInput } from "@/components/interactions/goals/goals-input";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
 import { IntentInput } from "@/components/interactions/intent/intent-phone";
@@ -39,5 +40,6 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   grid: GridInput,
   form: FormInput,
   sign: SignInput,
+  goals: GoalsInput,
   intent: IntentInput,
 };

@@ -273,6 +273,8 @@ select is(jsonb_array_length(tests.results()->'seeded'),2,'Its two seeded senten
 select ok(position('every week' in tests.results()::text)=0,'and lens 1''s live sentences stay on lens 1');
 select is(tests.claim('second',411,921)->'inputs'->>'lens_name','Our neighbours','The second lens is named from the engagement');
 select is(private.public_options((select x from public.sessions x where x.id=tests.id(411)),'{}'::jsonb)->'lens_names'->>1,'Our neighbours','Public options carry the engagement''s lens names');
+select is(private.ai_on(tests.id(410)),true,'AI stays on for an unseeded lens session after every later migration');
+select is(private.ai_on(tests.id(400)),false,'and stays off for the seeding step');
 
 select * from finish();
 rollback;
