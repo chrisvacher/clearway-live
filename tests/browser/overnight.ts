@@ -104,7 +104,8 @@ async function main() {
       const text = await leadReview.locator("[data-testid=overnight-review]").innerText();
       assert.match(text, /Leaders raised from within/); assert.match(text, /A church that shows up/);
       assert.equal(await leadReview.locator("[data-testid=ovn-thin]").count(), 1);
-      assert.equal(/10-year Future/.test(await leadReview.locator("[data-testid=ovn-list]").innerText()), false);
+      assert.equal(/10-year Future/.test((await leadReview.locator("[data-testid=ovn-row]").allInnerTexts()).join(" ")), false, "no draft row for the 10-year Future");
+      assert.match(await leadReview.locator("[data-testid=ovn-list]").innerText(), /Not redrafted overnight/);
       await shot(leadReview, "03-overview");
     });
 
