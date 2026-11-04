@@ -69,7 +69,6 @@ async function main() {
     await press(fac, sql, room, "go_live", { session: pm });
     await layer().locator(".gfs-plot").waitFor({ timeout: 10000 });
     const reasons = async () => (await server()).items as Reason[];
-    const legend = async () => (await layer().locator(".gfs-leg").evaluateAll(els => els.filter(e => Number(getComputedStyle(e).opacity) > 0.5).map(e => e.querySelector("span")!.textContent!.trim()))).sort();
 
     await step("Pre-mortem: phones add reasons that appear on the TV at once; ten fit and the eleventh is turned away", async () => {
       const results = await Promise.all(reasonsText.map((text, i) => post(phones[i], `/api/live/${room}/reason`, { id: randomUUID(), session: pm, text })));
