@@ -6,6 +6,7 @@ import { privateResponse } from "@/lib/auth/response";
 import { digest, hash, newCode, newDevice, parseDevice, sessionId } from "@/lib/room/policy";
 import { serviceClient } from "@/lib/server/supabase";
 import { tvClient } from "./client";
+import { pairReply } from "./pair-clock";
 import type { TvBinding } from "./types";
 
 const proofCookie = "cw-tv-device";
@@ -50,10 +51,10 @@ export async function syncTv(request: NextRequest) {
     if (state.status === "limited") return answer({ status: "limited" }, 429);
     if (state.status === "pair") {
       // The short code is held only in an HttpOnly cookie and displayed on this TV.
-      const visible = state.code_hash === payload.code_hash ? code : previousCode && state.code_hash === digest(secret, "tv-pair", previousCode) ? previousCode : null;
-      if (!visible) return answer({ status: "opening" });
-      response.cookies.set(proofCookie, JSON.stringify({ id: device.id, secret: device.secret, code: visible }), { httpOnly: true, secure: config.secure, sameSite: "lax", path: "/", maxAge: 31536000 });
-      return answer({ status: "pair", code: visible, expires_at: state.expires_at });
+      const reply = pairReply(state, { code, hash: payload.code_hash }, previousCode ? { code: previousCode, hash: digest(secret, "tv-pair", previousCode) } : null, Date.now());
+      if (reply.status !== "pair") return answer(reply);
+      response.cookies.set(proofCookie, JSON.stringify({ id: device.id, secret: device.secret, code: reply.code }), { httpOnly: true, secure: config.secure, sameSite: "lax", path: "/", maxAge: 31536000 });
+      return answer(reply);
     }
     response.cookies.set(proofCookie, JSON.stringify({ id: device.id, secret: device.secret }), { httpOnly: true, secure: config.secure, sameSite: "lax", path: "/", maxAge: 31536000 });
     const { data: { user } } = await client.auth.getUser();

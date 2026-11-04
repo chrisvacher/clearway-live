@@ -42,6 +42,7 @@ grant execute on function tests.tv(integer,text) to authenticated,service_role;
 set local role service_role;
 select is(public.tv_device('sync',tests.tv(1200))->>'status','pair','Unapproved TV gets only its expiring code');
 select ok(not (public.tv_device('sync',tests.tv(1200))::text like '%Live A%'),'No church identity before approval');
+select ok((public.tv_device('sync',tests.tv(1200))->>'expires_at')::timestamptz between now()+interval '59 minutes' and now()+interval '60 minutes','A pairing code lasts 60 minutes');
 select is(public.tv_device('prepare',tests.tv(1200))->>'status','denied','Unapproved proof cannot claim an Auth identity');
 select is(public.tv_device('sync',tests.tv(1200)||jsonb_build_object('proof',repeat('d',64)))->>'status','denied','Another proof cannot take the device');
 reset role;

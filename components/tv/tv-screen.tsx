@@ -6,6 +6,7 @@ import { clockSample, retryDelay } from "@/lib/live/protocol";
 import type { LiveRead, LiveSnapshot } from "@/lib/live/types";
 import { TvReceipts, snapshotArrivals } from "@/lib/tv/receipts";
 import { TvFlow } from "@/lib/tv/flow";
+import { TvSync, pairRequestMs } from "@/lib/tv/sync";
 import { screenType } from "@/lib/tv/policy";
 import { tokenMs } from "@/lib/tv/board";
 import type { TvBinding, TvStatus } from "@/lib/tv/types";
@@ -16,7 +17,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   const [frame, setFrame] = useState<LiveSnapshot | null>(null), [mode, setMode] = useState("connecting"), [awake, setAwake] = useState(true);
   const [nameLimit, setNameLimit] = useState(14);
   const [syncOffline, setSyncOffline] = useState(false);
-  const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), sync = useRef<() => void>(() => {});
+  const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), tvSync = useRef<TvSync | null>(null);
+  const [pair, setPair] = useState<{ code: string | null; seconds: number }>({ code: null, seconds: 0 });
   const receipt = useRef<TvReceipts | null>(null), clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
   const boxes = useRef(new Map<string, DOMRect>());
   // The arrival flow: answers that land together reach the board as a steady
@@ -34,26 +36,24 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
     return () => { cancelAnimationFrame(raf); clearInterval(backstop); document.removeEventListener("visibilitychange", hidden); flowRef.current = null; };
   }, []);
   const engagement = status.status === "paired" ? status.engagement : null, binding = status.status === "paired" ? status.tv : null;
+  // The pairing connection. It decides, from the server's clock, whether the
+  // code may still be shown, and asks for the replacement as the old one ends.
   useEffect(() => {
-    let stopped = false, running = false, again = false, timer: ReturnType<typeof setTimeout>, failures = 0;
-    async function poll() {
-      if (stopped) return; if (running) { again = true; return; } running = true; clearTimeout(timer);
-      let paired = false;
-      try {
-        const response = await fetch("/api/tv", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
-        const next = await response.json() as TvStatus; if (stopped) return;
-        if (next.status === "unavailable" || next.status === "limited" || !response.ok) throw new Error("unavailable");
-        paired = next.status === "paired";
-        setStatus(before => JSON.stringify(before) === JSON.stringify(next) ? before : next);
-        if (!paired) setFrame(null); setSyncOffline(false); failures = 0;
-      } catch { if (!stopped) { setSyncOffline(true); failures++; } }
-      finally { running = false; if (!stopped) { if (again) { again = false; void poll(); } else timer = setTimeout(() => void poll(), failures ? retryDelay(failures) : paired ? 5000 : 1000); } }
-    }
-    sync.current = () => void poll(); void poll();
-    const resume = () => { if (document.visibilityState === "visible") void poll(); };
+    const request = async () => {
+      const response = await fetch("/api/tv", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", cache: "no-store", signal: AbortSignal.timeout(pairRequestMs) });
+      return { ok: response.ok, data: await response.json() as unknown };
+    };
+    const next = new TvSync(initial || { status: "opening" }, request, view => {
+      setStatus(before => JSON.stringify(before) === JSON.stringify(view.status) ? before : view.status);
+      setPair(before => before.code === view.code && before.seconds === view.seconds ? before : { code: view.code, seconds: view.seconds });
+      if (view.status.status !== "paired") setFrame(null);
+      setSyncOffline(view.offline);
+    });
+    tvSync.current = next; next.start();
+    const resume = () => { if (document.visibilityState === "visible") void next.poll(); };
     window.addEventListener("online", resume); document.addEventListener("visibilitychange", resume);
-    return () => { stopped = true; clearTimeout(timer); window.removeEventListener("online", resume); document.removeEventListener("visibilitychange", resume); };
-  }, []);
+    return () => { next.stop(); tvSync.current = null; window.removeEventListener("online", resume); document.removeEventListener("visibilitychange", resume); };
+  }, [initial]);
   useEffect(() => {
     if (!engagement || !binding) return;
     const receipts = new TvReceipts(engagement, async ack => (await fetch("/api/tv/ack", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(ack) })).ok,
@@ -78,7 +78,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
         boxes.current = new Map([...stage.current?.querySelectorAll<HTMLElement>("[data-name-key]") || []].map(el => [el.dataset.nameKey!, el.getBoundingClientRect()]));
         setFrame(value);
       },
-      mode: next => { setMode(next); if (next === "denied") { setFrame(null); setStatus({ status: "opening" }); sync.current(); } },
+      mode: next => { setMode(next); if (next === "denied") { setFrame(null); tvSync.current?.reopen(); } },
     });
     stream.start(); const resume = () => { if (document.visibilityState === "visible") stream.resume(); };
     window.addEventListener("online", resume); document.addEventListener("visibilitychange", resume);
@@ -155,7 +155,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} /></div>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} pair={pair} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

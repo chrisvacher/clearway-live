@@ -6,7 +6,9 @@ import { Pool } from "pg";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { RoomStream } from "../../lib/live/stream";
 import { roomMutation } from "../../lib/live/mutation";
-import { sessionId } from "../../lib/room/policy";
+import { newCode, sessionId } from "../../lib/room/policy";
+import { pairReply } from "../../lib/tv/pair-clock";
+import { TvSync } from "../../lib/tv/sync";
 import type { LiveRead, LiveSnapshot } from "../../lib/live/types";
 
 async function main() {
@@ -14,7 +16,7 @@ async function main() {
  const env=Object.fromEntries([...raw.matchAll(/^([A-Z_]+)="(.*)"$/gm)].map(m=>[m[1],m[2]]));
  assert.equal(new URL(env.API_URL).hostname,"127.0.0.1");assert.equal(new URL(env.DB_URL).hostname,"127.0.0.1");
  process.env.SUPABASE_URL=env.API_URL;process.env.SUPABASE_ANON_KEY=env.ANON_KEY;
- const db=new Pool({connectionString:env.DB_URL,max:4}),clients:SupabaseClient[]=[],streams:RoomStream[]=[];
+ const db=new Pool({connectionString:env.DB_URL,max:4}),clients:SupabaseClient[]=[],streams:RoomStream[]=[],syncs:TvSync[]=[];
  const admin=createClient(env.API_URL,env.SERVICE_ROLE_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
  const hash=(v:string)=>createHash("sha256").update(v).digest("hex");
  async function rpc(client:SupabaseClient,name:string,args:Record<string,unknown>={}) {const {data,error}=await client.rpc(name,args);assert.equal(error,null,name);return data;}
@@ -111,7 +113,34 @@ async function main() {
   assert.equal((await manage("display",{room_size:"medium",theme:"light",texture:false,reduced_motion:true})).status,"ok");await until(()=>views[1].at(-1)?.display?.theme==="light","Remaining TV resubscribes after access rotation and receives display settings");
   const code=(await fac.client.from("engagements").select("room_code").eq("id",room).single()).data!.room_code;assert.equal(await rpc(admin,"tv_room_link",{p_code:code}),room);
   await db.query("update public.engagements set status='closed' where id=$1",[room]);assert.ok((await two.client.auth.refreshSession()).error);await db.query("update public.engagements set status='pre_call' where id=$1",[room]);assert.equal((await rpc(admin,"tv_device",{p_action:"sync",p:{...second,code_hash:hash(randomUUID())}})).status,"pair");
-  console.log("Native TV: cold-start rollback/private-socket recovery, expiring one-use codes, facilitator approval, two TVs, browser-client resume, native role isolation, first-name arrivals, duplicate-device counting, per-answer receipt times, cached-channel unpair/rekey, display settings and closure/reopen revocation passed. No production services or venue hardware used.");
- } finally {streams.forEach(s=>s.stop());await Promise.all(clients.map(c=>c.removeAllChannels()));await db.end();}
+  // A replaced code reaches the TV. The TV page's own pairing loop runs against
+  // the database's sync, with the route's reply, on a TV computer whose clock is
+  // 37 seconds slow. The code leaves before the database refuses it and the
+  // replacement is on screen within a second of the database's expiry.
+  const third=device(),codeHash=(c:string)=>hash("native-tv-pair:"+c),slow=37000,shown:{at:number;code:string|null}[]=[];let held:string|null=null;
+  const tvSync=new TvSync({status:"opening"},async()=>{
+   const offer=newCode(),state=await rpc(admin,"tv_device",{p_action:"sync",p:{...third,code_hash:codeHash(offer)}});
+   if(state.status!=="pair")return {ok:false,data:{status:"unavailable"}};
+   const reply=pairReply(state,{code:offer,hash:codeHash(offer)},held?{code:held,hash:codeHash(held)}:null,Date.now());if(reply.status==="pair")held=reply.code;
+   return {ok:true,data:reply};
+  },view=>shown.push({at:Date.now(),code:view.code}),()=>Date.now()-slow);syncs.push(tvSync);tvSync.start();
+  await until(()=>Boolean(shown.at(-1)?.code),"The TV shows its first code");
+  const old=shown.at(-1)!.code!;
+  const expiry=((await db.query("update private.tv_devices set code_expires_at=now()+interval '3 seconds' where id=$1 returning code_expires_at",[third.device])).rows[0].code_expires_at as Date).getTime();
+  let replaced:string|null=null;
+  for(let i=0;i<200&&!replaced;i++){
+   const code=shown.at(-1)?.code??null;
+   if(code){const valid=(await db.query("select code_hash=$1 and code_expires_at>now() as ok from private.tv_devices where id=$2",[codeHash(code),third.device])).rows[0].ok;assert.ok(valid,`The TV shows ${code===old?"the old":"a"} code the database refuses`);}
+   if(code&&code!==old)replaced=code;else await delay(25);
+  }
+  assert.ok(replaced,"The replacement code reached the TV");
+  const left=shown.find((v,i)=>i>shown.findIndex(s=>s.code===old)&&v.code!==old)!,arrived=shown.find(v=>v.code===replaced)!;
+  assert.ok(left.at<=expiry,`The old code left ${left.at-expiry} ms after the database's expiry`);
+  assert.ok(arrived.at-expiry<=1000,`The replacement reached the TV ${arrived.at-expiry} ms after the database's expiry`);
+  assert.equal((await manage("pair",{code_hash:codeHash(old),label:"Old code"})).status,"invalid_code");
+  assert.equal((await manage("pair",{code_hash:codeHash(replaced!),label:"Replaced code"})).status,"ok","The code on the TV pairs");
+  tvSync.stop();
+  console.log("Native TV: cold-start rollback/private-socket recovery, expiring one-use codes, facilitator approval, two TVs, browser-client resume, native role isolation, first-name arrivals, duplicate-device counting, per-answer receipt times, cached-channel unpair/rekey, display settings, closure/reopen revocation and a replaced code reaching a TV with a slow clock passed. No production services or venue hardware used.");
+ } finally {streams.forEach(s=>s.stop());syncs.forEach(s=>s.stop());await Promise.all(clients.map(c=>c.removeAllChannels()));await db.end();}
 }
 void main().catch(error=>{console.error(error);process.exitCode=1;});

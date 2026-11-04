@@ -20,9 +20,9 @@ function Qr({ code }: { code: string }) {
   const qr = useMemo(() => roomQr(code), [code]);
   return <svg className="tv-qr" viewBox={`0 0 ${qr.size} ${qr.size}`} role="img" aria-label="Scan to open your room" shapeRendering="crispEdges"><rect width={qr.size} height={qr.size} className="tv-qr-ground" /><path d={qr.path} className="tv-qr-ink" /></svg>;
 }
-function CodeExpiry({ expires }: { expires: string }) {
-  const [seconds, setSeconds] = useState(300);
-  useEffect(() => { const tick = () => setSeconds(Math.max(0, Math.ceil((Date.parse(expires) - Date.now()) / 1000))); tick(); const timer = setInterval(tick, 1000); return () => clearInterval(timer); }, [expires]);
+// The countdown comes from the TV's pairing connection, measured against the
+// server's clock, and reaches 0:00 as the code leaves the screen.
+function CodeExpiry({ seconds }: { seconds: number }) {
   return <span className="tv-upclose">Code changes in {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</span>;
 }
 // Session change: the next session is prepared behind the current one and
@@ -62,7 +62,10 @@ function SessionLayers({ frame, flow }: { frame: LiveSnapshot | null; flow?: TvF
   })}</div>;
 }
 
-export function TvScenes({ status, frame, reconnecting, nameLimit, flow }: { status: TvStatus; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null }) {
+export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }: { status: TvStatus; pair?: { code: string | null; seconds: number }; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null }) {
+  // Only a code the server will still accept is shown. Between one code ending
+  // and its replacement arriving, the cards stay in place, empty.
+  const code = status.status === "pair" ? pair?.code ?? null : null;
   const display = frame?.display, presence = frame?.presence;
   const paired = status.status === "paired" && Boolean(display);
   const mode = paired ? frame!.state.tv_content : status.status === "pair" ? "pair" : "opening";
@@ -80,7 +83,7 @@ export function TvScenes({ status, frame, reconnecting, nameLimit, flow }: { sta
     </header>
     <div className="tv-scenes">
       <section className={`tv-scene tv-pair${mode === "pair" ? " is-active" : ""}`} aria-hidden={mode !== "pair"}>
-        <h1 className="tv-eyebrow">Pair this screen</h1><div className="tv-code" aria-label={status.status === "pair" ? `Pairing code ${status.code.split("").join(" ")}` : "Pairing code"}>{(status.status === "pair" ? status.code : "      ").split("").map((digit, i) => <span key={i} className={i === 3 ? "has-gap" : ""}>{digit}</span>)}</div>
+        <h1 className="tv-eyebrow">Pair this screen</h1><div className="tv-code" aria-label={code ? `Pairing code ${code.split("").join(" ")}` : "Pairing code"}>{(code ?? "      ").split("").map((digit, i) => <span key={i} className={i === 3 ? "has-gap" : ""}>{digit}</span>)}</div>
         <p className="tv-body">On your laptop, open your engagement and choose <strong>Pair a TV</strong>. Enter this code.</p>
       </section>
       <section className={`tv-scene tv-holding${mode === "holding" ? " is-active" : ""}`} aria-hidden={mode !== "holding"}>
@@ -97,7 +100,7 @@ export function TvScenes({ status, frame, reconnecting, nameLimit, flow }: { sta
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
     {paired && <Spotlight frame={frame} />}
     {paired && <QaSpotlight frame={frame} />}
-    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{status.status === "pair" && <CodeExpiry expires={status.expires_at} />}{paired && <QaWaiting frame={frame} />}{paired && <AiFoot frame={frame} />}</span>
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <QaWaiting frame={frame} />}{paired && <AiFoot frame={frame} />}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-tally"><b>{presence?.count || 0}</b> here</span>}
         {inputOn && frame && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} />}</span></footer>
   </>;
