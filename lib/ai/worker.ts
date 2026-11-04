@@ -13,6 +13,9 @@ import { prompts, promptVersions, type AiInputs, type AiJob } from "./prompts";
 
 export type Claim = { status: "claimed"; run: string; job: AiJob; prompt_version: string; inputs: AiInputs } | { status: "idle" | "busy" | "off" | "cooling" | "missing" | "invalid_request"; ms?: number };
 export type RunReport = { session: string; runs: { job: AiJob; status: string; ms: number }[]; stopped: string };
+// The model's own reply is kept with the run (inside ai_runs.output.result), so a reply the
+// parser could not read can be looked at afterward. It holds only what the model wrote.
+export const rawChars = 8000;
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function runSession(db: SupabaseClient, ai: AiClient, session: string, config: AiConfig = aiConfig(), deadline = Date.now() + config.budgetMs): Promise<RunReport> {
@@ -29,7 +32,7 @@ export async function runSession(db: SupabaseClient, ai: AiClient, session: stri
       const timeoutMs = Math.max(1000, Math.min(config.timeoutMs, deadline - Date.now()));
       const reply = await ai.complete({ system: prompt.system, user: prompt.user(claim.inputs), maxTokens: prompt.maxTokens, timeoutMs }, config);
       const ms = Date.now() - started;
-      const { data, error } = await db.rpc("ai_apply", { p_run: claim.run, p_lease: lease, p_output: prompt.parse(reply.text),
+      const { data, error } = await db.rpc("ai_apply", { p_run: claim.run, p_lease: lease, p_output: { ...prompt.parse(reply.text, claim.inputs), raw: reply.text.slice(0, rawChars) },
         p_usage: { input_tokens: reply.inputTokens, output_tokens: reply.outputTokens, cost_usd: costUsd(config, reply.inputTokens, reply.outputTokens), ms } });
       report.runs.push({ job: claim.job, status: error ? "unavailable" : String(data?.status), ms });
       // An apply that could not commit releases its lease, so the next trigger can try again.

@@ -3,7 +3,7 @@
 //  * recordedClient: answers each prompt with a recorded reply (the fixture tests).
 //  * fakeClient("script"): a stand-in that follows the prompts' rules on any input, so a
 //    kit can run the room end to end. A control file (CLEARWAY_AI_FAKE_CONTROL) makes it
-//    slow or failing, for FAIL-09.
+//    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
 import { prompts, replyJson, type AiJob } from "./prompts";
@@ -86,7 +86,7 @@ export function scripted(call: AiCall): string {
   return "{}";
 }
 
-type Control = { delayMs?: number; fail?: boolean };
+type Control = { delayMs?: number; fail?: boolean; summary?: string };
 function control(path?: string): Control {
   if (!path) return {};
   try { const value: unknown = JSON.parse(readFileSync(path, "utf8")); return value && typeof value === "object" ? value as Control : {}; } catch { return {}; }
@@ -99,6 +99,7 @@ export function fakeClient(mode: string, controlPath?: string): AiClient {
       if (wait) await new Promise(resolve => setTimeout(resolve, Math.min(wait, call.timeoutMs)));
       if (wait >= call.timeoutMs) throw new Error("timeout");
       if (c.fail) throw new Error("unavailable");
+      if (typeof c.summary === "string" && jobOf(call) === "summarize_wall") return reply(call, JSON.stringify({ summary: c.summary.slice(0, 1000) }));
       return reply(call, scripted(call));
     },
   };

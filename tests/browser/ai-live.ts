@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
 import { aiIconCredit, aiPageParagraphs, aiPageTitle, aiSignInLine, aiSignInLink } from "../../lib/ai/disclosure";
+import { promptVersions, type AiJob } from "../../lib/ai/prompts";
 import { verdict } from "../../lib/latency/report";
 import { describe, practiceRoom, runLoad } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
@@ -19,7 +20,7 @@ import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp
 // The scripted fake model reads this file on every call: slow, failing or well.
 const controlDir = join(tmpdir(), `clearway-ai-kit-${randomUUID().slice(0, 8)}`), controlFile = join(controlDir, "fake.json");
 mkdirSync(controlDir, { recursive: true });
-const fake = (value: { delayMs?: number; fail?: boolean }) => writeFileSync(controlFile, JSON.stringify(value));
+const fake = (value: { delayMs?: number; fail?: boolean; summary?: string }) => writeFileSync(controlFile, JSON.stringify(value));
 fake({});
 Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTROL: controlFile, CLEARWAY_AI_DEBOUNCE_MS: "250", ANTHROPIC_API_KEY: "" });
 
@@ -227,17 +228,32 @@ async function main() {
     await step("INT-02: the AI summary appears on the TV only after Show summary", async () => {
       assert.equal(await layer().locator(".ai-summary:not(.is-off)").count(), 0, "no summary before Show summary");
       assert.equal(((await results()).summary), undefined, "and none in the results");
+      // A model that runs long (production wrote 37 words): the summary is cut to 30 in code
+      // and the TV's box fits all 30, at 1080p and at 720p, with a whole group still under it.
+      fake({ summary: "Most answers celebrate baptisms with teenagers asking to be baptized and a baptism class that doubled while the Alpha course filled up and kept its guests and young families now stay after the service every single week" });
       await panel().getByRole("button", { name: "Show summary" }).click();
       await until(async () => (await layer().locator(".ai-summary:not(.is-off) .ai-summary-text").innerText().catch(() => "")).includes("Most answers celebrate"), "the summary opens at the top of the groups column", 10000);
       assert.match(await layer().locator(".ai-summary-head").innerText(), /AI summary/);
       await until(async () => (await panel().innerText()).includes("Most answers celebrate"), "the control surface shows it privately", 5000);
-      await settle(tv);
-      const under = await groupsOnTv();
-      const text = await layer().locator(".ai-summary-text").evaluate(e => ({ clipped: e.getBoundingClientRect().bottom > e.closest(".ai-summary-clip")!.getBoundingClientRect().bottom + 1 }));
-      assert.ok(!text.clipped, "the summary's text is never cut off");
-      assert.ok(under.shown.length >= 1 && !under.overlap && !under.cut, `under the summary, at least one whole group and none cut: ${JSON.stringify(under)}`);
-      console.log(`  under the summary: ${under.shown.join(", ")} (field ${under.field})`);
-      await shot(tv, "int-02-show-summary-tv"); await shot(control, "int-02-control-summary");
+      const shown = (await layer().locator(".ai-summary-text").innerText()).trim();
+      assert.ok(shown.split(/\s+/).length <= 30 && shown.split(/\s+/).length >= 25, `the summary is cut to 30 words: ${shown}`);
+      for (const [width, height] of [[1920, 1080], [1280, 720]]) {
+        await tv.setViewportSize({ width, height });
+        await settle(tv);
+        const under = await groupsOnTv();
+        const text = await layer().locator(".ai-summary-text").evaluate(e => {
+          const r = e.getBoundingClientRect(), clip = e.closest(".ai-summary-clip")!.getBoundingClientRect(), column = e.closest(".ai-groups")!.getBoundingClientRect();
+          return { clipped: r.bottom > clip.bottom + 1 || e.scrollHeight > e.clientHeight + 1 || r.right > clip.right + 1, outside: r.bottom > column.bottom + 1 };
+        });
+        await shot(tv, `int-02-show-summary-tv-${height}p`);
+        if (process.env.KIT_SHOTS) writeFileSync(`${process.env.KIT_SHOTS}/int-02-show-summary-tv-${height}p.html`, await tv.content());
+        assert.ok(!text.clipped && !text.outside, `at ${width}x${height} the summary's 30 words are never cut off: ${JSON.stringify(text)}`);
+        assert.ok(under.shown.length >= 1 && !under.overlap && !under.cut, `at ${width}x${height}, under the summary, at least one whole group and none cut: ${JSON.stringify(under)}`);
+        console.log(`  ${width}x${height} under the summary: ${under.shown.join(", ")} (field ${under.field})`);
+      }
+      await tv.setViewportSize({ width: 1920, height: 1080 });
+      fake({});
+      await shot(control, "int-02-control-summary");
       await panel().getByRole("button", { name: "Hide summary" }).click();
       await until(async () => (await layer().locator(".ai-summary:not(.is-off)").count()) === 0, "Hide summary closes it", 5000);
     });
@@ -313,8 +329,9 @@ async function main() {
       await until(async () => (await layer().locator(".qa-text").allTextContents()).includes("What date will the new building be ready?"), "and the question is back on its own", 5000);
     });
     await press(fac, sql, room.id, "nothing_live");
-    const runs = (await sql.query("select job,model,prompt_version,status,inputs::text as inputs from private.ai_runs where engagement_id=$1", [room.id])).rows as { job: string; model: string; prompt_version: string; status: string; inputs: string }[];
-    assert.ok(runs.length >= 5 && runs.every(r => r.model === "fake-script" && /@1$/.test(r.prompt_version)), "every AI run stored its model and prompt version");
+    const runs = (await sql.query("select job,model,prompt_version,status,inputs::text as inputs,output->'result'->>'raw' as raw from private.ai_runs where engagement_id=$1", [room.id])).rows as { job: AiJob; model: string; prompt_version: string; status: string; inputs: string; raw: string | null }[];
+    assert.ok(runs.length >= 5 && runs.every(r => r.model === "fake-script" && r.prompt_version === promptVersions[r.job]), "every AI run stored its model and prompt version");
+    assert.ok(runs.filter(r => r.status === "ok").every(r => r.raw?.startsWith("{")), "every applied run kept the model's own reply");
     assert.ok(runs.every(r => !r.inputs.includes("@example.org") && !r.inputs.includes("Priya")), "no AI input carried a name or email");
     console.log(`AI kit: ${passed.length} checks passed on a paired TV, three phones, the control surface and the remote; ${runs.length} AI runs (${runs.filter(r => r.status === "failed").length} failed on purpose).`);
 

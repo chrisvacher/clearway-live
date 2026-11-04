@@ -127,6 +127,8 @@ export class WallBoard {
   private wall: HTMLElement;
   private summary: HTMLElement;
   private summaryText: HTMLElement;
+  private summaryBox: HTMLElement;
+  private fieldEl: HTMLElement;
   private empty: HTMLElement;
   private more: HTMLElement;
   private summaryId: string | null = null;
@@ -139,10 +141,10 @@ export class WallBoard {
     head.append(aiBadgeEl(), make("span", "", "Grouped from answers"));
     this.head = head;
     this.summary = make("div", "ai-summary is-off"); this.summary.setAttribute("role", "region"); this.summary.setAttribute("aria-label", "AI summary");
-    const clip = make("div", "ai-summary-clip"), box = make("div", "ai-summary-box"), band = make("div", "ai-summary-head");
+    const clip = make("div", "ai-summary-clip"), box = this.summaryBox = make("div", "ai-summary-box"), band = make("div", "ai-summary-head");
     band.append(aiIconEl(), document.createTextNode("AI summary"));
     this.summaryText = make("p", "ai-summary-text"); box.append(band, this.summaryText); clip.appendChild(box); this.summary.appendChild(clip);
-    const fieldEl = make("div", "ai-group-field");
+    const fieldEl = this.fieldEl = make("div", "ai-group-field");
     this.empty = make("p", "ai-groups-empty", "Grouping as answers arrive");
     this.more = make("p", "ai-more");
     groups.append(head, this.summary, this.empty, fieldEl, this.more);
@@ -188,6 +190,7 @@ export class WallBoard {
     this.feed.track.querySelectorAll(".is-newest").forEach(row => row.classList.remove("is-newest"));
     if (fresh && ai) this.feed.element(fresh)?.classList.add("is-newest");
     this.setSummary(ai ? summary : null);
+    this.fitSummary();
     this.groups = { list: ai ? groups : [], summary: Boolean(ai && summary) };
     this.fitGroups(instant);
     if (fresh) this.moment();
@@ -221,9 +224,31 @@ export class WallBoard {
     const was = this.summaryId; this.summaryId = id;
     this.split.classList.toggle("has-summary", Boolean(summary));
     if (!summary) { this.summary.classList.add("is-off"); return; }
-    if (!was || reducedMotion(this.root)) { this.summaryText.textContent = summary.text; this.summary.classList.remove("is-off"); return; }
+    if (!was || reducedMotion(this.root)) { this.summaryText.textContent = summary.text; this.fitSummary(); this.summary.classList.remove("is-off"); return; }
     this.summaryText.classList.add("is-fading");
-    setTimeout(() => { this.summaryText.textContent = summary.text; this.summaryText.classList.remove("is-fading"); }, tokenMs(this.root, "cwl-dur-arrive"));
+    setTimeout(() => { this.summaryText.textContent = summary.text; this.fitSummary(); this.summaryText.classList.remove("is-fading"); }, tokenMs(this.root, "cwl-dur-arrive"));
+  }
+  // The summary's words (30 at most) wrap and are never cut. When its box and a row of groups
+  // can't share the column at the floor, its text steps down evenly toward the 1080p floor
+  // (36px on the stage), as the screen's fit step does, and no further. It is measured at the
+  // column's final width while closed or faded, so nothing resizes while the room reads it.
+  private summaryFit = "";
+  private fitSummary() {
+    if (!this.summaryId) { this.summaryFit = ""; return; }
+    const floor = this.floor(), text = this.summaryText.textContent ?? "", key = `${floor}|${text}`;
+    if (key === this.summaryFit || !this.root.isConnected) return;
+    this.summaryFit = key;
+    const split = getComputedStyle(this.split), column = this.summary.parentElement!, probe = make("div", "ai-summary-probe");
+    this.split.appendChild(probe);
+    const width = this.split.clientWidth - (parseFloat(split.columnGap) || 0) - probe.offsetWidth;
+    probe.remove();
+    const room = column.clientHeight - (parseFloat(getComputedStyle(column).rowGap) || 0) - (parseFloat(getComputedStyle(this.fieldEl).flexBasis) || floor * 1.8);
+    const least = Math.min(1, 36 / floor);
+    this.summaryBox.style.width = `${Math.max(0, width)}px`;
+    let fit = 1;
+    this.summaryText.style.setProperty("--ai-summary-fit", "1");
+    while (this.summaryBox.offsetHeight > room + 0.5 && fit > least) { fit = Math.max(least, fit - 0.05); this.summaryText.style.setProperty("--ai-summary-fit", String(fit)); }
+    this.summaryBox.style.width = "";
   }
   private moment() {
     clearTimeout(this.settle);
