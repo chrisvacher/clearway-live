@@ -16,6 +16,20 @@ export function nextBoundary(sessions: SelfPacedTimes[], serverNow: number): num
   return times.length ? Math.min(...times) : null;
 }
 
+// Close the day (PRD "Going live") closes every step still open in its part: live steps that
+// are live, phones down or taking late answers, and self-paced steps open by their clock. The
+// control surface offers it while any of them is open.
+export type PartStep = SelfPacedTimes & { part: string };
+export function partOpen(part: string, steps: PartStep[], serverNow: number): boolean {
+  return steps.some(s => s.part === part && (s.mode === "self_paced" ? selfPacedState(s, serverNow) === "open" : ["live", "phones_down", "open"].includes(s.state)));
+}
+// Close the day can end a self-paced step early, which changes its close time on the server.
+// A phone with one open reads its own view again when the room's version rises, at most once
+// every gap milliseconds, and once more after the last rise: this says how long to wait.
+export function recheckDelay(lastRead: number, now: number, gap = 3000): number {
+  return Math.max(0, lastRead + gap - now);
+}
+
 const when = (iso: string, zone: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 // "Open until Tue, Nov 10, 9:00 p.m.", in the church's time zone.
 export function windowLabel(session: SelfPacedTimes, zone: string, serverNow: number): string {

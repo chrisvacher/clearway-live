@@ -260,6 +260,29 @@ async function main() {
       if (shots) { writeFileSync(`${shots}/recap.pdf`, pdf); await recap.screenshot({ path: `${shots}/recap-print.png`, fullPage: true }); }
       await recap.close();
     });
+    await step("Close Day 1 also closes a self-paced step still open in the day, on the phone without a refresh", async () => {
+      const between = await add("Between sessions", "wall", "What is one thing you want to remember from today?", 9, { mode: "self_paced", opens: soon(-60), closes: soon(7200), part: "Day 1" });
+      const phone = await (await phoneContext()).newPage(); await phone.goto(`${app.origin}/room/${room.id}?step=${between}`);
+      await signIn(phone, ruth.email);
+      await until(async () => (await phone.locator(".ph-step").innerText().catch(() => "")).includes("What is one thing you want to remember from today?"), "the self-paced step is open on the phone", 15000);
+      await phone.fill("#ph-answer", "How honest the room was"); await phone.locator(".ph-send").click();
+      await until(async () => (await phone.locator(".ph-answers").innerText().catch(() => "")).includes("How honest the room was"), "answered while open", 8000);
+      await control.reload();
+      const close = control.locator(".ctl-part", { has: control.locator("h3", { hasText: "Day 1" }) }).getByRole("button", { name: /Close Day 1/ });
+      await close.waitFor({ timeout: 15000 });
+      await shot(control, "self-paced-close-day-before-control");
+      await close.click(); await control.getByRole("button", { name: "Tap again to close Day 1" }).click();
+      await until(async () => (await phone.locator(".ph-step").innerText()).includes("This step is closed. Your answers are kept."), "it closes on the phone with the day", 15000);
+      assert.ok((await phone.locator(".ph-answers").innerText()).includes("How honest the room was"), "the answer is kept");
+      await until(async () => /Closed/.test(await control.locator(".sp-list li", { hasText: "Between sessions" }).innerText()), "the control surface lists it as closed", 15000);
+      const row = (await sql.query("select closes_at<=now() as closed,closed_at is not null as logged from public.sessions where id=$1", [between])).rows[0];
+      assert.deepEqual(row, { closed: true, logged: true }, "its close time is the press");
+      const late = await phone.evaluate(async ([engagement, session]) => (await (await fetch(`/api/live/${engagement}`, { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: crypto.randomUUID(), session, revision: 0, action: "submit", text: "One more", sentAt: new Date().toISOString(), uncertaintyMs: 0 }) })).json()).status, [room.id, between]);
+      assert.equal(late, "closed", "the server refuses an answer after Close Day 1");
+      await shot(phone, "self-paced-close-day-phone"); await shot(control, "self-paced-close-day-control");
+      await phone.context().close();
+    });
     console.log(`Self-paced kit: ${passed.length} checks passed on a paired TV and three phones.`);
 
     // ---------- 50 simulated phones in the practice room ----------

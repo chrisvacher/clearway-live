@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
-import { nextBoundary, rehearsalBody, rehearsalMessage, requestedStep, selfPacedLink, selfPacedState, windowLabel } from "../../lib/run-of-show/self-paced";
+import { nextBoundary, partOpen, recheckDelay, rehearsalBody, rehearsalMessage, requestedStep, selfPacedLink, selfPacedState, windowLabel } from "../../lib/run-of-show/self-paced";
 import { allSessionsCsv, csvCell, csvName, localStamp, sessionCsv, type ExportRow, type SessionExport } from "../../lib/export/csv";
 import { recapCount, recapFrame, recapKey, type RecapEntry } from "../../lib/export/recap";
 import { invitationMessages } from "../../lib/setup/invitation";
@@ -155,4 +156,29 @@ test("A recap card is the TV's own frame for that session, results from the serv
 test("App copy for this step has no em or en dashes", () => {
   for (const file of ["components/control/rehearsal.tsx", "components/control/recap-view.tsx", "components/room/live-phone.tsx", "lib/run-of-show/self-paced.ts", "lib/export/csv.ts", "lib/setup/invitation.ts"])
     assert.doesNotMatch(readFileSync(file, "utf8"), /[–—]/, file);
+});
+
+test("Close the day is the backstop: it is offered while a live or self-paced step in that part is open", () => {
+  const now = at("2026-11-11T00:00:00Z");
+  const live = (state: string, part = "Day 1") => ({ part, mode: "live", state });
+  const self = (part: string, opens: string, closes: string) => ({ part, mode: "self_paced", state: "ready", opens_at: opens, closes_at: closes });
+  assert.equal(partOpen("Day 1", [live("closed"), self("Day 1", window.opens_at, window.closes_at)], now), true, "a self-paced step open by its clock keeps the day open");
+  assert.equal(partOpen("Day 1", [self("Day 1", window.opens_at, window.closes_at)], now), true, "even with no live step in the day");
+  assert.equal(partOpen("Day 1", [live("closed"), self("Day 1", "2026-11-12T00:00:00Z", "2026-11-13T00:00:00Z")], now), false, "one that opens later does not");
+  assert.equal(partOpen("Day 1", [live("closed"), self("Day 1", "2026-11-09T00:00:00Z", "2026-11-10T00:00:00Z")], now), false, "nor one already closed");
+  assert.equal(partOpen("Day 1", [live("closed"), self("Day 2", window.opens_at, window.closes_at)], now), false, "another day's step does not");
+  assert.equal(partOpen("Day 1", [{ ...self("Day 1", window.opens_at, window.closes_at), state: "draft" }], now), false, "a draft does not");
+  for (const state of ["live", "phones_down", "open"]) assert.equal(partOpen("Day 1", [live(state)], now), true, `a live step that is ${state}`);
+  for (const state of ["ready", "closed", "draft"]) assert.equal(partOpen("Day 1", [live(state)], now), false, `a live step that is ${state}`);
+});
+
+test("A phone with a self-paced step open reads its view again when the room moves, at most every 3 seconds", () => {
+  assert.equal(recheckDelay(0, 10000), 0, "long after the last read: now");
+  assert.equal(recheckDelay(9000, 10000), 2000, "soon after: once the gap is up");
+  assert.equal(recheckDelay(10000, 10000, 5000), 5000);
+  const sql = readFileSync(join(__dirname, "../../supabase/migrations/20261104020000_close_day_self_paced.sql"), "utf8");
+  assert.equal((sql.match(/create or replace function/g) ?? []).length, 1, "only room_control is redefined");
+  assert.match(sql, /create or replace function private\.room_control\(/);
+  assert.match(sql, /mode='self_paced' and state<>'draft' and opens_at<at_close and closes_at>at_close/, "only open self-paced steps close");
+  assert.doesNotMatch(sql, /[\u2013\u2014]/);
 });
