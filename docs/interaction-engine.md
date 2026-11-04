@@ -17,7 +17,7 @@ Each kind supplies `parse_`, `results_`, `options_` and `items_` functions, foun
 
 ## The TV and phones
 
-- **The count** sits in the bottom right: "8 answering" for one-answer-per-person kinds, "23 answers" for text kinds, number bold, at `tv-body` (pass 3 change 9).
+- **The count** (changed November 4, interaction rework): two badges top left, after the church's badge and the same height, numbers only. People (users icon, `results.people`) on every kind that counts; submissions (send icon, `results.total`) beside it on kinds that count answers (word cloud, open text, Q&A, lens wall, bullets). A kind that counts people shows the people badge alone. Each number ticks on the `cwl-dur-make-room` spring. Screen readers get "8 answering", or "23 answers from 8 people". Pass 3 change 9 put it bottom right; nothing sits there now.
 - **The LIVE marker is the Clearway mark** (change 7): Lime while live, Off-White during the newest arrival's Lime moment, Navy on a Lime disc on light screens; the quiet Sky mark for Phones down; the mark beside "Closed" on a closed step. Offline and reconnecting turn it gray and breathing, with no word (change 10); screen readers still hear Offline or Reconnecting. The phone header carries the same mark.
 - **The top left carries only the church** (change 8): its logo, or a monogram tile with its name.
 - **Markers, chips and counts are squared off** (change 18, `cwl-radius-marker`).

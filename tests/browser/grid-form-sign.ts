@@ -174,7 +174,7 @@ async function main() {
       assert.equal(await layer().locator(".gfs-faint.cwl-i3").count(), 0, "one placement: no faint dot");
       const rows = await sql.query("select count(*)::integer as n from public.submissions where session_id=$1 and not withdrawn", [grid]);
       assert.equal(rows.rows[0].n, 3, "one standing answer per person holds the whole set");
-      assert.equal(await tv.locator(".tv-foot .tv-tally").innerText(), "3 answering", "counted by people, bottom right");
+      assert.equal(await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? ""), "3 answering", "counted by people, bottom right");
       await shot(tv, "int-08-typical-tv"); await shot(ben.page, "int-08-typical-phone");
     });
     await step("INT-08 Drag a placed dot: the TV's dot glides to the new mean on the regroup spring, never jumping", async () => {
@@ -267,8 +267,9 @@ async function main() {
     const secret = `kitsecret${randomUUID().slice(0, 6)}`;
     await step("INT-09 Empty: the TV shows only the count, a still structure; phones show the questions, marked Private", async () => {
       await live(form);
-      await until(async () => (await layer().locator(".gfs-big").innerText()) === "0", "0 on the TV", 10000);
-      assert.ok((await layer().innerText()).includes("They never appear on this screen"));
+      await until(async () => (await layer().locator(".gfs-n").innerText()) === "0", "0 on the TV", 10000);
+      assert.ok((await layer().innerText()).includes("This screen just counts"));
+      assert.ok(await layer().locator(".gfs-mark").count() > 0, "a mark for each person present");
       await until(async () => await priya.page.locator(".gfs-q").count() === 2, "two questions on the phone");
       assert.ok((await priya.page.locator(".ph-who").innerText()).includes("Only the facilitators"), "the phone says who sees it");
       assert.equal(await priya.page.locator(".ph-send").isDisabled(), true, "Send privately holds until there is an answer");
@@ -278,14 +279,15 @@ async function main() {
       await priya.page.locator("#gfs-q-q1").fill(`A plan we all believe in ${secret}`);
       await priya.page.locator("#gfs-q-q2").fill(`If we leave with a plan the whole team believes in, and not just the parts Mark and I agreed on before we walked in, that's a win. ${"We should also name what we will stop. ".repeat(4)}`);
       await priya.page.getByRole("button", { name: "Send privately" }).click();
-      await until(async () => (await layer().locator(".gfs-big").innerText()) === "1", "1 on the TV", 3000);
+      await until(async () => (await layer().locator(".gfs-n").innerText()) === "1", "1 on the TV", 3000);
       await ben.page.locator("#gfs-q-q2").fill(`Honest talk about the building ${secret}`);
       await ben.page.getByRole("button", { name: "Send privately" }).click();
-      await until(async () => (await layer().locator(".gfs-big").innerText()) === "2", "2 on the TV", 3000);
+      await until(async () => (await layer().locator(".gfs-n").innerText()) === "2", "2 on the TV", 3000);
       assert.equal((await results()).people, 2, "the server's count");
       assert.ok(!(await tv.content()).includes(secret), "the answers are nowhere on the TV page");
       assert.ok(!(await ruth.page.content()).includes(secret), "or on another phone");
-      assert.equal(await tv.locator(".tv-foot .tv-tally").evaluate(el => getComputedStyle(el).opacity), "0", "the count is the screen: no second count in the corner");
+      assert.equal(await tv.locator(".tv-top .tv-tally").evaluate(el => getComputedStyle(el).opacity), "0", "the count is the screen: no count badges");
+      assert.equal(await layer().locator(".gfs-mark.is-done").count(), 2, "two marks filled, in the order answers arrived");
       await until(async () => (await control.locator(".gfs-answers").innerText().catch(() => "")).includes(secret), "the facilitator reads them on the control surface", 8000);
       assert.ok((await control.locator(".gfs-answers").innerText()).includes("Priya Shah"));
       await shot(tv, "int-09-typical-tv"); await shot(priya.page, "int-09-long-text-phone"); await shot(control, "int-09-control");
@@ -297,7 +299,7 @@ async function main() {
       await until(async () => (await ruth.page.locator(".ph-note").innerText()).includes("Saved on this phone"), "saved on this phone");
       await shot(ruth.page, "int-09-offline-phone");
       await ruth.ctx.setOffline(false);
-      await until(async () => (await layer().locator(".gfs-big").innerText()) === "3", "3 on the TV", 15000);
+      await until(async () => (await layer().locator(".gfs-n").innerText()) === "3", "3 on the TV", 15000);
       await press(fac, sql, room.id, "phones_down");
       await until(async () => await priya.page.locator(".ph-app.is-dimmed").count() === 1, "phone dims");
       await shot(tv, "int-09-phones-down-tv"); await shot(priya.page, "int-09-phones-down-phone");
@@ -426,7 +428,7 @@ async function main() {
         const counts = await pLayer().locator(".gfs-leg:not([aria-hidden]) small").allInnerTexts();
         return shown.length === 10 && counts.length > 0 && counts.every(c => server.some(s => s.count === Number(c.replace(/\D/g, ""))));
       }, "every item's dot, and legend counts from the server", 8000);
-      assert.equal(await ptv.locator(".tv-foot .tv-tally").innerText(), "50 answering");
+      assert.equal(await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? ""), "50 answering");
       const jumps = await ptv.evaluate(() => (window as unknown as { __jumps: { n: string; step: number; r: number }[] }).__jumps);
       const worst = Math.max(...jumps.map(j => j.step));
       assert.ok(jumps.length > 100 && worst < 120, `no dot jumps between frames (largest step ${Math.round(worst)} px over ${jumps.length} frames)`);

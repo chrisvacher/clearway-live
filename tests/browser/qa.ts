@@ -87,7 +87,7 @@ async function main() {
     const rows = () => layer().locator(".qa-row");
     const tvTexts = async () => (await rows().evaluateAll(els => els.filter(e => !(e as HTMLElement).style.opacity || Number((e as HTMLElement).style.opacity) > 0.5)
       .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(e => e.querySelector(".qa-text")!.textContent!)));
-    const tally = async () => (await tv.locator(".tv-foot .tv-tally").innerText()).trim();
+    const tally = async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim();
 
     async function phone(person: { email: string }) {
       const ctx = await browser!.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -111,7 +111,7 @@ async function main() {
     await step("Empty: Waiting for questions on the TV, no questions yet on phones", async () => {
       await press(fac, sql, room.id, "go_live", { session: qa });
       await until(async () => (await layer().getAttribute("data-kind")) === "qa", "Q&A on the TV", 10000);
-      await until(async () => (await tally()) === "0 questions", "count reads 0 questions", 10000);
+      await until(async () => (await tally()) === "0 questions from 0 people", "count reads 0 questions", 10000);
       assert.equal(await layer().locator(".qa-note").isVisible(), true, "Waiting for questions");
       assert.equal(await layer().locator(".tv-note").isVisible(), false, "the generic waiting line is not shown");
       await until(async () => (await priya.page.locator(".ph-body").innerText()).includes("No questions yet. Be the first to ask."), "phone empty state", 10000);
@@ -132,7 +132,7 @@ async function main() {
     await step("Folding: a near-duplicate folds as it arrives and shows asked by 2", async () => {
       await until(async () => await ben.page.locator("#qa-question").isVisible(), "Ben's ask form", 10000);
       await ask(ben.page, "How many people answered the survey");
-      await until(async () => (await rows().first().locator(".qa-meta").innerText()).includes("asked by 2"), "asked by 2 on the TV", 5000);
+      await until(async () => (await rows().first().locator(".qa-meta").innerText()).includes("Asked by 2"), "asked by 2 on the TV", 5000);
       await until(async () => (await tally()) === "1 question", "count reads 1 question", 5000);
       assert.equal((await rows().first().locator("b").innerText()).trim(), "2");
       assert.equal(await item(ben.page, "How many people answered").locator(".qa-vote").isDisabled(), true, "a folded question counts as Ben's own");
@@ -143,7 +143,7 @@ async function main() {
       await until(async () => (await server()).length === 3, "three questions", 5000);
       await ask(priya.page, "Where do small groups fit in all this?");
       await until(async () => (await layer().locator(".qa-more").innerText()).includes("+ 1 more on your phones"), "more line", 5000);
-      await until(async () => (await tally()) === "4 questions", "count reads 4 questions", 5000);
+      await until(async () => (await tally()).startsWith("4 questions from "), "count reads 4 questions", 5000);
       const top = (await server()).slice(0, 3).map(q => q.text);
       await until(async () => JSON.stringify(await tvTexts()) === JSON.stringify(top), "the TV shows the server's top three", 5000);
       assert.equal(top[0], "How many people answered the survey?", "asked by 2 leads: each asker counts 2");
@@ -198,7 +198,7 @@ async function main() {
       const row = panelItem("How many people answered the survey?");
       await row.getByRole("button", { name: "Undo fold" }).click();
       await until(async () => (await server()).filter(q => q.text.startsWith("How many people answered")).length === 2, "two questions again", 5000);
-      await until(async () => !(await layer().innerText()).includes("asked by 2"), "asked by 2 is gone from the TV", 5000);
+      await until(async () => !(await layer().innerText()).includes("Asked by 2"), "asked by 2 is gone from the TV", 5000);
       await shot(control, "int-03-control-undo");
     });
     await step("Edit from the control panel: the TV shows the edited words", async () => {
@@ -223,7 +223,7 @@ async function main() {
       await shot(tv, "int-03-long-text-tv"); await shot(priya.page, "int-03-long-text-phone");
     });
     await step("AI off: questions fold by matching words only and nothing is marked as AI", async () => {
-      assert.equal(await tv.locator(".qa-ai").count(), 0); assert.equal(await priya.page.getByText("Combined").count(), 0);
+      assert.equal(await tv.locator(".qa-by .cwl-ai-mark").count(), 0); assert.equal(await priya.page.getByText("Combined").count(), 0);
       await shot(tv, "int-03-ai-off-tv");
     });
     await step("Phones down: phones hold their vote and Ask; the TV holds still", async () => {
@@ -369,7 +369,7 @@ async function main() {
       assert.equal(jumps, 0, `no row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
       const final = ((await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results) as { total: number; questions: Q[] };
       const player = ptv.locator(".tv-layer:not(.is-leaving)").last();
-      await until(async () => (await ptv.locator(".tv-foot .tv-tally").innerText()).trim() === `${final.total} questions`, "the TV count matches the server", 5000);
+      await until(async () => (await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === `${final.total} questions`, "the TV count matches the server", 5000);
       const shownTexts = await player.locator(".qa-row").evaluateAll(els => els.filter(e => !(e as HTMLElement).style.opacity).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(e => e.querySelector(".qa-text")!.textContent));
       assert.deepEqual(shownTexts, final.questions.slice(0, 3).map(q => q.text), "the TV shows the server's top three");
       assert.equal((await player.locator(".qa-more").innerText()).trim(), `+ ${final.total - 3} more on your phones`);

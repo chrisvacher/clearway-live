@@ -322,15 +322,15 @@ async function main() {
       await ask(priya, "When does the new building open?");
       await ask(ben, "What date will the new building be ready?");
       await ask(ruth, "How much will the building cost?");
-      await until(async () => (await layer().locator(".qa-row", { hasText: "When does the new building open?" }).innerText().catch(() => "")).includes("asked by 2"), "the fold reaches the TV", 10000);
-      assert.equal(await layer().locator(".qa-row .qa-ai .cwl-ai-mark").count(), 1, "marked with the gradient AI icon");
+      await until(async () => (await layer().locator(".qa-row", { hasText: "When does the new building open?" }).innerText().catch(() => "")).includes("Asked by 2"), "the fold reaches the TV", 10000);
+      assert.equal(await layer().locator(".qa-row .qa-by .cwl-ai-mark").count(), 1, "marked with the gradient AI icon");
       const folded = (await results()).questions.find((q: { text: string }) => q.text === "When does the new building open?");
       assert.deepEqual([folded.askers, folded.ai], [2, true], "the server's group");
       await shot(tv, "int-03-ai-fold-tv");
       await control.locator(".qa-fold-by.is-ai").first().waitFor({ timeout: 10000 });
       await shot(control, "int-03-control-ai-fold");
       await control.locator(".qa-ctl-item", { hasText: "When does the new building open?" }).getByRole("button", { name: "Undo fold" }).click();
-      await until(async () => (await layer().locator(".qa-row .qa-ai").count()) === 0, "undo: the AI mark goes", 5000);
+      await until(async () => (await layer().locator(".qa-row .qa-by .cwl-ai-mark").count()) === 0, "undo: the AI mark goes", 5000);
       await until(async () => (await layer().locator(".qa-text").allTextContents()).includes("What date will the new building be ready?"), "and the question is back on its own", 5000);
     });
     await press(fac, sql, room.id, "nothing_live");
@@ -372,7 +372,7 @@ async function main() {
         for (const pts of Object.values(samples)) for (let i = 1; i < pts.length; i++) { frames++; const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); largest = Math.max(largest, d); if (d >= jump) jumps++; }
         assert.equal(jumps, 0, `no group label jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
         const final = (await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results as { total: number; groups: { label: string; count: number }[] };
-        await until(async () => (await ptv.locator(".tv-foot .tv-tally").innerText()).trim() === `${final.total} answers`, "the TV count matches the server", 8000);
+        await until(async () => (await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim().startsWith(`${final.total} answers from `), "the TV count matches the server", 8000);
         const tvGroups = async () => (await ptv.locator(".tv-layer:not(.is-leaving) .ai-group").evaluateAll(els => els.filter(e => !(e as HTMLElement).style.opacity || Number((e as HTMLElement).style.opacity) > 0.5)
           .map(e => `${e.querySelector(".lbl")!.textContent!.trim()}:${e.querySelector(".n")!.textContent}`))).sort();
         const want = final.groups.slice(0, 9).map(g => `${g.label}:${g.count}`).sort();

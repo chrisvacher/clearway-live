@@ -4,7 +4,7 @@ import { Board, reducedMotion, tokenMs, type BoardKind } from "@/lib/tv/board";
 import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
 import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
-import { countOf, countUnit, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
+import { countLabel, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { spotlights } from "@/components/interactions/spotlights";
 
 // D1-03: the word cloud or the response wall for one session layer. On the TV
@@ -22,34 +22,50 @@ export function LiveBoard({ kind, session, frame, flow }: { kind: BoardKind; ses
   return <div ref={host} className="tv-board" />;
 }
 
-// The count climbs on the same gentle spring as the board, in step with the
-// answers the TV is showing, never restarting a tick with each batch. It sits in the
-// bottom right corner: "8 answering" for one-answer-per-person kinds, "23 answers" for text.
+// The count badges (Chris, November 4 2026): top left, beside the church's badge, numbers only.
+// People who have responded (users icon) on every live result screen; on a kind where one person
+// can send several (counts "answers": word cloud, open text, Q&A, lens wall, bullets) a second badge
+// counts the submissions (send icon, the phone's Send). A one-response kind counts each person once,
+// however many items they touch. Each number climbs on the same gentle spring as the board, in step
+// with the answers the TV is showing, never restarting a tick with each batch.
+const usersIcon = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
+const sendIcon = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>';
 export function Tally({ flow, results, counts, kind }: { flow?: TvFlow | null; results: LiveResults; counts?: KindInfo["counts"]; kind?: InteractionKind }) {
   const el = useRef<HTMLSpanElement>(null), mode = useRef(counts), named = useRef(kind);
   mode.current = counts; named.current = kind;
-  const write = (node: HTMLElement, n: number) => { node.replaceChildren(Object.assign(document.createElement("b"), { textContent: String(n) }), ` ${countUnit(n, mode.current, named.current)}`); };
-  const total = countOf(results, counts);
+  const several = counts === "answers";
+  const write = (node: HTMLElement, people: number, total: number) => {
+    node.querySelector(".tv-count-people b")!.textContent = String(people);
+    node.querySelector(".tv-count-sent b")!.textContent = String(total);
+    node.setAttribute("aria-label", countLabel(people, total, mode.current, named.current));
+  };
   useLayoutEffect(() => {
-    const node = el.current; if (!node || !flow) return;
-    const read = (r: LiveResults) => countOf(r, mode.current);
-    let value = flow.current ? read(flow.current.frame.state.results) : total, target = value, velocity = 0, raf = 0, last = performance.now();
-    write(node, value);
+    const node = el.current; if (!node) return;
+    node.querySelector(".tv-count-people i")!.innerHTML = usersIcon;
+    node.querySelector(".tv-count-sent i")!.innerHTML = sendIcon;
+    const read = (r: LiveResults): [number, number] => [r.people, r.total];
+    let [p, t] = flow?.current ? read(flow.current.frame.state.results) : read(results);
+    let tp = p, tt = t, vp = 0, vt = 0, raf = 0, last = performance.now();
+    write(node, p, t);
+    if (!flow) return;
     const run = (now: number) => {
       const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
-      if (reducedMotion(node)) { value = target; velocity = 0; }
-      else [value, velocity] = springStep(value, velocity, target, springRate(tokenMs(node, "cwl-dur-make-room")), dt);
-      const done = Math.abs(value - target) < 0.3 && Math.abs(velocity) < 0.3;
-      write(node, done ? target : Math.round(value));
+      if (reducedMotion(node)) { p = tp; t = tt; vp = vt = 0; }
+      else { const w = springRate(tokenMs(node, "cwl-dur-make-room")); [p, vp] = springStep(p, vp, tp, w, dt); [t, vt] = springStep(t, vt, tt, w, dt); }
+      const done = Math.abs(p - tp) < 0.3 && Math.abs(vp) < 0.3 && Math.abs(t - tt) < 0.3 && Math.abs(vt) < 0.3;
+      write(node, done ? tp : Math.round(p), done ? tt : Math.round(t));
       raf = done ? 0 : requestAnimationFrame(run);
     };
     const off = flow.subscribe(shown => {
-      target = read(shown.frame.state.results);
+      [tp, tt] = read(shown.frame.state.results);
       if (!raf) { last = performance.now(); raf = requestAnimationFrame(run); }
     });
     return () => { off(); cancelAnimationFrame(raf); };
-  }, [flow, counts, kind]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <span ref={el} className="tv-tally">{flow ? null : <><b>{total}</b> {countUnit(total, counts, kind)}</>}</span>;
+  }, [flow, counts, kind, flow ? 0 : results.people, flow ? 0 : results.total]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <span ref={el} className={`tv-tally tv-counts${several ? " is-several" : ""}`} role="status" aria-label={countLabel(results.people, results.total, counts, kind)}>
+    <span className="tv-count tv-count-people"><i /><b>{results.people}</b></span>
+    <span className="tv-count tv-count-sent"><i /><b>{results.total}</b></span>
+  </span>;
 }
 
 type Spot = { key: string; text: string; meta: string };

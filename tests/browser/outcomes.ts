@@ -256,7 +256,7 @@ async function main() {
       assert.ok(server.count >= 100, "the server holds every bullet");
       await until(async () => /^\+ \d+ earlier bullets? on your phones$/.test(await pLayer().locator(".oc-more").innerText()), "the rest are counted, not dropped", 8000);
       assert.equal(await pLayer().locator(".oc-bullet").count(), 6, "the newest six show");
-      assert.equal(await ptv.locator(".tv-foot .tv-tally").innerText(), "100 bullets");
+      assert.ok((await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).startsWith("100 bullets from "), "100 bullets on the TV");
       await shot(ptv, "d1-11-crowded-tv");
     });
     await step("D2-05 Crowded, 50 phones: confirm, rename and challenge, the TV's counts match the server and no reason reaches it", async () => {
@@ -272,7 +272,7 @@ async function main() {
         const rows = await pLayer().locator(".oc-crow").evaluateAll(els => els.map(el => ({ counts: [...el.querySelectorAll(".oc-cnts > span")].map(c => Number(c.textContent)), hot: el.classList.contains("is-challenged") })));
         return rows.length === server.length && server.every((s, i) => (s.challenged ? rows[i].hot : true) && rows[i].counts.join(",") === [s.c, s.r, s.x].join(","));
       }, "the counts on the TV are the server's", 8000);
-      assert.equal(await ptv.locator(".tv-foot .tv-tally").innerText(), "50 answering");
+      assert.equal(await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? ""), "50 answering");
       assert.ok(!(await ptv.content()).includes("kitsecret"), "no reason reaches the TV");
       await shot(ptv, "d2-05-crowded-tv");
     });

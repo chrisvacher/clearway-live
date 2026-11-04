@@ -201,7 +201,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
             {view.phone_depth && <details className="ph-more"><summary>More detail</summary><div className="ph-depth">{view.phone_depth}</div></details>}
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
             {takesInput && (kind?.shares_answers === false
-              ? <p className="ph-who"><span className="ph-marker">Private</span><span><strong>Who sees my answers?</strong> Only the facilitators, with your name. They never show on the screen.</span></p>
+              ? <p className="ph-who"><span className="ph-marker">Private</span><span><strong>Who sees my answers?</strong> Only the facilitators will read this, with your name. It never shows on the screen.</span></p>
               : <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>)}
             {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}

@@ -35,7 +35,9 @@ export function foldedInto(id: string, list: QaQuestion[]) {
 export function showsAsk(pool: Pick<QaPool, "session_id"> | null | undefined, viewing: string | null): pool is QaPool {
   return Boolean(pool) && viewing !== pool!.session_id;
 }
-export const askedBy = (q: Pick<QaQuestion, "askers">) => q.askers > 1 ? `asked by ${q.askers}` : "";
+// The label below a question two or more people asked (Chris, November 4): "Asked by 2", led on the TV
+// and phones by the AI icon and a dot when AI folded them. No "Combined".
+export const askedBy = (q: Pick<QaQuestion, "askers">) => q.askers > 1 ? `Asked by ${q.askers}` : "";
 export const moreLine = (rest: number) => rest > 0 ? `+ ${rest} more on your phones` : "";
 
 // Mirrors the database's checks, so the phone holds Ask and says why.

@@ -7,7 +7,7 @@
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
 import { springRate, springStep } from "@/lib/tv/motion";
 import { askedBy, foldedInto, moreLine, topQuestions, type QaQuestion } from "@/lib/interactions/qa";
-import { AiChanges, aiLineEl, sweepAi } from "@/components/interactions/ai/ai-dom";
+import { AiChanges, aiMarkEl, sweepAi } from "@/components/interactions/ai/ai-dom";
 
 const svg = (paths: string) => `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 export const arrowUp = svg('<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>');
@@ -72,11 +72,13 @@ export class QaRows {
         meta.dataset.content = sign;
         meta.replaceChildren();
         if (q.askers > 1) {
-          if (q.ai) meta.append(aiLineEl("Combined", "qa-ai ai-line"), " · ");
-          meta.append(askedBy(q));
+          const by = make("span", "qa-by");
+          if (q.ai) { const dot = make("span", "qa-dot"); dot.textContent = "·"; dot.setAttribute("aria-hidden", "true"); by.append(aiMarkEl("Combined by AI"), dot); }
+          by.append(askedBy(q));
+          meta.append(by);
         }
       }
-      r.el.setAttribute("aria-label", `${q.text}. ${q.people} ${q.people === 1 ? "person" : "people"}${q.askers > 1 ? `, ${askedBy(q)}` : ""}`);
+      r.el.setAttribute("aria-label", `${q.text}. ${q.people} ${q.people === 1 ? "person" : "people"}${q.askers > 1 ? `, ${q.ai ? "combined by AI, " : ""}${askedBy(q).toLowerCase()}` : ""}`);
     });
     this.fit(rowH);
     // AI folding a question into a row sweeps that row's AI icon once, as the folded row glides into it.

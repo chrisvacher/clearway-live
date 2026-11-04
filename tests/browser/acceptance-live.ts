@@ -107,7 +107,7 @@ async function main() {
     await tv.evaluate(() => { (window as unknown as { __loaded: number }).__loaded = 1; });
     await tv.evaluate(watcher);
     const layer = () => tv.locator(".tv-layer:not(.is-leaving)").last();
-    const tally = async () => (await tv.locator(".tv-foot .tv-tally").innerText()).replace(/\s+/g, " ").trim();
+    const tally = async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).replace(/\s+/g, " ").trim();
     const watch = async (sel: string) => tv.evaluate(s => { const a = (window as unknown as { __acc: Watch & { sel: string } }).__acc; const out = { ...a, jumps: a.jumps.slice() }; Object.assign(a, { sel: s, frames: 0, blank: 0, dim: 0, worst: 0, worstKey: "", worstDt: 0, steps: 0, jumps: [] }); return out as Watch; }, sel);
     const phones = await joinPhones(app.origin, 50, { prefix: "Acceptance phone" });
 
@@ -135,20 +135,20 @@ async function main() {
         answer: once(() => undefined), matches: async server => {
           const shown = await layer().locator(".tv-field .tv-word:not(.is-going)").evaluateAll(els => els.map(e => ({ key: (e as HTMLElement).dataset.key!, leader: e.classList.contains("is-leader") })));
           const repeated = (server.words as { key: string; count: number; level: string }[]).filter(w => w.count > 1);
-          return (await tally()) === `${server.total} answers` && repeated.length > 0 && shown.length === repeated.length
+          return (await tally()).startsWith(`${server.total} answers from `) && repeated.length > 0 && shown.length === repeated.length
             && repeated.every(w => shown.some(s => s.key === w.key && s.leader === (w.level === "leader")));
         } },
       { int: "02", kind: "wall", label: "Open text", options: {}, sel: ".tv-layer:not(.is-leaving) .ai-wall[data-ai=\"off\"] .ai-card", sends: 50,
         answer: once(() => undefined), matches: async (server, session) => {
           const stored = (await sql.query("select text from public.submissions where session_id=$1 and not deleted and not withdrawn", [session])).rows.map(r => r.text as string).sort();
           const cards = (await layer().locator(".ai-wall[data-ai=\"off\"] .ai-card").allTextContents()).sort();
-          return (await tally()) === `${server.total} answers` && JSON.stringify(cards) === JSON.stringify(stored);
+          return (await tally()).startsWith(`${server.total} answers from `) && JSON.stringify(cards) === JSON.stringify(stored);
         } },
       { int: "03", kind: "qa", label: "Q&A", options: { any_time: false }, sel: ".tv-layer:not(.is-leaving) .qa-row", sends: 50, maxSends: 5,
         answer: once(() => undefined), matches: async server => {
           const questions = server.questions as { text: string }[];
           const shown = await layer().locator(".qa-row").evaluateAll(els => els.filter(e => !(e as HTMLElement).style.opacity).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(e => e.querySelector(".qa-text")!.textContent));
-          return (await tally()) === `${server.total} questions` && JSON.stringify(shown) === JSON.stringify(questions.slice(0, 3).map(q => q.text))
+          return (await tally()).startsWith(`${server.total} questions from `) && JSON.stringify(shown) === JSON.stringify(questions.slice(0, 3).map(q => q.text))
             && (await layer().locator(".qa-more").innerText()).trim() === `+ ${server.total - 3} more on your phones`;
         } },
       { int: "04", kind: "choice", label: "Multiple choice", options: { items: five, multiple: false }, sel: ".tv-layer:not(.is-leaving) .tv-bar", sends: 60,

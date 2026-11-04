@@ -42,7 +42,7 @@ test("Crowded, 50 phones: 29 questions keep the top three and an honest count", 
 
 test("Folding: asked by 3, and a folded question glides into its survivor", () => {
   const survivor = q(1, 1, { askers: 3, folded: 2, ids: [id(1), id(7), id(8)] });
-  assert.equal(askedBy(survivor), "asked by 3");
+  assert.equal(askedBy(survivor), "Asked by 3");
   assert.equal(askedBy(q(2, 2)), "", "a single asker says nothing");
   assert.equal(foldedInto(id(7), [survivor, q(2, 2)]), id(1));
   assert.equal(foldedInto(id(9), [survivor]), null, "an unknown id folded nowhere");

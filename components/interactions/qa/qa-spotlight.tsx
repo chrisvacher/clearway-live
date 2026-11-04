@@ -16,7 +16,7 @@ export function QaSpotlight({ frame }: { frame: LiveSnapshot | null }) {
     <div className={`tv-scrim${spot ? " is-on" : ""}`} aria-hidden="true" />
     <div className={`tv-spot qa-spot${spot ? " is-on" : ""}`} aria-hidden={!spot} role={spot ? "status" : undefined}>
       {shown && <><p className="tv-spot-eyebrow">Question from the room</p><p className="tv-spot-text qa-spot-text">{shown.text}</p>
-        <p className="tv-spot-meta qa-spot-meta"><ArrowUp aria-hidden="true" /><span>{shown.people}{shown.askers > 1 && <> · {shown.ai && <><AiMark /> Combined · </>}asked by {shown.askers}</>}</span></p></>}
+        <p className="tv-spot-meta qa-spot-meta"><ArrowUp aria-hidden="true" /><span>{shown.people}{shown.askers > 1 && <> · {shown.ai && <><AiMark label="Combined by AI" /> · </>}Asked by {shown.askers}</>}</span></p></>}
     </div>
   </>;
 }

@@ -333,7 +333,7 @@ export async function milestone3Failures({ env, sql, mail, app, browser, step, s
     await aiFails("Q&A", "qa", qa, async n => {
       const p = [ben.page, grace.page][n % 2]; await p.locator("#qa-question").waitFor({ timeout: 10000 });
       await p.fill("#qa-question", questions[n]); await p.locator(".qa-ask-form .ph-send").click();
-    }, async n => ((await results()).questions as { text: string }[]).some(q => q.text === questions[n]) && (await tv.locator(".tv-foot .tv-tally").innerText()).trim() === `${(await results()).total} questions`);
+    }, async n => ((await results()).questions as { text: string }[]).some(q => q.text === questions[n]) && (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim().startsWith(`${(await results()).total} questions from `));
   });
 
   // ---------- FAIL-10 with the new kinds ----------

@@ -35,6 +35,10 @@ export function countUnit(n: number, counts: KindInfo["counts"] | undefined, kin
   const words = kind ? countWords[kind] : undefined;
   return counts === "people" ? "answering" : words ? words[n === 1 ? 0 : 1] : n === 1 ? "answer" : "answers";
 }
+// The TV's count badges, read aloud (November 4): "8 answering" where each person gives one response,
+// "23 answers from 8 people" where one person can send several. The badges themselves show numbers only.
+export const countLabel = (people: number, total: number, counts: KindInfo["counts"] | undefined, kind?: InteractionKind) =>
+  counts === "people" ? `${people} ${countUnit(people, counts, kind)}` : `${total} ${countUnit(total, counts, kind)} from ${people} ${people === 1 ? "person" : "people"}`;
 
 // Content screens (PRD "Content screens").
 export const contentScreens = ["headline", "scripture", "prayer", "image", "holding", "screen_check"] as const;

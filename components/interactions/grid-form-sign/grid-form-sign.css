@@ -80,14 +80,28 @@
 .gfs-how { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 
 /* ---------- TV: the private form, a still structure ---------- */
-.tv-board.gfs-form { justify-content: center; gap: 20px; }
-.gfs-form .gfs-big { font-size: calc(var(--cwl-fs-tv-display) * 1.4); }
+/* Redrawn (Chris, November 4 2026): a mark per person present, the count and the privacy line as one block,
+   centred under the prompt and at least cwl-tv-moment-gap beneath it. The view sizes the marks. */
+.tv-board.gfs-form { justify-content: center; gap: 36px; box-sizing: border-box; padding-top: var(--cwl-tv-moment-gap); }
 .gfs-form p { margin: 0; }
+.gfs-marks { flex: none; display: grid; grid-template-columns: repeat(var(--gfs-cols, 8), var(--gfs-d, 96px)); grid-auto-rows: var(--gfs-d, 96px); gap: var(--gfs-g, 24px); align-content: start; justify-content: start; }
+.gfs-mark { position: relative; width: var(--gfs-d, 96px); height: var(--gfs-d, 96px); border-radius: 50%; box-shadow: inset 0 0 0 max(3px, calc(var(--gfs-d, 96px) * 0.06)) var(--cwl-border-strong); }
+.gfs-mark::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--cwl-text); transform: scale(0);
+  transition: transform var(--cwl-dur-mark-fill) var(--cwl-ease-signature), background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.gfs-mark.is-done::after { transform: scale(1); }
+.gfs-mark.is-new::after { background: var(--cwl-live); }
+.gfs-mark.is-instant::after, [data-motion="reduced"] .gfs-mark::after { transition: none; }
+.tv-viewport[data-theme="light"] .gfs-mark.is-new::after, [data-theme="light"] .gfs-mark.is-new::after { box-shadow: inset 0 0 0 3px var(--cwl-on-live); }
+.tv-stage .gfs-count { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-light); line-height: 1.1; color: var(--cwl-text); }
+.tv-stage .gfs-count b { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.tv-stage .gfs-count .gfs-of { font-size: inherit; font-weight: inherit; }
+.gfs-form.is-count-only .gfs-marks { display: none; }
+.tv-stage .gfs-form.is-count-only .gfs-count { font-size: var(--cwl-fs-tv-display); }
 .gfs-lock { display: flex; align-items: center; gap: 0.5em; margin: 0; font-size: var(--cwl-fs-tv-body); line-height: 1.2; font-weight: var(--fw-medium); color: var(--cwl-text-muted); }
 .gfs-lock svg { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-/* The count is the content on these two screens (the boards set tally off), so the corner count stays away. */
-.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="form"]) .tv-foot .tv-tally,
-.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="sign"]) .tv-foot .tv-tally { opacity: 0; }
+/* The count is the content on these two screens, so the count badges stay away. */
+.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="form"]) .tv-top .tv-tally,
+.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="sign"]) .tv-top .tv-tally { opacity: 0; }
 
 /* ---------- Phone: the grid on one screen ---------- */
 .gfs-ph-grid { display: flex; flex-direction: column; gap: 10px; }
@@ -152,3 +166,13 @@
 .gfs-answers dl { margin: var(--space-2) 0 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .gfs-answers dt { color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-phone-label); }
 .gfs-answers dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--cwl-app-text); }
+
+/* ---------- Phone: the private form's marks after sending (November 4 2026) ---------- */
+.gfs-ph-count { display: flex; flex-direction: column; gap: 8px; }
+.gfs-ph-marks { display: flex; flex-wrap: wrap; gap: 8px; }
+.gfs-ph-marks i { width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--cwl-border-strong); }
+.gfs-ph-marks i.is-done { background: var(--cwl-text); box-shadow: none; }
+.gfs-ph-marks.is-small { gap: 5px; } .gfs-ph-marks.is-small i { width: 14px; height: 14px; }
+.gfs-ph-marks.is-tiny { gap: 3px; } .gfs-ph-marks.is-tiny i { width: 8px; height: 8px; box-shadow: inset 0 0 0 1px var(--cwl-border-strong); } .gfs-ph-marks.is-tiny i.is-done { box-shadow: none; }
+.surface .ph-app .gfs-ph-n { margin: 0; font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-light); color: var(--cwl-text); }
+.gfs-ph-n b { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }

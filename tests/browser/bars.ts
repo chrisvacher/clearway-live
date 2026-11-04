@@ -107,7 +107,7 @@ async function main() {
       const clipped = await layer().locator(".tv-bar-value, .tv-cut-label").evaluateAll(els => els.filter(el => el.scrollWidth > el.clientWidth + 1).map(el => el.textContent));
       assert.deepEqual(clipped, [], `${label}: values and the cut label show whole`);
     }
-    const tally = async (n: number) => until(async () => (await tv.locator(".tv-foot .tv-tally").innerText()).trim() === `${n} answering`, `${n} answering`, 8000);
+    const tally = async (n: number) => until(async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === `${n} answering`, `${n} answering`, 8000);
     // Nothing jumps: from the frame log, no row moves a whole row or more in one
     // frame, and no bar falls back to zero once shown (pass 3 change 4).
     async function smooth(label: string) {
@@ -454,7 +454,7 @@ async function main() {
       for (const n of [8, 16]) {
         for (let i = n === 8 ? 0 : 8; i < n; i++) assert.equal(await phones[i].send(id, value(i)), "accepted");
         for (const { page, size } of screens) {
-          await until(async () => (await page.locator(".tv-foot .tv-tally").innerText()).trim() === `${n} answering`, `${size}: ${n} answering`, 8000);
+          await until(async () => (await page.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === `${n} answering`, `${size}: ${n} answering`, 8000);
           await delay(1500);
           const cut = await page.locator(".tv-layer:not(.is-leaving) .tv-bars").evaluate(board => {
             const edge = board.getBoundingClientRect(), range = document.createRange();
@@ -504,7 +504,7 @@ async function main() {
         assert.ok(sent.every(s => s === "accepted"), `${k.kind}: every answer accepted (${[...new Set(sent)]})`);
         const changed = await Promise.all(phones.slice(0, 10).map(async (p, i) => { await delay(Math.floor(Math.random() * 1500)); return p.send(k.id, k.value(i + 3)); }));
         assert.ok(changed.every(s => s === "accepted"), `${k.kind}: every change accepted`);
-        await until(async () => (await ptv.locator(".tv-foot .tv-tally").innerText()).trim() === "50 answering", `${k.kind}: 50 answering`, 10000);
+        await until(async () => (await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === "50 answering", `${k.kind}: 50 answering`, 10000);
         const server = (await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results;
         if (k.kind === "scale") {
           await until(async () => (await ptv.locator(".tv-layer:not(.is-leaving) .tv-scale-number").last().innerText()) === Number(server.scale.average).toFixed(1), "scale average matches the server", 8000);

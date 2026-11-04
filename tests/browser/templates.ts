@@ -336,7 +336,7 @@ async function main() {
       await shot(tv, "template-check-in-tv"); await shot(ruth, "template-check-in-phone");
     });
     await step("TV: the join strip and the count both show, and neither overlaps the other", async () => {
-      const qr = (await layer().locator(".tv-join-strip").boundingBox())!, count = (await tv.locator(".tv-foot .tv-tally").boundingBox())!;
+      const qr = (await layer().locator(".tv-join-strip").boundingBox())!, count = (await tv.locator(".tv-top .tv-tally").boundingBox())!;
       assert.ok(qr && count, "both on the TV");
       const overlap = !(qr.y + qr.height <= count.y || count.y + count.height <= qr.y || qr.x + qr.width <= count.x || count.x + count.width <= qr.x);
       assert.equal(overlap, false, `the strip ${JSON.stringify(qr)} clears the count ${JSON.stringify(count)}`);

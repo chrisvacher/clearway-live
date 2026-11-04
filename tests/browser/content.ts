@@ -116,11 +116,12 @@ async function main() {
       await until(async () => (await ruth.locator(".ph-body").innerText()).includes("If the screen looks wrong"), "fixes on the phone");
       await shot(tv, "content-check-tv"); await shot(ruth, "content-check-phone");
     });
-    await step("Pass 3 chrome: the church top left, the Lime mark top right, the count bottom right", async () => {
+    await step("Pass 3 chrome: the church top left with the count badges beside it, the Lime mark top right", async () => {
       await live(cloud);
       await ruth.fill("#ph-answer", "hope"); await ruth.locator(".ph-send").click();
       await ben.fill("#ph-answer", "hope"); await ben.locator(".ph-send").click();
-      await until(async () => (await tv.locator(".tv-foot .tv-tally").innerText()).trim() === "2 answers", "count bottom right", 10000);
+      await until(async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === "2 answers from 2 people", "the count badges top left", 10000);
+      assert.deepEqual(await tv.locator(".tv-top .tv-count b").allInnerTexts(), ["2", "2"], "people, then submissions");
       assert.equal(await tv.locator(".tv-top .tv-live.is-live").count(), 1, "the LIVE mark");
       assert.equal(await tv.locator(".tv-top .tv-mark").count(), 0, "the Clearway mark is gone from the lockup");
       assert.equal(await ruth.locator(".ph-head .ph-live.is-live").count(), 1, "the phone header carries the mark");
