@@ -412,6 +412,50 @@ async function main() {
       await press(fac, sql, room.id, "nothing_live");
     });
 
+    // ---------- Statements' values at the sizes a room uses ----------
+    // Eight statements beside the join strip (the narrowest board) in the very small room:
+    // every value and its agree share show whole, never cut off at the side or the bottom.
+    await step("INT-17 values whole: eight statements beside the join strip, 8 then 16 answers, at 1920x1080 and 1280x720", async () => {
+      const pfac = await facilitator(env, sql, practiceRoom), tag = randomUUID().slice(0, 6);
+      const eight = opts("We know who we are trying to reach", "Our leaders have room to lead", "Decisions get made and stay made", "Our systems help more than they hurt",
+        "We celebrate what God is doing", "Our staff and elders trust each other with hard conversations", "Newcomers find a next step within a month", "We agree");
+      const id = (await sql.query(`insert into public.sessions(engagement_id,title,part,position,interaction,prompt,state,options,settings) values($1,$2,'Day 1',899,'statements',$3,'ready',
+        private.session_options('statements',$4::jsonb,$1),'{"anonymous":true,"burst_minutes":4,"join_strip":true}') returning id`,
+        [practiceRoom, `Values ${tag}`, "How true is each of these for us today?", { items: eight, low: "Strongly disagree", high: "Strongly agree" }])).rows[0].id as string;
+      const screens: { page: Page; size: string; ctx: BrowserContext }[] = [];
+      for (const [width, height] of [[1920, 1080], [1280, 720]]) {
+        const ctx = await browser!.newContext({ viewport: { width, height } }), page = await ctx.newPage(); await page.goto(app.origin + "/tv");
+        const pcode = await until(async () => { const c = (await page.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
+        await pairTv(pfac, practiceRoom, app.secret, pcode, `Values TV ${width}`);
+        screens.push({ page, size: `${width}x${height}`, ctx });
+      }
+      await press(pfac, sql, practiceRoom, "go_live", { session: id });
+      for (const { page } of screens) await page.locator(".tv-layer:not(.is-leaving) .tv-join-strip").waitFor({ timeout: 10000 });
+      const phones = await joinPhones(app.origin, 16);
+      // Everyone agrees with the last statement: "5.0 · 100% agree", the widest value there is.
+      const value = (i: number) => ({ ratings: Object.fromEntries(eight.map((o, k) => [o.key, k === 7 ? 5 : ((i + k * 2) % 5) + 1])) });
+      for (const n of [8, 16]) {
+        for (let i = n === 8 ? 0 : 8; i < n; i++) assert.equal(await phones[i].send(id, value(i)), "accepted");
+        for (const { page, size } of screens) {
+          await until(async () => (await page.locator(".tv-foot .tv-tally").innerText()).trim() === `${n} answering`, `${size}: ${n} answering`, 8000);
+          await delay(1500);
+          const cut = await page.locator(".tv-layer:not(.is-leaving) .tv-bars").evaluate(board => {
+            const edge = board.getBoundingClientRect(), range = document.createRange();
+            return [...board.querySelectorAll<HTMLElement>(".tv-bar:not(.is-leaving) .tv-bar-value")].filter(el => {
+              range.selectNodeContents(el); const text = range.getBoundingClientRect();
+              return el.scrollWidth > el.clientWidth + 1 || text.right > edge.right + 1 || text.bottom > edge.bottom + 1;
+            }).map(el => el.textContent);
+          });
+          assert.deepEqual(cut, [], `${size}, ${n} answering: every value shows whole`);
+          const values = await page.locator(".tv-layer:not(.is-leaving) .tv-bar:not(.is-leaving) .tv-bar-value").allInnerTexts();
+          assert.equal(values.length, 8); assert.ok(values.includes("5.0 · 100% agree"), `${size}: the widest value, whole (${values.join(" | ")})`);
+          await shot(page, `int-17-values-${n}-${size}-tv`);
+        }
+      }
+      await press(pfac, sql, practiceRoom, "nothing_live");
+      for (const { ctx } of screens) await ctx.close();
+    });
+
     // ---------- 50 simulated phones in the practice room, every kind ----------
     await step("Crowded, 50 phones: every kind's answers reach the TV under one second, nothing jumps, numbers match the server", async () => {
       const seeded = (await sql.query("select 1 from public.engagements where id=$1 and not deleted", [practiceRoom])).rowCount;

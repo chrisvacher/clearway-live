@@ -37,6 +37,17 @@ export function barValue(kind: BarKind, bar: Bar, people: number): { main: strin
     default: return { main: "" };
   }
 }
+// The widest values a kind can show beside its bars, so the value column is sized for them
+// before they arrive (a "100% agree" never clips, and the column never jumps when one lands).
+export function widestValues(kind: BarKind, people: number): { main: string; small?: string }[] {
+  switch (kind) {
+    case "choice": return [{ main: String(Math.max(people, 10)), small: "· 100%" }];
+    case "ranking": return [{ main: "avg 0.0" }, { main: "", small: "No rankings yet" }];
+    case "points": return [{ main: "100%" }];
+    case "statements": return [{ main: "5.0", small: "· 100% agree" }, { main: "", small: "No answers yet" }];
+    default: return [];
+  }
+}
 // What Spotlight lifts over the scrim for an option key.
 export function barSpot(kind: BarKind, results: LiveResults, key: string): { text: string; meta: string } | null {
   if (kind === "scale") {

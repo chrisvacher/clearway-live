@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { allocate, barSpot, barValue, barsOf, budget, isBarKind, optionItems, pointsKey, rankTap, rankUp, rankingControlBody, scaleOf, scaleUsesSlider, suggestionBody, valueOf, type Bar } from "../../lib/interactions/bars";
+import { allocate, barSpot, barValue, barsOf, budget, isBarKind, optionItems, pointsKey, rankTap, rankUp, rankingControlBody, scaleOf, scaleUsesSlider, suggestionBody, valueOf, widestValues, type Bar } from "../../lib/interactions/bars";
 import { ownAnswers } from "../../lib/phone/policy";
 import { submissionRequest } from "../../lib/live/protocol";
 import type { LiveResults } from "../../lib/live/types";
@@ -131,4 +131,25 @@ test("the bar family's files use tokens only and plain copy: no raw hex, no em o
     assert.doesNotMatch(text, /[–—]/, `${file} has a dash`);
     if (!file.endsWith(".sql")) assert.doesNotMatch(text, /#[0-9a-fA-F]{3,8}\b/, `${file} has a raw hex value`);
   }
+});
+
+// The TV sizes each kind's value column for its widest value before any answer arrives, so
+// "5.0 · 100% agree" never clips and the column never jumps when it lands (November 3 fix).
+test("the widest values: every value a kind shows is no longer than its widest", () => {
+  const text = (v: { main: string; small?: string }) => `${v.main}${v.small ? `${v.main ? " " : ""}${v.small}` : ""}`;
+  const longest = (kind: Parameters<typeof widestValues>[0], people: number) => Math.max(...widestValues(kind, people).map(v => text(v).length));
+  const bar = { key: "s1", text: "We agree", count: 0, fraction: 0, leader: false } as unknown as Bar;
+  assert.ok(widestValues("statements", 8).some(v => text(v) === "5.0 · 100% agree"), "statements: the full agree share");
+  assert.ok(widestValues("statements", 8).some(v => text(v) === "No answers yet"), "statements: the empty state");
+  for (const [average, agree] of [[1, 0], [3.4, 50], [5, 100], [4.25, 88]]) {
+    const v = barValue("statements", { ...bar, count: 8, average, agree } as Bar, 8);
+    assert.ok(text(v).length <= longest("statements", 8), `statements: ${text(v)}`);
+  }
+  assert.ok(text(barValue("statements", bar, 0)).length <= longest("statements", 0), "statements: no answers yet");
+  for (const people of [1, 8, 16, 50]) {
+    assert.ok(text(barValue("choice", { ...bar, count: people, percent: 100 } as Bar, people)).length <= longest("choice", people), `choice: ${people} people`);
+  }
+  assert.ok(text(barValue("points", { ...bar, share: 100 } as Bar, 8)).length <= longest("points", 8));
+  assert.ok(text(barValue("ranking", { ...bar, average: 5 } as Bar, 8)).length <= longest("ranking", 8));
+  assert.ok(text(barValue("ranking", bar, 0)).length <= longest("ranking", 0));
 });
