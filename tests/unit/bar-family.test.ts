@@ -153,3 +153,14 @@ test("the widest values: every value a kind shows is no longer than its widest",
   assert.ok(text(barValue("ranking", { ...bar, average: 5 } as Bar, 8)).length <= longest("ranking", 8));
   assert.ok(text(barValue("ranking", bar, 0)).length <= longest("ranking", 0));
 });
+
+test("Suggested options match singular and plural forms: the migration redefines only the matching words", () => {
+  const sql = readFileSync(join(__dirname, "../../supabase/migrations/20261104030000_suggest_plurals.sql"), "utf8");
+  assert.equal((sql.match(/create or replace function/g) ?? []).length, 1, "only bar_words is redefined");
+  assert.match(sql, /create or replace function private\.bar_words\(p_text text\)/);
+  assert.match(sql, /array_agg\(distinct private\.singular_word\(w\)\)/, "every word, so a pluralised last word matches");
+  assert.match(sql, /right\(p_word,3\)='ies' then left\(p_word,-3\)\|\|'y'/, "ies becomes y");
+  assert.match(sql, /\(ch\|sh\|ss\|x\|z\)es\$/, "es after a hissing ending");
+  assert.match(sql, /update private\.ranking_suggestions set words=private\.bar_words\(text\)/, "stored suggestions are matched again");
+  assert.doesNotMatch(sql, /[\u2013\u2014]/);
+});
