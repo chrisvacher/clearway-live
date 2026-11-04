@@ -235,7 +235,7 @@ select is(jsonb_array_length(tests.results()->'groups'),2,'Both reach the result
 select is((tests.results()->'groups'->0->>'label'),'People on the move','largest first');
 select is((tests.results()->'groups'->0->>'count')::integer,3,'with seeded and live sentences counted together');
 select is(tests.results()->>'ai','true','and the wall is marked as AI');
-select is(private.lens_wall_read(tests.id(410))->'clusters'->0->>'label','People on the move','Step 2b reads the clusters');
+select ok(exists(select 1 from jsonb_array_elements(private.lens_wall_read(tests.id(410))->'clusters') c where c->>'label'='People on the move' and jsonb_array_length(c->'ids')=3),'Step 2b reads the clusters');
 select is(jsonb_array_length(private.lens_wall_read(tests.id(410))->'sentences'),5,'and the sentences, each with its cluster');
 select is((select count(*)::integer from jsonb_array_elements(private.lens_wall_read(tests.id(410))->'sentences') x where x->>'cluster' is not null),5,'every one in a cluster');
 set local role authenticated;
