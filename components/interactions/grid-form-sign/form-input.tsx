@@ -10,7 +10,7 @@ import "./grid-form-sign.css";
 // the answers, with the person's name; they never reach the screen or another phone. The
 // draft survives phones down, a refresh and the phone going to sleep.
 export function FormInput(props: PhoneInputProps) { return <FormStep key={props.step.id} {...props} />; }
-function FormStep({ step, mine, open, send, change, frame }: PhoneInputProps) {
+function FormStep({ step, mine, open, send, change }: PhoneInputProps) {
   const questions = formOf(step.options), own = mine[0] ?? null, store = `cw-form-${step.id}`;
   const sentAnswers = JSON.stringify(formAnswersOf(own?.value));
   const [drafts, setDrafts] = useState<Record<string, string>>(() => {
@@ -42,7 +42,6 @@ function FormStep({ step, mine, open, send, change, frame }: PhoneInputProps) {
     })}
     {own && <p className="ph-note">{own.status === "saved" ? <><WifiOff size={14} aria-hidden="true" />Saved on this phone. It sends privately when you’re back online.</>
       : <><Check size={14} aria-hidden="true" />Sent privately. Only the facilitators will read what you wrote.</>}</p>}
-    {own && own.status !== "saved" && <FormMarks frame={frame} session={step.id} />}
     {open && (locked
       ? <button type="button" className="ph-secondary" onClick={() => setEditing(true)}>Change my answers</button>
       : <div className="ph-actions">{own && <button type="button" className="ph-secondary" onClick={() => { setDrafts(JSON.parse(sentAnswers)); setEditing(false); }}>Cancel</button>}
@@ -50,16 +49,3 @@ function FormStep({ step, mine, open, send, change, frame }: PhoneInputProps) {
   </div>;
 }
 
-// After sending, the phone shows the same marks as the TV: one for each person present, filled in the
-// order answers arrive (Chris, November 4 2026). Only the count reaches a phone, never an answer.
-function FormMarks({ frame, session }: { frame?: PhoneInputProps["frame"]; session: string }) {
-  // Phones get the room's presence only where the server sends it; without it there is no "of 8".
-  if (!frame || frame.session?.id !== session || !frame.presence) return null;
-  const n = Number(frame.state.results.people) || 0, total = Math.max(frame.presence?.count ?? 0, n);
-  if (!total || total > 500) return null;
-  const size = total > 80 ? " is-tiny" : total > 24 ? " is-small" : "";
-  return <div className="gfs-ph-count">
-    <div className={`gfs-ph-marks${size}`} role="img" aria-label={`${n} of ${total} answered`}>{Array.from({ length: total }, (_, i) => <i key={i} className={i < n ? "is-done" : ""} />)}</div>
-    <p className="gfs-ph-n">{n === total ? `All ${total} answered` : <><b>{n}</b> of {total} answered</>}</p>
-  </div>;
-}
