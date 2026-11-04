@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type { InteractionKind } from "@/lib/interactions/kinds";
 import type { Room } from "@/components/control/live-controls";
 import { FormAnswers, GridItems, SignNames } from "@/components/interactions/grid-form-sign/control";
+import { IntentCards } from "@/components/interactions/intent/intent-control";
 import { QaPanel } from "@/components/interactions/qa/qa-panel";
 import { LensPanel } from "@/components/interactions/lens/lens-panel";
 import { AiWallPanel, AiWordsPanel } from "@/components/interactions/ai/ai-panel";
@@ -15,6 +16,7 @@ export const controlItems: Partial<Record<InteractionKind, ComponentType<Control
   grid: GridItems,
   form: FormAnswers,
   sign: SignNames,
+  intent: IntentCards,
   qa: QaPanel,
   word_cloud: AiWordsPanel,
   wall: AiWallPanel,

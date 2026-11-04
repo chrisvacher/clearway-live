@@ -6,6 +6,7 @@ import { ContentOptions } from "@/components/run-of-show/content-options";
 import { barDefaults, ChoiceOptions, PointsOptions, RankingOptions, ScaleOptions, StatementsOptions } from "@/components/interactions/bars/bar-options";
 import { FormOptionsEditor, GridOptionsEditor, SignOptionsEditor } from "@/components/interactions/grid-form-sign/options";
 import { gridPresets } from "@/lib/interactions/grid-form-sign";
+import { IntentOptionsEditor } from "@/components/interactions/intent/intent-options";
 import { QaOptions } from "@/components/interactions/qa/qa-options";
 import { WallOptions, WordCloudOptions } from "@/components/interactions/ai/ai-options";
 import { LensOptions } from "@/components/interactions/lens/lens-options";
@@ -26,6 +27,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
   grid: GridOptionsEditor,
   form: FormOptionsEditor,
   sign: SignOptionsEditor,
+  intent: IntentOptionsEditor,
   qa: QaOptions,
   lens: LensOptions,
 };
@@ -45,6 +47,7 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   sign: { options: { text: "" } },
   bullets: { max_sends: 12, max_characters: 200, max_words: 50, options: {} },
   confirm: { max_sends: 1, max_characters: 280, max_words: 50, options: {} },
+  intent: { options: { assign: "remote" } },
   qa: { max_sends: 10, max_characters: 200, max_words: 50, options: { any_time: false } },
   lens: { max_sends: 8, max_characters: 200, max_words: 50, options: { lens: 1 } },
 };

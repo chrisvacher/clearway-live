@@ -1,15 +1,15 @@
 // The interaction library (PRD "The interaction library"). Every kind is a TV and phone
 // pair. The database registers each kind (private.interaction_kinds) when its step lands,
 // so the run of show offers only the kinds the server can run; this list fixes the names.
-export const interactionKinds = ["word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "grid", "form", "sign", "statements", "content", "bullets", "confirm", "lens"] as const;
+export const interactionKinds = ["word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "grid", "form", "sign", "statements", "content", "bullets", "confirm", "intent", "lens"] as const;
 export type InteractionKind = typeof interactionKinds[number];
 // Names held for the Wayfinding kinds (milestone 4). They join interactionKinds, screenIds and the
 // database registry as each step builds them, so no step picks a name another already holds.
-export const reservedKinds = ["candidates", "goals", "intent", "lens_summary"] as const;
+export const reservedKinds = ["candidates", "goals", "lens_summary"] as const;
 export const isReservedKind = (value: unknown): boolean => reservedKinds.includes(value as typeof reservedKinds[number]);
 export const screenIds: Record<InteractionKind, string> = {
   word_cloud: "INT-01", wall: "INT-02", qa: "INT-03", choice: "INT-04", scale: "INT-05", ranking: "INT-06", points: "INT-07",
-  grid: "INT-08", form: "INT-09", sign: "INT-10", statements: "INT-17", content: "Content", bullets: "D1-11", confirm: "D2-05", lens: "INT-12",
+  grid: "INT-08", form: "INT-09", sign: "INT-10", intent: "INT-16", statements: "INT-17", content: "Content", bullets: "D1-11", confirm: "D2-05", lens: "INT-12",
 };
 export type KindInfo = {
   kind: InteractionKind; label: string; input: boolean; one_per_person: boolean; counts: "people" | "answers" | "none";

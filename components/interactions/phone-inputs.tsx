@@ -8,6 +8,7 @@ import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
 import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
+import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 import { LensInput } from "@/components/interactions/lens/lens-input";
 
@@ -38,4 +39,5 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   grid: GridInput,
   form: FormInput,
   sign: SignInput,
+  intent: IntentInput,
 };
