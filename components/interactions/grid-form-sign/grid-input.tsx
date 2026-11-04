@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { Check, Info, WifiOff } from "lucide-react";
 import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { clamp01, gridAnswer, gridColor, gridOf, nextOpen, placesOf, type Places } from "@/lib/interactions/grid-form-sign";
+import { ReasonAdd } from "@/components/interactions/goals/reason-add";
 import "./grid-form-sign.css";
 
 // INT-08 on the phone (pass 3 change 12): the numbered items and the grid on one screen.
@@ -17,7 +18,7 @@ function pinAt(el: HTMLElement | null, p: [number, number] | undefined) {
 }
 // One input per step: moving to another grid starts fresh.
 export function GridInput(props: PhoneInputProps) { return <GridStep key={props.step.id} {...props} />; }
-function GridStep({ step, mine, open, send, change }: PhoneInputProps) {
+function GridStep({ step, mine, open, engagement, send, change }: PhoneInputProps) {
   const grid = gridOf(step.options), items = grid.items;
   const own = mine[0] ?? null;
   const [places, setPlaces] = useState<Places>(() => placesOf(own?.value));
@@ -72,7 +73,8 @@ function GridStep({ step, mine, open, send, change }: PhoneInputProps) {
     }
   }
   const chosen = label(selected), placed = items.filter(i => places[i.key]).length;
-  if (!items.length) return <p className="ph-text">The facilitator hasn’t added the items yet.</p>;
+  const reasons = grid.preset === "pre_mortem" ? <ReasonAdd engagement={engagement} session={step.id} open={open} /> : null;
+  if (!items.length) return <div><p className="ph-text">{reasons ? "No reasons yet. Add the first one." : "The facilitator hasn’t added the items yet."}</p>{reasons}</div>;
   return <div className="gfs-ph-grid">
     <div className="gfs-tray" role="listbox" aria-label="Items">{items.map((item, i) => <button key={item.key} type="button" role="option" aria-selected={item.key === selected}
       className={`gfs-chip ${gridColor(i + 1)}${item.key === selected ? " is-on" : ""}${places[item.key] ? " is-placed" : ""}`} disabled={!open}
@@ -85,6 +87,7 @@ function GridStep({ step, mine, open, send, change }: PhoneInputProps) {
         ref={el => pinAt(el, places[item.key])} aria-label={`${i + 1}. ${item.text}`}>{i + 1}</span>)}
     </div>
     <p className="gfs-status"><span>{placed} of {items.length} placed</span>{open && placed > 0 && <span>Drag a dot to move it</span>}</p>
+    {reasons}
     <p className="ph-note">{own?.status === "saved" ? <><WifiOff size={14} aria-hidden="true" />Saved on this phone. Your placements send when you’re back online.</> : <><Info size={14} aria-hidden="true" />Each placement shows on the screen as you make it.</>}</p>
   </div>;
 }

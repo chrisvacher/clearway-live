@@ -2,8 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "summarize_wall" | "fold_questions";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "summarize_wall", "fold_questions"];
+export type AiJob = "combine_words" | "group_wall" | "summarize_wall" | "fold_questions" | "merge_reasons";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "summarize_wall", "fold_questions", "merge_reasons"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
@@ -11,7 +11,9 @@ export type GroupInputs = { answers: { ref: string; id: string; text: string }[]
   groups: { ref: string; id: string; label: string; pinned: boolean; renamed: boolean; count: number; examples: string[] }[] };
 export type SummaryInputs = { question: string; count: number; cut_at: string; answers: string[]; groups: { label: string; count: number }[] };
 export type FoldInputs = { questions: { ref: string; id: string; text: string; asked: number }[] };
-export type AiInputs = CombineInputs | GroupInputs | SummaryInputs | FoldInputs;
+// The pre-mortem's reasons (it is 2029 and the plan failed): text and how many people placed each.
+export type ReasonInputs = { reasons: { ref: string; key: string; text: string; count: number }[]; total: number };
+export type AiInputs = CombineInputs | GroupInputs | SummaryInputs | FoldInputs | ReasonInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
@@ -180,6 +182,19 @@ export const prompts: Record<AiJob, Prompt> = {
     ].join("\n"),
     user: inputs => JSON.stringify({ questions: (inputs as FoldInputs).questions.map(q => ({ ref: q.ref, text: q.text, asked: q.asked })) }),
     parse: (text, inputs) => merges(text, (inputs as FoldInputs).questions?.map(q => ({ ref: q.ref, texts: [q.text] })) ?? []),
+  },
+  merge_reasons: {
+    job: "merge_reasons", version: "merge-reasons@1", maxTokens: 800,
+    system: [
+      "You tidy the reasons in a pre-mortem at a church team gathering run by Clearway Church Solutions. The team imagines their plan has failed and writes why.",
+      "Merge reasons only when they name the same cause in different words (\"We ran out of volunteers\" and \"Not enough people to serve\"). Reasons that share a topic but name different causes stay apart (\"We ran out of money\" and \"We spent the money badly\" are different).",
+      "Never merge a reason written as a quote. Never merge reasons whose numbers differ. Never merge more than four reasons into one.",
+      "The survivor is the clearest wording, usually the one more people placed. Most reasons merge with nothing; that is normal. Never reword a reason.",
+      "Name every reason by its ref (r1, r2...), never by its text.",
+      `Reply as {"groups":[{"survivor":"r1","members":["r4"]}]}, or {"groups":[]} when nothing should merge. ${rules}`,
+    ].join("\n"),
+    user: inputs => JSON.stringify({ reasons: (inputs as ReasonInputs).reasons.map(r => ({ ref: r.ref, text: r.text, placed: r.count })) }),
+    parse: (text, inputs) => merges(text, (inputs as ReasonInputs).reasons?.map(r => ({ ref: r.ref, texts: [r.text] })) ?? []),
   },
 };
 export const promptVersions = Object.fromEntries(aiJobs.map(job => [job, prompts[job].version])) as Record<AiJob, string>;

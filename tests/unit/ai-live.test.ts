@@ -65,7 +65,7 @@ test("Replies are read defensively: anything that isn't the shape is an empty an
 // ---------- Prompt behaviour, against fixtures (and the real API when a key is present) ----------
 const textOf = (c: Case, ref: string) => {
   const i = c.inputs as unknown as Record<string, { ref: string; text?: string; label?: string }[]>;
-  for (const list of [i.words, i.answers, i.questions, i.groups]) { const hit = list?.find(x => x.ref === ref); if (hit) return hit.text ?? hit.label; }
+  for (const list of [i.words, i.answers, i.questions, i.groups, i.reasons]) { const hit = list?.find(x => x.ref === ref); if (hit) return hit.text ?? hit.label; }
   return undefined;
 };
 function check(c: Case, reply: string) {
