@@ -178,10 +178,15 @@
   --cwl-font: var(--font-sans, 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif);
   /* ---------- Design pass 3 (milestone 3, Chris, Nov 2 2026) ---------- */
   --cwl-offline: var(--cw-gray-400, #9CA3AF); /* Offline and reconnecting: the Clearway mark in gray, on the TV and in the phone header. */
-  --cwl-ai-start: var(--cw-sky-blue, #99C5FE); /* AI: start of the AI gradient. */
-  --cwl-ai-end: var(--cw-soft-lime, #E6FFA8); /* AI: end of the AI gradient. Soft Lime, never Lime. */
-  --cwl-on-ai: var(--cw-navy, #03294E); /* Text and icons on the AI gradient. */
-  --cwl-ai: linear-gradient(115deg, var(--cwl-ai-start), var(--cwl-ai-end)); /* The AI badge and the AI summary's header band. */
+  /* The AI icon, "gradient ink with a sweep" (Chris, November 3): no badge tile anywhere. The icon itself carries a
+     115deg gradient, cwl-ai-start to cwl-ai-end, chosen by the ground it sits on. When AI acts, a light (cwl-ai-glint)
+     passes through it once over cwl-dur-ai-sweep on cwl-ease-calm. Reduced motion: no sweep. */
+  --cwl-bright-chartreuse: #A6C800; /* Live-only. The light-ground AI icon's end colour, and nothing else (1.8:1 on Off-White, accepted: the Royal half carries the AI letters). */
+  --cwl-ai-start: var(--cw-sky-blue, #99C5FE); /* AI icon gradient start. Dark grounds: Sky. Light grounds: Royal. */
+  --cwl-ai-end: var(--cw-soft-lime, #E6FFA8); /* AI icon gradient end. Dark grounds: Soft Lime, never Lime. Light grounds: Bright Chartreuse. */
+  --cwl-ai-glint: var(--cw-white, #FFFFFF); /* The light that sweeps through the AI icon once when AI acts. Dark grounds: White. Light grounds: Sky. */
+  --cwl-on-ai: var(--cw-navy, #03294E); /* Text and the plain icon on the AI summary's header band only. */
+  --cwl-ai: linear-gradient(115deg, var(--cw-sky-blue, #99C5FE), var(--cw-soft-lime, #E6FFA8)); /* The AI summary's header band: Sky to Soft Lime on every theme. Never a badge. */
   /* Item palette: 2x2 grid items and any numbered set people must tell apart. Navy numbers on every fill. */
   --cwl-item-1: #FF8A65; --cwl-item-2: #64B5F6; --cwl-item-3: #81C784; --cwl-item-4: #F06292; --cwl-item-5: #4DD0E1;
   --cwl-item-6: #CE93D8; --cwl-item-7: #D7CCC8; --cwl-item-8: #4DB6AC; --cwl-item-9: #FFAB91; --cwl-item-10: #9FA8DA;
@@ -214,6 +219,7 @@
   --cwl-dur-map-field: 700ms; /* Each draft Map field rises into place on cwl-ease-calm, cwl-delay-map-step apart, in reading order. Reduced motion: at once. */
   --cwl-dur-source-light: 400ms; /* Pass 5. Overnight review: the selected sentence's tint, and the highlight sweeping across its source words. Source cards come forward over cwl-dur-make-room. Reduced motion: in place. */
   --cwl-dur-tc-strike: 400ms; /* Pass 5. Tracked changes: the strike through deleted words, or the underline under inserted words, draws across on cwl-ease-signature. Reduced motion: the line is there at once. */
+  --cwl-dur-ai-sweep: 900ms; /* The AI icon's sweep: a light passes through it once per AI change (a regroup, a combine, a fold, a draft), on cwl-ease-calm. Never loops. Reduced motion: none. */
   --cwl-dur-signal-in: 900ms; /* Pass 6. An alignment signal card coming into the facilitator's private panel: a soft fade and an 8px rise on cwl-ease-calm, slower than a room arrival so it never catches the eye. No ring, no color flash, no sound. It leaves on Dismiss with cwl-dur-hide. Reduced motion: it appears in place. */
   --cwl-delay-type-batch: 120ms; /* The TV applies typed edits at most this often, so a line never stutters. */
   --cwl-delay-map-step: 160ms; /* Between draft Map fields assembling. */
@@ -239,8 +245,9 @@
   --cwl-presence: var(--cw-gray-600, #4B5563);
   --cwl-scrim: var(--cwl-scrim-light-ink);
   --cwl-offline: var(--cw-gray-500, #6B7280);
-  --cwl-ai-start: var(--cwl-sky-deep);
-  --cwl-ai-end: var(--cwl-soft-lime-deep);
+  --cwl-ai-start: var(--cw-royal-blue, #3F72DE);
+  --cwl-ai-end: var(--cwl-bright-chartreuse);
+  --cwl-ai-glint: var(--cw-sky-blue, #99C5FE);
 }
 
 /* ---------- Reduced motion: every movement has a still equivalent ----------
@@ -333,6 +340,8 @@
   --cwl-fs-app-table: 14px; /* Base small. Table cells, inputs, dense lists. */
   --cwl-fs-app-label: 14px; /* Base small, 600. Field labels, nav, buttons (uppercase 700). */
   --cwl-fs-app-micro: 12px; /* Base micro. Chips, table headers (uppercase), meta. */
+  /* App surfaces are light grounds: the AI icon in Royal to Bright Chartreuse, with a Sky glint. */
+  --cwl-ai-start: var(--cw-royal-blue, #3F72DE); --cwl-ai-end: var(--cwl-bright-chartreuse); --cwl-ai-glint: var(--cw-sky-blue, #99C5FE);
   /* Sunrise never appears on app surfaces */
   --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial; --cwl-flag: initial;
 }
@@ -377,6 +386,6 @@
   --cwl-border: var(--cwl-border-dark-ink); --cwl-border-strong: var(--cw-sky-blue); --cwl-presence: var(--cw-sky-blue); --cwl-scrim: var(--cwl-scrim-ink);
   --cwl-word-single: var(--cw-sky-blue); --cwl-word-repeated: var(--cw-off-white); --cwl-word-new: var(--cw-lime);
   --cwl-bar-track: var(--cwl-bar-track-ink); --cwl-bar-label: var(--cw-off-white); --cwl-cut-line: var(--cw-off-white); --cwl-focus-ring: var(--cw-sky-blue);
-  --cwl-offline: var(--cw-gray-400); --cwl-ai-start: var(--cw-sky-blue); --cwl-ai-end: var(--cw-soft-lime);
+  --cwl-offline: var(--cw-gray-400); --cwl-ai-start: var(--cw-sky-blue); --cwl-ai-end: var(--cw-soft-lime); --cwl-ai-glint: var(--cw-white);
 }
 :is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) [data-surface="tv"][data-theme="light"] { --cwl-word-leader: var(--cw-navy); }

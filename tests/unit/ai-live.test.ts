@@ -329,3 +329,34 @@ test("FAIL-09 on the control surface and remote: slow, not responding, off. The 
   assert.equal(dollars(0.004), "under $0.01");
   assert.equal(dollars(1.234), "$1.23");
 });
+
+// ---------- The AI icon: gradient ink with a sweep (Chris, November 3) ----------
+test("One AI change sweeps once: never on opening, never on undo, redo or a re-render", async () => {
+  const { AiChanges } = await import("../../components/interactions/ai/ai-dom");
+  const ai = new AiChanges();
+  assert.deepEqual(ai.next(["g1:a1", "g1:a2"]), [], "a screen opening on AI's earlier work starts there, without a sweep");
+  assert.deepEqual(ai.next(["g1:a1", "g1:a2"]), [], "an ordinary re-render");
+  assert.deepEqual(ai.next(["g1:a1", "g1:a2", "g1:a3"]), ["g1:a3"], "AI grouping another answer");
+  assert.deepEqual(ai.next(["g1:a1"]), [], "Undo");
+  assert.deepEqual(ai.next(["g1:a1", "g1:a2", "g1:a3"]), [], "Redo brings back what AI already did");
+  assert.deepEqual(ai.next(["g1:a1", "g1:a2", "g1:a3", "g2:a4", "g2:a5"]), ["g2:a4", "g2:a5"], "a new group is one change");
+});
+test("The AI icon: no badge tile, two gradients by ground, a 900ms sweep, the band fixed", () => {
+  const css = readFileSync("components/interactions/ai/ai.css", "utf8"), tokens = readFileSync("design/clearway-live/live_tokens.css", "utf8");
+  assert.doesNotMatch(css, /cwl-ai-badge|cwl-ai-glyph|sky-deep|soft-lime-deep/, "the badge tile, the deep-shade tile and the glyph are retired");
+  assert.doesNotMatch(css, /#[0-9a-fA-F]{3,8}\b/, "tokens only");
+  assert.match(css, /\.cwl-ai-mark \{[^}]*linear-gradient\(115deg, var\(--cwl-ai-start\) 0%, var\(--cwl-ai-end\) 33%, var\(--cwl-ai-glint\) 50%, var\(--cwl-ai-start\) 67%, var\(--cwl-ai-end\) 100%\)[^}]*background-size: 300% 100%; background-position: 0% 50%/);
+  assert.match(css, /mask: var\(--ai-shape\)/, "the icon's shape is a mask, so the sweep is a background-position animation");
+  const root = /:root \{([\s\S]*?)\n\}/.exec(tokens)![1], light = /\[data-theme="light"\] \{([\s\S]*?)\n\}/.exec(tokens)![1];
+  assert.match(root, /--cwl-bright-chartreuse: #A6C800;/);
+  assert.match(root, /--cwl-ai-start: var\(--cw-sky-blue, #99C5FE\);/);
+  assert.match(root, /--cwl-ai-end: var\(--cw-soft-lime, #E6FFA8\);/);
+  assert.match(root, /--cwl-ai-glint: var\(--cw-white, #FFFFFF\);/);
+  assert.match(root, /--cwl-dur-ai-sweep: 900ms;/);
+  assert.match(root, /--cwl-ai: linear-gradient\(115deg, var\(--cw-sky-blue, #99C5FE\), var\(--cw-soft-lime, #E6FFA8\)\);/, "the summary band stays Sky to Soft Lime on every theme");
+  assert.match(light, /--cwl-ai-start: var\(--cw-royal-blue, #3F72DE\);\s*--cwl-ai-end: var\(--cwl-bright-chartreuse\);\s*--cwl-ai-glint: var\(--cw-sky-blue, #99C5FE\);/);
+  assert.match(tokens, /\[data-surface="control"\], \[data-surface="setup"\], \[data-surface="scribe"\], \[data-surface="review"\] \{[^}]*--cwl-ai-start: var\(--cw-royal-blue/, "app surfaces are light grounds");
+  for (const file of ["components/interactions/ai/ai-icon.tsx", "components/interactions/ai/ai-dom.ts", "components/interactions/ai/ai-foot.tsx", "components/interactions/ai/wall-board.ts"])
+    assert.doesNotMatch(readFileSync(file, "utf8"), /[–—]/, `${file} has a dash`);
+  assert.match(readFileSync("components/interactions/ai/ai-dom.ts", "utf8"), /--cwl-ease-calm/, "the sweep runs on the calm ease");
+});

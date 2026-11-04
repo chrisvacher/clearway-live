@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Check, EyeOff, Info, Pencil, Pin, PinOff, Redo2, TriangleAlert, Undo2, X } from "lucide-react";
 import { GeneralItems, type Room } from "@/components/control/live-controls";
 import { ago, aiNotice, dollars, isAiKind, seconds, type AiGroupRow, type AiStatus } from "@/lib/interactions/ai";
-import { AiBadge, AiIcon } from "./ai-icon";
+import { AiIcon, AiMark, useAiSweep } from "./ai-icon";
 import { useAiStatus } from "./use-ai-status";
 import "./ai.css";
 
@@ -22,6 +22,8 @@ const stateText = (s: AiStatus) => {
 export function AiPanel({ room }: { room: Room }) {
   const { status, busy, message, press } = useAiStatus(room);
   const s = status?.session;
+  // Each new AI run that changed the room sweeps the panel's AI icon once. Undo goes back to a run already seen.
+  const sweep = useAiSweep<HTMLDivElement>(status?.last_change ? [status.last_change.run] : [], s?.id ?? null);
   if (!status || !s || !isAiKind(s.interaction)) return null;
   const notice = aiNotice(status), wall = s.interaction === "wall";
   const live = status.combines?.filter(c => !c.undone).length ?? 0, folds = status.folds?.filter(f => !f.undone).length ?? 0;
@@ -33,7 +35,7 @@ export function AiPanel({ room }: { room: Room }) {
     <div className="ctl-private-body ai-panel">
       {notice && <div className={`ai-notice is-${notice.kind}`} role="status" data-ai-notice={notice.kind}>{notice.kind === "warning" ? <TriangleAlert size={18} aria-hidden="true" /> : <Info size={18} aria-hidden="true" />}
         <div><strong>{notice.title}</strong> {notice.text}</div></div>}
-      <div className="ai-state"><span><AiBadge /><b>{s.ai ? "On" : "Off"}</b> · {stateText(status)}</span>
+      <div className="ai-state" ref={sweep}><span><AiMark /><b>{s.ai ? "On" : "Off"}</b> · {stateText(status)}</span>
         <button type="button" className="ai-switch" role="switch" aria-checked={s.ai} aria-label="AI for this session" disabled={busy || (!status.engagement_ai && !s.ai)}
           onClick={() => void press(s.ai ? "ai_off" : "ai_on", { session: s.id })} /></div>
       <div className="ai-tools">
@@ -62,7 +64,7 @@ export function AiWordsPanel({ room, onClose }: { room: Room; onClose?: () => vo
       <div className="ctl-row is-between"><h2 id="ai-combines-title">AI combines</h2><span className="ai-note">{on ? "Undo puts both words back on the TV" : "AI is off: no combining"}</span></div>
       {combines.length ? <ul className="ai-rows">{combines.map(c => <li key={c.id} className={c.undone ? "is-undone" : ""} data-combine={c.member}>
         <span className="ai-row-text"><span className="ai-row-title">{c.member_text}  →  {c.survivor_text}</span>
-          <span className="ai-row-sub">{c.undone ? "Undone · both words are back on the TV" : <><AiBadge />Combined · {c.member_count} {c.member_count === 1 ? "answer" : "answers"} joined {c.survivor_count} · {ago(c.at)}</>}</span></span>
+          <span className="ai-row-sub">{c.undone ? "Undone · both words are back on the TV" : <><AiMark />Combined · {c.member_count} {c.member_count === 1 ? "answer" : "answers"} joined {c.survivor_count} · {ago(c.at)}</>}</span></span>
         {!c.undone && <span className="ai-row-actions"><button className="show-button is-small" disabled={busy} onClick={() => void press("undo_combine", { merge: c.id })}><Undo2 size={16} aria-hidden="true" />Undo</button></span>}
       </li>)}</ul> : <p className="show-empty">{on ? "Nothing combined yet." : "Nothing combined."}</p>}
       {message && <p className="show-message is-error" role="alert">{message}</p>}
@@ -80,7 +82,7 @@ function GroupRow({ g, busy, press }: { g: AiGroupRow; busy: boolean; press: Ret
       <button className="show-button is-small is-primary" disabled={busy || !editing.trim()}><Check size={16} aria-hidden="true" />Save</button>
       <button type="button" className="show-button is-small is-icon" aria-label="Cancel rename" onClick={() => setEditing(null)}><X size={16} aria-hidden="true" /></button>
     </form> : <span className="ai-row-text"><span className="ai-row-title">{g.label}</span>
-      <span className="ai-row-sub">{g.undone ? "Undone · its answers are back in arrival order" : <><AiBadge />Grouped{g.pinned ? " · Pinned" : ""}{g.renamed ? " · Renamed by you" : ""}</>}</span></span>}
+      <span className="ai-row-sub">{g.undone ? "Undone · its answers are back in arrival order" : <><AiMark />Grouped{g.pinned ? " · Pinned" : ""}{g.renamed ? " · Renamed by you" : ""}</>}</span></span>}
     {editing === null && <span className="ai-row-actions">{g.undone
       ? <button className="show-button is-small" disabled={busy} onClick={() => void press("redo_group", { group: g.id })}><Redo2 size={16} aria-hidden="true" />Redo</button>
       : <>
