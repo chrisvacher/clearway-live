@@ -183,3 +183,68 @@ export const prompts: Record<AiJob, Prompt> = {
   },
 };
 export const promptVersions = Object.fromEntries(aiJobs.map(job => [job, prompts[job].version])) as Record<AiJob, string>;
+
+// ---------- The overnight draft (milestone 5, step 2) ----------
+// After Day 1 closes, one deeper call tidies each provisional Vision Outcome and its 3-year Vision bullets
+// from the room's phone bullets, the scribe's cards and the easel photos. It is not one of the live jobs: it
+// belongs to the engagement, not a step, and runs through its own claim, apply and fail (overnight_claim,
+// overnight_apply, overnight_fail), with the same run log. The 10-year Future is not drafted here: the room
+// signed the lens summaries off on Day 1. The model sees text, counts and images under short refs (o1, o1b2,
+// c3, p2), never an attendee, a speaker or an id. What it may keep is code, not prompt: the database refuses
+// a bullet with no source, a number no card or photo has, a quote that is not word for word, and a voice or
+// tension that is not the room's own words.
+export type OvernightInputs = { year: number; horizon: string;
+  outcomes: { ref: string; id: string; title: string; description: string; bullets: { ref: string; id: string; text: string }[] }[];
+  cards: { ref: string; id: string; kind: string; text: string; detail: { why?: string; views?: string[]; risk?: string; date?: string; owner?: string }; step: string }[];
+  photos: { ref: string; id: string; step: string; caption: string; path: string; type: string; bytes: number; readable: boolean; typed: string | null }[] };
+export type OvernightOutput = { outcomes: { outcome: string; bullets: { text: string; sources: { ref: string; excerpt?: string }[] }[];
+  voices: { text: string; source: string }[]; tensions: { text: string; source: string }[] }[]; unreadable: { photo: string; outcome?: string }[] };
+export type OvernightPrompt = { job: "overnight_draft"; version: string; system: string; maxTokens: number; user: (inputs: OvernightInputs, images?: string[]) => string; parse: (text: string, inputs: OvernightInputs) => OvernightOutput };
+
+const textOf = (value: unknown, max: number) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
+const refOf = (value: unknown) => typeof value === "string" ? value.trim().toLowerCase() : typeof value === "number" && Number.isInteger(value) ? String(value) : "";
+export const overnightPrompt: OvernightPrompt = {
+  job: "overnight_draft", version: "overnight-draft@1", maxTokens: 6000,
+  system: [
+    "You prepare the overnight first pass for a church team's two-day Wayfinding retreat, run by Clearway Church Solutions. Day 1 has closed. Two facilitators will review your draft in the morning, so it must be easy to check.",
+    "You tidy each provisional Vision Outcome. Each has bullets the room typed on their phones (refs like o1b1), and you also see the scribe's cards (c1, c2...) and easel photos (p1, p2...) from Day 1. The bullets belong to the 3-year Vision, the picture of the outcome three years from now. Write them in the present tense, as things that are true then.",
+    "Never invent. Every bullet you write must rest on at least one source: a room bullet, a scribe card or an easel photo, named by its ref. If the sources do not support a bullet, leave it out. A number or a date in a bullet must appear in a scribe card or an easel photo you name as its source. Never name a person, a speaker or an attendee; if a source names someone, write around it.",
+    "Stay close to the room's words. Where one room bullet already says it well, give that bullet's words exactly, with that one source. Tidy only spelling, grammar and length (280 characters at most). Merge room bullets that say the same thing, and name each one as a source. Write at most eight bullets for an outcome.",
+    "An outcome with little behind it stays thin. Give it fewer bullets, or none. Do not stretch it to look finished.",
+    "Keep two lists apart for every outcome. Voices not to lose are strong lines worth keeping in the room's own words, from a quote or decision card or a room bullet. Tensions the room named are disagreements or open questions the room said out loud, from a tension or question card. Copy each one word for word from its source, with that source's ref. Never turn a tension into a bullet. Never turn a voice into a tension. Give at most three of each.",
+    "Use Clearway's terms exactly: 3-year Vision, 10-year Future, 1-year Outlook, Vision Outcomes. Do not draft the 10-year Future; the room signed it off already. Do not draft goals.",
+    "A photo is attached as an image after the text, in ref order. If an image is too blurry or too small to read, say so in unreadable with its ref, and the outcome it belongs to when you know it; do not guess its words. A photo with typed words uses those words.",
+    "Name outcomes by their ref (o1, o2...), never by their title. Name sources by their ref, and an excerpt only if it is a word-for-word piece of the source.",
+    "Reply as {\"outcomes\":[{\"outcome\":\"o1\",\"bullets\":[{\"text\":\"...\",\"sources\":[{\"ref\":\"o1b1\"},{\"ref\":\"c2\",\"excerpt\":\"...\"}]}],\"voices\":[{\"text\":\"...\",\"source\":\"c1\"}],\"tensions\":[{\"text\":\"...\",\"source\":\"c3\"}]}],\"unreadable\":[{\"photo\":\"p2\",\"outcome\":\"o1\"}]}. Use only the refs you are given. Reply with one JSON object and nothing else.",
+  ].join("\n"),
+  user: (inputs, images = []) => JSON.stringify({ horizon: inputs.horizon, year: inputs.year,
+    outcomes: inputs.outcomes.map(o => ({ ref: o.ref, title: o.title, description: o.description, bullets: o.bullets.map(b => ({ ref: b.ref, text: b.text })) })),
+    cards: inputs.cards.map(c => ({ ref: c.ref, kind: c.kind, text: c.text, ...(c.detail?.why ? { why: c.detail.why } : {}), ...(c.detail?.views?.length ? { views: c.detail.views } : {}),
+      ...(c.detail?.risk ? { risk: c.detail.risk } : {}), ...(c.detail?.date ? { date: c.detail.date } : {}), step: c.step })),
+    photos: inputs.photos.map(p => ({ ref: p.ref, step: p.step, caption: p.caption, ...(p.typed ? { typed: p.typed } : {}), image: images.includes(p.ref) })) }),
+  parse: (text, inputs) => {
+    const raw = replyJson(text), list = (value: unknown) => Array.isArray(value) ? value : [];
+    const note = (value: unknown) => { const o = (value && typeof value === "object" ? value : {}) as Record<string, unknown>; const t = textOf(o.text, 400), source = refOf(o.source ?? o.ref); return t && source ? [{ text: t, source }] : []; };
+    return {
+      outcomes: list(raw.outcomes).slice(0, 12).flatMap(value => {
+        const o = (value && typeof value === "object" ? value : {}) as Record<string, unknown>, outcome = refOf(o.outcome ?? o.ref);
+        if (!inputs.outcomes.some(x => x.ref === outcome)) return [];
+        return [{ outcome,
+          bullets: list(o.bullets).slice(0, 8).flatMap(b => {
+            const item = (b && typeof b === "object" ? b : {}) as Record<string, unknown>, t = textOf(item.text, 280);
+            const sources = list(item.sources).slice(0, 6).flatMap(s => {
+              const so: Record<string, unknown> = typeof s === "object" && s ? s as Record<string, unknown> : { ref: s }, ref = refOf(so.ref), excerpt = textOf(so.excerpt, 280);
+              return ref ? [{ ref, ...(excerpt ? { excerpt } : {}) }] : [];
+            });
+            return t ? [{ text: t, sources }] : [];
+          }),
+          voices: list(o.voices).slice(0, 3).flatMap(note), tensions: list(o.tensions).slice(0, 3).flatMap(note) }];
+      }),
+      unreadable: list(raw.unreadable).slice(0, 24).flatMap(value => {
+        const o = (value && typeof value === "object" ? value : { photo: value }) as Record<string, unknown>, photo = refOf(o.photo ?? o.ref), outcome = refOf(o.outcome);
+        return photo ? [{ photo, ...(outcome ? { outcome } : {}) }] : [];
+      }),
+    };
+  },
+};
+export const overnightVersion = overnightPrompt.version;

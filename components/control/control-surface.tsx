@@ -16,6 +16,7 @@ import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
 import { AiPanel } from "@/components/interactions/ai/ai-panel";
 import { aiPressNames } from "@/lib/interactions/ai";
 import { ScribeFeed } from "@/components/scribe/scribe-feed";
+import { OvernightCard } from "@/components/overnight/overnight-card";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -93,6 +94,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
         <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} /></Private>
+        <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
         <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>
         <Private title="Presenter notes">{current ? <><p className="ctl-label">{current.title}</p><p className="ctl-notes">{current.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing is live.</p>}</Private>

@@ -6,7 +6,7 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { prompts, replyJson, type AiJob } from "./prompts";
+import { overnightPrompt, prompts, replyJson, type AiJob, type OvernightOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
   return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
@@ -15,13 +15,13 @@ const tokens = (text: string) => Math.ceil(text.length / 4);
 const reply = (call: AiCall, text: string): AiReply => ({ text, inputTokens: tokens(call.system + call.user), outputTokens: tokens(text) });
 
 // A recorded reply per job and user message.
-export function recordedClient(recordings: { job: AiJob; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
+export function recordedClient(recordings: { job: AiJob | "overnight_draft"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
   const calls: AiCall[] = [];
   return {
     calls, model: () => "recorded-fixture",
     async complete(call) {
       calls.push(call);
-      const job = jobOf(call), hit = recordings.find(r => r.job === job && r.user === call.user);
+      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
       if (!hit) throw new Error(`No recorded reply for ${job}`);
       return reply(call, hit.reply);
     },
@@ -45,7 +45,29 @@ const words = (text: string) => new Set(text.toLowerCase().replace(/[^a-z0-9\s]/
 const sameAs: Record<string, string> = { ready: "open", finished: "open", finish: "open", done: "open", date: "open", opening: "open" };
 const shared = (a: Set<string>, b: Set<string>) => [...a].filter(w => b.has(w)).length;
 
+// The overnight draft's stand-in: each room bullet becomes a tidied bullet that rests on it (a bullet with a number
+// keeps the room's exact words, since only a card or photo may bring a number), a card that shares words with an
+// outcome's bullets joins the first bullet as a source and, as a quote or tension, is kept as a voice or tension in
+// the card's own words. An outcome with no bullets stays thin. A photo with no image and no typed words is unreadable.
+export const isOvernight = (call: Pick<AiCall, "system">) => call.system === overnightPrompt.system;
+function scriptedOvernight(call: AiCall): string {
+  const input = replyJson(call.user) as { outcomes?: { ref: string; bullets: { ref: string; text: string }[] }[]; cards?: { ref: string; kind: string; text: string }[]; photos?: { ref: string; typed?: string; image: boolean }[] };
+  const tidy = (text: string) => { const t = text.trim().replace(/\s+/g, " "); return /\d/.test(t) ? t : `${t.charAt(0).toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? "" : "."}`; };
+  const out: OvernightOutput = { outcomes: [], unreadable: [] };
+  for (const o of input.outcomes ?? []) {
+    const mine = new Set(o.bullets.flatMap(b => [...words(b.text)]));
+    const related = (input.cards ?? []).filter(c => shared(words(c.text), mine) >= 2);
+    const bullets = o.bullets.map((b, i) => ({ text: tidy(b.text), sources: [{ ref: b.ref }, ...(i === 0 ? related.filter(c => ["quote", "decision"].includes(c.kind)).slice(0, 1).map(c => ({ ref: c.ref })) : [])] }));
+    out.outcomes.push({ outcome: o.ref, bullets,
+      voices: related.filter(c => c.kind === "quote").slice(0, 3).map(c => ({ text: c.text, source: c.ref })),
+      tensions: related.filter(c => c.kind === "tension" || c.kind === "question").slice(0, 3).map(c => ({ text: c.text, source: c.ref })) });
+  }
+  for (const p of input.photos ?? []) if (!p.image && !p.typed) out.unreadable.push({ photo: p.ref });
+  return JSON.stringify(out);
+}
+
 export function scripted(call: AiCall): string {
+  if (isOvernight(call)) return scriptedOvernight(call);
   const job = jobOf(call), input = replyJson(call.user);
   if (job === "combine_words") {
     const list = (input.words ?? []) as { ref: string; text: string; count: number }[], groups: { survivor: string; members: string[] }[] = [];
