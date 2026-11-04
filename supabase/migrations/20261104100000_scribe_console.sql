@@ -306,7 +306,7 @@ begin
  return jsonb_build_object('status','ok','revision',s.revision,'team_led',s.team_led);
 end $$;
 
--- The run of show carries the flag (one more column; the rest of the read is unchanged).
+-- The run of show carries the flag (one more column; the rest of the read is milestone 4's, with seeded_from and lens names).
 create or replace function private.show_read(p_engagement uuid,p_after uuid,p_version text) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
 declare version text; page jsonb; next_id uuid;
@@ -317,13 +317,15 @@ begin
  if p_after is not null and p_version is null then return jsonb_build_object('status','invalid_request'); end if;
  select coalesce(jsonb_agg(to_jsonb(rows) order by id),'[]'::jsonb) into page from (
    select s.id,s.engagement_id,s.title,s.part,s.position,s.planned_start,s.planned_minutes,s.mode,s.opens_at,s.closes_at,s.interaction,
-     s.prompt,s.phone_depth,s.segment,s.shown_at,s.closed_at,s.settings,s.options,s.lands_in,s.state,s.max_sends,s.max_characters,s.max_words,s.revision,s.team_led,coalesce(n.notes,'') as notes
+     s.prompt,s.phone_depth,s.segment,s.shown_at,s.closed_at,s.settings,s.options,s.lands_in,s.state,s.max_sends,s.max_characters,s.max_words,s.revision,s.team_led,coalesce(n.notes,'') as notes,
+     (select f.id from public.sessions f where f.id=s.seeded_from and f.engagement_id=s.engagement_id and not f.deleted) as seeded_from
    from public.sessions s left join private.session_notes n on n.session_id=s.id and not n.deleted
    where s.engagement_id=p_engagement and not s.deleted and (p_after is null or s.id>p_after) order by s.id limit 501
  ) rows;
  if jsonb_array_length(page)>500 then next_id:=(page->499->>'id')::uuid; page:=page-500; end if;
  return jsonb_build_object('status','ok','version',version,'sessions',page,'next',next_id,'context',(
   select jsonb_build_object('id',e.id,'title',e.title,'church',c.name,'timezone',c.timezone,'base_year',e.base_year,'closed',e.status='closed',
+   'lens_names',to_jsonb(e.lens_names),
    'scripture_translation',coalesce(e.settings->>'scripture_translation',''),
    'kinds',(select coalesce(jsonb_agg(private.kind_public(k.kind)||jsonb_build_object('named',k.named) order by k.position),'[]'::jsonb) from private.interaction_kinds k where not k.deleted))
   from public.engagements e join public.churches c on c.id=e.church_id where e.id=p_engagement));
