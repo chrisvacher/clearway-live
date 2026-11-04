@@ -123,7 +123,7 @@ async function main() {
       await until(async () => (await tvTexts()).includes("How many people answered the survey?"), "first question on the TV", 5000);
       const ms = Date.now() - start;
       assert.ok(ms < 1500, `phone tap to TV in ${ms} ms (page polling included)`);
-      await until(async () => (await tally()) === "1 question", "count reads 1 question", 5000);
+      await until(async () => (await tally()).startsWith("1 question from "), "count reads 1 question", 5000);
       assert.equal((await rows().first().locator("b").innerText()).trim(), "1", "one person");
       await until(async () => (await item(priya.page, "How many people answered").innerText()).includes("Yours"), "Yours on the asker's phone");
       assert.equal(await item(priya.page, "How many people answered").locator(".qa-vote").isDisabled(), true, "never your own vote");
@@ -133,7 +133,7 @@ async function main() {
       await until(async () => await ben.page.locator("#qa-question").isVisible(), "Ben's ask form", 10000);
       await ask(ben.page, "How many people answered the survey");
       await until(async () => (await rows().first().locator(".qa-meta").innerText()).includes("Asked by 2"), "asked by 2 on the TV", 5000);
-      await until(async () => (await tally()) === "1 question", "count reads 1 question", 5000);
+      await until(async () => (await tally()).startsWith("1 question from "), "count reads 1 question", 5000);
       assert.equal((await rows().first().locator("b").innerText()).trim(), "2");
       assert.equal(await item(ben.page, "How many people answered").locator(".qa-vote").isDisabled(), true, "a folded question counts as Ben's own");
     });
@@ -266,7 +266,7 @@ async function main() {
     });
     await step("Numbers match the server: the count, the people and the more line", async () => {
       const list = (await server()).filter(q => !q.answered), shown = list.slice(0, 3);
-      await until(async () => (await tally()) === `${list.length} questions`, "count", 5000);
+      await until(async () => (await tally()).startsWith(`${list.length} questions from `), "count", 5000);
       const people = await rows().evaluateAll(els => els.filter(e => !(e as HTMLElement).style.opacity).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(e => Number(e.querySelector("b")!.textContent)));
       assert.deepEqual(people, shown.map(q => q.people));
       assert.equal((await layer().locator(".qa-more").innerText()).trim(), `+ ${list.length - 3} more on your phones`);
