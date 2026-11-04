@@ -124,6 +124,18 @@ jobs:
           path: ${{ runner.temp }}/kit-shots
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the remote changing hands, commander's intent and the follow-up access in real browsers
+        run: mkdir -p handover-intent-shots && npm run test:handover-intent
+        env:
+          KIT_SHOTS: handover-intent-shots
+      - name: Upload the handover and intent screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: handover-intent-screens
+          path: handover-intent-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup
