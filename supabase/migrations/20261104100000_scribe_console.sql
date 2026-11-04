@@ -97,7 +97,7 @@ $$;
 -- Returns the cleaned object, or null when the detail is not allowed.
 create function private.scribe_detail(p_kind text,p_detail jsonb) returns jsonb
 language plpgsql immutable set search_path='' as $$
-declare d jsonb:=coalesce(p_detail,'{}'::jsonb); out jsonb:='{}'::jsonb; v text; views jsonb; a text; b text;
+declare d jsonb:=coalesce(p_detail,'{}'::jsonb); out jsonb:='{}'::jsonb; v text; a text; b text;
 begin
  if jsonb_typeof(d)<>'object' then return null; end if;
  if exists(select 1 from jsonb_object_keys(d) k where k not in ('views','owner','date','why','risk')) then return null; end if;
