@@ -197,6 +197,7 @@ select is(public.scribe_refile(tests.id(100),tests.id(5),tests.id(310))->>'statu
 -- Photos and files: the row decides who may write the object.
 reset role;
 select private.scribe_storage_setup();
+insert into storage.buckets(id,name) values('other','other') on conflict(id) do nothing;
 set local role authenticated;
 select tests.login(3);
 select is(public.scribe_file_begin(tests.id(100),tests.id(901),tests.id(310),'photo','easel page 1.jpg','image/jpeg',250000,now())->>'status','accepted','The scribe starts an easel photo');
