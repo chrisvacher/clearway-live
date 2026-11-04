@@ -179,11 +179,11 @@ begin
    select coalesce(i.submission_id,i.id) as id,i.created_at,coalesce(d.text,i.text) as text,d.id is not null as typing
    from private.outcome_indicators i
    left join private.bullet_drafts d on d.id=i.submission_id and not d.deleted and d.typed_at>clock_timestamp()-interval '1 minute'
-   where i.outcome_id=cur and not i.deleted and length(btrim(i.text))>0
+   where i.outcome_id=cur and not i.deleted and length(btrim(i.text))>0 and not (coalesce(i.submission_id,i.id)::text=any(p_hidden))
  ), drafts as (
    select d.id,d.created_at,d.text,true as typing from private.bullet_drafts d
    where d.engagement_id=p_engagement and d.session_id=p_session and d.outcome_id=cur and not d.deleted and d.typed_at>clock_timestamp()-interval '1 minute'
-    and not exists(select 1 from public.submissions x where x.id=d.id)
+    and not exists(select 1 from public.submissions x where x.id=d.id) and not (d.id::text=any(p_hidden))
  ), every as (select * from sentb union all select * from drafts), ranked as (
    select *,row_number() over(order by created_at,id) as at,count(*) over() as c from every
  )
@@ -208,7 +208,7 @@ create function private.parse_confirm(p_session public.sessions,p_text text,p_va
 language plpgsql stable security definer set search_path='' as $$
 declare e record; item jsonb; kept jsonb:='{}'::jsonb; c text; nm text; why text; nc integer:=0; nr integer:=0; nx integer:=0;
 begin
- if jsonb_typeof(p_value) is distinct from 'object' or (select count(*) from jsonb_object_keys(p_value))<>1 or jsonb_typeof(p_value->'outcomes') is distinct from 'object'
+ if length(coalesce(p_text,''))>1404 or jsonb_typeof(p_value) is distinct from 'object' or (select count(*) from jsonb_object_keys(p_value))<>1 or jsonb_typeof(p_value->'outcomes') is distinct from 'object'
   or (select count(*) from jsonb_object_keys(p_value->'outcomes')) not between 1 and 12 then return jsonb_build_object('status','invalid_answer'); end if;
  for e in select k.key as id,k.value as v from jsonb_each(p_value->'outcomes') k loop
   if e.id !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' or jsonb_typeof(e.v) is distinct from 'object'
@@ -241,7 +241,7 @@ begin
   where s.engagement_id=p_engagement and s.session_id=p_session and not s.deleted and not s.withdrawn and not s.hidden;
  with act as (
    select s.value->'outcomes' as v from public.submissions s
-   where s.engagement_id=p_engagement and s.session_id=p_session and not s.deleted and not s.withdrawn and not s.hidden
+   where s.engagement_id=p_engagement and s.session_id=p_session and not s.deleted and not s.withdrawn and not s.hidden and not (s.id::text=any(p_hidden))
  ), oc as (
    select v.id,v.title,v.status,v.renamed_from,row_number() over(order by v.position,v.created_at,v.id)::integer as n
    from private.vision_outcomes v where v.engagement_id=p_engagement and not v.deleted
