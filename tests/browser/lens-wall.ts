@@ -25,10 +25,10 @@ fake({});
 Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTROL: controlFile, CLEARWAY_AI_DEBOUNCE_MS: "250", ANTHROPIC_API_KEY: "" });
 
 // Samples every cluster's and every drifting sentence's place on every frame, as a plain script so no bundler
-// helper reaches the page. Gaps over 50 ms (a loaded runner dropping frames) are not counted. Clusters keep their order of first appearance, so none should ever leap.
+// helper reaches the page. Clusters keep their order of first appearance, so none should ever leap.
 const sampler = `(() => { window.lensSamples = {}; window.lensStop = false; const ids = new WeakMap(); let n = 0;
   const read = () => { for (const el of document.querySelectorAll('.tv-layer:not(.is-leaving) .lens-cluster, .tv-layer:not(.is-leaving) .lens-ghost')) {
-      if (!ids.has(el)) ids.set(el, ++n); const r = el.getBoundingClientRect(); (window.lensSamples[ids.get(el)] ??= []).push([r.left, r.top, performance.now()]); }
+      if (!ids.has(el)) ids.set(el, (el.classList.contains('lens-ghost') ? 'ghost' : 'cluster') + ++n); const r = el.getBoundingClientRect(); (window.lensSamples[ids.get(el)] ??= []).push([r.left, r.top, performance.now()]); }
     if (!window.lensStop) requestAnimationFrame(read); };
   requestAnimationFrame(read); })()`;
 const jump = 150;
@@ -83,10 +83,10 @@ async function main() {
         fake({});
         await delay(6000);
         const samples = await tv.evaluate(() => { const w = window as unknown as { lensSamples: Record<string, [number, number, number][]>; lensStop: boolean }; w.lensStop = true; return w.lensSamples; });
-        let jumps = 0, frames = 0, largest = 0;
-        for (const pts of Object.values(samples)) for (let i = 1; i < pts.length; i++) { if (pts[i][2] - pts[i - 1][2] > 50) continue; frames++; const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); largest = Math.max(largest, d); if (d >= jump) jumps++; }
+        let jumps = 0, frames = 0, largest = 0; const by: Record<string, number> = {};
+        for (const [key, pts] of Object.entries(samples)) for (let i = 1; i < pts.length; i++) { frames++; const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); largest = Math.max(largest, d); if (d >= jump) { jumps++; by[key.replace(/\d+/, "")] = (by[key.replace(/\d+/, "")] ?? 0) + 1; } }
         assert.ok(frames > 0, "clusters were sampled");
-        assert.equal(jumps, 0, `no cluster or drifting sentence jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
+        assert.equal(jumps, 0, `no cluster or drifting sentence jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px; by kind ${JSON.stringify(by)})`);
         const final = (await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results as { total: number; groups: { label: string; count: number }[] };
         await until(async () => Number(((await tv.locator(".tv-foot .tv-tally").innerText()).match(/\d+/) ?? [])[0]) === final.total, "the TV count matches the server", 8000);
         const tvClusters = async () => (await tv.locator(".tv-layer:not(.is-leaving) .lens-cluster:not(.is-going)").evaluateAll(els => els.map(e => `${e.querySelector(".lens-label")!.textContent!.trim()}:${e.querySelector(".lens-count")!.textContent}`))).sort();

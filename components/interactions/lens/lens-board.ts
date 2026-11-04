@@ -91,6 +91,35 @@ export class LensBoard {
     this.renderClusters(groups, text, still);
   }
   private renderClusters(groups: WallGroup[], text: Map<string, string>, still: boolean) {
+    let out!: { drifting: { id: string; to: string }[]; now: Map<string, string> };
+    this.flip(still, () => { out = this.paintClusters(groups, text, still); });
+    const { drifting, now } = out;
+    // AI regrouping sweeps the one AI icon above the clusters once, as the sentences drift. The first frame is where it starts.
+    const joined = this.aiChanges.next([...now].map(([s, c]) => `${c}\u0001${s}`));
+    if (joined.length && !still) sweepAi(this.head);
+    if (!still) this.drift(drifting.slice(-driftSteps));
+  }
+  // Whatever moves a cluster (one joins or leaves, a sentence wraps) glides from where it was seen: the
+  // clusters' places are measured before the change and after it, and each plays the difference out to zero.
+  private glides = new WeakMap<HTMLElement, { dx: number; dy: number }>();
+  private flip(still: boolean, change: () => void) {
+    const scale = this.root.offsetWidth ? this.root.getBoundingClientRect().width / this.root.offsetWidth : 1;
+    const els = [...this.list.children] as HTMLElement[], before = new Map(els.map(e => [e, e.getBoundingClientRect()]));
+    for (const e of els) for (const a of e.getAnimations?.() ?? []) if (a.id === "glide") a.cancel();
+    change();
+    if (still || reducedMotion(this.root) || typeof this.list.animate !== "function") return;
+    const duration = tokenMs(this.root, "cwl-dur-cluster-drift"), easing = getComputedStyle(this.root).getPropertyValue("--cwl-ease-calm").trim() || "ease-in-out";
+    for (const e of [...this.list.children] as HTMLElement[]) {
+      const from = before.get(e);
+      if (!from) { this.glides.delete(e); continue; }
+      const to = e.getBoundingClientRect(), dx = from.left - to.left, dy = from.top - to.top;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) { this.glides.delete(e); continue; }
+      this.glides.set(e, { dx, dy });
+      const a = e.animate([{ transform: `translate(${dx / scale}px,${dy / scale}px)` }, { transform: "translate(0,0)" }], { duration, easing });
+      a.id = "glide"; a.onfinish = () => this.glides.delete(e);
+    }
+  }
+  private paintClusters(groups: WallGroup[], text: Map<string, string>, still: boolean) {
     for (const g of groups) if (!this.order.includes(g.id)) this.order.push(g.id);
     const { shown } = shownGroups(groups, false), standing = new Set(shown.map(g => g.id));
     const byId = new Map(shown.map(g => [g.id, g]));
@@ -99,7 +128,7 @@ export class LensBoard {
     // Clusters that left (undone, or AI off) fade out; the rest update in place.
     for (const [id, c] of this.clusters) if (!standing.has(id)) {
       this.clusters.delete(id); c.el.classList.add("is-going");
-      setTimeout(() => c.el.remove(), reducedMotion(this.root) ? 0 : tokenMs(this.root, "cwl-dur-hide"));
+      setTimeout(() => this.flip(still, () => c.el.remove()), reducedMotion(this.root) ? 0 : tokenMs(this.root, "cwl-dur-hide"));
     }
     const now = new Map<string, string>();
     for (const id of this.order.filter(id => standing.has(id))) {
@@ -131,10 +160,7 @@ export class LensBoard {
     }
     for (const row of this.root.querySelectorAll<HTMLElement>(".tv-feed-row[data-cluster]")) if (!now.has(row.dataset.key!)) delete row.dataset.cluster;
     this.grouped = now;
-    // AI regrouping sweeps the one AI icon above the clusters once, as the sentences drift. The first frame is where it starts.
-    const joined = this.aiChanges.next([...now].map(([s, c]) => `${c}\u0001${s}`));
-    if (joined.length && !still) sweepAi(this.head);
-    if (!still) this.drift(drifting.slice(-driftSteps));
+    return { drifting, now };
   }
   private drift(moves: { id: string; to: string }[]) {
     const rootBox = this.root.getBoundingClientRect(), scale = this.root.offsetWidth ? rootBox.width / this.root.offsetWidth : 1;
@@ -143,7 +169,7 @@ export class LensBoard {
     moves.forEach(({ id, to }, index) => {
       const row = this.feed.element(id), target = this.clusters.get(to)?.el;
       if (!row || !target || typeof row.animate !== "function") return;
-      const a = row.getBoundingClientRect(), b = target.getBoundingClientRect();
+      const a = row.getBoundingClientRect(), b0 = target.getBoundingClientRect(), g = this.glides.get(target), b = g ? { left: b0.left - g.dx, top: b0.top - g.dy, width: b0.width, height: b0.height } : b0;
       if (!a.width || !b.width) return;
       const ghost = row.cloneNode(true) as HTMLElement;
       ghost.classList.add("lens-ghost"); ghost.removeAttribute("data-key"); ghost.setAttribute("aria-hidden", "true");
