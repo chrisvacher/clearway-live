@@ -175,8 +175,8 @@ async function main() {
           const counts = await layer().locator(".gfs-leg:not([aria-hidden])").evaluateAll(els => els.filter(el => Number(getComputedStyle(el).opacity) > 0.5).map(el => ({ n: Number(el.querySelector("i")!.textContent), count: Number(el.querySelector("small")!.textContent!.replace(/\D/g, "")) })));
           return await people(50)() && dots.length === items.length && items.every(i => dots.includes(i.num)) && counts.length > 0 && counts.every(c => items.find(i => i.num === c.n)?.count === c.count);
         } },
-      { int: "09", kind: "form", label: "Private form", options: { questions: [{ key: "q1", text: "One thing for the facilitators" }] }, sel: ".tv-layer:not(.is-leaving) .gfs-big", sends: 50,
-        answer: once(i => ({ answers: { q1: `kitprivate ${i}` } }), "x"), matches: async server => server.people === 50 && (await layer().locator(".gfs-big").innerText()) === "50" && !(await tv.content()).includes("kitprivate") },
+      { int: "09", kind: "form", label: "Private form", options: { questions: [{ key: "q1", text: "One thing for the facilitators" }] }, sel: ".tv-layer:not(.is-leaving) .gfs-count", sends: 50,
+        answer: once(i => ({ answers: { q1: `kitprivate ${i}` } }), "x"), matches: async server => server.people === 50 && ((await layer().locator(".gfs-marks").getAttribute("aria-label")) ?? "").startsWith("50 of ") && !(await tv.content()).includes("kitprivate") },
       { int: "10", kind: "sign", label: "Sign together", options: { text: signText }, sel: ".tv-layer:not(.is-leaving) .gfs-name", sends: 50,
         answer: once(() => ({ strokes: [stroke(), stroke()] }), "x"), matches: async server => (server.signers as unknown[]).length === 50 && (await layer().locator(".gfs-big").innerText()) === "50"
           && await layer().locator(".gfs-name").count() === 50 },

@@ -436,7 +436,8 @@ async function main() {
     });
     await step("INT-09 Crowded, 50 phones: the count climbs to 50 and no answer reaches the TV", async () => {
       await crowd("form", pform, async (p, i) => [await p.send(pform, randomUUID(), 0, { answers: { q1: `kitprivate ${i}` } })]);
-      await until(async () => (await pLayer().locator(".gfs-big").innerText()) === "50", "50 on the TV", 8000);
+      await until(async () => (await pLayer().locator(".gfs-marks").getAttribute("aria-label") ?? "").startsWith("50 of "), "50 on the TV", 8000);
+      assert.equal(await pLayer().locator(".gfs-mark.is-done").count(), 50, "a filled mark for each of the 50");
       assert.ok(!(await ptv.content()).includes("kitprivate"), "nothing private on the TV");
       await shot(ptv, "int-09-crowded-tv");
     });
