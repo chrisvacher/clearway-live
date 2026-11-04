@@ -28,9 +28,10 @@ function useInView(el: React.RefObject<HTMLElement | null>) {
   return seen;
 }
 
-// variant "tv": the screen alone, cycling on its own (the front page's hero). "full": the
+// variant "hero": the screen and a phone that follows it, cycling on their own (the front
+// page's hero; the phone shows the first Riverside phone's own sent answer). "full": the
 // screen beside a phone the visitor can answer on, with tabs to pick the interaction.
-export function DemoRoom({ variant = "full" }: { variant?: "full" | "tv" }) {
+export function DemoRoom({ variant = "full" }: { variant?: "full" | "hero" }) {
   const root = useRef<HTMLDivElement>(null), tv = useRef<HTMLDivElement>(null);
   const inView = useInView(root);
   const [pick, setPick] = useState<{ kind: DemoKind; auto: boolean; run: number }>({ kind: "word_cloud", auto: true, run: 0 });
@@ -109,40 +110,58 @@ export function DemoRoom({ variant = "full" }: { variant?: "full" | "tv" }) {
   }, [script, session]);
   const Input = phoneInputs[pick.kind];
 
-  const tvOnly = variant === "tv";
-  return <div ref={root} className={`demo-room${tvOnly ? " is-tv-only" : ""}`}>
-    {!tvOnly && <div className="demo-tabs" role="tablist" aria-label="Choose an interaction to watch">
-      {demoKinds.map(kind => <button key={kind} type="button" role="tab" aria-selected={pick.kind === kind} aria-controls="demo-stage"
-        className="demo-tab" onClick={() => choose(kind)}>{demoScripts[kind].label}</button>)}
-    </div>}
-    <div className="demo-stage" id={tvOnly ? undefined : "demo-stage"}>
-      <figure className="demo-screen">
-        <div ref={tv} className="tv-demo" role="img" aria-label={`The room's screen: ${script.prompt}`} data-surface="tv" data-theme="dark" data-room="very_small"
-          data-screen={screenType(frame)} data-texture="on">
-          <div className="tv-stage" aria-hidden="true">
-            {frame && <TvScenes status={{ status: "paired", engagement: demoEngagement, tv: "demo" }} frame={frame} flow={flow} nameLimit={14} reconnecting={false} />}
-          </div>
-        </div>
-        {!tvOnly && <figcaption className="demo-caption">The screen at the front of the room</figcaption>}
-      </figure>
-      {!tvOnly && <figure className="demo-phone">
-        <div className="demo-phone-frame" data-surface="phone" data-theme="dark">
-          <div className="ph-app" data-screen="phone-answering">
-            <header className="ph-head"><span className="ph-church">{demoDisplay.church}</span><LiveMark phone state="live" reconnecting={false} /></header>
-            <div className="ph-body">
-              <section className="ph-step" aria-live="polite">
-                <p className="ph-prompt">{script.prompt}</p>
-                <p className="ph-who"><span className="ph-marker">Anonymous</span><span><strong>Who sees my answers?</strong> Your answers show on the screen without your name.</span></p>
-                {Input ? <Input key={session} step={step} mine={mine} open send={answer => send({ text: answer.text, value: answer.value as DemoAnswer["value"] })} change={() => {}} withdraw={() => {}} />
-                  : <WordForm key={session} step={step} mine={mine} onSend={text => send({ text })} />}
-              </section>
-            </div>
-          </div>
-        </div>
-        <figcaption className="demo-caption">Try it: answer here and watch it land</figcaption>
-      </figure>}
+  const hero = variant === "hero";
+  // In the hero, the phone is the first Riverside phone: its own answers, already sent.
+  const own: OwnShown[] = hero ? placed.current.filter(p => p.person === 0).map(p => ({ id: p.id, text: p.answer.text, value: p.answer.value, revision: 0, status: "sent", withdrawn: false })) : mine;
+  const shownMine = hero && script.kind !== "word_cloud" ? own.slice(-1) : own;
+  const screen = <div ref={tv} className="tv-demo" role="img" aria-label={`The room's screen: ${script.prompt}`} data-surface="tv" data-theme="dark" data-room="very_small"
+    data-screen={screenType(frame)} data-texture="on">
+    <div className="tv-stage" aria-hidden="true">
+      {frame && <TvScenes status={{ status: "paired", engagement: demoEngagement, tv: "demo" }} frame={frame} flow={flow} nameLimit={14} reconnecting={false} />}
     </div>
   </div>;
+  // The phone: the real phone inputs. In the hero it only shows; in the full demo the visitor answers.
+  const phone = <div className="ph-app" data-screen="phone-answering">
+    <header className="ph-head"><span className="ph-church">{demoDisplay.church}</span><LiveMark phone state="live" reconnecting={false} /></header>
+    <div className="ph-body">
+      <section className="ph-step" aria-live={hero ? undefined : "polite"}>
+        <p className="ph-prompt">{script.prompt}</p>
+        <p className="ph-who"><span className="ph-marker">Anonymous</span><span><strong>Who sees my answers?</strong> Your answers show on the screen without your name.</span></p>
+        {Input ? <Input key={session} step={step} mine={shownMine} open send={answer => send({ text: answer.text, value: answer.value as DemoAnswer["value"] })} change={() => {}} withdraw={() => {}} />
+          : <WordForm key={session} step={step} mine={shownMine} onSend={text => send({ text })} />}
+      </section>
+    </div>
+  </div>;
+
+  if (hero) return <div ref={root} className="demo-room is-hero">
+    <div className="hero-tv">{screen}<span className="hero-tag"><span className="hero-dot" aria-hidden="true" />Live on the screen</span></div>
+    <div className="hero-phone" aria-hidden="true" inert><PhoneScale>{phone}</PhoneScale></div>
+  </div>;
+  return <div ref={root} className="demo-room">
+    <div className="demo-tabs" role="tablist" aria-label="Choose an interaction to watch">
+      {demoKinds.map(kind => <button key={kind} type="button" role="tab" aria-selected={pick.kind === kind} aria-controls="demo-stage"
+        className="demo-tab" onClick={() => choose(kind)}>{demoScripts[kind].label}</button>)}
+    </div>
+    <div className="demo-stage" id="demo-stage">
+      <figure className="demo-screen">{screen}<figcaption className="demo-caption">The screen at the front of the room</figcaption></figure>
+      <figure className="demo-phone">
+        <div className="demo-phone-frame" data-surface="phone" data-theme="dark">{phone}</div>
+        <figcaption className="demo-caption">Try it: answer here and watch it land</figcaption>
+      </figure>
+    </div>
+  </div>;
+}
+
+// A phone drawn at its real 390 by 780 size and scaled to fit its frame, so the real phone
+// screen reads as a phone at any size.
+function PhoneScale({ children }: { children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current; if (!el) return;
+    const fit = () => el.style.setProperty("--phone-scale", String(el.clientWidth / 390));
+    const observer = new ResizeObserver(fit); observer.observe(el); fit(); return () => observer.disconnect();
+  }, []);
+  return <div ref={box} className="phone-scale" data-surface="phone" data-theme="dark"><div className="phone-scale-inner">{children}</div></div>;
 }
 
 function WordForm({ step, mine, onSend }: { step: PhoneStep; mine: OwnShown[]; onSend: (text: string) => void }) {

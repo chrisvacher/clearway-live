@@ -61,10 +61,16 @@ body:has(> .home) { background: var(--cwl-surface); }
 .hero-tag { position: absolute; top: -14px; left: var(--space-5); display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-1) var(--space-3); border-radius: var(--cwl-radius-pill); background: var(--cwl-live); color: var(--cwl-on-live); font-size: var(--fs-small); font-weight: var(--fw-bold); }
 .hero-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: hero-pulse 1.6s var(--cwl-ease-calm) infinite; }
 @keyframes hero-pulse { 50% { opacity: 0.3; } }
-.hero-phone { position: absolute; right: 2%; bottom: 4%; width: 26%; filter: drop-shadow(0 24px 30px color-mix(in srgb, var(--cw-navy) 60%, transparent)); }
-.hero-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-12); }
-.hero-chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 var(--space-4); border-radius: var(--cwl-radius-pill); box-shadow: inset 0 0 0 1px var(--cwl-border); color: var(--cwl-text-muted); font-size: var(--fs-small); font-weight: var(--fw-semibold); text-decoration: none; transition: color var(--dur-base), box-shadow var(--dur-base); }
-.hero-chip:hover { color: var(--cwl-text); box-shadow: inset 0 0 0 1px var(--cwl-border-strong); }
+.demo-room.is-hero { position: absolute; inset: 0; margin: 0; }
+.hero-phone { position: absolute; right: 2%; bottom: 4%; width: 26%; padding: 6px; border-radius: 1.6rem; background: var(--cw-gray-900); box-shadow: 0 24px 40px -16px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
+/* The real phone screen at 390 by 780, scaled to the frame. */
+.phone-scale { position: relative; width: 100%; aspect-ratio: 390 / 780; overflow: hidden; border-radius: 1.25rem; background: var(--cwl-surface); }
+.phone-scale-inner { position: absolute; top: 0; left: 0; width: 390px; height: 780px; transform: scale(var(--phone-scale, 0.4)); transform-origin: top left; }
+.phone-scale .ph-app { min-height: 0; height: 100%; overflow: hidden; }
+.phone-scale .ph-texture { position: absolute; }
+.phone-scale .ph-prompt { font-size: var(--cwl-fs-phone-prompt); font-weight: var(--fw-semibold); line-height: 1.3; color: var(--cwl-text); }
+.phone-scale .ph-who span:last-child { color: var(--cwl-text-muted); }
+.phone-scale .ph-count { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 
 /* Device frames around real screenshots. */
 .shot-tv { padding: 8px; border-radius: calc(var(--cwl-radius-card) + 6px); background: var(--cw-gray-900); box-shadow: 0 24px 48px -24px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
@@ -132,7 +138,6 @@ body:has(> .home) { background: var(--cwl-surface); }
 .demo-tab[aria-selected="true"] { background: var(--cwl-surface-card); box-shadow: none; color: var(--cwl-text-on-card); }
 .demo-tab:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
 .demo-stage { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: var(--space-8); align-items: start; }
-.demo-room.is-tv-only .demo-stage { display: block; }
 .demo-screen, .demo-phone { margin: 0; }
 .demo-phone-frame { height: 34rem; overflow: hidden; border-radius: 2rem; box-shadow: 0 0 0 1px var(--cwl-border-strong), 0 0 0 10px var(--cwl-bar-track); }
 .demo-phone-frame .ph-app { min-height: 100%; height: 100%; overflow-y: auto; }

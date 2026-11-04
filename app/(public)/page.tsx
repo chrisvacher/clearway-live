@@ -5,7 +5,7 @@ import {
   ALargeSmall, ArrowRight, Check, Ear, EyeOff, Flag, Laptop, Lock, Monitor, NotebookPen, Quote, ScanEye, Smartphone, Timer, UserCheck, Users, WifiOff, X,
 } from "lucide-react";
 import { DemoRoom } from "@/components/public/demo-room";
-import { Gallery, PhoneShot, Reveal, ThreeScreens, type GalleryItem } from "@/components/public/home-parts";
+import { Gallery, Reveal, ThreeScreens, type GalleryItem } from "@/components/public/home-parts";
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { AiIcon } from "@/components/interactions/ai/ai-icon";
 import "./home.css";
@@ -136,12 +136,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
           <div className="home-hero-visual" aria-label="A Clearway retreat room, with the screen and a phone">
             <div className="hero-photo"><Image src="/home/room-stained-glass.webp" alt="A church leadership team around a U-shaped table, facing a Clearway screen" fill priority sizes="(max-width: 1024px) 92vw, 640px" /></div>
-            <div className="hero-tv"><DemoRoom variant="tv" /><span className="hero-tag"><span className="hero-dot" aria-hidden="true" />Live on the screen</span></div>
-            <div className="hero-phone"><PhoneShot src="/home/phone-word-cloud.webp" alt="A phone with two answers sent" priority /></div>
+            <DemoRoom variant="hero" />
           </div>
-        </div>
-        <div className="home-width hero-chips" aria-label="Ways to ask the room">
-          {["Word cloud", "Open text", "Q&A", "Multiple choice", "Scale", "Ranking", "100 points", "2x2 grid", "Statements", "Private form", "Sign together"].map(chip => <a key={chip} href="#ask" className="hero-chip">{chip}</a>)}
         </div>
       </section>
 
