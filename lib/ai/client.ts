@@ -5,7 +5,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { AiConfig } from "./config";
 import { fakeClient } from "./fake";
 
-export type AiCall = { system: string; user: string; maxTokens: number; timeoutMs: number };
+// Images are base64 with their media type, sent after the text in the order given (the overnight draft reads easel photos).
+export type AiImage = { type: "image/jpeg" | "image/png" | "image/webp"; data: string };
+export type AiCall = { system: string; user: string; maxTokens: number; timeoutMs: number; images?: AiImage[] };
 export type AiReply = { text: string; inputTokens: number; outputTokens: number };
 export type AiClient = { model: (config: AiConfig) => string; complete: (call: AiCall, config: AiConfig) => Promise<AiReply> };
 
@@ -15,7 +17,8 @@ export function anthropicClient(key: string): AiClient {
     model: config => config.model,
     async complete(call, config) {
       const reply = await api.messages.create({ model: config.model, max_tokens: call.maxTokens, temperature: 0, system: call.system,
-        messages: [{ role: "user", content: call.user }] }, { timeout: call.timeoutMs });
+        messages: [{ role: "user", content: call.images?.length
+          ? [{ type: "text" as const, text: call.user }, ...call.images.map(i => ({ type: "image" as const, source: { type: "base64" as const, media_type: i.type, data: i.data } }))] : call.user }] }, { timeout: call.timeoutMs });
       const text = reply.content.map(block => block.type === "text" ? block.text : "").join("");
       return { text, inputTokens: reply.usage.input_tokens, outputTokens: reply.usage.output_tokens };
     },

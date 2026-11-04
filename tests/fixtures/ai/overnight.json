@@ -1,0 +1,36 @@
+{
+  "about": "Fixture set for the overnight draft prompt (overnight-draft@1), from the fictional Riverside engagement. Each case has the inputs overnight_claim hands the worker, the reply recorded for the fake client, and what the draft may and may not contain. The recorded reply is checked against the expectations always, and a real reply too when ANTHROPIC_API_KEY is set.",
+  "names": ["Priya", "Ben", "Ruth", "Sam", "Daniel", "Grace Ortiz", "Tasha"],
+  "cases": [
+    {
+      "name": "Riverside, Day 1: three provisional Vision Outcomes, a full one, a thin one and an empty one",
+      "inputs": {
+        "year": 2029, "horizon": "3-year Vision",
+        "outcomes": [
+          { "ref": "o1", "id": "11111111-1111-4111-8111-000000000001", "title": "Leaders raised from within", "description": "", "bullets": [
+            { "ref": "o1b1", "id": "11111111-1111-4111-8111-000000000011", "text": "leaders grow here and lead here" },
+            { "ref": "o1b2", "id": "11111111-1111-4111-8111-000000000012", "text": "a few deep partnerships with the city" },
+            { "ref": "o1b3", "id": "11111111-1111-4111-8111-000000000013", "text": "apprentices in every ministry" } ] },
+          { "ref": "o2", "id": "11111111-1111-4111-8111-000000000002", "title": "Families find a home here", "description": "", "bullets": [
+            { "ref": "o2b1", "id": "11111111-1111-4111-8111-000000000021", "text": "kids and parents belong" } ] },
+          { "ref": "o3", "id": "11111111-1111-4111-8111-000000000003", "title": "A church that shows up", "description": "", "bullets": [] } ],
+        "cards": [
+          { "ref": "c1", "id": "22222222-2222-4222-8222-000000000001", "kind": "quote", "text": "If we weren't here, the city would notice.", "detail": {}, "step": "Provisional Vision Outcomes" },
+          { "ref": "c2", "id": "22222222-2222-4222-8222-000000000002", "kind": "decision", "text": "A few deep partnerships, not many shallow ones.", "detail": { "why": "Depth is what neighbours notice." }, "step": "Provisional Vision Outcomes" },
+          { "ref": "c3", "id": "22222222-2222-4222-8222-000000000003", "kind": "tension", "text": "Growth: more services or more groups?", "detail": { "views": ["More services.", "More groups."] }, "step": "Provisional Vision Outcomes" },
+          { "ref": "c4", "id": "22222222-2222-4222-8222-000000000004", "kind": "question", "text": "Does the food bank belong to Community or Operations?", "detail": {}, "step": "Pre-mortem" },
+          { "ref": "c5", "id": "22222222-2222-4222-8222-000000000005", "kind": "quote", "text": "120 people came to the Alpha supper, and 30 stayed.", "detail": {}, "step": "Pre-mortem" } ],
+        "photos": [
+          { "ref": "p1", "id": "33333333-3333-4333-8333-000000000001", "step": "Provisional Vision Outcomes", "caption": "easel-1.jpg", "path": "x", "type": "image/jpeg", "bytes": 2000, "readable": true, "typed": null },
+          { "ref": "p2", "id": "33333333-3333-4333-8333-000000000002", "step": "Pre-mortem", "caption": "easel-2.heic", "path": "x", "type": "image/heic", "bytes": 2000, "readable": false, "typed": null } ]
+      },
+      "reply": "{\"outcomes\":[{\"outcome\":\"o1\",\"bullets\":[{\"text\":\"Leaders grow here and lead here.\",\"sources\":[{\"ref\":\"o1b1\"}]},{\"text\":\"We keep a few deep partnerships with the city, not many shallow ones.\",\"sources\":[{\"ref\":\"o1b2\"},{\"ref\":\"c2\",\"excerpt\":\"A few deep partnerships\"}]},{\"text\":\"Every ministry has an apprentice.\",\"sources\":[{\"ref\":\"o1b3\"}]}],\"voices\":[{\"text\":\"If we weren't here, the city would notice.\",\"source\":\"c1\"}],\"tensions\":[{\"text\":\"Growth: more services or more groups?\",\"source\":\"c3\"},{\"text\":\"Does the food bank belong to Community or Operations?\",\"source\":\"c4\"}]},{\"outcome\":\"o2\",\"bullets\":[{\"text\":\"Kids and parents belong here.\",\"sources\":[{\"ref\":\"o2b1\"}]}],\"voices\":[],\"tensions\":[]},{\"outcome\":\"o3\",\"bullets\":[],\"voices\":[],\"tensions\":[]}],\"unreadable\":[{\"photo\":\"p2\"}]}",
+      "expect": {
+        "outcomes": 3, "bulletsAtMost": 8, "thin": ["o3"],
+        "numbersFrom": "cards and photos",
+        "voicesFromCards": ["quote", "decision"], "tensionsFromCards": ["tension", "question"],
+        "unreadable": ["p2"]
+      }
+    }
+  ]
+}

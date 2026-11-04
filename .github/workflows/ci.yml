@@ -116,6 +116,10 @@ jobs:
         run: npm run test:scribe
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Test the overnight drafts and review (Day 1 close, sources, locks, restore, versions, publish, failed draft) in real browsers
+        run: npm run test:overnight
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Upload the acceptance and failure kit screenshots
         if: always()
         uses: actions/upload-artifact@v4
