@@ -92,7 +92,7 @@ async function main() {
         const tvClusters = async () => (await tv.locator(".tv-layer:not(.is-leaving) .lens-cluster:not(.is-going)").evaluateAll(els => els.map(e => `${e.querySelector(".lens-label")!.textContent!.trim()}:${e.querySelector(".lens-count")!.textContent}`))).sort();
         const want = final.groups.map(g => `${g.label}:${g.count}`).sort();
         await until(async () => JSON.stringify(await tvClusters()) === JSON.stringify(want), `the TV's clusters match the server (${want.join(", ")})`, 8000);
-        assert.ok(await tv.locator(".tv-layer:not(.is-leaving) .lens-cluster .cwl-ai-mark, .tv-layer:not(.is-leaving) [data-ai-foot]").count() > 0, "the AI icon marks the clusters");
+        assert.ok(await tv.locator(".tv-layer:not(.is-leaving) .lens-clusters-head .cwl-ai-mark").count() > 0, "the AI icon marks the clusters");
         console.log(`50 phones, AI slow (2.5s a call): ${aiRuns.n} AI runs beside ${result.sent} sentences. Phone to TV: median ${result.report!.phone_tv.p50} ms, 95th ${result.report!.phone_tv.p95} ms, slowest ${result.report!.phone_tv.max} ms. Largest cluster or drift step ${Math.round(largest)}px over ${frames} frames.`);
         await shot(tv, "lens-wall-50-phones-ai");
       });
