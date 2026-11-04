@@ -573,7 +573,7 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 **General rules for every interaction**
 
 - Before anyone answers, structured interactions (choice, scale, ranking, 100 points, grid) show their empty structure on the TV, and text interactions show a quiet "Waiting for answers".
-- The TV shows a count: "8 answering" for one-answer-per-person types, "23 answers" for text types.
+- The TV shows two count badges, top left beside the church's badge, numbers only (Decided Nov 4): people who have responded (people icon) on every live result screen, and submissions (send icon) where one person can send several (word cloud, open text, Q&A). On one-response types (multiple choice, ranking, 100 points, scale, 2x2 grid, statements) a person counts once however many items they touch, so only the people badge shows. The private form shows no badges. Nothing sits in the bottom right corner.
 - One answer per person where it applies. A person's latest answer replaces their earlier one and the TV animates the change.
 - Anything AI produced or combined is marked as such on the TV.
 - A word filter screens profanity before anything reaches the TV.
@@ -610,8 +610,8 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 - Phone: ask a question anonymously (up to 200 characters, Default), and upvote others' questions.
 - Ranking counts people (Default, Synrg's rule): each person who asked a folded question counts 2, each other person who voted counts 1. Ties go to the most recent activity.
-- Folding: first by matching words (common words removed, about three-quarters overlap), then by AI, as questions arrive. Folded questions show "asked by 3". Every fold can be undone, and questions the facilitator has edited aren't refolded.
-- TV: the top three questions with "+ 4 more on your phones", rising and falling with a glide. Spotlight puts one question large on the TV over any session. Answered clears it.
+- Folding: first by matching words (common words removed, about three-quarters overlap), then by AI, as questions arrive. A folded question is labelled "Asked by 3" below it, led by the AI icon and a dot when AI folded it, with no "Combined" (Decided Nov 4). Every fold can be undone, and questions the facilitator has edited aren't refolded.
+- TV: the top three questions as rows with "+ 4 more on your phones", rising and falling with a glide. Each row's arrow and count sit side by side on the question's first line, flush with the prompt's left edge (Decided Nov 4). Spotlight puts one question large on the TV over any session. Answered clears it.
 - "Questions any time" (setting) adds an Ask button to every session's phone screen, with one shared pool for the engagement.
 
 **INT-04 Multiple choice**
@@ -644,8 +644,8 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 **INT-09 Private form**
 
-- Phone: questions answered privately.
-- TV: only the count of responses. Answers never reach the TV, enforced in the database.
+- Phone: questions answered privately, under "Only the facilitators will read this" and a "Send privately" button; after sending, "Sent privately. Only the facilitators will read what you wrote." (Decided Nov 4).
+- TV: one mark for each person present, filling in the order answers arrive (never by seat or name), with "6 of 8 answered" and "Only the facilitators will read what you write. This screen just counts." (Decided Nov 4). No count badges. Answers never reach the TV, enforced in the database.
 
 **INT-10 Sign together**
 
@@ -1305,7 +1305,7 @@ Acceptance criteria, per interaction
 
 - Word cloud: the answer limits and matching rules hold. Repeats swell, and size and color follow the popularity rules. AI combines near-duplicates with undo.
 - Open text: a wall of cards that fade in and reflow. Optional AI grouping with undo, pin and off. An AI summary appears only after Show summary.
-- Q&A: anonymous questions with upvotes. Folded questions show "asked by 3", and every fold can be undone. The top questions rise with a glide. Spotlight and Answered work.
+- Q&A: anonymous questions with upvotes. Folded questions show "Asked by 3", led by the AI icon when AI folded them, and every fold can be undone. The top questions rise with a glide. Spotlight and Answered work.
 - Multiple choice: live bars that grow and trade places. Answers can change until close.
 - Scale: the average and live columns, the average marker sliding.
 - Ranking: bars ordered by average place glide as averages change. Added options appear on every phone.

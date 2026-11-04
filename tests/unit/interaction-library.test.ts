@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { boldParts, contentOf, countOf, countUnit, depthBlocks, kindOf, outlineRows, plainText } from "../../lib/interactions/kinds";
+import { boldParts, contentOf, countLabel, countOf, countUnit, depthBlocks, kindOf, outlineRows, plainText } from "../../lib/interactions/kinds";
 import { fitSize, mediaInput } from "../../lib/interactions/media";
 import { applyLiveEvent, submissionRequest } from "../../lib/live/protocol";
 import { ownAnswers } from "../../lib/phone/policy";
@@ -12,6 +12,10 @@ const id = (n: number) => `57000000-0000-4000-8000-${String(n).padStart(12, "0")
 test("the TV count reads people for one-answer-per-person kinds and answers for text", () => {
   assert.equal(countOf({ total: 23, people: 8 }, "people"), 8);
   assert.equal(countOf({ total: 23, people: 8 }, "answers"), 23);
+  // The count badges' spoken label: people alone for one response a person, both where one person sends several.
+  assert.equal(countLabel(8, 8, "people", "choice"), "8 answering");
+  assert.equal(countLabel(8, 23, "answers", "word_cloud"), "23 answers from 8 people");
+  assert.equal(countLabel(1, 1, "answers", "qa"), "1 question from 1 person");
   assert.equal(countUnit(8, "people"), "answering");
   assert.equal(countUnit(1, "answers"), "answer");
   assert.equal(countUnit(23, "answers"), "answers");

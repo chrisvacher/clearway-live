@@ -88,7 +88,7 @@ async function main() {
         assert.ok(frames > 0, "clusters were sampled");
         assert.equal(jumps, 0, `no cluster or drifting sentence jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px; by kind ${JSON.stringify(by)})`);
         const final = (await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results as { total: number; groups: { label: string; count: number }[] };
-        await until(async () => Number(((await tv.locator(".tv-foot .tv-tally").innerText()).match(/\d+/) ?? [])[0]) === final.total, "the TV count matches the server", 8000);
+        await until(async () => Number(((await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).match(/\d+/) ?? [])[0]) === final.total, "the TV count matches the server", 8000);
         const tvClusters = async () => (await tv.locator(".tv-layer:not(.is-leaving) .lens-cluster:not(.is-going)").evaluateAll(els => els.map(e => `${e.querySelector(".lens-label")!.textContent!.trim()}:${e.querySelector(".lens-count")!.textContent}`))).sort();
         const want = final.groups.map(g => `${g.label}:${g.count}`).sort();
         await until(async () => JSON.stringify(await tvClusters()) === JSON.stringify(want), `the TV's clusters match the server (${want.join(", ")})`, 8000);

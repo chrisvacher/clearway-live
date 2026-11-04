@@ -118,6 +118,8 @@
   --cwl-tv-gap: 32px; /* Gap between TV items, base space-8. */
   --cwl-tv-card-pad: 32px; /* Padding inside a TV wall card, base space-8. */
   --cwl-tv-moment-gap: 48px; /* Minimum distance between a Lime and a Sunrise element, base space-12. */
+  --cwl-private-mark-max: 144px; /* Interaction rework (Nov 4 2026). Largest mark per person on the private form count (a room of 8). */
+  --cwl-private-mark-min: 16px; /* Interaction rework. Smallest mark on the private form count. */
   --cwl-phone-gutter: 16px; /* Phone side gutter, base space-4. */
   --cwl-phone-stack: 24px; /* Phone vertical rhythm, base space-6. */
   --cwl-phone-touch: 44px; /* Minimum touch target. */
@@ -136,6 +138,7 @@
   /* ---------- Motion: durations ---------- */
   --cwl-dur-arrive: 500ms; /* Arriving: a new item fades and settles where it lands. */
   --cwl-dur-make-room: 700ms; /* Making room: neighbours glide aside (FLIP). */
+  --cwl-dur-mark-fill: 400ms; /* Interaction rework (Nov 4 2026). Private form: a person's mark filling from the centre when they answer, on cwl-ease-signature. Reduced motion: filled at once. */
   --cwl-dur-swell: 400ms; /* Swelling: a repeated word grows and shifts color. */
   --cwl-dur-new-hold: 1200ms; /* How long the newest arrival keeps its Lime moment. */
   --cwl-dur-settle-color: 600ms; /* A color settling back after its moment. */
@@ -224,6 +227,10 @@
   --cwl-delay-type-batch: 120ms; /* The TV applies typed edits at most this often, so a line never stutters. */
   --cwl-delay-map-step: 160ms; /* Between draft Map fields assembling. */
   --cwl-delay-tc-leave: 900ms; /* Pass 5. A correction folding in on the TV: struck words stay readable this long, then leave over cwl-dur-hide while the paragraph reflows and inserted words arrive underlined. */
+
+  /* ---------- Limits (interaction rework, Nov 4 2026) ---------- */
+  --cwl-private-marks-max: 500; /* Private form: people shown as marks. Past this, the count alone. */
+  --cwl-qa-top: 3; /* Q&A: questions shown on the TV as rows. The rest are on phones. */
 }
 
 /* ---------- Light screens ---------- */

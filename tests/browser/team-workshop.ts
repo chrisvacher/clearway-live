@@ -82,7 +82,7 @@ async function main() {
 
     const tv = await (await browser.newContext({ viewport: { width: 1920, height: 1080 } })).newPage();
     const layer = () => tv.locator(".tv-layer:not(.is-leaving)").last();
-    const tally = async () => (await tv.locator(".tv-foot .tv-tally").innerText().catch(() => "")).trim();
+    const tally = async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "").catch(() => "")).trim();
     await step("Pair the TV from setup with the code on the screen", async () => {
       await tv.goto(app.origin + "/tv");
       const code = await until(async () => { const c = (await tv.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
@@ -129,7 +129,8 @@ async function main() {
         if (expected.unit) {
           const n = expected.unit === "answering" ? r.people : r.total;
           const word = expected.unit === "answers" && n === 1 ? "answer" : expected.unit === "questions" && n === 1 ? "question" : expected.unit;
-          if (await tally() !== `${n} ${word}`) return false;
+          const label = expected.unit === "answering" ? `${n} ${word}` : `${n} ${word} from ${r.people} ${r.people === 1 ? "person" : "people"}`;
+          if (await tally() !== label) return false;
         }
         const s = await stats();
         return s[1] === String(r.people) && s[2] === String(r.total);
@@ -331,12 +332,12 @@ async function main() {
     });
     await step("Your questions (Q&A): asked anonymously, matching questions fold, votes rank them, Spotlight and Answered", async () => {
       await next("Your questions", "qa");
-      await until(async () => (await tally()) === "0 questions", "no questions yet: the rehearsal's is gone", 10000);
+      await until(async () => (await tally()) === "0 questions from 0 people", "no questions yet: the rehearsal's is gone", 10000);
       const asks = ["When will we start on the shared priorities?", "When do we start the shared priorities work?", "Who will lead the new leaders track?", "How do we protect time for each other?",
         "What happens to our current meetings?", "Can we revisit this in three months?", "How will we know the focus is working?", "Who decides what we stop doing?"];
       await all(async (p, i) => { await p.page.locator("#qa-question").waitFor({ timeout: 10000 }); await p.page.fill("#qa-question", asks[i]); await p.page.locator(".qa-ask-form .ph-send").click(); });
       await until(async () => ((await results()).questions as { askers: number }[] | undefined)?.some(q => q.askers === 2), "two matching questions fold into one", 15000);
-      await until(async () => (await layer().locator(".qa-row").allInnerTexts()).some(t => t.includes("asked by 2")), "asked by 2 on the TV", 10000);
+      await until(async () => (await layer().locator(".qa-row").allInnerTexts()).some(t => t.includes("Asked by 2")), "asked by 2 on the TV", 10000);
       await all(async p => { const vote = p.page.locator(".qa-item", { hasText: "Who decides what we stop" }).locator(".qa-vote"); if (!(await vote.isDisabled())) await vote.click(); });
       const questions = async () => (await results()).questions as { id: string; text: string; people: number; rank: number }[];
       await until(async () => (await questions()).find(q => q.text.startsWith("Who decides"))?.rank === 1, "the voted question rises to the top", 10000);

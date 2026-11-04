@@ -78,7 +78,8 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
     : ["live", "phones_down"].includes(session.state) ? (frame!.state.phones_down || session.state === "phones_down" ? "down" : "live") : null;
   return <>
     <div className="tv-texture" aria-hidden="true"><span /></div>
-    <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}</div>
+    <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}
+      {inputOn && frame && kind?.counts !== "none" && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} />}</div>
       <div className="tv-top-status"><LiveMark state={mark} reconnecting={reconnecting} /></div>
     </header>
     <div className="tv-scenes">
@@ -101,7 +102,6 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
     {paired && <Spotlight frame={frame} />}
     {paired && <QaSpotlight frame={frame} />}
     <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <QaWaiting frame={frame} />}{paired && <AiFoot frame={frame} />}</span>
-      <span className="tv-foot-right">{mode === "join" && <span className="tv-tally"><b>{presence?.count || 0}</b> here</span>}
-        {inputOn && frame && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} />}</span></footer>
+      <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
 }

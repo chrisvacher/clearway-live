@@ -85,7 +85,7 @@ async function main() {
       assert.ok(out.every(s => s === "accepted"), `every placement accepted: ${[...new Set(out)].join(",")}`);
       await until(async () => (await layer().locator(".gfs-dot").count()) > 0, "dots on the TV", 8000);
       const people = (await server()).people as number;
-      await until(async () => (await tv.locator(".tv-foot .tv-tally").innerText()).includes(String(people)), "the TV count is the server's", 8000);
+      await until(async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).includes(String(people)), "the TV count is the server's", 8000);
     });
     await step("Pre-mortem: AI merges the duplicate reasons, and Undo brings every one back", async () => {
       await until(async () => ((await sql.query("select count(*)::integer n from private.grid_merges where session_id=$1 and made_by='ai' and not deleted", [pm])).rows[0].n) >= 2, "AI merged the duplicates", 20000);

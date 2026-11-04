@@ -22,7 +22,7 @@ function Question({ q, mine, voted, pending, open, onVote }: { q: QaQuestion; mi
   return <li ref={ai} className={`qa-item${q.answered ? " is-answered" : ""}`}>
     <div className="qa-item-body"><p className="qa-item-text">{q.text}</p>
       <p className="qa-item-meta">{q.answered && <span><Check size={14} aria-hidden="true" />Answered</span>}
-        {q.askers > 1 && <span>{q.ai && <><AiMark /> Combined · </>}{askedBy(q)}</span>}{own && <span>Yours</span>}{mine && mine.status !== "sent" && <Status status={mine.status} />}
+        {q.askers > 1 && <span className="qa-by">{q.ai && <><AiMark label="Combined by AI" /><span aria-hidden="true">·</span></>}{askedBy(q)}</span>}{own && <span>Yours</span>}{mine && mine.status !== "sent" && <Status status={mine.status} />}
         {pending && <span><WifiOff size={14} aria-hidden="true" />Vote saved on this phone</span>}</p></div>
     {!q.answered && <button type="button" className={`qa-vote${voted ? " is-on" : ""}`} aria-pressed={voted} disabled={own || !open}
       aria-label={own ? `Your question, ${q.people} ${q.people === 1 ? "person" : "people"}` : `${voted ? "Remove your vote" : "Vote"}, ${q.people} ${q.people === 1 ? "person" : "people"}`}

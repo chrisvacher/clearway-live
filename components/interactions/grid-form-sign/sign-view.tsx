@@ -3,6 +3,7 @@ import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvFlow } from "@/lib/tv/flow";
 import { fitWall, signaturePath, signersOf, sigHeight, sigWidth, strokesOf, wallLayout } from "@/lib/interactions/grid-form-sign";
 import { LiveView, make, spring, step, useLiveView, type Spring } from "./view-base";
+import { reducedMotion } from "@/lib/tv/board";
 import "./grid-form-sign.css";
 
 type Card = { el: HTMLElement; x: Spring; y: Spring; o: Spring; going: boolean; inked: boolean; still?: boolean };
@@ -201,20 +202,72 @@ export function SignView({ session, frame, flow }: { session: string; frame: Liv
   return <div ref={host} className="tv-board" />;
 }
 
-// INT-09 on the TV: only the count of responses, as a still structure. The answers never
-// reach this screen; the database keeps them out of every snapshot and event.
+// INT-09 on the TV (redrawn, Chris, November 4 2026): one mark for each person present, open until
+// they answer, then filled, with "6 of 8 answered" and one line saying who reads the answers. Marks
+// fill in the order answers arrive, never by seat or name, so a mark can't be traced to a person.
+// The answers never reach this screen; the database keeps them out of every snapshot and event.
+// The marks, the count and the line are one block centred under the prompt; the marks take the
+// largest size from cwl-private-mark-max down to cwl-private-mark-min that fits. Past
+// cwl-private-marks-max people the marks step aside and the count stands alone.
+const lockSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 class FormCount extends LiveView {
-  private count: Count; private of: HTMLElement;
+  private count: Count; private n: HTMLElement; private of: HTMLElement; private marks: HTMLElement; private line: HTMLElement;
+  private total = 0; private answered = 0; private observer?: ResizeObserver;
   constructor(root: HTMLElement, session: string) {
     super(root, session);
     root.classList.add("gfs-form");
-    root.innerHTML = '<p class="gfs-big" aria-live="polite">0</p><p class="gfs-of"></p><p class="gfs-lock"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Answers stay private. They never appear on this screen.</p>';
-    this.count = new Count(root.querySelector(".gfs-big")!); this.of = root.querySelector(".gfs-of")!;
+    root.innerHTML = `<div class="gfs-marks" role="img"></div><p class="gfs-count"><b class="gfs-n" aria-live="polite">0</b><span class="gfs-of"></span></p><p class="gfs-lock">${lockSvg}Only the facilitators will read what you write. This screen just counts.</p>`;
+    this.marks = root.querySelector(".gfs-marks")!; this.n = root.querySelector(".gfs-n")!; this.of = root.querySelector(".gfs-of")!; this.line = root.querySelector(".gfs-count")!;
+    this.count = new Count(this.n);
+    if (typeof ResizeObserver === "function") { let w = 0, h = 0; this.observer = new ResizeObserver(() => { if (root.clientWidth !== w || root.clientHeight !== h) { w = root.clientWidth; h = root.clientHeight; this.layout(); } }); this.observer.observe(root); }
   }
-  protected draw(frame: LiveSnapshot, _fresh: string | null, instant: boolean) {
-    const n = Number(frame.state.results.people) || 0, here = Math.max(frame.presence?.count ?? 0, n);
+  destroy() { this.observer?.disconnect(); super.destroy(); }
+  // The largest mark that fits every person, in 2px steps; gap 28% of the mark (8px at least).
+  private layout() {
+    const root = this.root, cap = this.level("cwl-private-marks-max", 500), total = this.total;
+    const countOnly = total > cap;
+    root.classList.toggle("is-count-only", countOnly);
+    if (countOnly || !total) { this.marks.style.height = "0px"; return; }
+    const style = getComputedStyle(root), padT = parseFloat(style.paddingTop) || 0, gapY = parseFloat(style.rowGap) || 36;
+    const W = this.marks.clientWidth || root.clientWidth || 1600;
+    const H = Math.max(120, root.clientHeight - padT - this.line.offsetHeight - (root.querySelector<HTMLElement>(".gfs-lock")?.offsetHeight ?? 0) - 2 * gapY - 8);
+    const lo = this.level("cwl-private-mark-min", 16);
+    let d = this.level("cwl-private-mark-max", 144);
+    const fits = (dd: number) => { const g = Math.max(8, Math.round(dd * 0.28)), cols = Math.max(1, Math.floor((W + g) / (dd + g))); return Math.ceil(total / cols) * (dd + g) - g <= H; };
+    while (d > lo && !fits(d)) d -= 2;
+    const g = Math.max(8, Math.round(d * 0.28)), cols = Math.max(1, Math.min(total, Math.floor((W + g) / (d + g))));
+    this.marks.style.setProperty("--gfs-d", `${d}px`); this.marks.style.setProperty("--gfs-g", `${g}px`); this.marks.style.setProperty("--gfs-cols", String(cols));
+    this.marks.style.height = `${Math.ceil(total / cols) * (d + g) - g}px`;
+  }
+  protected draw(frame: LiveSnapshot, fresh: string | null, instant: boolean) {
+    const n = Number(frame.state.results.people) || 0, total = Math.max(frame.presence?.count ?? 0, n), before = this.answered;
+    if (total !== this.total) {
+      // Someone arrives or leaves: marks are added or removed at the end and the rest make room (FLIP).
+      const kids = [...this.marks.children] as HTMLElement[], from = instant ? [] : kids.map(el => el.getBoundingClientRect());
+      this.total = total;
+      while (this.marks.children.length < total) this.marks.appendChild(make("i", "gfs-mark"));
+      while (this.marks.children.length > total) this.marks.lastElementChild!.remove();
+      this.layout();
+      if (!instant && !reducedMotion(this.root)) kids.forEach((el, i) => {
+        if (!el.isConnected) return;
+        const a = from[i], b = el.getBoundingClientRect();
+        if (Math.abs(a.left - b.left) + Math.abs(a.top - b.top) > 0.5) el.animate([{ transform: `translate(${a.left - b.left}px,${a.top - b.top}px)` }, { transform: "none" }], { duration: this.ms("cwl-dur-make-room", 700), easing: "cubic-bezier(0.22, 1, 0.36, 1)" });
+      });
+    }
+    const marks = [...this.marks.children] as HTMLElement[];
+    marks.forEach((el, i) => {
+      const done = i < n;
+      if (done && !el.classList.contains("is-done") && instant) { el.classList.add("is-instant"); requestAnimationFrame(() => el.classList.remove("is-instant")); }
+      el.classList.toggle("is-done", done);
+    });
+    // A lone answer's mark takes the screen's Lime moment, then settles.
+    if (fresh && !instant && n === before + 1 && marks[n - 1]) this.moment([marks[n - 1]]);
+    this.answered = n;
+    this.marks.setAttribute("aria-label", `${n} of ${total} answered`);
+    const all = n > 0 && n === total;
+    this.n.style.display = all ? "none" : "";
+    this.of.textContent = all ? `All ${total} answered` : ` of ${total} answered`;
     this.count.set(n, instant);
-    this.of.textContent = here ? `of ${here} ${here === 1 ? "has" : "have"} answered` : "answered";
   }
   protected frame(dt: number, _now: number, snap: boolean) { return this.count.frame(this.rate("cwl-dur-make-room"), dt, snap); }
 }

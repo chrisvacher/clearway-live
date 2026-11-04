@@ -42,7 +42,7 @@ try {
   const unchanged = (page: Page) => page.evaluate(() => (window as unknown as { __kit?: number }).__kit === 1);
   await mark(tv);
   const tvText = () => tv.locator(".tv-layer:not(.is-leaving) .tv-board").innerText();
-  const tally = async () => Number((await tv.locator(".tv-tally").innerText()).match(/\d+/)?.[0] ?? 0);
+  const tally = async () => Number((await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).match(/\d+/)?.[0] ?? 0);
 
   // Phones sign in by email code, as a real room does.
   async function phone(person: { email: string }, context?: BrowserContext) {

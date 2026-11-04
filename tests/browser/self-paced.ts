@@ -177,7 +177,7 @@ async function main() {
       }
       await pPage.locator(".ph-opt", { hasText: "Prayer" }).click(); await pPage.locator(".ph-bars-foot .ph-send").click();
       await rPage.locator(".ph-opt", { hasText: "Next generation" }).click(); await rPage.locator(".ph-bars-foot .ph-send").click();
-      await until(async () => (await tv.locator(".tv-foot .tv-tally").innerText()).trim() === "2 answering", "the TV counts the test answers like any others", 8000);
+      await until(async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === "2 answering", "the TV counts the test answers like any others", 8000);
       const rows = (await sql.query("select test from public.submissions where session_id=$1 and not deleted", [choice])).rows;
       assert.ok(rows.length === 2 && rows.every(r => r.test), "both are marked test");
       await shot(rPage, "rehearsal-phone"); await shot(tv, "rehearsal-tv");
@@ -316,7 +316,7 @@ async function main() {
         return Promise.all(i % 2 ? [a(), b()] : [b(), a()]);
       }));
       assert.ok(sent.flat().every(s => s === "accepted"), `every answer accepted (${[...new Set(sent.flat())]})`);
-      await until(async () => (await ptv.locator(".tv-foot .tv-tally").innerText()).trim() === "50 answering", "50 answering on the TV", 10000);
+      await until(async () => (await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === "50 answering", "50 answering on the TV", 10000);
       const server = (await sql.query("select results from public.room_states where engagement_id=$1", [practiceRoom])).rows[0].results as { people: number; bars: Bar[] };
       assert.equal(server.people, 50, "the room's count is the live step's alone");
       const want = server.bars.map(b => b.key);
