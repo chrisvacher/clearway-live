@@ -7,7 +7,7 @@
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
 import { springRate, springStep } from "@/lib/tv/motion";
 import { askedBy, foldedInto, moreLine, topQuestions, type QaQuestion } from "@/lib/interactions/qa";
-import { aiLineEl } from "@/components/interactions/ai/ai-dom";
+import { AiChanges, aiLineEl, sweepAi } from "@/components/interactions/ai/ai-dom";
 
 const svg = (paths: string) => `<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 export const arrowUp = svg('<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>');
@@ -28,6 +28,7 @@ export class QaRows {
   readonly list: HTMLElement;
   private more: HTMLElement;
   private note: HTMLElement;
+  private aiChanges = new AiChanges();
   constructor(private root: HTMLElement) {
     this.list = make("div", "qa-rows"); this.more = make("p", "qa-more"); this.note = make("p", "qa-note tv-muted");
     this.note.textContent = "Waiting for questions";
@@ -65,15 +66,23 @@ export class QaRows {
       r.el.classList.toggle("is-first", i === 0);
       r.el.querySelector("b")!.textContent = String(q.people);
       r.el.querySelector(".qa-text")!.textContent = q.text;
-      const meta = r.el.querySelector(".qa-meta")!;
-      meta.replaceChildren();
-      if (q.askers > 1) {
-        if (q.ai) meta.append(aiLineEl("Combined", "qa-ai ai-line"), " · ");
-        meta.append(askedBy(q));
+      // Built only when it changes, so a vote never cuts short the AI icon's sweep.
+      const meta = r.el.querySelector<HTMLElement>(".qa-meta")!, sign = q.askers > 1 ? `${q.ai ? "ai" : ""}|${askedBy(q)}` : "";
+      if (meta.dataset.content !== sign) {
+        meta.dataset.content = sign;
+        meta.replaceChildren();
+        if (q.askers > 1) {
+          if (q.ai) meta.append(aiLineEl("Combined", "qa-ai ai-line"), " · ");
+          meta.append(askedBy(q));
+        }
       }
       r.el.setAttribute("aria-label", `${q.text}. ${q.people} ${q.people === 1 ? "person" : "people"}${q.askers > 1 ? `, ${askedBy(q)}` : ""}`);
     });
     this.fit(rowH);
+    // AI folding a question into a row sweeps that row's AI icon once, as the folded row glides into it.
+    // The first set a board sees is where it starts; Undo fold is not AI acting.
+    for (const key of this.aiChanges.next(list.filter(q => q.ai).flatMap(q => q.ids.map(id => `${q.id}\u0001${id}`))))
+      if (!snap) sweepAi(this.rows.get(key.split("\u0001")[0])?.el.querySelector(".qa-meta"));
     const keep = new Set(shown.map(q => q.id));
     this.rows.forEach((r, id) => {
       if (keep.has(id) || r.going) return;

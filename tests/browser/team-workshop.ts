@@ -264,7 +264,7 @@ async function main() {
       for (const round of [0, 1]) await all(async (p, i) => { await send(p.page, sends[i][round]); await until(async () => (await p.page.locator(".ph-answers").innerText().catch(() => "")).includes(sends[i][round].split(",")[0].trim()), `${p.name} sent`, 10000); });
       const total = sends.flat().reduce((n, s) => n + s.split(",").length, 0);
       await counts("word cloud", { total, unit: "answers" });
-      await until(async () => (await layer().locator(".tv-word .cwl-ai-glyph").count()) >= 1, "a combined word carries the AI glyph", 15000);
+      await until(async () => (await layer().locator(".tv-word .cwl-ai-mark").count()) >= 1, "a combined word carries the gradient AI icon", 15000);
       await until(async () => (await tv.locator("[data-ai-foot]").innerText().catch(() => "")).includes("Combined similar answers"), "the foot names it", 8000);
       const words = (await results()).words as { key: string; count: number; ai?: boolean }[];
       assert.ok(words.some(w => w.ai), "the server marks the combine as AI");
@@ -281,7 +281,7 @@ async function main() {
       await counts("wall", { total: 8, unit: "answers" });
       await until(async () => ((await results()).groups as unknown[] | undefined)?.length === 4, "four AI groups on the server", 20000);
       await until(async () => (await layer().locator(".ai-group").count()) >= 1, "groups on the TV", 8000);
-      assert.equal(await layer().locator(".ai-groups-head .cwl-ai-badge").count(), 1, "marked as AI");
+      assert.equal(await layer().locator(".ai-groups-head .cwl-ai-mark").count(), 1, "marked as AI");
       assert.deepEqual(await visibleOnTv(tv, /Rehearsal/), [], "no rehearsal card or summary");
       await shot(tv, "team-06-wall-groups-tv");
       await control.locator("[data-ai-panel]").getByRole("button", { name: "Show summary" }).click();

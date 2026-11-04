@@ -13,7 +13,7 @@ import { useLivePhone } from "./use-live-phone";
 import { QaAsk } from "@/components/interactions/qa/qa-ask";
 import { recheckDelay, requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
 import "./self-paced.css";
-import { AiBadge } from "@/components/interactions/ai/ai-icon";
+import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
@@ -21,9 +21,11 @@ const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Send
 
 function AnswerCard({ answer, editable, onChange, onWithdraw, onDismiss, combined }: { answer: ShownAnswer; editable: boolean; onChange: () => void; onWithdraw: () => void; onDismiss: () => void; combined?: string | null }) {
   const Icon = answer.status === "sent" ? Check : answer.status === "saved" ? WifiOff : answer.status === "sending" ? RefreshCw : null;
-  return <li className={`ph-answer is-${answer.status}`}>
+  // AI combining this word sweeps its icon once (not when the phone opens on an earlier combine).
+  const ai = useAiSweep<HTMLLIElement>(combined ? [combined] : [], answer.id);
+  return <li ref={ai} className={`ph-answer is-${answer.status}`}>
     <div className="ph-answer-row"><span className="ph-answer-text">{answer.text}</span><span className="ph-answer-status">{Icon && <Icon size={16} aria-hidden="true" />}{statusLabel[answer.status]}</span></div>
-    {combined && <p className="ph-answer-note"><AiBadge />On the screen with {combined}</p>}
+    {combined && <p className="ph-answer-note"><AiMark />On the screen with {combined}</p>}
     {answer.status === "failed" ? <div className="ph-answer-actions"><span>{answer.reason}</span><button type="button" onClick={onDismiss}>Dismiss</button></div>
       : editable && answer.status === "sent" ? <div className="ph-answer-actions"><button type="button" onClick={onChange}>Change</button><button type="button" onClick={onWithdraw}>Withdraw</button></div> : null}
   </li>;

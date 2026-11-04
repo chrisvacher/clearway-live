@@ -1,6 +1,6 @@
 // INT-02 on the TV: the open text wall, evolving in place.
 //  * AI on: AI groups in the main area as short labels sized by how many answers they
-//    hold, under one AI badge, with the answers in a column on the right, newest first
+//    hold, under one gradient AI icon, with the answers in a column on the right, newest first
 //    (pass 2's layout). The AI summary opens at the top of the groups column once the
 //    facilitator taps Show summary, and the groups glide down to make room.
 //  * AI off: answer cards in arrival order, oldest first, so each card keeps its place as
@@ -13,7 +13,7 @@ import type { Shown } from "@/lib/tv/flow";
 import { springRate, springStep, wordSize } from "@/lib/tv/motion";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { moreGroups, shownGroups, wallOf, type WallGroup } from "@/lib/interactions/ai";
-import { aiBadgeEl, aiIconEl } from "./ai-dom";
+import { AiChanges, aiIconEl, aiMarkEl, sweepAi } from "./ai-dom";
 
 const make = (tag: string, className: string, text?: string) => { const el = document.createElement(tag); el.className = className; if (text !== undefined) el.textContent = text; return el; };
 const pinSvg = () => {
@@ -134,11 +134,12 @@ export class WallBoard {
   private summaryId: string | null = null;
   private split: HTMLElement;
   private head!: HTMLElement;
+  private aiChanges = new AiChanges();
   constructor(private root: HTMLElement, private session: string) {
     root.dataset.board = "wall";
     this.wall = make("div", "ai-wall"); this.wall.dataset.ai = "off";
     const split = this.split = make("div", "ai-wall-split"), groups = make("section", "ai-groups"), head = make("p", "ai-groups-head");
-    head.append(aiBadgeEl(), make("span", "", "Grouped from answers"));
+    head.append(aiMarkEl(), make("span", "", "Grouped from answers"));
     this.head = head;
     this.summary = make("div", "ai-summary is-off"); this.summary.setAttribute("role", "region"); this.summary.setAttribute("aria-label", "AI summary");
     const clip = make("div", "ai-summary-clip"), box = this.summaryBox = make("div", "ai-summary-box"), band = make("div", "ai-summary-head");
@@ -193,6 +194,11 @@ export class WallBoard {
     this.fitSummary();
     this.groups = { list: ai ? groups : [], summary: Boolean(ai && summary) };
     this.fitGroups(instant);
+    // AI regrouping the wall sweeps the one AI icon above the groups once, as the groups drift.
+    // An answer joining a group, or a new group, is AI acting; Undo, Redo, rename and pin are not.
+    // The first frame a board sees is where it starts, so a TV opening on a grouped wall never sweeps.
+    const joined = this.aiChanges.next(ai ? groups.flatMap(g => g.ids.map(id => `${g.id}\u0001${id}`)) : []);
+    if (joined.length && !instant) sweepAi(this.head);
     if (fresh) this.moment();
   }
   // Groups never overlap and are never cut: show as many whole groups as fit at the floor,
