@@ -142,32 +142,6 @@ export function DemoRoom() {
   </div>;
 }
 
-// The TV's join screen as the team arrives, names appearing one at a time. Its QR
-// code opens the practice room, so scanning it from the page leads somewhere real.
-const arriving = ["Priya", "Daniel", "Grace", "Michael", "Sarah", "Jordan", "Elena", "Thomas"];
-export function DemoJoin() {
-  const box = useRef<HTMLDivElement>(null), [count, setCount] = useState(3);
-  useEffect(() => {
-    const el = box.current; if (!el) return;
-    const fit = () => el.style.setProperty("--tv-stage-scale", String(el.clientWidth / 1920));
-    const observer = new ResizeObserver(fit); observer.observe(el); fit(); return () => observer.disconnect();
-  }, []);
-  useEffect(() => {
-    const timer = setInterval(() => setCount(n => n >= arriving.length + 3 ? 0 : n + 1), 1400);
-    return () => clearInterval(timer);
-  }, []);
-  const shown = Math.min(count, arriving.length);
-  const frame = useMemo<LiveSnapshot>(() => {
-    const state = { engagement_id: demoEngagement, live_session_id: null, version: count, tv_content: "join", phones_down: false, burst_ends_at: null, results: { total: 0, people: 0, words: [] } };
-    return { status: "ok", role: "tv", topic: "demo", version: count, display: demoDisplay, state, session: null, answers: [], next: null, phone_depth: null,
-      server_time: new Date(0).toISOString(), presence: { count: shown, names: arriving.slice(0, shown).map(name => ({ key: name, name })) } };
-  }, [count, shown]);
-  return <div ref={box} className="tv-demo" role="img" aria-label={`The join screen: live.clearway.co/${demoDisplay.room_code}, with a QR code and the names of people as they arrive`}
-    data-surface="tv" data-theme="dark" data-room="very_small" data-screen="holding" data-texture="on">
-    <div className="tv-stage" aria-hidden="true"><TvScenes status={{ status: "paired", engagement: demoEngagement, tv: "demo" }} frame={frame} nameLimit={14} reconnecting={false} /></div>
-  </div>;
-}
-
 function WordForm({ step, mine, onSend }: { step: PhoneStep; mine: OwnShown[]; onSend: (text: string) => void }) {
   const [draft, setDraft] = useState(""), [note, setNote] = useState("");
   const check = checkAnswer(draft, step), full = mine.length >= step.max_sends;

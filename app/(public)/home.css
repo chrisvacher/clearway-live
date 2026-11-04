@@ -43,7 +43,20 @@ body:has(> .home) { background: var(--cwl-surface); }
 .home-link { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); font-size: var(--fs-small); font-weight: var(--fw-semibold); color: var(--cwl-text); text-decoration: underline; text-decoration-color: var(--cwl-border-strong); text-underline-offset: 4px; }
 .home-link:hover { color: var(--cwl-text); text-decoration-color: var(--cwl-text); }
 .home-inline { color: var(--cwl-text); text-underline-offset: 3px; }
-.home-hero-screen { margin: 0; }
+/* The hero's right column: what Clearway Live is for, on a light card. */
+.home-why { padding: var(--space-10); border-radius: var(--radius-xl); background: var(--cwl-surface-card); color: var(--cwl-text); box-shadow: 0 0 0 1px var(--cwl-border-dark-ink), 0 24px 48px -24px var(--cw-navy); }
+.home-why p { margin: 0; }
+.home-why-eyebrow { font-size: var(--fs-small); font-weight: var(--fw-semibold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cwl-text-muted); }
+.home-why-title { margin: var(--space-3) 0 var(--space-4); font-size: clamp(1.75rem, 3vw, var(--fs-h2)); font-weight: var(--fw-light); line-height: var(--lh-tight); letter-spacing: -0.02em; color: var(--cwl-text); }
+.home-why-title strong { font-weight: var(--fw-bold); }
+.home-why-lead { font-size: var(--fs-body); line-height: var(--lh-body); color: var(--cwl-text-muted); }
+.home-why-list { display: grid; gap: var(--space-5); margin: var(--space-8) 0 var(--space-6); padding: 0; list-style: none; }
+.home-why-list li { display: flex; gap: var(--space-4); align-items: flex-start; }
+.home-why-icon { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--space-10); height: var(--space-10); border-radius: var(--cwl-radius-button); background: var(--cwl-surface-panel-small); color: var(--cwl-text-on-panel); }
+.home-why-name { margin: 0 0 var(--space-1); font-size: var(--fs-body); font-weight: var(--fw-bold); line-height: var(--lh-heading); color: var(--cwl-text); }
+.home-why-list p { font-size: var(--fs-small); line-height: var(--lh-body); color: var(--cwl-text-muted); }
+.home-why-more { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); font-weight: var(--fw-bold); color: var(--cwl-text); text-decoration: underline; text-underline-offset: 4px; }
+.home-why-more:hover { color: var(--cwl-text); }
 
 /* The TV, scaled from its 1920x1080 stage into a 16:9 box (as the control surface's mirror). */
 .tv-demo { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--cwl-radius-card); background: var(--cwl-surface); color: var(--cwl-text); box-shadow: 0 0 0 1px var(--cwl-border); }
@@ -53,7 +66,12 @@ body:has(> .home) { background: var(--cwl-surface); }
 .demo-caption { margin-top: var(--space-3); font-size: var(--fs-small); color: var(--cwl-text-muted); }
 
 /* Sections */
-.home-section { padding-block: var(--space-24); border-top: 1px solid var(--cwl-border); scroll-margin-top: var(--space-16); }
+.home-section { padding-block: var(--space-24); background: var(--cwl-surface); color: var(--cwl-text); scroll-margin-top: var(--space-16); }
+/* Light sections alternate with dark ones (the design system's light screen tokens). */
+.home-section[data-theme="light"] .home-card, .home-section[data-theme="light"] .home-step { background: var(--cwl-surface-card); box-shadow: inset 0 0 0 1px var(--cwl-border), var(--shadow-md); }
+.home-section.is-close { background: var(--cwl-surface-panel-small); }
+.home-section.is-close .home-lead { color: var(--cwl-text-on-panel); }
+.home-section.is-close .home-link { color: var(--cwl-text-on-panel); text-decoration-color: var(--cwl-text-on-panel); }
 .home-grid { display: grid; gap: var(--space-4); margin-top: var(--space-10); }
 .home-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .home-grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -122,6 +140,6 @@ body:has(> .home) { background: var(--cwl-surface); }
   .join-row { flex-direction: column; }
   .join-button { width: 100%; }
   .home-signin { font-size: var(--cwl-fs-phone-micro); padding-inline: var(--space-3); }
-  .home-panel, .home-setup { padding: var(--space-6); }
+  .home-panel, .home-setup, .home-why { padding: var(--space-6); }
   .demo-phone-frame { height: 32rem; }
 }

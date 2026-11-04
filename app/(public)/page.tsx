@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
   ArrowRight, BookOpen, ChartPie, Cloud, Gauge, Grid2x2, Laptop, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareText,
-  Monitor, NotebookPen, PenLine, ALargeSmall, SlidersHorizontal, Smartphone, Timer, UserCheck, Users, WifiOff, EyeOff,
+  Monitor, NotebookPen, PenLine, ALargeSmall, Ear, Flag, ScanEye, SlidersHorizontal, Smartphone, Timer, UserCheck, Users, WifiOff, EyeOff,
 } from "lucide-react";
-import { DemoJoin, DemoRoom } from "@/components/public/demo-room";
+import { DemoRoom } from "@/components/public/demo-room";
 import { AiIcon } from "@/components/interactions/ai/ai-icon";
 import "./home.css";
 
@@ -18,6 +18,15 @@ const notes: Record<string, string> = {
   unknown: "We couldn't find a room with that code. Check the screen and try again.",
   unavailable: "We can't reach the room right now. Try again in a moment, or scan the QR code on the screen.",
 };
+
+// The hero's right column: what Clearway Live is for, for someone who has only heard
+// that their church is using it to plan.
+const why = [
+  { icon: Ear, name: "The quiet voices count too", text: "Everyone writes before anyone speaks, so the newest leader is heard as clearly as the most confident one." },
+  { icon: EyeOff, name: "Honest, because it's anonymous", text: "Answers show on the screen without names, so people say what they actually think." },
+  { icon: ScanEye, name: "See where the team really is", text: "Agreement, tension and what nobody has said yet become visible while you're still in the room to talk about it." },
+  { icon: Flag, name: "Leave with a plan you own", text: "What the team decides becomes Vision Outcomes and goals with an owner and a date, ready for the year ahead." },
+];
 
 const interactions = [
   { icon: Cloud, name: "Word cloud", text: "One to three words each. Words that come up again grow larger, similar answers count together, and the room's most common answer stands out." },
@@ -88,13 +97,19 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <Link href="/practice" className="home-link"><Smartphone size={18} aria-hidden="true" />Trying it first? Join the practice room</Link>
           </div>
         </div>
-        <figure className="home-hero-screen">
-          <DemoJoin />
-          <figcaption className="demo-caption">What your team sees on the TV as people arrive</figcaption>
-        </figure>
+        <aside className="home-why" data-theme="light" aria-labelledby="why-title">
+          <p className="home-why-eyebrow">New to Clearway Live?</p>
+          <h2 id="why-title" className="home-why-title">Every voice in the room, <strong>on one screen.</strong></h2>
+          <p className="home-why-lead">Your church is planning its next season with Clearway. Clearway Live is how your leadership team thinks out loud together: everyone answers on their own phone, and the room&apos;s answers appear on the screen as they&apos;re sent.</p>
+          <ul className="home-why-list">
+            {why.map(({ icon: Icon, name, text }) => <li key={name}><span className="home-why-icon"><Icon size={20} aria-hidden="true" /></span>
+              <div><h3 className="home-why-name">{name}</h3><p>{text}</p></div></li>)}
+          </ul>
+          <a href="#how" className="home-why-more">See how it works<ArrowRight size={18} aria-hidden="true" /></a>
+        </aside>
       </section>
 
-      <section className="home-section" id="how" aria-labelledby="how-title">
+      <section className="home-section" id="how" data-theme="light" aria-labelledby="how-title">
         <div className="home-width">
           <p className="home-eyebrow">How it works</p>
           <h2 id="how-title" className="home-h2">One room, <strong>three screens.</strong></h2>
@@ -120,7 +135,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </div>
       </section>
 
-      <section className="home-section" id="ask" aria-labelledby="ask-title">
+      <section className="home-section" id="ask" data-theme="light" aria-labelledby="ask-title">
         <div className="home-width">
           <p className="home-eyebrow">Ask the room</p>
           <h2 id="ask-title" className="home-h2">Any moment can <strong>ask the room.</strong></h2>
@@ -150,7 +165,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </div>
       </section>
 
-      <section className="home-section" id="room" aria-labelledby="room-title">
+      <section className="home-section" id="room" data-theme="light" aria-labelledby="room-title">
         <div className="home-width">
           <p className="home-eyebrow">In the room</p>
           <h2 id="room-title" className="home-h2">Made for a team <strong>around one table.</strong></h2>
@@ -196,7 +211,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <p className="home-lead">Clearway Live is how we run Wayfinding retreats and team workshops with the churches we serve, with a Clearway facilitator in the room.</p>
           </div>
           <div className="home-close-actions">
-            <a href="https://www.clearway.co/contact" className="home-button">Talk with us<ArrowRight size={18} aria-hidden="true" /></a>
+            <a href="https://www.clearway.co/contact" className="home-button is-light">Talk with us<ArrowRight size={18} aria-hidden="true" /></a>
             <Link href="/sign-in" className="home-link"><Laptop size={18} aria-hidden="true" />Facilitating? Sign in with your Clearway account</Link>
           </div>
         </div>

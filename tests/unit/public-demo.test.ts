@@ -12,7 +12,7 @@ test("The join box takes the code alone, spaced, hyphenated, lowercase or as the
   assert.equal(typedRoomCode(""), ""); assert.equal(typedRoomCode(null), "");
   assert.ok(typedRoomCode("x".repeat(200)).length <= 24);
   assert.equal(shortRoomLink("a7c3e91f"), "https://live.clearway.co/A7C3E91F");
-  assert.ok(roomCode(demoDisplay.room_code), "The demo join screen's QR code is a well-formed link");
+  assert.ok(roomCode(demoDisplay.room_code));
 });
 
 test("Demo word keys follow the server: small words dropped, plurals trimmed, punctuation removed", () => {

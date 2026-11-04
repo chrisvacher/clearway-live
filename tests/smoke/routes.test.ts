@@ -741,7 +741,7 @@ test("live.clearway.co/CODE and the front page's join box open the room, and any
   const r=await to(path);assert.equal(r.status,code,path);const url=new URL(r.location,origin);assert.equal(url.pathname,"/");assert.equal(url.searchParams.get("status"),status,path);assert.ok(!r.location.includes(roomId));}
  for(const path of ["/ZZZZZZZZ","/remote","/nonsense"]){const r=await fetch(origin+path);assert.equal(r.status,404,path);assert.match(await r.text(),/Check the room link with your facilitator/);}
  assert.ok((await to("/join?code=practice")).location.endsWith("/practice"));
- assert.ok((await to("/A7C3E91F")).location.endsWith("/practice"),"The front page's demo join screen opens the practice room");
+ assert.ok((await to("/PRACTICE")).location.endsWith("/practice"));
  assert.equal((await fetch(origin+"/practice")).status,200,"Named routes win over codes");
  assert.equal((await fetch(origin+"/favicon.ico")).status,404);
  const note=await (await fetch(origin+"/?code=ZZZZZZZZ&status=unknown")).text();assert.match(note,/couldn.(t|&#x27;t) find a room with that code/);assert.match(note,/value="ZZZZZZZZ"/);

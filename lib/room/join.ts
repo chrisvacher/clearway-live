@@ -1,6 +1,5 @@
 import { serviceClient } from "@/lib/server/supabase";
 import { practiceCode, roomCode, typedRoomCode } from "@/lib/tv/policy";
-import { demoDisplay } from "@/lib/public/demo-room";
 
 // live.clearway.co/CODE and the front page's join box share one rule. A known code opens
 // its room (which still asks for the person's email, checked against the attendee list).
@@ -8,8 +7,8 @@ import { demoDisplay } from "@/lib/public/demo-room";
 // appears unless the code is right.
 export type JoinTarget = { path: string; found: boolean };
 
-// The practice room, by name, and the code on the front page's demo join screen.
-const practice = (code: string) => code === practiceCode || code === demoDisplay.room_code;
+// The practice room, by name.
+const practice = (code: string) => code === practiceCode;
 // A path segment counts as a room link only when it is shaped like one, so a mistyped
 // page (live.clearway.co/remote) gets the app's not-found page instead of the join box.
 export const codeShaped = (segment: string) => { const code = typedRoomCode(segment); return roomCode(code) || practice(code); };
