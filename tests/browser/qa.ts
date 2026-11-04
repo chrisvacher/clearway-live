@@ -308,11 +308,11 @@ async function main() {
       await ruth.page.locator(".qa-ask-button").click();
       await ruth.page.fill("#qa-any-question", "Can we come back to the budget after lunch?");
       await ruth.page.locator(".qa-sheet .ph-send").click();
-      await until(async () => (await ruth.page.locator(".qa-sheet-list").innerText().catch(() => "")).includes("Can we come back to the budget after lunch?"), "sent from the sheet", 5000);
+      await until(async () => /Can we come back to the budget after lunch\?\s*Sent/.test(await ruth.page.locator(".qa-sheet-list").innerText().catch(() => "")), "sent from the sheet", 10000);
       await shot(ruth.page, "int-03-any-time-after-close-sheet");
       await ruth.page.keyboard.press("Escape");
-      const stored = (await sql.query("select session_id from public.submissions where text=$1 and engagement_id=$2", ["Can we come back to the budget after lunch?", room.id])).rows[0];
-      assert.equal(stored?.session_id, pool, "the question went to the pool, closed or not");
+      const stored = await until(async () => (await sql.query("select session_id from public.submissions where text=$1 and engagement_id=$2", ["Can we come back to the budget after lunch?", room.id])).rows[0], "stored on the server", 10000);
+      assert.equal(stored.session_id, pool, "the question went to the pool, closed or not");
       const waiting = async () => (await sql.query("select count(*)::int as n from public.submissions where session_id=$1 and not deleted and not withdrawn", [pool])).rows[0].n as number;
       await until(async () => (await tv.locator(".qa-waiting").innerText().catch(() => "")).includes("Questions any time:"), "the TV still notes the pool quietly", 5000);
       assert.ok(await waiting() >= 2);
