@@ -165,7 +165,9 @@ export class LensBoard {
   private drift(moves: { id: string; to: string }[]) {
     const rootBox = this.root.getBoundingClientRect(), scale = this.root.offsetWidth ? rootBox.width / this.root.offsetWidth : 1;
     const duration = tokenMs(this.root, "cwl-dur-cluster-drift"), step = tokenMs(this.root, "cwl-delay-regroup-step");
-    const easing = getComputedStyle(this.root).getPropertyValue("--cwl-ease-calm").trim() || "ease-in-out";
+    // A sentence crosses much of the screen, so it keeps an even pace (a sine in and out): the calm curve's
+    // fast first moments would read as a snap on a long drift.
+    const easing = "cubic-bezier(0.37, 0, 0.63, 1)";
     moves.forEach(({ id, to }, index) => {
       const row = this.feed.element(id), target = this.clusters.get(to)?.el;
       if (!row || !target || typeof row.animate !== "function") return;
