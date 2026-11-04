@@ -6,10 +6,21 @@ export function pairingCode(value: unknown) {
   return /^\d{6}$/.test(code) ? code : null;
 }
 export const roomCode = (value: string) => /^[A-F0-9]{8}$/i.test(value);
+// The room link on the TV and in its QR code: live.clearway.co/CODE. The older
+// live.clearway.co/r/CODE keeps working for links already sent.
 export function shortRoomLink(code: string) {
   if (!roomCode(code)) throw new Error("Invalid room code");
-  return `https://live.clearway.co/r/${code.toUpperCase()}`;
+  return `https://live.clearway.co/${code.toUpperCase()}`;
 }
+// What a person types or pastes into the join box: the code alone, with spaces or a
+// hyphen, or the whole link from the screen. Returns the code in capitals, or "".
+export function typedRoomCode(value: unknown) {
+  if (typeof value !== "string") return "";
+  const last = value.trim().split(/[?#]/)[0].split("/").filter(Boolean).pop() ?? "";
+  return last.replace(/[\s-]/g, "").toUpperCase().slice(0, 24);
+}
+// The practice room, for anyone trying the app before a retreat.
+export const practiceCode = "PRACTICE";
 export function receiptInput(body: Record<string, unknown>) {
   const date = (v: unknown) => typeof v === "string" && v.length <= 40 && Number.isFinite(Date.parse(v));
   const uncertainty = (v: unknown) => typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 60000;
