@@ -88,7 +88,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           {seedable.length > 0 && <label className="is-full" htmlFor="session-seeded">Seeded from<select id="session-seeded" value={value.seeded_from ?? ""} onChange={e => change("seeded_from", e.target.value || null)}>
             <option value="">Nothing, start empty</option>{seedable.map(s => <option key={s.id} value={s.id}>{s.part}: {s.title}</option>)}</select>
             <span className="show-help">Starts this step from the earlier step’s answers, so the room does not begin from nothing.</span></label>}
-          {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={fresh} locked={busy || blocked || context.closed} onChange={options => change("options", options)} />}
+          {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={fresh} locked={busy || blocked || context.closed} onChange={options => change("options", options)} setPrompt={prompt => change("prompt", prompt)} />}
           <label className="is-full" htmlFor="session-prompt">{value.interaction === "content" ? contentPromptLabel[contentOf(value.options).screen] : "Prompt on the TV and phones"}<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>
           <p className="show-help is-full">Use {"{base year + 10}"}, {"{base year + 3}"} or {"{base year + 1}"} to fill in the year.</p>
           {value.prompt.includes("{base year") && <div className="show-preview is-full"><span className="show-help">Prompt preview</span><p>{fillYears(value.prompt, context.base_year)}</p></div>}

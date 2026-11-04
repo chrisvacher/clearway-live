@@ -39,6 +39,7 @@
     "test:team-workshop": "node --import tsx tests/browser/team-workshop.ts",
     "test:scribe": "node --import tsx tests/browser/scribe.ts",
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
+    "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

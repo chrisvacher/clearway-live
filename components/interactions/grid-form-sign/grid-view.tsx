@@ -100,7 +100,9 @@ class GridBoard extends LiveView {
       if (into) { f.x.t = into.x; f.y.t = into.y; }
       f.o.t = 0; f.going = true; f.still = false;
     }
-    this.legendRows(live, spot, newKeys, born, instant, floor);
+    // The Pre-mortem lists every reason at once, placed or not, so a reason a phone adds reaches the
+    // TV the moment it is sent; its dot follows when the room places it.
+    this.legendRows(o.preset === "pre_mortem" ? items.filter(i => !i.into) : live, spot, newKeys, born, instant, floor);
     if (born.length) this.moment(born);
   }
   // One legend row per item on the plot, in number order. Rows that would not fit leave
@@ -114,14 +116,17 @@ class GridBoard extends LiveView {
       const fresh = !row || row.going;
       if (fresh) {
         row?.el.remove();
-        const el = make("div", "gfs-leg"); el.innerHTML = "<i></i><span></span><small></small>";
+        const el = make("div", "gfs-leg"); el.innerHTML = "<i></i><span></span><small></small><em class=\"gfs-mit\"></em>";
         this.legend.appendChild(el);
         row = { el, y: spring(-1), o: spring(instant ? 1 : 0), going: false }; this.rows.set(item.key, row);
       }
       const r = row!;
       const [dot, label, count] = [r.el.querySelector("i")!, r.el.querySelector("span")!, r.el.querySelector("small")!];
       put(dot, "className", gridColor(item.num)); put(dot, "textContent", String(item.num));
-      put(label, "textContent", item.text); put(count, "textContent", `× ${item.count}`);
+      put(label, "textContent", item.text); put(count, "textContent", item.count ? `× ${item.count}` : "");
+      // Mitigations the facilitator recorded sit under the reason (Pre-mortem).
+      const mit = r.el.querySelector("em")!;
+      put(mit, "textContent", item.mitigations?.length ? `Mitigation: ${item.mitigations.join("; ")}` : "");
       count.setAttribute("aria-label", `placed by ${item.count}`);
       r.el.classList.toggle("is-spot", spot === item.key); r.el.classList.toggle("is-dim", Boolean(spot && spot !== item.key));
       if (fresh && newKeys.has(item.key)) born.push(r.el);

@@ -7,12 +7,15 @@ import { barDefaults, ChoiceOptions, PointsOptions, RankingOptions, ScaleOptions
 import { FormOptionsEditor, GridOptionsEditor, SignOptionsEditor } from "@/components/interactions/grid-form-sign/options";
 import { gridPresets } from "@/lib/interactions/grid-form-sign";
 import { QaOptions } from "@/components/interactions/qa/qa-options";
+import { GoalsOptions } from "@/components/interactions/goals/goals-options";
 import { WallOptions, WordCloudOptions } from "@/components/interactions/ai/ai-options";
 
 // Per-interaction settings in the run of show (SET-07). Each kind's editor writes only
 // session.options; the database's options_<kind> normalizes and checks it on Save.
 export type OptionsEditorProps = { session: ShowSession; value: Record<string, unknown>; context: ShowContext; fresh: boolean; locked: boolean;
-  onChange: (options: Record<string, unknown>) => void };
+  onChange: (options: Record<string, unknown>) => void;
+  // Lets a kind's preset set the step's prompt too (the Pre-mortem's own question).
+  setPrompt?: (prompt: string) => void };
 export const optionEditors: Partial<Record<InteractionKind, ComponentType<OptionsEditorProps>>> = {
   content: ContentOptions,
   word_cloud: WordCloudOptions,
@@ -25,6 +28,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
   grid: GridOptionsEditor,
   form: FormOptionsEditor,
   sign: SignOptionsEditor,
+  goals: GoalsOptions,
   qa: QaOptions,
 };
 // Each kind's starting options and limits when it is chosen.
@@ -43,5 +47,6 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   sign: { options: { text: "" } },
   bullets: { max_sends: 12, max_characters: 200, max_words: 50, options: {} },
   confirm: { max_sends: 1, max_characters: 280, max_words: 50, options: {} },
+  goals: { options: { risk_links: "required" } },
   qa: { max_sends: 10, max_characters: 200, max_words: 50, options: { any_time: false } },
 };

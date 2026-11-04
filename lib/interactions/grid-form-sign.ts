@@ -23,6 +23,8 @@ export const gridPresets: Record<GridOptions["preset"], Omit<GridOptions, "prese
   // The pre-mortem's grid (milestone 4 reuses it): likelihood and impact.
   pre_mortem: { x_label: "Likelihood", x_low: "Unlikely", x_high: "Likely", y_label: "Impact", y_low: "Low", y_high: "High", legend: "Reasons it failed" },
 };
+// The Pre-mortem's prompt. The year is the 3-year Vision's, filled in from the engagement's base year.
+export const premortemPrompt = "It’s {base year + 3} and this plan failed. Why?";
 export function gridOf(options: unknown): GridOptions {
   const o = record(options), preset = o.preset === "pre_mortem" ? "pre_mortem" : "custom", d = gridPresets[preset];
   const items = list(o.items).map(record).filter(i => typeof i.key === "string" && typeof i.text === "string").map(i => ({ key: String(i.key), text: String(i.text) })).slice(0, maxGridItems);
@@ -33,13 +35,14 @@ export function gridOf(options: unknown): GridOptions {
 export const gridColor = (num: number) => `cwl-i${((Math.max(1, num) - 1) % 10) + 1}`;
 
 // The server's grid results: one entry per listed item, in number order.
-export type GridResult = { key: string; num: number; text: string; count: number; x?: number; y?: number; places?: [string, number, number][]; into?: string };
+export type GridResult = { key: string; num: number; text: string; count: number; x?: number; y?: number; places?: [string, number, number][]; into?: string; mitigations?: string[] };
 export function gridResults(results: unknown): GridResult[] {
   return list(record(results).items).map(record).filter(i => typeof i.key === "string").map(i => ({
     key: String(i.key), num: Number(i.num) || 0, text: String(i.text ?? ""), count: Number(i.count) || 0,
     ...(typeof i.x === "number" && typeof i.y === "number" ? { x: i.x, y: i.y } : {}),
     ...(Array.isArray(i.places) ? { places: i.places.filter(p => Array.isArray(p) && p.length === 3).map(p => [String(p[0]), Number(p[1]), Number(p[2])] as [string, number, number]) } : {}),
     ...(typeof i.into === "string" ? { into: i.into } : {}),
+    ...(Array.isArray(i.mitigations) && i.mitigations.length ? { mitigations: i.mitigations.filter((m): m is string => typeof m === "string") } : {}),
   }));
 }
 // A person's own placements, from their one standing answer.
