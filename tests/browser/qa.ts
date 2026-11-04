@@ -298,6 +298,30 @@ async function main() {
       await shot(remote, "int-03-remote");
       await remote.close();
     });
+    await step("Questions any time after the pool step has run: Ask stays on later sessions and after Close Day 1", async () => {
+      const later = await room.session("After the break", "word_cloud", "One word for this morning", 5);
+      await press(fac, sql, room.id, "go_live", { session: pool });
+      await press(fac, sql, room.id, "go_live", { session: later });
+      const state = async () => (await sql.query("select state from public.sessions where id=$1", [pool])).rows[0].state as string;
+      await until(async () => (await state()) === "closed", "the pool step closes when the room leaves its segment", 5000);
+      await until(async () => await ruth.page.locator(".qa-ask-button").isVisible(), "Ask still in the phone header on the next session", 10000);
+      await ruth.page.locator(".qa-ask-button").click();
+      await ruth.page.fill("#qa-any-question", "Can we come back to the budget after lunch?");
+      await ruth.page.locator(".qa-sheet .ph-send").click();
+      await until(async () => (await ruth.page.locator(".qa-sheet-list").innerText().catch(() => "")).includes("Can we come back to the budget after lunch?"), "sent from the sheet", 5000);
+      await shot(ruth.page, "int-03-any-time-after-close-sheet");
+      await ruth.page.keyboard.press("Escape");
+      const stored = (await sql.query("select session_id from public.submissions where text=$1 and engagement_id=$2", ["Can we come back to the budget after lunch?", room.id])).rows[0];
+      assert.equal(stored?.session_id, pool, "the question went to the pool, closed or not");
+      const waiting = async () => (await sql.query("select count(*)::int as n from public.submissions where session_id=$1 and not deleted and not withdrawn", [pool])).rows[0].n as number;
+      await until(async () => (await tv.locator(".qa-waiting").innerText().catch(() => "")).includes("Questions any time:"), "the TV still notes the pool quietly", 5000);
+      assert.ok(await waiting() >= 2);
+      await shot(ruth.page, "int-03-any-time-after-close-phone"); await shot(tv, "int-03-any-time-after-close-tv");
+      await press(fac, sql, room.id, "close_part", { part: "Day 1" });
+      await until(async () => (await sql.query("select live_session_id from public.room_states where engagement_id=$1", [room.id])).rows[0].live_session_id === null, "the TV goes to its holding screen", 5000);
+      await until(async () => (await ruth.page.locator(".ph-waiting").isVisible()) && await ruth.page.locator(".qa-ask-button").isVisible(), "Ask on the waiting screen after Close Day 1", 10000);
+      await shot(ruth.page, "int-03-any-time-after-close-day-phone");
+    });
     console.log(`Q&A kit: ${passed.length} checks passed on a paired TV and three phones.`);
 
     // ---------- 50 simulated phones in the practice room ----------

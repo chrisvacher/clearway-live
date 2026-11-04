@@ -29,6 +29,12 @@ export function topQuestions(list: QaQuestion[], top = qaTop) {
 export function foldedInto(id: string, list: QaQuestion[]) {
   return list.find(q => q.id !== id && q.ids.includes(id))?.id ?? null;
 }
+// Questions any time: Ask shows on every session's phone screen while the engagement has a
+// pool, which the server keeps after the pool step has run and closed. The one exception is
+// the pool step itself while the room is on it, which has its own question box.
+export function showsAsk(pool: Pick<QaPool, "session_id"> | null | undefined, viewing: string | null): pool is QaPool {
+  return Boolean(pool) && viewing !== pool!.session_id;
+}
 export const askedBy = (q: Pick<QaQuestion, "askers">) => q.askers > 1 ? `asked by ${q.askers}` : "";
 export const moreLine = (rest: number) => rest > 0 ? `+ ${rest} more on your phones` : "";
 

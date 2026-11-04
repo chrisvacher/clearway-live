@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { askBody, askedBy, checkQuestion, foldedInto, isAsk, isVote, moreLine, nextVote, outboxStatus, qaControlBody, qaMessage, questionsOf, topQuestions, voteBody, voteState, type QaQuestion } from "../../lib/interactions/qa";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { askBody, askedBy, checkQuestion, foldedInto, isAsk, isVote, moreLine, nextVote, outboxStatus, qaControlBody, qaMessage, questionsOf, showsAsk, topQuestions, voteBody, voteState, type QaQuestion } from "../../lib/interactions/qa";
 import { countUnit } from "../../lib/interactions/kinds";
 import { settledReason } from "../../lib/phone/policy";
 import type { OutboxEntry } from "../../lib/phone/types";
@@ -113,4 +115,19 @@ test("Spotlight over any session and the pool ride every event, and an older ser
   assert.deepEqual(old.value.qa?.spotlight, spot, "an event without qa keeps what is on screen");
   const off = applyLiveEvent(old.value, { state: state(4), session: null, qa: { pool: null, spotlight: null } } as unknown as LiveEvent);
   assert.equal(off.value.qa?.spotlight, null, "clearing it clears it");
+});
+
+test("Questions any time: Ask stays on every session's phone screen after the Q&A session has run", () => {
+  const pool = { session_id: id(8), title: "Your questions", max_characters: 200, max_sends: 5, waiting: 2 };
+  assert.equal(showsAsk(pool, null), true, "on the waiting screen and on self-paced screens");
+  assert.equal(showsAsk(pool, id(9)), true, "on a later session while the pool step is closed");
+  assert.equal(showsAsk(pool, id(8)), false, "the pool step on screen has its own question box");
+  assert.equal(showsAsk(null, id(9)), false, "no pool, no Ask");
+  // The server keeps a closed pool step as the pool, preferring one that is not closed.
+  const sql = readFileSync(join(__dirname, "../../supabase/migrations/20261104010000_qa_any_time_after_close.sql"), "utf8");
+  assert.match(sql, /create or replace function private\.qa_pool\(/);
+  assert.match(sql, /s\.state<>'draft'\s+order by s\.state='closed',/);
+  assert.doesNotMatch(sql, /state not in \('draft','closed'\)/);
+  assert.equal((sql.match(/create or replace function/g) ?? []).length, 1, "only qa_pool is redefined");
+  assert.doesNotMatch(sql, /[\u2013\u2014]/);
 });

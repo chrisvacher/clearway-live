@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Check, MessageCircleQuestion, RefreshCw, WifiOff, X } from "lucide-react";
 import type { LiveSnapshot } from "@/lib/live/types";
 import type { OwnAnswer } from "@/lib/phone/types";
-import { checkQuestion, isAsk } from "@/lib/interactions/qa";
+import { checkQuestion, isAsk, showsAsk } from "@/lib/interactions/qa";
 import { useQaPhone } from "./use-qa-phone";
 
 // Questions any time: an Ask button on every session's phone screen and a sheet to ask in.
@@ -16,7 +16,7 @@ export function QaAsk({ frame, viewing, answers }: { frame: LiveSnapshot | null;
   const input = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { if (open) input.current?.focus(); }, [open]);
   useEffect(() => { if (!open) return; const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); }; window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key); }, [open]);
-  if (!pool || viewing === pool.session_id) return null;
+  if (!showsAsk(pool, viewing)) return null;
   const max = Math.min(pool.max_characters || 200, 280), check = checkQuestion(draft, max);
   const pending = qa.entries.filter(e => isAsk(e.request) && e.request.session === pool.session_id);
   const sent = [...answers.filter(a => a.session_id === pool.session_id && !a.withdrawn).map(a => ({ id: a.id, text: a.text })),
