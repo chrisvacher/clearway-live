@@ -166,8 +166,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="home-width">
           <Reveal>
             <p className="home-eyebrow">How it works</p>
-            <h2 id="how-title" className="home-h2">One room, <strong>three screens.</strong></h2>
-            <p className="home-lead">A single screen can&apos;t be readable from the back of the room, hold every detail and remind the facilitator what comes next. Clearway Live gives each job its own screen, and all three follow the room together.</p>
+            <h2 id="how-title" className="home-h2">Look up together. <strong>Answer on your own.</strong></h2>
+            <p className="home-lead">Your team watches one screen at the front of the room and answers on their own phones, while your facilitator moves the room from one step to the next.</p>
           </Reveal>
           <Reveal><ThreeScreens /></Reveal>
         </div>
@@ -190,7 +190,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <div className="stat"><span className="stat-n">&lt;1<small>s</small></span><span className="stat-l">from a phone to the screen</span></div>
           <div className="stat"><span className="stat-n">0</span><span className="stat-l">apps to install</span></div>
           <div className="stat"><span className="stat-n">11</span><span className="stat-l">ways to ask the room</span></div>
-          <div className="stat"><span className="stat-n">3</span><span className="stat-l">screens, one room</span></div>
+          <div className="stat"><span className="stat-n">1</span><span className="stat-l">code to join the room</span></div>
         </div>
       </section>
 

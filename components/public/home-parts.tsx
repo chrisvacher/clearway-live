@@ -27,11 +27,11 @@ export function Reveal({ children, className = "", step = 0 }: { children: React
   return <div ref={el} className={`reveal${shown ? " is-in" : ""}${step ? ` is-step-${Math.min(step, 6)}` : ""} ${className}`}>{children}</div>;
 }
 
-// One room, three screens: a stepper that moves on by itself until someone picks a screen.
+// How it works: a stepper that moves on by itself until someone picks a step.
 const screens = [
-  { key: "tv", icon: Monitor, name: "The TV", line: "The headline", text: "Large type, one idea, and the room's answers landing the moment they're sent. It runs on its own computer at the front of the room.", shot: { kind: "tv", src: "/home/tv-word-cloud.webp", alt: "The TV: a word cloud where youth has grown largest, with 45 answers" } },
-  { key: "phone", icon: Smartphone, name: "Your phone", line: "The depth", text: "The full prompt, the detail and Scripture behind it, and your answer box. You see your own answers and can change them while the step is open.", shot: { kind: "phone", src: "/home/phone-word-cloud.webp", alt: "A phone answering the word cloud, with two answers sent" } },
-  { key: "control", icon: Laptop, name: "The facilitator's view", line: "Private", text: "The run of show, what's on the TV and on phones, counts and who's at the door, with a phone remote to run the room from anywhere in it. The room never sees it.", shot: { kind: "control", src: "/home/control-live-room.webp", alt: "The facilitator's live room: the run of show, a mirror of the TV, the controls and a private panel" } },
+  { key: "tv", icon: Monitor, name: "Everyone sees the big screen", line: "The TV", text: "The question and the room's answers, in type you can read from the back. Answers appear the moment they're sent, with no names on them.", shot: { kind: "tv", src: "/home/tv-word-cloud.webp", alt: "The TV: a word cloud where youth has grown largest, with 45 answers" } },
+  { key: "phone", icon: Smartphone, name: "You give input on your phone", line: "Your phone", text: "No app to install. The question, any detail or Scripture behind it, and a box for your answer. You can see and change your own answers while the step is open.", shot: { kind: "phone", src: "/home/phone-word-cloud.webp", alt: "A phone answering the word cloud, with two answers sent" } },
+  { key: "control", icon: Laptop, name: "The facilitator keeps it moving", line: "The facilitator", text: "From a laptop or a phone remote, your facilitator opens each step, gives the room a few minutes to answer, spotlights what matters and moves on. This view stays private.", shot: { kind: "control", src: "/home/control-live-room.webp", alt: "The facilitator's live room: the run of show, a mirror of the TV, the controls and a private panel" } },
 ] as const;
 export function ThreeScreens() {
   const [at, setAt] = useState(0), [auto, setAuto] = useState(true), root = useRef<HTMLDivElement>(null);
@@ -43,7 +43,7 @@ export function ThreeScreens() {
   const pick = (i: number) => { setAuto(false); setAt(i); };
   const current = screens[at];
   return <div ref={root} className="three">
-    <div className="three-tabs" role="tablist" aria-label="The three screens">
+    <div className="three-tabs" role="tablist" aria-label="How it works">
       {screens.map((s, i) => { const Icon = s.icon; return <button key={s.key} type="button" role="tab" id={`three-tab-${s.key}`} aria-selected={i === at} aria-controls="three-panel"
         className={`three-tab${i === at ? " is-on" : ""}${i === at && auto ? " is-timing" : ""}`} onClick={() => pick(i)}>
         <span className="three-tab-icon"><Icon size={20} aria-hidden="true" /></span>

@@ -35,7 +35,7 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 1. Join first: the code box, beside a real retreat photo with the live TV and a phone over it, then chips for each interaction.
 2. New to Clearway Live? Four things it helps a team do.
 3. A moving strip of retreat photos (paused on hover, still with reduced motion).
-4. One room, three screens: a stepper that moves on by itself, with the real TV, phone and facilitator screens.
+4. How it works: everyone sees the big screen, you give input on your phone, the facilitator keeps it moving. A stepper that moves on by itself, with the real TV, phone and facilitator screens.
 5. Try it: the live demo.
 6. Numbers.
 7. Ask the room: pick an interaction, see it on the TV and a phone.

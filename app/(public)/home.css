@@ -109,7 +109,7 @@ body:has(> .home) { background: var(--cwl-surface); }
 @keyframes photo-drift { to { transform: translateX(calc(-50% - var(--space-2))); } }
 .photo-caption { margin-top: var(--space-6) !important; font-size: var(--fs-small); color: var(--cwl-text-muted); }
 
-/* One room, three screens: tabs that move on by themselves, beside the screen they describe. */
+/* How it works: tabs that move on by themselves, beside the screen they describe. */
 .three { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-10); align-items: center; margin-top: var(--space-10); }
 .three-tabs { display: grid; gap: var(--space-3); }
 .three-tab { position: relative; display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-5); overflow: hidden; border: 0; border-radius: var(--cwl-radius-card); background: transparent; box-shadow: inset 0 0 0 1px var(--cwl-border); color: inherit; font: inherit; text-align: left; cursor: pointer; transition: background var(--dur-base), box-shadow var(--dur-base); }
