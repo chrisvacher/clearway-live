@@ -6,7 +6,7 @@ import { TvReceipts, type Ack } from "../../lib/tv/receipts";
 const engagement="55000000-0000-4000-8000-000000000001",id="55000000-0000-4000-8000-000000000002";
 test("TV codes preserve leading zeros and room aliases cannot become open redirects",()=>{
  assert.equal(pairingCode("001 234"),"001234");for(const code of ["12345","1234567","abcdef",123456])assert.equal(pairingCode(code),null);
- assert.equal(shortRoomLink("a1b2c3d4"),"https://live.clearway.co/r/A1B2C3D4");for(const code of ["https://evil.example","../abc","123","ZZZZZZZZ"])assert.throws(()=>shortRoomLink(code));
+ assert.equal(shortRoomLink("a1b2c3d4"),"https://live.clearway.co/A1B2C3D4");for(const code of ["https://evil.example","../abc","123","ZZZZZZZZ"])assert.throws(()=>shortRoomLink(code));
  const qr=roomQr("A1B2C3D4");assert.ok(qr.size>=29);assert.ok(qr.path.startsWith("M4 4"));assert.ok(qr.path.length>3000);assert.deepEqual(roomQr("A1B2C3D4"),qr);
 });
 test("TV receipts validate every timestamp and keep each answer's original receive time",()=>{

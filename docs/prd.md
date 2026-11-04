@@ -403,6 +403,15 @@ Every role is enforced in the database with row-level security, not only hidden 
 - Works offline and syncs in order (FAIL-03).
 - The console is switched off for the team-led block.
 
+**The front page and room codes (HOME-01)** (Chris asked for it November 3, modelled on synrg.live)
+
+- live.clearway.co is the front door. It opens on a join box, "Type the code on the screen", followed by a product page in the Clearway voice: three screens, the screen is alive, the interaction library, the Wayfinding engagement, the room, and privacy. It is a dark phone surface in Clearway Live tokens. The mark texture stays inside the TV and phone screens it shows.
+- The room link is live.clearway.co/CODE. The TV's join screen, join strip, corner link and QR code all use it. live.clearway.co/r/CODE keeps working for links already sent.
+- The join box takes the code alone, spaced or hyphenated, in any case, or the whole link pasted. It works without script (a GET to /join). A known code opens the room, which still signs the person in by email against the attendee list. Anything else returns to the join box with a quiet note and never reveals an engagement.
+- PRACTICE opens the practice room. So does the code on the front page's demo join screen (A7C3E91F), so scanning it from the page leads somewhere real.
+- The live demo runs the real TV scenes on the real arrival flow beside a phone running the real phone inputs, with eight Riverside phones answering on a script (word cloud, multiple choice, 100 points, scale). A visitor's own answer lands with them. Nothing leaves the browser. Results mirror the database's results functions (`lib/public/demo-room.ts`).
+- The site stays noindex for now (`X-Robots-Tag` and robots.txt). Opening it to search engines is Chris's call.
+
 ## Engagements, templates and the run of show
 
 **Engagement types.** Wayfinding is the first release. The other types are where the same tools serve Clearway's Mentimeter uses (Default list, which Chris can change).

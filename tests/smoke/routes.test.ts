@@ -293,7 +293,7 @@ after(async () => {
 });
 
 for (const [route, heading, surface] of [
-  ["/", "Good work begins", "control"],
+  ["/", "Type the code", "phone"],
   ["/sign-in", "Prepare the room.", "control"],
   ["/room", "Your place in the room.", "phone"],
 ]) {
@@ -315,7 +315,8 @@ for (const [route, heading, surface] of [
 
 test("home links lead to real routes", async () => {
   const html = await (await fetch(origin)).text();
-  for (const route of ["/sign-in", "/room"]) assert.ok(html.includes(`href="${route}"`));
+  for (const route of ["/sign-in", "/tv", "/practice", "/how-we-use-ai"]) assert.ok(html.includes(`href="${route}"`));
+  assert.match(html, /action="\/join"/, "The join box works before any script loads");
 });
 
 test("unbuilt private and live surfaces serve no engagement data", async () => {
@@ -731,6 +732,18 @@ test("TV opens as a separate Navy shell and short room links preserve the existi
  const page=await fetch(origin+"/tv");assert.equal(page.status,200);const html=await page.text();assert.match(html,/data-surface="tv"/);assert.match(html,/Opening this screen/);assert.doesNotMatch(html,/Test facilitator|PRIVATE-PRINT-NOTES|Sign in with Google/);
  const link=await fetch(origin+"/r/abcdef12",{redirect:"manual"});assert.equal(link.status,307);assert.ok(link.headers.get("location")!.endsWith("/room/"+roomId));
  assert.ok((await fetch(origin+"/r/ZZZZZZZZ",{redirect:"manual"})).headers.get("location")!.endsWith("/room"));
+});
+test("live.clearway.co/CODE and the front page's join box open the room, and anything else returns to the join box",async()=>{
+ const to=async(path:string)=>{const response=await fetch(origin+path,{redirect:"manual"});return {status:response.status,location:response.headers.get("location")??""};};
+ for(const path of ["/ABCDEF12","/abcdef12","/join?code=abcd-ef12","/join?code="+encodeURIComponent("https://live.clearway.co/ABCDEF12"),"/join?code=ABCD%20EF12"]){
+  const r=await to(path);assert.equal(r.status,307,path);assert.ok(r.location.endsWith("/room/"+roomId),path);}
+ for(const [path,status] of [["/ZZZZZZZZ","unknown"],["/FFFFFFFF","unknown"],["/join?code=","empty"],["/join?code=nonsense","unknown"]]){
+  const r=await to(path);assert.equal(r.status,303,path);const url=new URL(r.location,origin);assert.equal(url.pathname,"/");assert.equal(url.searchParams.get("status"),status,path);assert.ok(!r.location.includes(roomId));}
+ assert.ok((await to("/join?code=practice")).location.endsWith("/practice"));
+ assert.ok((await to("/A7C3E91F")).location.endsWith("/practice"),"The front page's demo join screen opens the practice room");
+ assert.equal((await fetch(origin+"/practice")).status,200,"Named routes win over codes");
+ assert.equal((await fetch(origin+"/favicon.ico")).status,404);
+ const note=await (await fetch(origin+"/?code=ZZZZZZZZ&status=unknown")).text();assert.match(note,/couldn.(t|&#x27;t) find a room with that code/);assert.match(note,/value="ZZZZZZZZ"/);
 });
 test("TV code approval, own persistent cookies, multi-screen preparation and unpair use separate authorizations",async()=>{
  const tvJar=new Map<string,string>(),endpoint=origin+"/api/tv";

@@ -40,7 +40,7 @@ export function ContentScreen({ frame }: { frame: LiveSnapshot }) {
       return <div className="tv-content tv-docpage">
         {o.media ? <Image unoptimized className="tv-page" src={mediaUrl(frame.state.engagement_id, o.media, surface)} alt={session.prompt || session.title} width={1600} height={900} />
           : <p className="tv-body tv-muted">{session.prompt || session.title}</p>}
-        {frame.display && <span className="tv-corner-link tv-upclose"><Smartphone aria-hidden="true" />live.clearway.co/r/{frame.display.room_code}</span>}
+        {frame.display && <span className="tv-corner-link tv-upclose"><Smartphone aria-hidden="true" />live.clearway.co/{frame.display.room_code}</span>}
       </div>;
     case "screen_check":
       return <div className="tv-content" />;
