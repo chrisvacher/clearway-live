@@ -6,7 +6,7 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 
 | Path | What it is |
 | --- | --- |
-| `app/(public)/page.tsx` | The page: the join box beside "New to Clearway Live?" (what it's for, for someone who has only heard their church is using it), then How it works, the live demo, Ask the room, Wayfinding, In the room, Privacy, and the close |
+| `app/(public)/page.tsx` | The page: the join box beside "New to Clearway Live?" (what it's for, for someone who has only heard their church is using it), then How it works, the live demo, Ways to answer, Wayfinding, In the room, Privacy, and the close |
 | `app/(public)/home.css` | Its styles, in Clearway Live tokens only |
 | `app/(public)/[code]/page.tsx` | live.clearway.co/CODE. Only a code-shaped segment redirects. Anything else (live.clearway.co/remote) gets the app's not-found page |
 | `app/(public)/join/route.ts` | The join box's GET target, so joining works without script |
@@ -38,7 +38,7 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 4. How it works: everyone sees the big screen, you give input on your phone, the facilitator keeps it moving. A stepper that moves on by itself, with the real TV, phone and facilitator screens.
 5. Try it: the live demo.
 6. Numbers.
-7. Ask the room: pick an interaction, see it on the TV and a phone.
+7. Ways to answer: pick an interaction, see it on the TV and a phone.
 8. What changes: easel sheets alone, and with Clearway Live.
 9. Wayfinding: each stage with a room photo, then CORE.
 10. In the room, with setting up the TV.

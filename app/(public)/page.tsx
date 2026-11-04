@@ -12,13 +12,13 @@ import "./home.css";
 
 export const metadata: Metadata = {
   title: { absolute: "Clearway Live" },
-  description: "Type the code on the screen to join your team's room. Clearway Live is how Clearway runs Wayfinding retreats and team workshops: every voice in the room, on one screen.",
+  description: "Enter the room code from the TV to join your team's room. Clearway Live is how Clearway runs Wayfinding retreats and team workshops: every voice in the room, on one screen.",
 };
 
 const notes: Record<string, string> = {
-  empty: "Type the code you see on the screen.",
+  empty: "Enter the room code from the TV.",
   unknown: "We couldn't find a room with that code. Check the screen and try again.",
-  unavailable: "We can't reach the room right now. Try again in a moment, or scan the QR code on the screen.",
+  unavailable: "We can't reach the room right now. Try again in a moment, or point your camera at the QR code on the TV.",
 };
 
 // For someone who has only heard that their church is using Clearway Live to plan.
@@ -89,7 +89,7 @@ const quotes = [
 ];
 
 const faqs = [
-  { q: "Do I need to download an app?", a: "No. Clearway Live runs in your phone's browser. Scan the QR code on the screen, or type the code at live.clearway.co." },
+  { q: "Do I need to download an app?", a: "No. Clearway Live runs in your phone's browser. Point your camera at the QR code on the TV, or enter the room code at live.clearway.co." },
   { q: "Do I need an account?", a: "No account or password. The first time, you confirm your email with a six-digit code, so the room knows you're on your team's list. After that your phone stays signed in for the engagement." },
   { q: "Who sees what I write?", a: "On the screen, nobody sees your name. Nobody in the room sees who wrote what, the facilitator included. Your name is kept with your answers only for the record. When a step needs a name, like signing a commitment, your phone tells you before you answer." },
   { q: "What if the wifi drops?", a: "Your answers save on your phone and send in order when the signal comes back. The screen keeps its last picture, and the easel is still the room's first record." },
@@ -106,7 +106,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <div className="home-width home-bar">
         <Link href="/" className="home-brand" aria-label="Clearway Live home"><LiveWordmark theme="dark" size="page" label={null} /></Link>
         <nav className="home-nav" aria-label="On this page">
-          <a href="#how">How it works</a><a href="#ask">Ask the room</a><a href="#wayfinding">Wayfinding</a><a href="#faq">Questions</a>
+          <a href="#how">How it works</a><a href="#ask">Ways to answer</a><a href="#wayfinding">Wayfinding</a><a href="#faq">Questions</a>
         </nav>
         <Link href="/sign-in" className="home-signin">Facilitator sign-in</Link>
       </div>
@@ -118,8 +118,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="home-width home-hero-grid">
           <div className="home-hero-copy">
             <p className="home-eyebrow"><Smartphone size={16} aria-hidden="true" />Joining your team?</p>
-            <h1 id="join-title" className="home-h1">Type the code <strong>on the screen.</strong></h1>
-            <p className="home-lead">It&apos;s on the TV at the front of the room, beside the QR code. There&apos;s no app to install, and your answers show on the screen without your name.</p>
+            <h1 id="join-title" className="home-h1">Join your team <strong>in the room.</strong></h1>
+            <p className="home-lead">The room code is on the TV at the front of the room. Enter it here and you&apos;re in, right in your phone&apos;s browser. Your answers reach the screen without your name.</p>
             <form className="join-form" action="/join" method="get">
               <label htmlFor="room-code" className="join-label">Room code</label>
               <div className="join-row">
@@ -127,7 +127,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                   spellCheck={false} maxLength={40} enterKeyHint="go" aria-invalid={Boolean(note)} aria-describedby="join-help" />
                 <button className="join-button" type="submit">Join<ArrowRight size={20} aria-hidden="true" /></button>
               </div>
-              <p id="join-help" className={`join-help${note ? " is-note" : ""}`} role={note ? "status" : undefined}>{note ?? "Most people scan the QR code on the screen. Typing the code is for when you can't."}</p>
+              <p id="join-help" className={`join-help${note ? " is-note" : ""}`} role={note ? "status" : undefined}>{note ?? "Or point your phone's camera at the QR code on the TV."}</p>
             </form>
             <div className="home-links">
               <Link href="/tv" prefetch={false} className="home-link"><Monitor size={18} aria-hidden="true" />Setting up the TV? Open the TV screen</Link>
@@ -197,7 +197,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       <section className="home-section" id="ask" data-theme="light" aria-labelledby="ask-title">
         <div className="home-width">
           <Reveal>
-            <p className="home-eyebrow">Ask the room</p>
+            <p className="home-eyebrow">Ways to answer</p>
             <h2 id="ask-title" className="home-h2">See it on the screen, <strong>and in your hand.</strong></h2>
             <p className="home-lead">Your facilitator chooses how the room answers. Pick one to see it on the TV and on a phone. These are real screens from a Riverside Church team workshop.</p>
           </Reveal>
@@ -274,15 +274,15 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="home-width">
           <Reveal>
             <p className="home-eyebrow">Privacy</p>
-            <h2 id="privacy-title" className="home-h2">Anonymous on the screen, <strong>so the room can be honest.</strong></h2>
+            <h2 id="privacy-title" className="home-h2">Say what you actually think. <strong>The screen won&apos;t say it was you.</strong></h2>
           </Reveal>
           <div className="home-grid four">
             <Reveal className="home-card"><span className="home-icon"><EyeOff size={22} aria-hidden="true" /></span><h3 className="home-h3">No names on the screen</h3>
               <p>Nobody in the room sees who wrote what, the facilitator included. Names stay with answers only for the record.</p></Reveal>
             <Reveal step={1} className="home-card"><span className="home-icon"><UserCheck size={22} aria-hidden="true" /></span><h3 className="home-h3">Names only where they belong</h3>
               <p>A name appears only when a step calls for one, like signing a commitment, and your phone says so first.</p></Reveal>
-            <Reveal step={2} className="home-card"><span className="home-icon"><Lock size={22} aria-hidden="true" /></span><h3 className="home-h3">Private means private</h3>
-              <p>A private form sends the screen a count and nothing else. The database enforces it.</p></Reveal>
+            <Reveal step={2} className="home-card"><span className="home-icon"><Lock size={22} aria-hidden="true" /></span><h3 className="home-h3">Private forms stay private</h3>
+              <p>Your facilitators read the answers. The screen shows how many people have answered, and the answers are kept out of its data entirely.</p></Reveal>
             <Reveal step={3} className="home-card"><span className="home-icon"><AiIcon size={22} /></span><h3 className="home-h3">AI you can see</h3>
               <p>Every AI grouping is marked and can be undone. <Link href="/how-we-use-ai" className="home-inline">How we use AI</Link></p></Reveal>
           </div>

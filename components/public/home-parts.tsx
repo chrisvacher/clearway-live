@@ -65,7 +65,7 @@ export type GalleryItem = { key: string; name: string; tag: string; text: string
 export function Gallery({ items }: { items: GalleryItem[] }) {
   const [at, setAt] = useState(0), item = items[at];
   return <div className="gallery">
-    <div className="gallery-list" role="tablist" aria-label="Ways to ask the room" aria-orientation="vertical">
+    <div className="gallery-list" role="tablist" aria-label="Ways to answer" aria-orientation="vertical">
       {items.map((it, i) => <button key={it.key} type="button" role="tab" id={`gallery-tab-${it.key}`} aria-selected={i === at} aria-controls="gallery-panel"
         className={`gallery-item${i === at ? " is-on" : ""}`} onClick={() => setAt(i)}
         onKeyDown={e => { if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); const n = (i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length; setAt(n); document.getElementById(`gallery-tab-${items[n].key}`)?.focus(); } }}>
