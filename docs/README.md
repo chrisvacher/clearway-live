@@ -16,6 +16,7 @@
 - `milestone-4-brief.md`: milestone 4, the Wayfinding session tools: what it builds, the engine contract each Wayfinding kind follows, the work order and what can run in parallel, and the questions for Chris.
 - `discover-survey-source.md`: research for milestone 6. The Team Hub survey tables Clearway Live would read, how a survey links to an engagement, reader options for Chris, volume and privacy.
 - `core-schema-check.md`: research for milestone 7. `core-reference.json` and the PRD's Write to CORE table checked against CORE's repository and production schema, and what Publish to CORE needs.
+- `acceptance-kit.md`: every kind through the live-screen rules with 50 simulated phones, and the failure kit on the new kinds (milestone 3, step 7a).
 - `practice-room-script.md`: the milestone 2 acceptance run for Chris, on real devices and venue wifi.
 - `prd.md`: the full PRD. Export it from the PRD doc in Claude (Export, Markdown) and save it here as `prd.md`. It is the source of truth.
 

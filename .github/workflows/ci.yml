@@ -36,7 +36,7 @@ jobs:
   database:
     name: PostgreSQL 17 schema and role isolation
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -72,8 +72,12 @@ jobs:
           NEXT_TELEMETRY_DISABLED: 1
       - name: Install the pinned Playwright Chromium
         run: npx playwright install --with-deps chromium
-      - name: Test the milestone 2 failure states in real browsers
+      - name: Make the screenshot folder for the kits
+        run: mkdir -p "${{ runner.temp }}/kit-shots"
+      - name: Test the failure states in real browsers (milestone 2, then milestone 3's kinds and FAIL-09)
         run: npm run test:browser
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Run the load script (50 simulated phones) against the latency log
         run: npm run test:load
       - name: Test the content screens and the pass 3 chrome in real browsers
@@ -100,6 +104,18 @@ jobs:
         with:
           name: team-workshop-screens
           path: team-workshop-shots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test every kind through the live-screen rules with 50 simulated phones (milestone 3 acceptance)
+        run: npm run test:acceptance-live
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Upload the acceptance and failure kit screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kit-screenshots
+          path: ${{ runner.temp }}/kit-shots
           if-no-files-found: ignore
           retention-days: 14
       - name: Stop local database
