@@ -110,6 +110,10 @@ jobs:
         run: npm run test:acceptance-live
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Test Outcome bullets (typed letter by letter) and Outcome confirm with 50 simulated phones in real browsers
+        run: npm run test:outcomes
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Upload the acceptance and failure kit screenshots
         if: always()
         uses: actions/upload-artifact@v4

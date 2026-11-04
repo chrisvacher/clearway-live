@@ -7,6 +7,7 @@ import { GridInput } from "@/components/interactions/grid-form-sign/grid-input";
 import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
 import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
 import type { LiveSnapshot } from "@/lib/live/types";
+import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
@@ -15,7 +16,7 @@ import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 // One-answer-per-person kinds just send: the server replaces the earlier answer.
 export type PhoneInputProps = {
   step: PhoneStep; mine: OwnShown[]; open: boolean; engagement?: string;
-  send: (answer: { text: string; value?: unknown }) => void;
+  send: (answer: { text: string; value?: unknown; id?: string }) => void;
   change: (id: string, answer: { text: string; value?: unknown }) => void;
   withdraw: (id: string) => void;
   // The person's own first name, for a named kind (sign together prints it under the line).
@@ -25,6 +26,8 @@ export type PhoneInputProps = {
 };
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
   qa: QaPhoneInput,
+  bullets: BulletsInput,
+  confirm: ConfirmInput,
   choice: ChoiceInput,
   scale: ScaleInput,
   ranking: RankingInput,
