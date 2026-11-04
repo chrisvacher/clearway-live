@@ -132,7 +132,8 @@ async function main() {
       await until(async () => (await layer().locator(".gl-goal").count()) === 1, "the goal on the TV", 8000);
       assert.equal((await layer().locator(".gl-vision li").allInnerTexts()).length, 2, "both Vision bullets");
       // Not clear yet: the Result letter waits for the facilitator.
-      assert.deepEqual(await letters(), ["CO-E"], "Connected, Owned and End date met, Result missing");
+      // The card fades in, so wait for it to be seen before reading its letters.
+      await until(async () => JSON.stringify(await letters()) === JSON.stringify(["CO-E"]), "Connected, Owned and End date met, Result missing", 8000);
       assert.deepEqual(await letters(), await serverLetters());
     });
     await step("Goals: 'Result is clear' turns the last letter on; a goal stays flagged until all four are met", async () => {
