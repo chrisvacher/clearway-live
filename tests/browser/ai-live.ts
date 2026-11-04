@@ -156,7 +156,9 @@ async function main() {
       await send(ben, "renewal, harvest, friendship, love, care");
       await send(ruth, "youth, young people, trust, community, growth");
       await send(ruth, "generosity, discipleship");
-      await until(async () => (await layer().locator(".tv-word .cwl-ai-glyph").count()) === 1, "the combined word carries the AI glyph", 10000);
+      await until(async () => (await layer().locator(".tv-word .cwl-ai-mark").count()) === 1, "the combined word carries the gradient AI icon", 10000);
+      await until(async () => Number(await layer().locator(".tv-word .cwl-ai-mark").getAttribute("data-ai-sweep")) === 1, "its icon swept once with the combine", 5000);
+      assert.equal(await tv.locator(".tv-top .cwl-ai-mark, .tv-top .cwl-ai-icon").count(), 0, "the AI icon never sits by the LIVE mark");
       await until(async () => !(await words()).includes("young people"), "the absorbed word leaves the TV", 5000).catch(async error => {
         console.error(await layer().locator(".tv-board").innerHTML()); await tv.screenshot({ path: join(controlDir, "..", "ai-kit-failure.png") }); throw error; });
       assert.match(await tv.locator("[data-ai-foot]").innerText(), /Combined similar answers/, "the foot names it once");
@@ -171,7 +173,7 @@ async function main() {
       await control.locator("[data-combine='young people']").getByRole("button", { name: "Undo" }).click();
       await until(async () => (await words()).includes("young people"), "young people is back on the TV", 5000).catch(async error => {
         console.error(await layer().locator(".tv-board").innerHTML()); throw error; });
-      await until(async () => (await layer().locator(".tv-word .cwl-ai-glyph").count()) === 0, "youth no longer carries the glyph", 5000);
+      await until(async () => (await layer().locator(".tv-word .cwl-ai-mark").count()) === 0, "youth no longer carries the AI icon", 5000);
       await until(async () => (await tv.locator("[data-ai-foot]").count()) === 0, "and the foot line goes", 5000);
       await until(async () => (await control.locator("[data-combine='young people']").innerText()).includes("Undone"), "the control surface shows it undone", 5000);
       await shot(tv, "int-01-undo-tv");
@@ -202,7 +204,10 @@ async function main() {
       const placed = await groupsOnTv();
       assert.ok(placed.shown.length >= 1 && !placed.overlap && !placed.cut, `groups never overlap and are never cut at rest: ${JSON.stringify(placed)}`);
       console.log(`  groups on the TV at very small screen: ${placed.shown.join(", ")}${placed.more ? `, ${placed.more} more on the control surface` : ""} (field ${placed.field})`);
-      assert.equal(await layer().locator(".ai-groups-head .cwl-ai-badge").count(), 1, "one AI badge above the groups");
+      assert.equal(await layer().locator(".ai-groups-head .cwl-ai-mark").count(), 1, "one gradient AI icon above the groups");
+      assert.equal(await layer().locator(".cwl-ai-badge").count(), 0, "no badge tile anywhere");
+      assert.ok(Number(await layer().locator(".ai-groups-head .cwl-ai-mark").getAttribute("data-ai-sweep")) >= 1, "the regroup swept the icon");
+      assert.equal(await tv.locator(".tv-top .cwl-ai-mark, .tv-top .cwl-ai-icon").count(), 0, "the AI icon never sits by the LIVE mark");
       const counts = (await results()).groups.map((g: { label: string; count: number }) => `${g.label}:${g.count}`).sort();
       assert.deepEqual(counts, ["Alpha:2", "Baptisms:2", "Young families:2"], "the server counts each group");
       await shot(tv, "int-02-ai-groups-tv");
@@ -318,7 +323,7 @@ async function main() {
       await ask(ben, "What date will the new building be ready?");
       await ask(ruth, "How much will the building cost?");
       await until(async () => (await layer().locator(".qa-row", { hasText: "When does the new building open?" }).innerText().catch(() => "")).includes("asked by 2"), "the fold reaches the TV", 10000);
-      assert.equal(await layer().locator(".qa-row .qa-ai .cwl-ai-badge").count(), 1, "marked with the AI badge");
+      assert.equal(await layer().locator(".qa-row .qa-ai .cwl-ai-mark").count(), 1, "marked with the gradient AI icon");
       const folded = (await results()).questions.find((q: { text: string }) => q.text === "When does the new building open?");
       assert.deepEqual([folded.askers, folded.ai], [2, true], "the server's group");
       await shot(tv, "int-03-ai-fold-tv");

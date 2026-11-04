@@ -5,6 +5,7 @@ import type { useControlRoom } from "./use-control-room";
 import { useSecondTap } from "./live-controls";
 import { stateLabels } from "@/lib/control/policy";
 import { rehearsalMessage, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
+import { SeedCounts } from "@/components/interactions/lens/lens-panel";
 import "./self-paced.css";
 
 type Room = ReturnType<typeof useControlRoom>;
@@ -27,6 +28,7 @@ export function SelfPacedList({ room, timezone }: { room: Room; timezone: string
           {s.interaction !== "content" && <a className="show-button is-small" href={`/api/control/${room.show.context.id}/export?session=${s.id}`} download aria-label={`Export answers for ${s.title}`}><Download size={14} aria-hidden="true" />CSV</a>}</span>
       </li>;
     })}</ol>
+    {list.some(s => s.interaction === "lens") && <SeedCounts room={room} />}
   </section>;
 }
 

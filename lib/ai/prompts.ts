@@ -2,16 +2,21 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "summarize_wall" | "fold_questions";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "summarize_wall", "fold_questions"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
 export type GroupInputs = { answers: { ref: string; id: string; text: string }[];
   groups: { ref: string; id: string; label: string; pinned: boolean; renamed: boolean; count: number; examples: string[] }[] };
+// The lens wall (INT-12): the wall's inputs plus the lens, its name from the engagement, the base year
+// and the question with its years filled. Seeded sentences are in answers only once their lens opened.
+export type LensInputs = GroupInputs & { lens: number; lens_name: string; lens_names?: string[]; base_year: number; question: string };
 export type SummaryInputs = { question: string; count: number; cut_at: string; answers: string[]; groups: { label: string; count: number }[] };
 export type FoldInputs = { questions: { ref: string; id: string; text: string; asked: number }[] };
-export type AiInputs = CombineInputs | GroupInputs | SummaryInputs | FoldInputs;
+// The pre-mortem's reasons (it is 2029 and the plan failed): text and how many people placed each.
+export type ReasonInputs = { reasons: { ref: string; key: string; text: string; count: number }[]; total: number };
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
@@ -158,6 +163,28 @@ export const prompts: Record<AiJob, Prompt> = {
       answers: i.answers.map(a => ({ ref: a.ref, text: a.text })) }); },
     parse: (text, inputs) => wallGroups(text, { answers: (inputs as GroupInputs).answers ?? [], groups: (inputs as GroupInputs).groups ?? [] }),
   },
+  // The lens wall. Sentences describe the 10-year Future in the present tense; the model never rewrites
+  // them, and a label names a theme without turning it into a plan. The years ride in the user message,
+  // from the engagement's base year, so the system text stays one fixed string.
+  group_lens: {
+    job: "group_lens", version: "group-lens@1", maxTokens: 1200,
+    system: [
+      "You group sentences on a lens wall during a live Wayfinding retreat for a church team, run by Clearway Church Solutions.",
+      "Each sentence describes the church's 10-year Future for one lens, written in the present tense as if it were true today. People are still typing while you work.",
+      "Put sentences that describe the same thing into groups with short labels: one to four plain words, sentence case, no quotes, never a person's name. A label names the theme as a state, never as a plan or a wish (\"Welcome at the door\", not \"Plan to welcome\").",
+      "Use the room's own words in a label where you can. Never invent anything nobody said. Never reword, merge or add a sentence.",
+      "You see the existing groups (g1, g2...) with a few of their sentences, and the sentences not yet in a group (a1, a2...).",
+      "Add a sentence to an existing group by its ref, or start a new group with ref n1, n2... holding at least two sentences.",
+      "Every group in your reply has a \"group\" ref: g1, g2... for an existing group, n1, n2... for a new one, and a new group also has a \"label\". Name sentences by their refs (a1, a2...), never by their text.",
+      "Never add to a pinned group. Leave out a sentence that fits no theme; it stays on the wall in arrival order.",
+      `Reply as {"groups":[{"group":"g1","answers":["a3"]},{"group":"n1","label":"Welcome at the door","answers":["a1","a2"]}]}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as LensInputs; return JSON.stringify({
+      lens: i.lens_name, horizon: "10-year Future", year: i.base_year + 10, question: i.question,
+      groups: i.groups.map(g => ({ ref: g.ref, label: g.label, pinned: g.pinned, sentences: g.examples })),
+      sentences: i.answers.map(a => ({ ref: a.ref, text: a.text })) }); },
+    parse: (text, inputs) => wallGroups(text, { answers: (inputs as LensInputs).answers ?? [], groups: (inputs as LensInputs).groups ?? [] }),
+  },
   summarize_wall: {
     job: "summarize_wall", version: "summarize-wall@2", maxTokens: 200,
     system: [
@@ -181,5 +208,83 @@ export const prompts: Record<AiJob, Prompt> = {
     user: inputs => JSON.stringify({ questions: (inputs as FoldInputs).questions.map(q => ({ ref: q.ref, text: q.text, asked: q.asked })) }),
     parse: (text, inputs) => merges(text, (inputs as FoldInputs).questions?.map(q => ({ ref: q.ref, texts: [q.text] })) ?? []),
   },
+  merge_reasons: {
+    job: "merge_reasons", version: "merge-reasons@1", maxTokens: 800,
+    system: [
+      "You tidy the reasons in a pre-mortem at a church team gathering run by Clearway Church Solutions. The team imagines their plan has failed and writes why.",
+      "Merge reasons only when they name the same cause in different words (\"We ran out of volunteers\" and \"Not enough people to serve\"). Reasons that share a topic but name different causes stay apart (\"We ran out of money\" and \"We spent the money badly\" are different).",
+      "Never merge a reason written as a quote. Never merge reasons whose numbers differ. Never merge more than four reasons into one.",
+      "The survivor is the clearest wording, usually the one more people placed. Most reasons merge with nothing; that is normal. Never reword a reason.",
+      "Name every reason by its ref (r1, r2...), never by its text.",
+      `Reply as {"groups":[{"survivor":"r1","members":["r4"]}]}, or {"groups":[]} when nothing should merge. ${rules}`,
+    ].join("\n"),
+    user: inputs => JSON.stringify({ reasons: (inputs as ReasonInputs).reasons.map(r => ({ ref: r.ref, text: r.text, placed: r.count })) }),
+    parse: (text, inputs) => merges(text, (inputs as ReasonInputs).reasons?.map(r => ({ ref: r.ref, texts: [r.text] })) ?? []),
+  },
 };
 export const promptVersions = Object.fromEntries(aiJobs.map(job => [job, prompts[job].version])) as Record<AiJob, string>;
+
+// ---------- The overnight draft (milestone 5, step 2) ----------
+// After Day 1 closes, one deeper call tidies each provisional Vision Outcome and its 3-year Vision bullets
+// from the room's phone bullets, the scribe's cards and the easel photos. It is not one of the live jobs: it
+// belongs to the engagement, not a step, and runs through its own claim, apply and fail (overnight_claim,
+// overnight_apply, overnight_fail), with the same run log. The 10-year Future is not drafted here: the room
+// signed the lens summaries off on Day 1. The model sees text, counts and images under short refs (o1, o1b2,
+// c3, p2), never an attendee, a speaker or an id. What it may keep is code, not prompt: the database refuses
+// a bullet with no source, a number no card or photo has, a quote that is not word for word, and a voice or
+// tension that is not the room's own words.
+export type OvernightInputs = { year: number; horizon: string;
+  outcomes: { ref: string; id: string; title: string; description: string; bullets: { ref: string; id: string; text: string }[] }[];
+  cards: { ref: string; id: string; kind: string; text: string; detail: { why?: string; views?: string[]; risk?: string; date?: string; owner?: string }; step: string }[];
+  photos: { ref: string; id: string; step: string; caption: string; path: string; type: string; bytes: number; readable: boolean; typed: string | null }[] };
+export type OvernightOutput = { outcomes: { outcome: string; bullets: { text: string; sources: { ref: string; excerpt?: string }[] }[];
+  voices: { text: string; source: string }[]; tensions: { text: string; source: string }[] }[]; unreadable: { photo: string; outcome?: string }[] };
+export type OvernightPrompt = { job: "overnight_draft"; version: string; system: string; maxTokens: number; user: (inputs: OvernightInputs, images?: string[]) => string; parse: (text: string, inputs: OvernightInputs) => OvernightOutput };
+
+const textOf = (value: unknown, max: number) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, max) : "";
+const refOf = (value: unknown) => typeof value === "string" ? value.trim().toLowerCase() : typeof value === "number" && Number.isInteger(value) ? String(value) : "";
+export const overnightPrompt: OvernightPrompt = {
+  job: "overnight_draft", version: "overnight-draft@1", maxTokens: 6000,
+  system: [
+    "You prepare the overnight first pass for a church team's two-day Wayfinding retreat, run by Clearway Church Solutions. Day 1 has closed. Two facilitators will review your draft in the morning, so it must be easy to check.",
+    "You tidy each provisional Vision Outcome. Each has bullets the room typed on their phones (refs like o1b1), and you also see the scribe's cards (c1, c2...) and easel photos (p1, p2...) from Day 1. The bullets belong to the 3-year Vision, the picture of the outcome three years from now. Write them in the present tense, as things that are true then.",
+    "Never invent. Every bullet you write must rest on at least one source: a room bullet, a scribe card or an easel photo, named by its ref. If the sources do not support a bullet, leave it out. A number or a date in a bullet must appear in a scribe card or an easel photo you name as its source. Never name a person, a speaker or an attendee; if a source names someone, write around it.",
+    "Stay close to the room's words. Where one room bullet already says it well, give that bullet's words exactly, with that one source. Tidy only spelling, grammar and length (280 characters at most). Merge room bullets that say the same thing, and name each one as a source. Write at most eight bullets for an outcome.",
+    "An outcome with little behind it stays thin. Give it fewer bullets, or none. Do not stretch it to look finished.",
+    "Keep two lists apart for every outcome. Voices not to lose are strong lines worth keeping in the room's own words, from a quote or decision card or a room bullet. Tensions the room named are disagreements or open questions the room said out loud, from a tension or question card. Copy each one word for word from its source, with that source's ref. Never turn a tension into a bullet. Never turn a voice into a tension. Give at most three of each.",
+    "Use Clearway's terms exactly: 3-year Vision, 10-year Future, 1-year Outlook, Vision Outcomes. Do not draft the 10-year Future; the room signed it off already. Do not draft goals.",
+    "A photo is attached as an image after the text, in ref order. If an image is too blurry or too small to read, say so in unreadable with its ref, and the outcome it belongs to when you know it; do not guess its words. A photo with typed words uses those words.",
+    "Name outcomes by their ref (o1, o2...), never by their title. Name sources by their ref, and an excerpt only if it is a word-for-word piece of the source.",
+    "Reply as {\"outcomes\":[{\"outcome\":\"o1\",\"bullets\":[{\"text\":\"...\",\"sources\":[{\"ref\":\"o1b1\"},{\"ref\":\"c2\",\"excerpt\":\"...\"}]}],\"voices\":[{\"text\":\"...\",\"source\":\"c1\"}],\"tensions\":[{\"text\":\"...\",\"source\":\"c3\"}]}],\"unreadable\":[{\"photo\":\"p2\",\"outcome\":\"o1\"}]}. Use only the refs you are given. Reply with one JSON object and nothing else.",
+  ].join("\n"),
+  user: (inputs, images = []) => JSON.stringify({ horizon: inputs.horizon, year: inputs.year,
+    outcomes: inputs.outcomes.map(o => ({ ref: o.ref, title: o.title, description: o.description, bullets: o.bullets.map(b => ({ ref: b.ref, text: b.text })) })),
+    cards: inputs.cards.map(c => ({ ref: c.ref, kind: c.kind, text: c.text, ...(c.detail?.why ? { why: c.detail.why } : {}), ...(c.detail?.views?.length ? { views: c.detail.views } : {}),
+      ...(c.detail?.risk ? { risk: c.detail.risk } : {}), ...(c.detail?.date ? { date: c.detail.date } : {}), step: c.step })),
+    photos: inputs.photos.map(p => ({ ref: p.ref, step: p.step, caption: p.caption, ...(p.typed ? { typed: p.typed } : {}), image: images.includes(p.ref) })) }),
+  parse: (text, inputs) => {
+    const raw = replyJson(text), list = (value: unknown) => Array.isArray(value) ? value : [];
+    const note = (value: unknown) => { const o = (value && typeof value === "object" ? value : {}) as Record<string, unknown>; const t = textOf(o.text, 400), source = refOf(o.source ?? o.ref); return t && source ? [{ text: t, source }] : []; };
+    return {
+      outcomes: list(raw.outcomes).slice(0, 12).flatMap(value => {
+        const o = (value && typeof value === "object" ? value : {}) as Record<string, unknown>, outcome = refOf(o.outcome ?? o.ref);
+        if (!inputs.outcomes.some(x => x.ref === outcome)) return [];
+        return [{ outcome,
+          bullets: list(o.bullets).slice(0, 8).flatMap(b => {
+            const item = (b && typeof b === "object" ? b : {}) as Record<string, unknown>, t = textOf(item.text, 280);
+            const sources = list(item.sources).slice(0, 6).flatMap(s => {
+              const so: Record<string, unknown> = typeof s === "object" && s ? s as Record<string, unknown> : { ref: s }, ref = refOf(so.ref), excerpt = textOf(so.excerpt, 280);
+              return ref ? [{ ref, ...(excerpt ? { excerpt } : {}) }] : [];
+            });
+            return t ? [{ text: t, sources }] : [];
+          }),
+          voices: list(o.voices).slice(0, 3).flatMap(note), tensions: list(o.tensions).slice(0, 3).flatMap(note) }];
+      }),
+      unreadable: list(raw.unreadable).slice(0, 24).flatMap(value => {
+        const o = (value && typeof value === "object" ? value : { photo: value }) as Record<string, unknown>, photo = refOf(o.photo ?? o.ref), outcome = refOf(o.outcome);
+        return photo ? [{ photo, ...(outcome ? { outcome } : {}) }] : [];
+      }),
+    };
+  },
+};
+export const overnightVersion = overnightPrompt.version;

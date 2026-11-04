@@ -8,7 +8,7 @@ Milestone 2, PR 7 proves the failure states (FAIL-01 to FAIL-06, FAIL-08 and FAI
 | --- | --- | --- | --- |
 | FAIL-01 Venue wifi drops: phones | Input still works, each unsent answer says "Saved on this phone", the header says Offline, and answers send in the order written with no duplicates | Step 5 | Browser kit |
 | FAIL-02 The TV loses its connection | The TV keeps its last screen with the Reconnecting mark. After 12 seconds silent it drops out of confirmation, the control surface warns and offers Show the TV view on phones, and the TV catches up within 3 seconds of the network returning, without reloading | Steps 3 and 4 | Browser kit |
-| FAIL-03 The scribe goes offline | Milestone 5 | | |
+| FAIL-03 The scribe goes offline | The console and the scribe's phone keep capturing. Each card says "Saved on this laptop" (or phone) and its place in the send order, and everything sends in order with no duplicates when the connection returns. Easel photos wait on the device too | Milestone 5, step 1 | Browser kit (`test:scribe`), `tests/unit/scribe.test.ts` |
 | FAIL-04 The TV's browser is closed | Reopening /tv resumes the current session without pairing again | Step 3 | Browser kit, `test:tv` |
 | FAIL-05 The facilitator's laptop dies | The remote runs every control with the laptop closed | Step 4 | Browser kit |
 | FAIL-06 The remote and the TV disagree | The TV wins. The remote shows Syncing after 2 seconds and the control surface a quiet warning, then both correct | Step 4 | Browser kit |

@@ -111,8 +111,8 @@ export async function runLoad(options: LoadOptions): Promise<LoadResult> {
   }
   for (const p of phones) { p.offset = best.offset; p.uncertainty = best.uncertainty; }
   const live = first.session;
-  if (!live || live.state !== "live" || !["word_cloud", "wall"].includes(live.interaction) || first.state.phones_down)
-    throw new Error("Go live on a word cloud or wall session in the practice room, with phones open, before running the load test.");
+  if (!live || live.state !== "live" || !["word_cloud", "wall", "lens"].includes(live.interaction) || first.state.phones_down)
+    throw new Error("Go live on a word cloud, wall or lens session in the practice room, with phones open, before running the load test.");
   if (live.max_sends < bursts) throw new Error(`The live session allows ${live.max_sends} answers per person. Allow at least ${bursts}, or run fewer bursts.`);
   const from = new Date(Date.now() - 1000).toISOString(), refused: Record<string, number> = {}, phoneMs: number[] = [];
   let accepted = 0;
@@ -121,7 +121,7 @@ export async function runLoad(options: LoadOptions): Promise<LoadResult> {
     log(`Burst ${b + 1} of ${bursts}: ${count} answers ${spread ? `over ${spread / 1000} seconds` : "in the same instant"}`);
     const results = await Promise.all(phones.map(async (p, i) => {
       if (spread) await delay(Math.floor(random() * spread));
-      return p.send(room, live.id, live.interaction === "wall" ? `${sentences[(i + b) % sentences.length]} (${i + 1})` : words[(i * 7 + b * 3) % words.length]);
+      return p.send(room, live.id, live.interaction === "wall" || live.interaction === "lens" ? `${sentences[(i + b) % sentences.length]} (${i + 1})` : words[(i * 7 + b * 3) % words.length]);
     }));
     for (const r of results) { if (r.status === "accepted") { accepted++; phoneMs.push(r.ms); } else refused[r.status] = (refused[r.status] ?? 0) + 1; }
   }

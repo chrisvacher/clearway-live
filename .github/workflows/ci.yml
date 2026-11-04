@@ -47,7 +47,7 @@ jobs:
           node-version: 22.x
       - run: npm ci
       - name: Start isolated PostgreSQL 17 and Auth
-        run: supabase start --exclude storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Replay migrations from an empty database
         run: supabase db reset --local --no-seed
       - name: Lint database functions
@@ -110,12 +110,59 @@ jobs:
         run: npm run test:acceptance-live
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Test Outcome bullets (typed letter by letter) and Outcome confirm with 50 simulated phones in real browsers
+        run: npm run test:outcomes
+      - name: Test the scribe console (capture, easel photos, offline replay, team-led off) in real browsers with Storage
+        run: npm run test:scribe
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Test the overnight drafts and review (Day 1 close, sources, locks, restore, versions, publish, failed draft) in real browsers
+        run: npm run test:overnight
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Upload the acceptance and failure kit screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: kit-screenshots
           path: ${{ runner.temp }}/kit-shots
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test the Pre-mortem and the CORE goal builder with the fake model and 50 simulated phones in real browsers (milestone 4, step 5)
+        run: mkdir -p ${{ runner.temp }}/premortem-goals-shots && npm run test:premortem-goals
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/premortem-goals-shots
+      - name: Upload the Pre-mortem and goals screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: premortem-goals-screens
+          path: ${{ runner.temp }}/premortem-goals-shots
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test the remote changing hands, commander's intent and the follow-up access in real browsers
+        run: mkdir -p handover-intent-shots && npm run test:handover-intent
+        env:
+          KIT_SHOTS: handover-intent-shots
+      - name: Upload the handover and intent screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: handover-intent-screens
+          path: handover-intent-shots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test the lens wall (INT-12) with AI clusters and 50 simulated phones in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p lens-wall-shots && npm run test:lens-wall
+        env:
+          KIT_SHOTS: lens-wall-shots
+      - name: Upload the lens wall screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lens-wall-screens
+          path: lens-wall-shots/
           if-no-files-found: ignore
           retention-days: 14
       - name: Stop local database

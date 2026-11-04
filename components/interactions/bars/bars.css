@@ -15,10 +15,15 @@
 /* The cut line's label has its own column (pass 3 change 3): 240px at 1080p, scaling with the room. */
 .tv-bars.is-points.has-cut { --bars-cut-w: calc(240px * var(--cwl-tv-scale)); }
 .tv-bars.is-statements { --bars-label-w: min(calc(860px * var(--cwl-tv-scale)), 46%); --bars-value-w: min(calc(470px * var(--cwl-tv-scale)), 30%); }
-.tv-bar { position: absolute; left: 0; right: var(--bars-cut-w); top: 0; height: var(--bars-row-h); display: grid; grid-template-columns: var(--bars-label-w) minmax(0, 1fr) var(--bars-value-w);
+/* The value column never clips its value: it is at least the widest value measured in the TV's
+   type (tv-bars.tsx sets --bars-value-fit), and the label column gives way to it, keeping
+   15% of the row for the bar. */
+.tv-bars { --bars-value-col: max(var(--bars-value-fit, 0px), var(--bars-value-w)); }
+.tv-bar { position: absolute; left: 0; right: var(--bars-cut-w); top: 0; height: var(--bars-row-h); display: grid;
+  grid-template-columns: min(var(--bars-label-w), calc(100% - var(--bars-value-col) - 2 * var(--bars-gap) - 15%)) minmax(0, 1fr) var(--bars-value-col);
   align-items: center; column-gap: var(--bars-gap); will-change: transform;
   animation: tv-bar-arrive var(--cwl-dur-arrive) var(--cwl-ease-signature) both; transition: opacity var(--cwl-dur-hide) var(--cwl-ease-signature); }
-.tv-bars.is-ranking .tv-bar { grid-template-columns: var(--bars-place-w) var(--bars-label-w) minmax(0, 1fr) var(--bars-value-w); }
+.tv-bars.is-ranking .tv-bar { grid-template-columns: var(--bars-place-w) min(var(--bars-label-w), calc(100% - var(--bars-place-w) - var(--bars-value-col) - 3 * var(--bars-gap) - 15%)) minmax(0, 1fr) var(--bars-value-col); }
 .tv-bar.is-leaving { opacity: 0; }
 .tv-bar-place { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); color: var(--cwl-text-muted); font-variant-numeric: tabular-nums; text-align: right; }
 .tv-bar-label { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.12; color: var(--cwl-bar-label); overflow-wrap: anywhere;
@@ -30,8 +35,11 @@
 .tv-bar.is-leader .tv-bar-fill { background: var(--cwl-bar-leader); }
 /* Spotlight takes the screen's one Sunrise moment, so the leader takes Royal meanwhile. */
 .tv-stage:has(.tv-spot.is-on) .tv-bar.is-leader .tv-bar-fill { background: var(--cwl-bar); }
-.tv-bar-value { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); line-height: 1.1; color: var(--cwl-bar-label); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tv-bar-value small { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.tv-bar-value, .tv-bar-ruler > span { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); line-height: 1.1; color: var(--cwl-bar-label); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tv-bar-value small, .tv-bar-ruler small { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+/* The hidden ruler: the widest values this kind can show, set exactly as a value is. */
+.tv-bar-ruler { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+.tv-bar-ruler > span { position: absolute; left: 0; top: 0; }
 .tv-cut { position: absolute; left: 0; right: var(--bars-cut-w); top: 0; height: 4px; border-radius: 2px; background: var(--cwl-cut-line); will-change: transform; }
 .tv-bars.is-ranking .tv-cut { left: calc(var(--bars-place-w) + var(--bars-gap)); }
 .tv-cut-label { position: absolute; left: calc(100% + 16px); top: 50%; transform: translateY(-50%); width: calc(var(--bars-cut-w) - 16px);

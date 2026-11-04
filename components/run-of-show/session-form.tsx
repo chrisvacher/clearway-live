@@ -13,14 +13,16 @@ import { contentPromptLabel } from "./content-options";
 // takes the session out, and unsaved edits survive the options sliding closed (draft).
 export type FormDraft = { value: ShowSession; start: string; opens: string; closes: string };
 type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; feedback: string; failed: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void;
-  variant?: "panel" | "inline"; revision?: number | null; draft?: FormDraft; onDraft?: (draft: FormDraft, dirty: boolean) => void; startNote?: string };
-export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove, variant = "panel", revision, draft, onDraft, startNote }: Props) {
+  variant?: "panel" | "inline"; revision?: number | null; draft?: FormDraft; onDraft?: (draft: FormDraft, dirty: boolean) => void; startNote?: string; others?: ShowSession[] };
+export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove, variant = "panel", revision, draft, onDraft, startNote, others = [] }: Props) {
   const inline = variant === "inline";
   const [value, setValue] = useState(() => draft?.value ?? session);
   const [start, setStart] = useState(() => draft?.start ?? localTime(session.planned_start, context.timezone));
   const [opens, setOpens] = useState(() => draft?.opens ?? localTime(session.opens_at, context.timezone));
   const [closes, setCloses] = useState(() => draft?.closes ?? localTime(session.closes_at, context.timezone));
   const [timeError, setTimeError] = useState("");
+  const [teamLed, setTeamLed] = useState(Boolean(session.team_led));
+  const [teamLedNote, setTeamLedNote] = useState("");
   const first = useRef<HTMLInputElement>(null), panel = useRef<HTMLElement>(null);
   useEffect(() => { first.current?.focus({ preventScroll: true }); if (!inline && window.matchMedia("(max-width: 900px)").matches) panel.current?.scrollIntoView({ block: "start" }); }, [inline]);
   const dirty = JSON.stringify(value) !== JSON.stringify(session) || start !== localTime(session.planned_start, context.timezone) || opens !== localTime(session.opens_at, context.timezone) || closes !== localTime(session.closes_at, context.timezone);
@@ -34,6 +36,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
   const close = () => { if (!dirty || window.confirm("Discard your unsaved edits?")) onClose(); };
   const change = <K extends keyof ShowSession>(key: K, v: ShowSession[K]) => setValue(previous => ({ ...previous, [key]: v }));
   const setting = <K extends keyof ShowSession["settings"]>(key: K, v: ShowSession["settings"][K]) => change("settings", { ...value.settings, [key]: v });
+ const seedable = others.filter(s => s.id !== session.id && s.interaction === value.interaction && s.seeded_from !== session.id);
   const running = !["draft", "ready"].includes(session.state);
   // The kinds this server can run, in the library's order. A session keeps its own kind.
   const kinds: KindInfo[] = context.kinds?.length ? context.kinds : Object.values(fallbackKinds);
@@ -45,6 +48,15 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
     setValue(v => ({ ...v, interaction: next, options: {}, ...defaults,
       settings: { ...v.settings, anonymous: info?.named === "always" ? false : info?.named === "never" ? true : v.settings.anonymous } }));
   };
+  // The team-led flag saves on its own, at once, so the scribe console follows the run of show without waiting for Done.
+  async function changeTeamLed(next: boolean) {
+    setTeamLed(next); setTeamLedNote("");
+    try {
+      const response = await fetch(`/api/run-of-show/${context.id}/team-led`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session: session.id, value: next }) });
+      if (!response.ok) throw new Error("save");
+      setTeamLedNote(next ? "The scribe console will be off for this step." : "The scribe console will be on for this step.");
+    } catch { setTeamLed(!next); setTeamLedNote("That didn’t save. Try again."); }
+  }
   async function save(event: FormEvent) {
     event.preventDefault(); setTimeError("");
     // Inline, Done marks the session Ready and Save as draft keeps it a Draft.
@@ -73,7 +85,10 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           <label className="is-full" htmlFor="session-interaction">Interaction<select id="session-interaction" disabled={running} value={value.interaction} onChange={e => choose(e.target.value as InteractionKind)}>
             {kinds.map(k => <option key={k.kind} value={k.kind}>{k.label}{k.kind !== "content" ? ` (${screenIds[k.kind]})` : ""}</option>)}
             {!kinds.some(k => k.kind === value.interaction) && <option value={value.interaction}>{value.interaction}</option>}</select></label>
-          {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={fresh} locked={busy || blocked || context.closed} onChange={options => change("options", options)} />}
+          {seedable.length > 0 && <label className="is-full" htmlFor="session-seeded">Seeded from<select id="session-seeded" value={value.seeded_from ?? ""} onChange={e => change("seeded_from", e.target.value || null)}>
+            <option value="">Nothing, start empty</option>{seedable.map(s => <option key={s.id} value={s.id}>{s.part}: {s.title}</option>)}</select>
+            <span className="show-help">Starts this step from the earlier step’s answers, so the room does not begin from nothing.</span></label>}
+          {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={fresh} locked={busy || blocked || context.closed} onChange={options => change("options", options)} setPrompt={prompt => change("prompt", prompt)} />}
           <label className="is-full" htmlFor="session-prompt">{value.interaction === "content" ? contentPromptLabel[contentOf(value.options).screen] : "Prompt on the TV and phones"}<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>
           <p className="show-help is-full">Use {"{base year + 10}"}, {"{base year + 3}"} or {"{base year + 1}"} to fill in the year.</p>
           {value.prompt.includes("{base year") && <div className="show-preview is-full"><span className="show-help">Prompt preview</span><p>{fillYears(value.prompt, context.base_year)}</p></div>}
@@ -90,6 +105,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           </>}
           <label className="is-full" htmlFor="session-notes"><span><LockKeyhole size={15} aria-hidden="true" /> Presenter notes</span><textarea id="session-notes" maxLength={30000} rows={5} value={value.notes} onChange={e => change("notes", e.target.value)} /><span className="show-help">Only facilitators see these. They never reach the TV or phones.</span></label>
           <label className="is-full" htmlFor="session-lands">Lands in<input id="session-lands" maxLength={200} value={value.lands_in} onChange={e => change("lands_in", e.target.value)} /></label>
+          {!fresh && <label className="show-check is-full" htmlFor="session-team-led"><input id="session-team-led" type="checkbox" checked={teamLed} disabled={context.closed} onChange={e => void changeTeamLed(e.target.checked)} />Team-led step: turn the scribe console off while this step is live{teamLedNote && <span className="show-help" role="status"> {teamLedNote}</span>}</label>}
           {!inline && <label className="is-full" htmlFor="session-state">State<select id="session-state" disabled={running} value={value.state} onChange={e => change("state", e.target.value)}>{running ? <option value={session.state}>{session.state.replaceAll("_", " ")}</option> : <><option value="draft">Draft</option><option value="ready">Ready</option></>}</select></label>}
         </div>
       </fieldset>

@@ -156,10 +156,11 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 - The screen is alive (above). Non-negotiable. (Oct 28, restated Oct 29 as "an absolute necessity")
 - Three surfaces: the facilitator's control surface, the TV or projector, and participants' phones. The control surface is in charge of what's on the TV and every phone at the same time, and is never what the room sees. The TV is its own display, never cabled to the facilitator's laptop. A separate computer at the TV, provided by the church, opens the TV page at live.clearway.co and connects to the TV or projector by HDMI or screen mirroring. Clearway's prep document asks churches to have it ready. (Oct 29)
 - The retreat fits in two days, with a 90-minute pre-call on video one to two weeks before. The pre-call shows survey results and does celebrations and metrics. The retreat opens on the Five Lenses, then the 3-year Vision with prioritized Vision Outcomes, then risks and roadblocks as a pre-mortem, then strategies in the 1-year Outlook that overcome those risks, then the team takes over for commander's intent, then recap and close. (Oct 28)
-- Vision Outcomes are provisional on Day 1, prayed over overnight, and confirmed on Day 2 after the read-back. (Oct 28)
+- Vision Outcomes are provisional on Day 1, prayed over overnight, and confirmed on Day 2 after a short confirm of the signed-off 10-year Future. (Oct 28, changed Nov 3)
+- The 10-year Future is drafted live on Day 1, one screen per lens, and signed off by the room that day. (Nov 3)
 - Commander's intent is team-led in the second half of Day 2, and covers the intent, the must-do, what we'll stop and the 30-day first steps, without repeating the 1-year goals. (Oct 28)
 - The 1-year Outlook lands as CORE goals, owned and dated. (Oct 28)
-- Churches that can only give a day and a half can do a self-facilitated follow-up session. (Oct 29) It runs on video within two weeks of the half day, with a team facilitator holding the remote. (Nov 3)
+- Churches that can only give a day and a half can do a self-facilitated follow-up session. (Oct 29) It runs on video within two weeks of the half day, with the team's own facilitator pairing the shared TV view and holding the remote without a Clearway sign-in. (Nov 3)
 - There is no pre-work before the pre-call. The pre-call is the start, and celebrations and success measures begin live in the call. (Nov 3)
 - Seeded lens sentences are hidden from everyone, the facilitator included, until each lens opens. The facilitator sees only how many have been written. (Nov 3)
 - There is no current-reality line per Vision Outcome. The flow stays as it is. (Nov 3)
@@ -713,9 +714,10 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | 11:45 | Lunch | Nothing live |  |  |  |  |  |  |
 | 12:30 | Five Lenses: Leadership, Operations, Learning | Lens wall | As above. Learning asks "It's 2036. What will we know then that we don't know now?" | As above | As above | As above | The 10-year Future | D1-05, D1-06 |
 | 2:30 | Break | Nothing live |  |  |  |  |  |  |
-| 2:45 | Provisional Vision Outcomes | Cluster and rename (INT-13), then 100 points (INT-07) | Candidate priorities from all Five Lenses, then live bars with a cut line | Rename and merge, then spend 100 points | The provisional list and who argued what | Proposes 6 to 10 candidates | The 3-year Vision | D1-07 to D1-10 |
-| 3:45 | 3-year Vision, first pass | Outcome bullets | One outcome at a time, bullets filling in | "In 2029, what's true?" | Numbers, dates, names | None (the empty-outcome flag is code) | The 3-year Vision | D1-11, D1-12 |
-| 4:15 | Close | Scripture | The provisional outcomes, then Scripture, with the invitation to pray over them overnight | Phones away |  |  |  | D1-13 |
+| 2:45 | The 10-year Future, by lens (about 30 minutes) | Lens summary (new kind `lens_summary`) | One lens at a time: the AI draft, straight from the lens sentences, each sentence linked to its sources, in the present tense. The facilitator can edit it while it is up. Then the new version, with the changes marked | Approve, or Suggest a change in a short text box | The reasons for any change | Drafts each summary. Folds suggestions into a new version live, marked AI, with undo | The 10-year Future | Pass 5 boards (TrackedChange), new Day 1 screens |
+| 3:15 | Provisional Vision Outcomes | Cluster and rename (INT-13), then 100 points (INT-07) | Candidate priorities from all Five Lenses, then live bars with a cut line | Rename and merge, then spend 100 points | The provisional list and who argued what | Proposes 6 to 10 candidates | The 3-year Vision | D1-07 to D1-10 |
+| 4:15 | 3-year Vision, first pass | Outcome bullets | One outcome at a time, bullets appearing letter by letter as people type | "In 2029, what's true?" | Numbers, dates, names | None (the empty-outcome flag is code) | The 3-year Vision | D1-11, D1-12 |
+| 4:45 | Close | Scripture | The provisional outcomes, then Scripture, with the invitation to pray over them overnight | Phones away |  |  |  | D1-13 |
 
 **How each lens runs**
 
@@ -732,9 +734,9 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | Time | Session | Interaction | TV | Phones | Scribe | AI | Lands in | Screens |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 8:30 | Prayer and listening | Prayer, then open text | Scripture, then dark. Then "What are we sensing?" | Phones away, then one prompt | What the team shares | None | The Process | D2-01, D2-02 |
-| 9:00 | Read-back | Read-back (INT-14) | Each lens of the overnight draft with a live tally | "Yes, that's us" or "It needs a change", and what's missing | Corrections and their reasons | Folds agreed corrections into the draft | The 10-year Future | D2-03, D2-04 |
+| 9:00 | Confirm the 10-year Future (short, after prayer) | Short confirm of the signed-off lens summaries (a placeholder in the template until milestone 5 builds it) | Each signed-off lens in turn | Read along, and say if anything has changed overnight | Any change and its reason | None | The 10-year Future | D2-03, D2-04 |
 | 9:30 | Confirm the Vision Outcomes | Outcome confirm | The provisional list with confirm, rename and challenge counts | Confirm, rename or challenge each, with a reason | The consensus decision and why | None | The 3-year Vision, Decisions | D2-05, D2-06 |
-| 10:00 | Pre-mortem | 2x2 grid (INT-08) | "It's 2029 and this plan failed. Why?" Reasons as dots on likelihood and impact | Name a reason, then place it | Mitigations the team names | Merges duplicate reasons | Risks and Roadblocks | D2-07, D2-08 |
+| 10:00 | Pre-mortem | 2x2 grid (INT-08) | "It's 2029 and this plan failed. Why?" Reasons as dots on likelihood and impact | Name a reason, then place it | Mitigations the team names, which the facilitator records from the control surface until the scribe console exists | Merges duplicate reasons | Risks and Roadblocks | D2-07, D2-08 |
 | 10:30 | Break | Nothing live |  |  |  |  |  |  |
 | 10:45 | 1-year Outlook | CORE goal builder (INT-15) | One outcome at a time: 3-year Vision left, goals right, each tagged with the risk it answers | Propose a goal with a title, result, owner and end date | Decisions, owners, dates | None (CORE checks are code) | The 1-year Outlook, CORE goals | D2-09, D2-10 |
 | 12:15 | Lunch | Nothing live |  |  |  |  |  |  |
@@ -742,12 +744,12 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | 1:10 | Commander's intent | Commander's intent card (INT-16), team-led | Every card filling in at once | Pairs or trios draft one card per Vision Outcome, then present |  | Flags first steps missing an owner or date (code) | Commander's Intent, CORE | D2-12, D2-13 |
 | 2:30 | Affirm together | Sign together (INT-10), team-led | Names gathering beneath the cards | Affirm the full set |  |  | Commander's Intent | D2-14 |
 | 2:45 | Recap | Draft Clearway Map | The draft Map assembled from the two days | Read along |  |  | Clearway Map | D2-15 |
-| 3:10 | Publish and close | Publish to CORE, then Scripture and prayer | "Published", then Scripture |  |  |  | CORE | COR-01 to COR-03 |
+| 3:10 | Publish and close | Publish to CORE (a placeholder in the template until milestone 7 builds it), then Scripture and prayer | "Published", then Scripture |  |  |  | CORE | COR-01 to COR-03 |
 
 **Day-and-a-half template** (Default split, since Chris decided only that a self-facilitated follow-up session is available)
 
 - The half day ends after confirming the Vision Outcomes and the 1-year Outlook, with a short close and a draft Map showing what's ready.
-- The pre-mortem and commander's intent move to the follow-up session, on video within two weeks of the half day, with a team facilitator holding the remote (Decided November 3).
+- The pre-mortem and commander's intent move to the follow-up session, on video within two weeks of the half day, with the team's own facilitator pairing the shared TV view and holding the remote, without a Clearway sign-in. The facilitator issues a follow-up link and code for that block only, and the team remote keeps its limits: no alignment signal, presenter notes, Discover data or other blocks (Decided November 3).
 - Goals built before the pre-mortem don't need a linked risk. After the follow-up session, the team tags each goal with the risks it answers.
 - Vision Outcomes and goals can be published to CORE at the end of the half day. Commander's intent first steps publish after the follow-up session as a second, additive publish.
 
@@ -764,6 +766,14 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 - Seeding: a self-paced session that opens during the pre-call and stays open until Day 1. People write sentences for each lens. They're hidden from everyone, the facilitator and the control surface included, until the lens opens (Decided November 3). The facilitator sees only how many have been written.
 - Live: present-tense sentences, several per person, with a gentle present-tense reminder on the phone.
 - TV: seeded sentences appear first, then new ones fade in and the wall reflows. Similar sentences lean together into clusters under growing labels while people are still typing.
+
+**Lens summary** (milestone 4, Decided November 3)
+
+- When the Five Lenses finish, AI drafts a one-screen summary of each lens's 10-year Future in the present tense from its sentences and clusters. Each sentence links to the sentences it came from.
+- It goes straight to the TV as drafted, marked AI, with undo. The facilitator can edit it on the control surface while it is up.
+- Phones: Approve, or Suggest a change in a short text box. Names never show on the TV.
+- AI folds the suggestions into a new version live on the TV, in tracked-change style (design pass 5's TrackedChange and correction fold). Every version is kept.
+- The facilitator marks the room's decision for each lens (Mark a decision). Counts never decide. The signed-off summaries are the draft Map's 10-year Future.
 
 **INT-13 Cluster and rename** (milestone 4)
 
@@ -867,6 +877,7 @@ Claude does the AI work. It speeds the room up and never stands in its way.
   - **Invite email**, one paragraph, when the engagement has AI on: "We'll use AI in the room. Claude, an AI model from Anthropic, groups similar answers and helps us draft summaries. It never receives your name or email, everything it produces is marked as AI, and Clearway reviews every draft before your team sees it. You can read more when you sign in."
   - **Survey intro** (milestone 6): "Your answers are anonymous. We use AI to find common themes across everyone's answers, and Clearway reviews each theme before it's used."
   - "Use AI in live sessions" is on by default for new engagements.
+- How AI is marked (Decided by Chris, November 3: gradient ink with a sweep). One icon, "Generative" by LAFS, marks anything AI grouped, combined, folded, drafted or summarized, with what AI did beside it in plain words (Grouped, Combined, Drafted). There is no badge behind it: the icon itself carries a gradient, chosen by the ground it sits on. On dark screens it runs from Sky to Soft Lime. On light grounds (cards on the TV wall, phone answer cards, the light TV theme, the control surface, setup, the scribe console and overnight review) it runs from Royal to Bright Chartreuse (#A6C800), a live-only colour used only for this icon. When AI acts, a light passes through the icon once (900 ms, on the calm ease), timed with the regroup or combine. It never loops and never runs on an ordinary redraw, and with reduced motion it doesn't run. Inside buttons and on coloured fills the icon is plain, in the label's colour. The AI summary keeps its Sky to Soft Lime header band with Navy text on every theme. The icon never sits next to the LIVE marker: a wall grouped by AI carries one icon, on its "Grouped from answers" line above the groups.
 - The AI icon's license (Decided by Chris, November 3): Flaticon's free license with attribution. The credit "The AI mark is the Generative icon by LAFS from Flaticon." appears only as the last line of the "How we use AI" page, nowhere in the app chrome.
 
 **Models and cost** (Default): a fast Claude model for live folding and clustering, where speed matters, and the most capable Claude model for overnight drafts, the report and the signal. Model names live in configuration, not code. AI cost per engagement is logged.
@@ -877,12 +888,13 @@ Claude does the AI work. It speeds the room up and never stands in its way.
 
 Milestone 5. Nothing reaches the room until Chris and the co-facilitator have reviewed it.
 
-1. When Day 1 closes, AI drafts the 10-year Future for each lens in the present tense from phone input, scribe cards and easel photos, every sentence linked to its sources. It tidies the provisional Vision Outcomes and the first-pass 3-year Vision, and flags any thin outcome (OVN-01). Like Synrg's "morning mirror", it keeps the voices not to lose (a strong line from one person) and the tensions the room named separate, so they aren't smoothed away.
-2. Chris and the co-facilitator review and edit side by side. A section one person is editing is locked for the other. Sources show beside each sentence (OVN-02).
-3. Chris publishes the read-back for the morning (OVN-03).
-4. On Day 2 the room confirms or corrects each lens (INT-14). The final 10-year Future is the corrected draft.
+1. When Day 1 closes, AI tidies the provisional Vision Outcomes and the first-pass 3-year Vision from phone input, scribe cards and easel photos, every sentence linked to its sources, and flags any thin outcome (OVN-01). The 10-year Future is no longer drafted overnight: the room signed off the lens summaries live on Day 1 (Decided November 3). Like Synrg's "morning mirror", it keeps the voices not to lose (a strong line from one person) and the tensions the room named separate, so they aren't smoothed away.
+2. Chris and the co-facilitator review the provisional Vision Outcomes and the 3-year Vision first pass, not lens drafts, and edit side by side. A section one person is editing is locked for the other. Sources show beside each sentence (OVN-02).
+3. Chris publishes the review for the morning (OVN-03).
+4. On Day 2 at 9:00, after prayer, the room does a short confirm of the signed-off 10-year Future (INT-14). The final 10-year Future is the signed-off summaries with any change the room names.
 
 - Drafts are ready within 30 minutes of Day 1 closing (Default).
+- Design pass 5's five Defaults are approved (Decided November 3), and apply wherever the confirm and the review remain: "What's missing?" answers appear under the paragraph as they arrive, anonymous. "It needs a change" sends a short box, the scribe records the agreed wording and reason, and the facilitator accepts. "Drafts ready" shows on the review screen and the remote. Review is laptop only. Phones see the current lens and settled lenses during the confirm.
 - Review takes about 45 minutes.
 - Every version of every draft is kept.
 
@@ -1138,6 +1150,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | Lime (#D2FF71) | Live, confirm and active: the LIVE marker, the current session, confirm buttons, confirmed items, the newest arrival, progress |
 | Sunrise (#FFC845) | Callouts and attention: an item the facilitator spotlights, a key number, the leading answer, something that needs fixing on the TV |
 | Sky Blue, Soft Lime, Off-White | Cards on the wall, so input reads as color. Grouped responses all share one color (Decided November 3) |
+| Sky to Soft Lime, or Royal to Bright Chartreuse (#A6C800) on light grounds | The AI icon only, as a gradient on the icon itself (Decided November 3). Bright Chartreuse is live-only and appears nowhere else |
 | Warning (#D97706) and Error (#DC2626) | Real problems only, on the facilitator and scribe views |
 
 - Lime always means live, confirmed or active. Sunrise always means "look here." Each gets at most one moment per screen, they never sit side by side, and neither appears in the group palette.
@@ -1315,10 +1328,13 @@ User stories
 - As Chris, I start an engagement from the Wayfinding template or the day-and-a-half template, with the base year, lens names and church identity (Mission, Purpose, Values, Strategy, Leadership Rhythms) set.
 - As a participant, I rank success measures and start seeding Five Lenses sentences on the pre-call, and keep seeding until Day 1. My sentences appear first when each lens opens.
 - As the room, we write in the present tense for each lens while similar sentences cluster live.
+- As the room, we read AI's one-screen draft of each lens's 10-year Future, tap Approve or Suggest a change, watch the new version arrive, and Chris marks our decision.
 - As the room, we turn the Five Lenses into 6 to 10 candidate priorities, rename and merge them, spend 100 points, and Chris marks the provisional Vision Outcomes.
 - As the room, we add 3-year Vision bullets to each outcome, and an empty outcome stays flagged until it has one.
 - As the room, we confirm, rename or challenge each outcome, and Chris records the consensus decision and reasons.
 - As the room, we name and place risks on the pre-mortem grid, and propose 1-year goals that each answer a risk, with a title, a result, one owner and an end date.
+- As a church team leading the video follow-up, our own facilitator pairs the shared TV view and takes the remote with a link and code Chris issued for that block, without a Clearway sign-in.
+- As Chris, I record each risk's mitigations from the control surface.
 - As Chris, I hand the remote to a team facilitator. Pairs draft one commander's intent card per Vision Outcome, the room affirms the cards, the remote comes back, and the draft Clearway Map appears.
 
 Acceptance criteria
@@ -1333,9 +1349,14 @@ Acceptance criteria
 - The team facilitator's remote hides the alignment signal, presenter notes and other sessions. The facilitator's remote shows who has it, can take it back without the TV changing, and gets it back automatically after the block.
 - There is no scribe console in the team-led block.
 - The draft Clearway Map fills from the engagement and shows empty fields as empty.
+- Each lens summary is a present-tense draft with every sentence linked to its sources. It reaches the TV as drafted, and the facilitator can edit it while it is up. Phones can Approve or Suggest a change, AI folds suggestions into a new version on the TV, and the facilitator's marked decision per lens signs it off.
+- The draft Map's 10-year Future comes from the signed-off summaries.
+- A team facilitator for the video follow-up takes the remote without a Clearway sign-in, through a link and code issued for that block only, and sees none of the alignment signal, presenter notes, Discover data or other blocks.
+- Outcome bullets appear on the TV letter by letter as people type, with field locks and batching.
+- The read-back and Publish to CORE sessions are in the Wayfinding template as placeholders.
 - Every prompt shows the right years for the base year, and the right lens names.
 
-Screens: PRE-06 to PRE-11, D1-04 to D1-13, D2-01, D2-02, D2-05 to D2-15, INT-12, INT-13, INT-15, INT-16, SET-08 (Wayfinding templates). Not in this milestone: the overnight draft and read-back (5), Discover data in What We Heard (6, entered by hand as headlines until then), the alignment signal (6), publishing to CORE (7).
+Screens: PRE-06 to PRE-11, D1-04 to D1-13, D2-01, D2-02, D2-05 to D2-15, INT-12, INT-13, INT-15, INT-16, SET-08 (Wayfinding templates), and the lens summary screens. Not in this milestone: the overnight review and the Day 2 short confirm (5), Discover data in What We Heard (6, entered by hand as headlines until then), the alignment signal (6), publishing to CORE (7).
 
 ### 5. Scribe and overnight
 
@@ -1343,8 +1364,8 @@ User stories
 
 - As the scribe, I tag quotes, decisions, tensions, actions, questions and mitigations as they happen, and they attach to whatever session is live.
 - As the scribe, I photograph the easel on my phone or upload a file, and it attaches to the current session.
-- As Chris and my co-facilitator, we review AI drafts of each lens and the provisional outcomes overnight, with every sentence linked to its sources.
-- As Chris, I publish the read-back, and the room agrees or corrects each lens in the morning.
+- As Chris and my co-facilitator, we review AI's tidy of the provisional Vision Outcomes and the 3-year Vision first pass overnight, with every sentence linked to its sources. The lens summaries were signed off live on Day 1.
+- As Chris, I publish the review, and the room does a short confirm of the signed-off 10-year Future after prayer in the morning.
 
 Acceptance criteria
 
@@ -1354,7 +1375,7 @@ Acceptance criteria
 - Two facilitators can review at once. A section one is editing is locked for the other.
 - A facilitator can swap AI wording for the room's exact words in one action.
 - Nothing from the drafts reaches the TV or phones until published.
-- In the read-back, corrections the room agrees fold into the draft as tracked changes once accepted.
+- In the short confirm, a change the room agrees folds into the signed-off summary as a tracked change once accepted.
 
 Screens: SCR-01, SCR-02, OVN-01 to OVN-03, D2-03, D2-04, INT-14, FAIL-03.
 
@@ -1446,6 +1467,11 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | Perspective, reality and strategy | Decided November 3: no current-reality line per Vision Outcome. The flow stays as it is | Resolved |
 | This Year's Priorities | Decided November 3: left for the church's Annual Planning, not named in the retreat. The draft Map shows that field empty | Resolved |
 | The day-and-a-half follow-up | Decided November 3: on video, within two weeks of the half day, with a team facilitator holding the remote | Resolved |
+| When the 10-year Future is drafted | Decided November 3: live on Day 1, not overnight. A per-lens summary goes to the TV as drafted, phones Approve or Suggest a change, AI folds suggestions into a new version live, and Chris marks the decision per lens. The draft Map takes it from the signed-off summaries | Resolved |
+| Read-back and Publish to CORE in the template | Decided November 3: both ship as placeholders until milestones 5 and 7 build them. Day 2 at 9:00 becomes a short confirm of the signed-off 10-year Future | Resolved |
+| Pre-mortem mitigations | Decided November 3: the facilitator records them from the control surface until the scribe console exists. After that the scribe can tag them too | Resolved |
+| Outcome bullets on the TV | Decided November 3: letter by letter as people type, with field locks and batching | Resolved |
+| Video follow-up access | Decided November 3: the team's own facilitator pairs the shared TV view and takes the remote without a Clearway sign-in, through a follow-up link and code issued by the facilitator for that block only | Resolved |
 | Discover survey | Decided November 3: Team Hub's survey builder. Surveys go to the congregation before the event. The app shows the survey data from Team Hub and doesn't run real-time surveys (in-room polls and rankings are its own interactions) | Resolved |
 | Conversation notes | Upload and paste only, or also import Granola transcripts | Milestone 6 |
 | How the app writes to CORE | An endpoint or database function added to CORE that creates everything in one transaction (the Default approach), built in CORE's repository with Chris's approval | Milestone 7 |
@@ -1468,6 +1494,8 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Area | Default |
 | --- | --- |
 | How it gets built | One milestone at a time, Chris accepting each, design running one milestone ahead |
+| Design pass 5's five Defaults | Decided November 3, approved: "What's missing?" answers appear under the paragraph as they arrive, anonymous. "It needs a change" sends a short box, the scribe records the agreed wording and reason, and the facilitator accepts. "Drafts ready" shows on the review screen and the remote. Review is laptop only. Phones see the current lens and settled lenses during the confirm |
+| Day 1 times with the lens summaries | Default: the 10-year Future by lens takes about 30 minutes at 2:45, so Provisional Vision Outcomes move to 3:15, the 3-year Vision first pass to 4:15 and the close to 4:45. Chris can move a break or shorten a lens to hold the old close |
 | Anthropic API key | Decided November 2: approved, in Vercel as ANTHROPIC_API_KEY, server only |
 | Holding screen outline | Text the facilitator writes on the holding screen, one item per line, so planned times never reach the room by themselves (milestone 3, step 1) |
 | Image or document page | An image (PNG, JPEG or WebP, up to 4 MB), fitted in the browser to a 2400px long edge and stored with the engagement. A document page is exported as an image first (milestone 3, step 1) |

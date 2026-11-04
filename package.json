@@ -32,12 +32,18 @@
     "test:content": "node --import tsx tests/browser/content.ts",
     "test:bars": "node --import tsx tests/browser/bars.ts",
     "test:grid-form-sign": "node --import tsx tests/browser/grid-form-sign.ts",
+    "test:handover-intent": "node --import tsx tests/browser/handover-intent.ts",
     "test:qa": "node --import tsx tests/browser/qa.ts",
+    "test:outcomes": "node --import tsx tests/browser/outcomes.ts",
     "test:self-paced": "node --import tsx tests/browser/self-paced.ts",
     "test:templates": "node --import tsx tests/browser/templates.ts",
     "test:ai": "node --import tsx tests/browser/ai-live.ts",
     "test:team-workshop": "node --import tsx tests/browser/team-workshop.ts",
+    "test:lens-wall": "node --import tsx tests/browser/lens-wall.ts",
+    "test:scribe": "node --import tsx tests/browser/scribe.ts",
+    "test:overnight": "node --import tsx tests/browser/overnight.ts",
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
+    "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

@@ -1,4 +1,4 @@
-export type TvAppearance = { church: string; title: string; logo_url: string | null; room_code: string; theme: "dark" | "light"; texture: boolean; room_size: "very_small" | "small" | "medium" | "large" | "very_large"; reduced_motion: boolean };
+export type TvAppearance = { church: string; title: string; logo_url: string | null; room_code: string; theme: "dark" | "light"; texture: boolean; room_size: "very_small" | "small" | "medium" | "large" | "very_large"; reduced_motion: boolean; lens_names?: string[] };
 export type TvPresence = { count: number; names: { key: string; name: string }[] };
 export type TvBinding = { status: "paired"; engagement: string; tv: string };
 export type TvStatus = TvBinding | { status: "pair"; code: string; expires_at: string } | { status: "opening" | "limited" | "unavailable" | "closed" };

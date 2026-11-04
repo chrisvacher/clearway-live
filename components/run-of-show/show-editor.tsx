@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Copy, DoorOpen, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
-  ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Users, type LucideProps } from "lucide-react";
+  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Users, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
@@ -15,7 +15,7 @@ import "./builder.css";
 
 type Icon = ComponentType<LucideProps>;
 const kindIcons: Partial<Record<InteractionKind, Icon>> = { word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
-  points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor };
+  points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck };
 const screenIcons: Record<ContentScreen, Icon> = { scripture: BookOpen, headline: Newspaper, prayer: HandHeart, image: ImageIcon, holding: Monitor, screen_check: ScanLine };
 const iconOf = (kind: InteractionKind, screen?: ContentScreen | null) => kind === "content" && screen ? screenIcons[screen] : kindIcons[kind] ?? Monitor;
 const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", open: "Open", live: "Live", phones_down: "Phones down", closed: "Closed" };
@@ -371,7 +371,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
                   <span className={`rb-chip is-${s.state}`}><StateIcon aria-hidden="true" />{stateLabels[s.state] ?? s.state}</span>
                   <button type="button" className="rb-tog" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} options for ${s.title}`} onClick={toggle}><ChevronDown size={20} aria-hidden="true" /></button>
                 </div>
-                <div className="rb-opts"><div className="rb-clip">{mounted && <SessionForm key={s.id} variant="inline" session={snapshot(s)} fresh={false} context={ctx}
+                <div className="rb-opts"><div className="rb-clip">{mounted && <SessionForm key={s.id} variant="inline" session={snapshot(s)} fresh={false} context={ctx} others={sessions}
                   busy={saving === s.id} blocked={locked || !open} feedback={open ? formFeedback.text : ""} failed={formFeedback.failed}
                   revision={bases.current.get(s.id)?.revision} draft={drafts.current.get(s.id)} onDraft={(d, isDirty) => onDraft(s.id, d, isDirty)}
                   startNote={s.mode !== "live" ? "Self-paced: it opens and closes on phones at its own times and takes no room time." : s.id !== firstLive ? (timed && t?.at ? `Starts at ${hour.format(new Date(t.at))}, from the lengths before it.` : `Starts ${clock(t?.offset ?? 0)} into ${part}, from the lengths before it.`) : undefined}

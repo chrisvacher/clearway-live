@@ -1,0 +1,22 @@
+/* The remote changing hands, the follow-up access and the outcome cards on the control surface.
+   Tokens only. The hand-over banner moves on cwl-dur-remote-hand. */
+.hi-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.hi-list { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hi-item { display: grid; gap: 8px; padding: 10px 12px; border-radius: var(--cwl-radius-card); border: 1px solid var(--cwl-app-border); background: var(--cwl-app-card); color: var(--cwl-app-text); }
+.hi-item small { display: block; color: var(--cwl-app-text-muted); }
+.hi-pair { display: flex; flex-wrap: wrap; gap: 6px; }
+.hi-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 14px; border-radius: var(--cwl-radius-card);
+  background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); color: var(--cwl-app-text);
+  transition: background-color var(--cwl-dur-remote-hand) var(--cwl-ease-signature), opacity var(--cwl-dur-remote-hand) var(--cwl-ease-signature); }
+.hi-banner.is-held { border-color: var(--cwl-typing); }
+.hi-banner.is-lead { opacity: 1; }
+.hi-banner b { font-weight: var(--fw-bold); }
+.hi-code { display: inline-block; padding: 4px 10px; border-radius: var(--cwl-radius-marker); background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border-strong); font-size: var(--cwl-fs-app-table); font-weight: var(--fw-bold); letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+.hi-link { overflow-wrap: anywhere; font-size: var(--cwl-fs-app-micro); }
+.hi-field { display: flex; flex-direction: column; gap: 4px; font-size: var(--cwl-fs-app-table); }
+.hi-scope { margin: 6px 0; padding-left: 18px; font-size: var(--cwl-fs-app-table); }
+.hi-scope li { margin: 2px 0; }
+[data-motion="reduced"] .hi-banner { transition: none; }
+@media (prefers-reduced-motion: reduce) { .hi-banner { transition: none; } }
+.fu { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-4); max-width: 640px; margin: 0 auto; }
+.fu h1 { margin: 0; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); }

@@ -6,8 +6,12 @@ import { ChoiceInput, PointsInput, RankingInput, ScaleInput, StatementsInput } f
 import { GridInput } from "@/components/interactions/grid-form-sign/grid-input";
 import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
 import { SignInput } from "@/components/interactions/grid-form-sign/sign-input";
+import { GoalsInput } from "@/components/interactions/goals/goals-input";
 import type { LiveSnapshot } from "@/lib/live/types";
+import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
+import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
+import { LensInput } from "@/components/interactions/lens/lens-input";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
 // text form. An input sends through the phone's outbox (offline queueing, order, ids and
@@ -15,7 +19,7 @@ import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 // One-answer-per-person kinds just send: the server replaces the earlier answer.
 export type PhoneInputProps = {
   step: PhoneStep; mine: OwnShown[]; open: boolean; engagement?: string;
-  send: (answer: { text: string; value?: unknown }) => void;
+  send: (answer: { text: string; value?: unknown; id?: string }) => void;
   change: (id: string, answer: { text: string; value?: unknown }) => void;
   withdraw: (id: string) => void;
   // The person's own first name, for a named kind (sign together prints it under the line).
@@ -25,6 +29,9 @@ export type PhoneInputProps = {
 };
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
   qa: QaPhoneInput,
+  lens: LensInput,
+  bullets: BulletsInput,
+  confirm: ConfirmInput,
   choice: ChoiceInput,
   scale: ScaleInput,
   ranking: RankingInput,
@@ -33,4 +40,6 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   grid: GridInput,
   form: FormInput,
   sign: SignInput,
+  goals: GoalsInput,
+  intent: IntentInput,
 };

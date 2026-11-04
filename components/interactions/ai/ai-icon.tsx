@@ -1,21 +1,29 @@
 "use client";
-import { useId } from "react";
+import { useEffect, useRef } from "react";
 import { aiIconPath } from "./ai-path";
+import { AiChanges, sweepAi } from "./ai-dom";
 import "./ai.css";
 
-// AI has one icon everywhere (design pass 3, change 14), in three forms:
-//  * AiIcon: the plain icon in currentColor, inside buttons and the summary's header band.
-//  * AiBadge: the Navy icon on the AI gradient, with what AI did beside it in plain words.
-//  * AiGlyph: the icon filled with the gradient, for a mark on an item (a combined word).
+// AI has one icon everywhere (design pass 3, change 14), in two forms ("gradient ink with a sweep",
+// Chris, November 3: no badge tile anywhere):
+//  * AiIcon: the plain icon in currentColor, inside buttons, on coloured fills and in the summary's header band.
+//  * AiMark: the icon itself in the AI gradient, chosen by its ground (ai.css), with what AI did beside it in plain words.
 export function AiIcon({ size }: { size?: number }) {
   return <svg className="cwl-ai-icon" viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" focusable="false"><path fill="currentColor" fillRule="evenodd" d={aiIconPath} /></svg>;
 }
-export function AiBadge({ label = "AI" }: { label?: string }) {
-  return <span className="cwl-ai-badge" role="img" aria-label={label}><AiIcon /></span>;
+export function AiMark({ label = "AI" }: { label?: string }) {
+  return <span className="cwl-ai-mark" role="img" aria-label={label} />;
 }
-export function AiGlyph() {
-  const id = `cwl-ai-g${useId().replace(/[^a-z0-9]/gi, "")}`;
-  return <span className="cwl-ai-glyph" role="img" aria-label="AI"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <defs><linearGradient id={id} gradientUnits="userSpaceOnUse" x1="3" y1="2" x2="21" y2="22"><stop offset="0" className="cwl-ai-stop-start" /><stop offset="1" className="cwl-ai-stop-end" /></linearGradient></defs>
-    <g fill={`url(#${id})`}><path fillRule="evenodd" d={aiIconPath} /></g></svg></span>;
+
+// The sweep for React-built marks: put the ref on the element that holds the mark. `keys` names what
+// AI has done there (AiChanges, ai-dom.ts); the marks inside sweep once when a key appears that this
+// element has never seen. A new scope (another session or question) starts again without a sweep.
+export function useAiSweep<T extends Element>(keys: readonly string[], scope?: string | null) {
+  const ref = useRef<T>(null), changes = useRef<{ scope: string | null | undefined; ai: AiChanges } | null>(null);
+  const sign = [...keys].sort().join("\u0001");
+  useEffect(() => {
+    if (!changes.current || changes.current.scope !== scope) changes.current = { scope, ai: new AiChanges() };
+    if (changes.current.ai.next(sign ? sign.split("\u0001") : []).length) sweepAi(ref.current);
+  }, [sign, scope]);
+  return ref;
 }

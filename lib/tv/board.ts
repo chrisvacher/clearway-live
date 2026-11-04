@@ -5,7 +5,7 @@ import type { LiveAnswer, LiveSnapshot } from "../live/types";
 import type { Shown } from "./flow";
 import { fitScale, planField, springRate, springStep } from "./motion";
 import { absorbedInto, type AiWord } from "../interactions/ai";
-import { aiGlyphEl } from "@/components/interactions/ai/ai-dom";
+import { AiChanges, aiMarkEl, sweepAi } from "@/components/interactions/ai/ai-dom";
 
 export function tokenMs(el: Element, name: string) {
   const value = getComputedStyle(el).getPropertyValue(`--${name}`).trim();
@@ -276,7 +276,7 @@ export class ArrivalOrder {
   }
 }
 
-// A combined word carries the AI glyph beside it (pass 3 change 14); built only when it changes.
+// A combined word carries the gradient AI icon beside it (pass 3 change 14; gradient ink, November 3); built only when it changes.
 function wordContent(el: HTMLElement, word: AiWord) {
   const sign = `${word.ai ? "ai" : ""}|${word.text}`;
   if (word.ai) el.setAttribute("aria-label", `${word.text}, ${word.count}, combined by AI`); else el.removeAttribute("aria-label");
@@ -284,7 +284,7 @@ function wordContent(el: HTMLElement, word: AiWord) {
   el.dataset.content = sign;
   if (word.ai) {
     const wrap = document.createElement("span"); wrap.className = "ai-word";
-    wrap.append(document.createTextNode(word.text), aiGlyphEl());
+    wrap.append(document.createTextNode(word.text), aiMarkEl());
     el.replaceChildren(wrap);
   } else el.textContent = word.text;
 }
@@ -301,6 +301,7 @@ export class Board {
   private settle?: ReturnType<typeof setTimeout>;
   private first = true;
   private absorbed = new Map<string, string>();
+  private aiChanges = new AiChanges();
   constructor(private root: HTMLElement, private kind: BoardKind, private session: string) {
     root.dataset.board = kind;
     if (kind === "word_cloud") {
@@ -362,6 +363,10 @@ export class Board {
       for (const [key, from] of this.absorbed) if (!absorbed.has(key)) this.field!.startFrom(key, from);
     }
     this.absorbed = absorbed;
+    // A combine sweeps the survivor's AI icon once, as the absorbed word glides into it.
+    // The first frame a board sees is where it starts: a TV opening on earlier combines never sweeps.
+    const joins = this.aiChanges.next([...absorbed].map(([key, into]) => `${into}\u0001${key}`));
+    if (!instant) for (const join of joins) sweepAi(this.field!.element(join.split("\u0001")[0]));
     if (moment) this.moment();
   }
   private wall(frame: LiveSnapshot, fresh: string | null, instant: boolean) {

@@ -11,9 +11,10 @@ import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { useLivePhone } from "./use-live-phone";
 import { QaAsk } from "@/components/interactions/qa/qa-ask";
+import { PhoneTeamRemote } from "@/components/interactions/intent/phone-team-remote";
 import { recheckDelay, requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
 import "./self-paced.css";
-import { AiBadge } from "@/components/interactions/ai/ai-icon";
+import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
@@ -21,9 +22,11 @@ const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Send
 
 function AnswerCard({ answer, editable, onChange, onWithdraw, onDismiss, combined }: { answer: ShownAnswer; editable: boolean; onChange: () => void; onWithdraw: () => void; onDismiss: () => void; combined?: string | null }) {
   const Icon = answer.status === "sent" ? Check : answer.status === "saved" ? WifiOff : answer.status === "sending" ? RefreshCw : null;
-  return <li className={`ph-answer is-${answer.status}`}>
+  // AI combining this word sweeps its icon once (not when the phone opens on an earlier combine).
+  const ai = useAiSweep<HTMLLIElement>(combined ? [combined] : [], answer.id);
+  return <li ref={ai} className={`ph-answer is-${answer.status}`}>
     <div className="ph-answer-row"><span className="ph-answer-text">{answer.text}</span><span className="ph-answer-status">{Icon && <Icon size={16} aria-hidden="true" />}{statusLabel[answer.status]}</span></div>
-    {combined && <p className="ph-answer-note"><AiBadge />On the screen with {combined}</p>}
+    {combined && <p className="ph-answer-note"><AiMark />On the screen with {combined}</p>}
     {answer.status === "failed" ? <div className="ph-answer-actions"><span>{answer.reason}</span><button type="button" onClick={onDismiss}>Dismiss</button></div>
       : editable && answer.status === "sent" ? <div className="ph-answer-actions"><button type="button" onClick={onChange}>Change</button><button type="button" onClick={onWithdraw}>Withdraw</button></div> : null}
   </li>;
@@ -164,12 +167,13 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const markState = down && running ? "down" as const : isLive && view?.state === "live" && asks ? "live" as const : null;
   const marker = <>{phone.online && !waiting && isLive && frame?.state.show_tv_on_phones && <span className="ph-marker"><MonitorSmartphone size={14} aria-hidden="true" />TV view</span>}
     <LiveMark phone state={markState} reconnecting={reconnecting} label={!phone.online ? "Offline" : "Reconnecting"} /></>;
-  const structured = (answer: { text: string; value?: unknown }) => view && phone.submit({ id: crypto.randomUUID(), session: view.id, revision: 0, action: "submit", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) });
+  const structured = (answer: { text: string; value?: unknown; id?: string }) => view && phone.submit({ id: answer.id ?? crypto.randomUUID(), session: view.id, revision: 0, action: "submit", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) });
 
   return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={(takesInput || view?.interaction === "content") && !phoneContentWaits(view) ? "phone-answering" : "phone-waiting"}>
     <div className="ph-texture" aria-hidden="true" />
     <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} />{marker}</header>
     <div className="ph-body">
+      <PhoneTeamRemote engagement={engagement} frame={frame} />
       {phone.fresh && !bannerSeen && room && room.answers.length > 0 && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
         <span>Signed in on this phone. Your earlier answers are here.</span><button type="button" onClick={() => setBannerSeen(true)}>OK</button></p>}
       {room?.rehearsal && <p className="ph-banner" role="status"><FlaskConical size={16} aria-hidden="true" /><span>Rehearsal. Your answers are test answers and will be cleared.</span></p>}

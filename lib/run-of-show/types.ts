@@ -10,7 +10,10 @@ export type ShowSession = {
   settings: SessionSettings; notes: string; lands_in: string; state: string; segment: string;
   shown_at?: string | null; closed_at?: string | null;
   max_sends: number; max_characters: number; max_words: number; revision: number;
+  seeded_from?: string | null;
+  // A step the team leads on its own (the second half of Day 2). The scribe console is off while it is live.
+  team_led?: boolean;
 };
-export type ShowContext = { id: string; title: string; church: string; timezone: string; base_year: number; closed: boolean; scripture_translation?: string; kinds?: KindInfo[] };
+export type ShowContext = { id: string; title: string; church: string; timezone: string; base_year: number; closed: boolean; scripture_translation?: string; lens_names?: string[]; kinds?: KindInfo[] };
 export type RunOfShow = { context: ShowContext; sessions: ShowSession[]; version: string };
-export type SessionInput = Omit<ShowSession, "engagement_id" | "position" | "revision" | "shown_at" | "closed_at"> & { revision: number | null };
+export type SessionInput = Omit<ShowSession, "engagement_id" | "position" | "revision" | "shown_at" | "closed_at" | "team_led"> & { revision: number | null };

@@ -23,6 +23,8 @@ export const gridPresets: Record<GridOptions["preset"], Omit<GridOptions, "prese
   // The pre-mortem's grid (milestone 4 reuses it): likelihood and impact.
   pre_mortem: { x_label: "Likelihood", x_low: "Unlikely", x_high: "Likely", y_label: "Impact", y_low: "Low", y_high: "High", legend: "Reasons it failed" },
 };
+// The Pre-mortem's prompt. The year is the 3-year Vision's, filled in from the engagement's base year.
+export const premortemPrompt = "It’s {base year + 3} and this plan failed. Why?";
 export function gridOf(options: unknown): GridOptions {
   const o = record(options), preset = o.preset === "pre_mortem" ? "pre_mortem" : "custom", d = gridPresets[preset];
   const items = list(o.items).map(record).filter(i => typeof i.key === "string" && typeof i.text === "string").map(i => ({ key: String(i.key), text: String(i.text) })).slice(0, maxGridItems);
@@ -33,13 +35,14 @@ export function gridOf(options: unknown): GridOptions {
 export const gridColor = (num: number) => `cwl-i${((Math.max(1, num) - 1) % 10) + 1}`;
 
 // The server's grid results: one entry per listed item, in number order.
-export type GridResult = { key: string; num: number; text: string; count: number; x?: number; y?: number; places?: [string, number, number][]; into?: string };
+export type GridResult = { key: string; num: number; text: string; count: number; x?: number; y?: number; places?: [string, number, number][]; into?: string; mitigations?: string[] };
 export function gridResults(results: unknown): GridResult[] {
   return list(record(results).items).map(record).filter(i => typeof i.key === "string").map(i => ({
     key: String(i.key), num: Number(i.num) || 0, text: String(i.text ?? ""), count: Number(i.count) || 0,
     ...(typeof i.x === "number" && typeof i.y === "number" ? { x: i.x, y: i.y } : {}),
     ...(Array.isArray(i.places) ? { places: i.places.filter(p => Array.isArray(p) && p.length === 3).map(p => [String(p[0]), Number(p[1]), Number(p[2])] as [string, number, number]) } : {}),
     ...(typeof i.into === "string" ? { into: i.into } : {}),
+    ...(Array.isArray(i.mitigations) && i.mitigations.length ? { mitigations: i.mitigations.filter((m): m is string => typeof m === "string") } : {}),
   }));
 }
 // A person's own placements, from their one standing answer.
@@ -146,9 +149,75 @@ export function kindPress(value: unknown): KindPress | null {
   return null;
 }
 
-// The signature wall: three columns, rows from the top. When it is full and quiet it rolls
-// slowly down to the newest row and back, never jumping.
+// The signature wall: rows from the top. When it is full and quiet it rolls slowly down to
+// the newest row and back, never jumping.
 export function wallLayout(n: number, width: number, columns: number, rowHeight: number, gapX: number, gapY: number) {
   const w = (width - gapX * (columns - 1)) / columns;
   return Array.from({ length: n }, (_, i) => ({ x: (i % columns) * (w + gapX), y: Math.floor(i / columns) * (rowHeight + gapY), w }));
+}
+
+// One signature card in multiples of its name's type size: the gaps between cards, a name
+// line, the rule and padding above the name, and the signature's height (smallest readable,
+// comfortable, largest). The "+ 4 more" line takes one more line under a wall that rolls.
+export const wallUnits = { gapX: 0.9, gapY: 0.5, line: 1.15, rule: 0.44, sigLeast: 1, sigEasy: 1.6, sigMost: 3.6, more: 1.5 };
+// How a set of names sets at a type size and column width: the most lines any name takes,
+// whether every word fits on a line (no name breaks inside a word), and how many names run
+// past two lines.
+export type NameFit = { lines: number; words: boolean; over: number };
+export type WallFit = { cols: number; rows: number; font: number; w: number; rowH: number; gapX: number; gapY: number; lines: number; capacity: number; more: number };
+
+// Fits every signature on the wall (pass 3 change 13, the practice-room fix of November 3).
+// Names start at the room's TV floor and the cards reflow into more columns as people sign;
+// once the room's floor cannot hold everyone, names shrink toward the 1080p TV minimum. The
+// largest type that holds every name and a comfortable signature wins, then the largest
+// signature. Past the minimum the wall keeps its smallest cards, rolls slowly, and counts the
+// names out of view ("+ 4 more"), so no one who signed is ever silently left off.
+export function fitWall(n: number, width: number, height: number, room: number, least: number, measure: (font: number, width: number) => NameFit): WallFit {
+  const u = wallUnits, count = Math.max(1, n), floor = Math.min(room, least);
+  const fonts: number[] = [];
+  for (let f = room; f > floor + 0.5; f *= 0.92) fonts.push(f);
+  fonts.push(floor);
+  const nameH = (lines: number, f: number) => (lines * u.line + u.rule) * f;
+  // Names whole first. A name too long to hold whole may break inside a word, and only then
+  // do the very longest names (one in eight at most) end after two lines (the very long
+  // names state), so one long name never pushes everyone else off the wall.
+  for (const pass of ["whole", "break", "end"] as const) {
+    let fallback: WallFit | null = null;
+    for (const f of fonts) {
+      let best: (WallFit & { sig: number }) | null = null;
+      for (let cols = 1; cols <= 8; cols++) {
+        const gapX = f * u.gapX, gapY = f * u.gapY, w = (width - gapX * (cols - 1)) / cols;
+        if (w < f * 3) break;
+        const m = measure(f, w), lines = Math.min(2, m.lines);
+        if ((pass === "end" ? m.over > Math.ceil(count / 8) : m.lines > 2) || (pass === "whole" && !m.words)) continue;
+        const rows = Math.ceil(count / cols), name = nameH(lines, f);
+        const rowH = Math.min(name + f * u.sigMost, (height - gapY * (rows - 1)) / rows);
+        // A signature keeps its 3:1 shape, so a narrow card shows it smaller.
+        const sig = Math.min(rowH - name, w / 3);
+        if (sig < f * u.sigLeast) continue;
+        if (!best || sig > best.sig + 0.5) best = { cols, rows, font: f, w, rowH, gapX, gapY, lines, capacity: cols * rows, more: 0, sig };
+      }
+      if (best && best.sig >= f * u.sigEasy) return best;
+      if (best && !fallback) fallback = best;
+    }
+    if (fallback) return fallback;
+  }
+  // More names than the wall can hold at the TV minimum: the most columns that keep names
+  // whole (or, failing that, readable), the rows that fit above the "+ 4 more" line, and a roll.
+  const f = floor, gapX = f * u.gapX, gapY = f * u.gapY;
+  type Pick = { cols: number; w: number; lines: number };
+  let whole: Pick | null = null, ended: Pick | null = null, widest: Pick = { cols: 1, w: width, lines: 2 };
+  for (let cols = 1; cols <= 8; cols++) {
+    const w = (width - gapX * (cols - 1)) / cols;
+    if (w < f * 3) break;
+    const m = measure(f, w), lines = Math.min(2, m.lines);
+    if (w >= f * 5) widest = { cols, w, lines };
+    if (m.words && m.lines <= 2) whole = { cols, w, lines };
+    if (m.over <= Math.ceil(count / 8)) ended = { cols, w, lines };
+  }
+  const { cols, w, lines } = whole ?? ended ?? widest, rows = Math.ceil(count / cols);
+  const rowH = nameH(lines, f) + f * u.sigEasy;
+  const fit = (h: number) => Math.max(1, Math.floor((h + gapY) / (rowH + gapY)));
+  const all = fit(height) >= rows, shown = all ? rows : fit(height - f * u.more);
+  return { cols, rows, font: f, w, rowH, gapX, gapY, lines, capacity: cols * shown, more: all ? 0 : Math.max(0, n - cols * shown) };
 }

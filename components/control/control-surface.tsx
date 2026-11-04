@@ -1,4 +1,5 @@
 "use client";
+import { HandoverPanel } from "@/components/interactions/intent/handover";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -15,6 +16,8 @@ import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
 import { AiPanel } from "@/components/interactions/ai/ai-panel";
 import { aiPressNames } from "@/lib/interactions/ai";
+import { ScribeFeed } from "@/components/scribe/scribe-feed";
+import { OvernightCard } from "@/components/overnight/overnight-card";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -77,6 +80,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           <label className="ctl-size" htmlFor="ctl-room-size">Room size<select id="ctl-room-size" value={frame?.display?.room_size ?? "very_small"} disabled={Boolean(room.pending) || !frame} onChange={e => void room.press("room_size", { size: e.target.value as RoomSize })}>{roomSizes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="show-help">Scales all TV type at once.</span></label>
           <ItemList room={room} />
           <QaAnyTime room={room} />
+          <HandoverPanel room={room} />
           {KindPanel && <KindPanel room={room} />}
         </>}
       </main>
@@ -91,6 +95,8 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           </div>
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
+        <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} /></Private>
+        <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
         <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>
         <Private title="Presenter notes">{current ? <><p className="ctl-label">{current.title}</p><p className="ctl-notes">{current.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing is live.</p>}</Private>

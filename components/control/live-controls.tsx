@@ -7,6 +7,7 @@ import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { RoomSize } from "@/lib/control/types";
 import type { useControlRoom } from "./use-control-room";
 import { controlItems } from "@/components/interactions/control-items";
+import { MarkDecision } from "./mark-decision";
 
 export type Room = ReturnType<typeof useControlRoom>;
 export const roomSizes: [RoomSize, string][] = [["very_small", "Very small screen"], ["small", "Small screen"], ["medium", "Medium screen"], ["large", "Large screen"], ["very_large", "Very large screen"]];
@@ -126,6 +127,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
       <button className={btn} disabled={busy} aria-pressed={tvOnPhones} onClick={() => void press("tv_on_phones", { on: !tvOnPhones })}>{tvOnPhones ? <Eye size={18} aria-hidden="true" /> : <MonitorSmartphone size={18} aria-hidden="true" />}{tvOnPhones ? "Stop the TV view on phones" : "TV view on phones"}</button>
       <button className={btn} disabled={busy} onClick={() => confirm.tap("refresh", () => void press("refresh_phones"))}><RefreshCw size={18} aria-hidden="true" />{confirm.armed === "refresh" ? "Tap again to refresh phones" : "Refresh phones"}</button>
     </div>
+    <MarkDecision room={room} variant={variant} />
     {variant === "remote" && onRoomSize && <button className={btn} disabled={busy} onClick={onRoomSize}>Room size</button>}
   </div>;
 }

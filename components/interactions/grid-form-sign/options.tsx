@@ -1,7 +1,7 @@
 "use client";
 import { ArrowUp, Plus, Trash2 } from "lucide-react";
 import type { OptionsEditorProps } from "@/components/interactions/option-editors";
-import { formOf, gridColor, gridOf, gridPresets, maxGridItems, maxQuestions, newKey, type GridOptions } from "@/lib/interactions/grid-form-sign";
+import { formOf, gridColor, gridOf, gridPresets, maxGridItems, maxQuestions, newKey, premortemPrompt, type GridOptions } from "@/lib/interactions/grid-form-sign";
 import "./grid-form-sign.css";
 
 // A list of short lines the facilitator writes: items on a grid, questions on a form.
@@ -23,14 +23,14 @@ function Lines({ id, label, items, max, maxLength, numbered, add, help, locked, 
 }
 
 // INT-08's settings: the two axes and their end labels, the items, and the pre-mortem preset.
-export function GridOptionsEditor({ value, locked, onChange }: OptionsEditorProps) {
+export function GridOptionsEditor({ value, locked, onChange, setPrompt }: OptionsEditorProps) {
   const o = gridOf(value);
   const set = (patch: Partial<GridOptions>) => onChange({ ...value, items: o.items, ...patch });
   const raw = (key: keyof GridOptions) => value[key] === undefined ? String(o[key]) : String(value[key] ?? "");
   const field = (key: keyof Omit<GridOptions, "preset" | "items">, label: string, max: number, full = false) =>
     <label className={full ? "is-full" : ""} htmlFor={`grid-${key}`}>{label}<input id={`grid-${key}`} maxLength={max} value={raw(key)} disabled={locked} onChange={e => set({ [key]: e.target.value })} /></label>;
   return <>
-    <label className="is-full" htmlFor="grid-preset">Axes<select id="grid-preset" value={o.preset} disabled={locked} onChange={e => { const preset = e.target.value as GridOptions["preset"]; set({ preset, ...gridPresets[preset] }); }}>
+    <label className="is-full" htmlFor="grid-preset">Axes<select id="grid-preset" value={o.preset} disabled={locked} onChange={e => { const preset = e.target.value as GridOptions["preset"]; set({ preset, ...gridPresets[preset] }); if (preset === "pre_mortem") setPrompt?.(premortemPrompt); }}>
       <option value="custom">Your own axes</option><option value="pre_mortem">Pre-mortem: likelihood and impact</option></select></label>
     {field("x_label", "Across (x axis)", 40)}{field("y_label", "Up (y axis)", 40)}
     {field("x_low", "Left end", 30)}{field("x_high", "Right end", 30)}
