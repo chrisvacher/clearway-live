@@ -5,7 +5,7 @@ import { reducedMotion, tokenMs } from "@/lib/tv/board";
 import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
 import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
-import { barValue, barsOf, scaleOf, type Bar, type BarKind } from "@/lib/interactions/bars";
+import { barValue, barsOf, scaleOf, widestValues, type Bar, type BarKind } from "@/lib/interactions/bars";
 
 // The live bar (pass 3 changes 3 and 4): one component for choice, ranking, 100 points and
 // statements. Each row's place and each bar's length run on their own spring that
@@ -57,7 +57,8 @@ export function LiveBars({ kind, session, frame, flow }: { kind: Exclude<BarKind
   const cutAt = kind === "points" && typeof results?.cut === "number" && results.cut > 0 && results.cut < bars.length ? results.cut : 0;
   const cutLabel = typeof results?.cut_label === "string" ? results.cut_label : "";
   const { h, floor } = useBox(host), s = floor / 36;
-  const n = Math.max(bars.length, 1), rowH = h ? Math.min(104 * s, h / n) : 104 * s;
+  // The last row keeps room under it for descenders ("agree"), so the board never cuts them.
+  const n = Math.max(bars.length, 1), rowH = h ? Math.min(104 * s, (h - floor * 0.25) / n) : 104 * s;
   const barH = Math.max(36 * s * 0.75, Math.min(76 * s, rowH - 22 * s));
   // Labels wrap to two lines and then end. They sit at tv-body while two lines of it fit the
   // row, else at the floor (statements always, being sentences); a row too short for two
@@ -71,6 +72,27 @@ export function LiveBars({ kind, session, frame, flow }: { kind: Exclude<BarKind
     const el = host.current; if (!el) return;
     el.style.setProperty("--bars-row-h", `${rowH}px`); el.style.setProperty("--bars-bar-h", `${barH}px`); el.style.setProperty("--bars-label-lines", String(lines));
   }, [rowH, barH, lines]);
+
+  // The value column is at least as wide as the widest value this kind can show, measured in
+  // the TV's own type (a hidden ruler), and as any value now showing; the label column gives
+  // way to it. So a narrow board (the join strip, a larger room size) wraps or ends a label,
+  // never clips a value.
+  const widest = widestValues(kind, people);
+  useLayoutEffect(() => {
+    const el = host.current; if (!el) return;
+    const fit = () => {
+      // Measured on screen, then back in stage pixels: the TV's stage is scaled to fit its screen.
+      const range = document.createRange(), scale = el.getBoundingClientRect().width / (el.offsetWidth || 1) || 1;
+      const natural = (node: Element) => { range.selectNodeContents(node); return range.getBoundingClientRect().width / scale; };
+      const need = Math.max(0, ...[...el.querySelectorAll(".tv-bar-ruler > span, .tv-bar:not(.is-leaving) .tv-bar-value")].map(natural));
+      const next = `${Math.ceil(need) + 2}px`;
+      if (el.style.getPropertyValue("--bars-value-fit") !== next) el.style.setProperty("--bars-value-fit", next);
+    };
+    fit();
+    let live = true;
+    void document.fonts?.ready.then(() => { if (live) fit(); });
+    return () => { live = false; };
+  }, [results, floor, kind, people]);
 
   // Rows that leave (a hidden option) fade where they stand, then go.
   const [leaving, setLeaving] = useState<Shown[]>([]);
@@ -153,6 +175,9 @@ export function LiveBars({ kind, session, frame, flow }: { kind: Exclude<BarKind
       </div>;
     })}
     {cutAt > 0 && <div ref={cut} className="tv-cut" aria-label={cutLabel}><span className="tv-cut-label">{cutLabel}</span></div>}
+    <div className="tv-bar-ruler" aria-hidden="true">
+      {widest.map((value, i) => <span key={i}>{value.main}{value.small && <small>{value.main ? " " : ""}{value.small}</small>}</span>)}
+    </div>
   </div>;
 }
 
