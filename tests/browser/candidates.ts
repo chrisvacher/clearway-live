@@ -162,6 +162,40 @@ async function main() {
       await shot(tv, "candidates-sent-tv");
     });
 
+    await step("Ten cards with names up to 120 characters keep every name inside its card, all on one 1920x1080 screen", async () => {
+      const long = ["Baptisms happen regularly and the church celebrates transformation in the lives of people of every age and stage",
+        "Every leader mentors an apprentice so that leaders are raised up here and sent out into the city and beyond it",
+        "Volunteers share the load across many hands so that no one serves without rest or burns out in the work",
+        "Neighbours across the street know us by name and our doors are open to them every day of the week",
+        "Children, youth and adults eat at the same tables and learn to pray for each other by name each Sunday",
+        "We pray before we plan anything, and we keep praying while we carry the plan out together as one body",
+        "Generosity is joyful and normal here, and the church gives away far more than it ever keeps for itself",
+        "Families gather in homes during the week to study, to share a meal and to carry each other's burdens",
+        "New people find a place to belong within a month of walking through the door, not a year after it",
+        "Our staff team works as one, with clear roles, honest feedback and a rhythm of rest that lasts for years"];
+      const original = (await state()).candidates.map(c => ({ id: c.id, name: c.name }));
+      const added: string[] = [];
+      for (let i = original.length; i < 10; i++) {
+        assert.equal((await ctl("add", { name: `Added ${i}` })).status, "ok");
+        const now = (await state()).candidates; added.push(now.find(c => !original.some(o => o.id === c.id) && !added.includes(c.id))!.id);
+      }
+      const all = (await state()).candidates.slice(0, 10);
+      assert.equal(all.length, 10, "ten standing candidates");
+      for (const [i, c] of all.entries()) assert.equal((await ctl("rename", { candidate: c.id, name: long[i] })).status, "ok");
+      await until(async () => (await titles()).join("|") === [...long].sort().join("|"), "the TV shows the long names", 5000);
+      await delay(1500);
+      const fit = await tv.evaluate(() => [...document.querySelectorAll<HTMLElement>(".tv-layer:not(.is-leaving) .cd-card:not(.cd-ghost)")].map(card => {
+        const c = card.getBoundingClientRect(), t = card.querySelector<HTMLElement>(".cd-title")!.getBoundingClientRect();
+        return { text: card.innerText.slice(0, 40), insideTop: t.top >= c.top - 0.5, insideBottom: t.bottom <= c.bottom + 0.5, onScreen: c.bottom <= innerHeight + 0.5 && c.top >= 0, height: Math.round(c.height) };
+      }));
+      assert.equal(fit.length, 10, "all ten cards are on the TV");
+      assert.deepEqual(fit.filter(f => !(f.insideTop && f.insideBottom && f.onScreen)), [], `every name sits inside its card and every card is on the screen: ${JSON.stringify(fit)}`);
+      await shot(tv, "candidates-long-names-tv");
+      for (const c of all) await ctl("rename", { candidate: c.id, name: original.find(o => o.id === c.id)?.name ?? `Added ${all.indexOf(c)}` });
+      for (const id of added) await ctl("remove", { candidate: id });
+      await until(async () => (await cards().count()) === original.length, "the TV is back to the original cards", 5000);
+    });
+
     // ---------- 50 phones suggest ----------
     const target = rows.find(r => r.origin === "ai")!, joiner = rows.filter(r => r.origin === "ai")[1];
     await step("50 phones suggest renames, merges and new candidates: the facilitator sees them grouped, the TV sees nothing", async () => {
