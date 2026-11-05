@@ -45,9 +45,13 @@ export function CandidatesView({ session, frame, flow }: TvViewProps) {
   return <Cards data={data} />;
 }
 
+type Box = { x: number; y: number; w: number; h: number };
+// Layout positions inside the board (offsets), so the stage's scale and any card still in flight never skew them.
+const boxOf = (el: HTMLElement): Box => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+
 function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
-  const host = useRef<HTMLDivElement>(null), rects = useRef(new Map<string, DOMRect>()), seen = useRef<Set<string> | null>(null), last = useRef<Candidate[]>([]);
-  const [fresh, setFresh] = useState<Set<string>>(new Set()), [ghosts, setGhosts] = useState<{ c: Candidate; from: DOMRect; to: string }[]>([]);
+  const host = useRef<HTMLDivElement>(null), boxes = useRef(new Map<string, Box>()), seen = useRef<Set<string> | null>(null), last = useRef<Candidate[]>([]);
+  const [fresh, setFresh] = useState<Set<string>>(new Set()), [ghosts, setGhosts] = useState<{ c: Candidate; from: Box; to: string }[]>([]);
   const marked = data.phase === "marked";
 
   // New cards arrive. A card that left because of a merge becomes a ghost that glides onto its target.
@@ -55,26 +59,36 @@ function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
     const ids = new Set(data.candidates.map(c => c.id));
     if (seen.current) {
       setFresh(new Set(data.candidates.filter(c => !seen.current!.has(c.id)).map(c => c.id)));
-      const gone = last.current.filter(c => !ids.has(c.id) && rects.current.has(c.id));
-      const joins = gone.flatMap(c => { const m = data.merges.find(x => x.from === c.id && ids.has(x.into)); return m ? [{ c, from: rects.current.get(c.id)!, to: m.into }] : []; });
+      const gone = last.current.filter(c => !ids.has(c.id) && boxes.current.has(c.id));
+      const joins = gone.flatMap(c => { const m = data.merges.find(x => x.from === c.id && ids.has(x.into)); return m ? [{ c, from: boxes.current.get(c.id)!, to: m.into }] : []; });
       if (joins.length) setGhosts(g => [...g, ...joins]);
     }
     seen.current = ids; last.current = data.candidates;
   }, [data.candidates, data.merges]);
 
-  // The rest of the cards move to their new places (FLIP), never jump.
+  // Every card keeps its element (keyed by candidate). When its place changes, it glides from where it was
+  // seen (a card already moving continues from where it is) in the same commit, so no frame shows it jumping.
   useLayoutEffect(() => {
     const el = host.current; if (!el) return;
-    const next = new Map<string, DOMRect>();
+    const next = new Map<string, Box>();
     el.querySelectorAll<HTMLElement>("[data-cid]").forEach(card => {
-      const id = card.dataset.cid!, rect = card.getBoundingClientRect(), before = rects.current.get(id);
-      next.set(id, rect);
-      if (before && !reducedMotion(el) && (Math.abs(before.left - rect.left) > 1 || Math.abs(before.top - rect.top) > 1)) {
+      const id = card.dataset.cid!, now = boxOf(card), before = boxes.current.get(id);
+      next.set(id, now);
+      if (before && !reducedMotion(el) && (Math.abs(before.x - now.x) > 1 || Math.abs(before.y - now.y) > 1)) {
+        const m = new DOMMatrixReadOnly(getComputedStyle(card).transform), dx = before.x - now.x + (m.m41 || 0), dy = before.y - now.y + (m.m42 || 0);
         const dur = tokenMs(el, "cwl-dur-regroup") || 600;
-        card.animate([{ transform: `translate(${before.left - rect.left}px, ${before.top - rect.top}px)` }, { transform: "none" }], { duration: dur, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" });
+        card.getAnimations().forEach(a => a.cancel());
+        card.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: dur, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" });
       }
     });
-    rects.current = next;
+    boxes.current = next;
+  });
+  // A change of size with no new data (fonts arriving, the stage fitting) moves cards without a glide: note it quietly.
+  useEffect(() => {
+    const el = host.current; if (!el || typeof ResizeObserver === "undefined") return;
+    const note = () => { const next = new Map<string, Box>(); el.querySelectorAll<HTMLElement>("[data-cid]").forEach(c => next.set(c.dataset.cid!, boxOf(c))); boxes.current = next; };
+    const ro = new ResizeObserver(note); ro.observe(el); el.querySelectorAll("[data-cid]").forEach(c => ro.observe(c));
+    return () => ro.disconnect();
   });
 
   return <div className="tv-board tv-cd" data-phase={data.phase}>
@@ -89,23 +103,19 @@ function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
 }
 
 // The leaving card, drawn where it was, gliding onto its target and fading as it lands.
-function Ghost({ ghost, host, done }: { ghost: { c: Candidate; from: DOMRect; to: string }; host: React.RefObject<HTMLDivElement | null>; done: () => void }) {
+function Ghost({ ghost, host, done }: { ghost: { c: Candidate; from: Box; to: string }; host: React.RefObject<HTMLDivElement | null>; done: () => void }) {
   const el = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const node = el.current, grid = host.current; if (!node || !grid) { done(); return; }
-    const target = grid.querySelector<HTMLElement>(`[data-cid="${ghost.to}"]`)?.getBoundingClientRect();
+    node.style.setProperty("left", `${ghost.from.x}px`); node.style.setProperty("top", `${ghost.from.y}px`);
+    node.style.setProperty("width", `${ghost.from.w}px`); node.style.setProperty("height", `${ghost.from.h}px`);
+    const target = grid.querySelector<HTMLElement>(`[data-cid="${ghost.to}"]`);
     if (!target || reducedMotion(grid)) { done(); return; }
     const dur = tokenMs(grid, "cwl-dur-regroup") || 600;
-    const move = node.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${target.left - ghost.from.left}px, ${target.top - ghost.from.top}px)`, opacity: 0 }], { duration: dur, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "forwards" });
+    const move = node.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${target.offsetLeft - ghost.from.x}px, ${target.offsetTop - ghost.from.y}px)`, opacity: 0 }], { duration: dur, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "forwards" });
     move.onfinish = done;
     return () => move.cancel();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  // Placed where the card was, before the first paint.
-  useLayoutEffect(() => {
-    const node = el.current, root = host.current?.parentElement?.getBoundingClientRect(); if (!node) return;
-    node.style.setProperty("left", `${ghost.from.left - (root?.left ?? 0)}px`); node.style.setProperty("top", `${ghost.from.top - (root?.top ?? 0)}px`);
-    node.style.setProperty("width", `${ghost.from.width}px`); node.style.setProperty("height", `${ghost.from.height}px`);
-  }, [ghost, host]);
   return <div ref={el} className="cd-card cd-ghost" aria-hidden="true">
     <span className="cd-num">{ghost.c.num}</span><span className="cd-title">{ghost.c.name}</span></div>;
 }
