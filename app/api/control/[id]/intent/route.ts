@@ -22,6 +22,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const fac = await getFacilitator(); if (!fac) return answer({ status: "denied" }, 401);
   let body: Record<string, unknown> | null = null;
   try { body = await limitedJson(request); } catch { return answer({ status: "invalid_request" }, 422); }
-  try { const out = await phoneIntentCall(fac.client, id, body); return answer(out.data, out.status); }
+  try { const out = await phoneIntentCall(fac.client, id, body, true); return answer(out.data, out.status); }
   catch { return answer({ status: "unavailable" }, 503); }
 }

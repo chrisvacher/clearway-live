@@ -122,7 +122,11 @@ async function main() {
       await until(async () => await layer().locator(".int-grid:not([hidden])").count() === 1, "all cards again", 5000);
     });
     await step("INT-16 Affirm together fills the sign step from the cards", async () => {
-      await control_("affirm_text", { session: sign });
+      // The facilitator's own button, through the control route (the phone route refuses this press).
+      const pressed = await facContext.request.post(`${app.origin}/api/control/${room.id}/intent`, { headers: origin, data: { kind: "press", id: randomUUID(), action: "intent_affirm_text", p: { from: (await state()).live_session_id, session: sign } } });
+      assert.equal(pressed.status(), 200, `the control route takes Fill: ${await pressed.text()}`);
+      const refused = await priya.page.request.post(`${app.origin}/api/live/${room.id}/intent`, { headers: origin, data: { kind: "press", id: randomUUID(), action: "intent_affirm_text", p: { from: null, session: sign } } });
+      assert.equal(refused.status(), 422, "the phone route refuses it");
       const text = (await sql.query("select options->>'text' as t from public.sessions where id=$1", [sign])).rows[0].t as string;
       for (const title of outcomes) assert.ok(text.includes(title), title);
       assert.ok(text.includes("Every neighbour can name three of us"), "the written intent");
@@ -144,6 +148,7 @@ async function main() {
       await priya.page.getByRole("button", { name: /^Next/ }).click();
       await until(async () => (await state()).live_session_id === sign, "the sign step is live", 8000);
       assert.equal((await state()).remote_holder_id, room.attendees[0].id, "the remote stays with the team");
+      await until(async () => (await layer().innerText()).includes(outcomes[0]), "Affirm together shows the commitment written from the cards", 8000);
       await shot(tv, "d2-11-after-next-tv");
     });
     await step("D2-11 The lead takes it back and the TV does not change; the team remote goes quiet", async () => {

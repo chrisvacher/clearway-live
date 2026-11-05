@@ -36,8 +36,8 @@ export { showCode };
 
 // A signed-in phone's intent call: join or leave a card, edit a field, or (for the person who holds
 // the remote) a press. The database holds every rule; this checks the shape.
-export async function phoneIntentCall(client: SupabaseClient, engagement: string, body: Record<string, unknown> | null) {
-  const call = phoneIntent(body);
+export async function phoneIntentCall(client: SupabaseClient, engagement: string, body: Record<string, unknown> | null, facilitator = false) {
+  const call = phoneIntent(body, facilitator);
   if (!call) return { data: { status: "invalid_request" }, status: 422 };
   const { data, error } = await roomMutation(client, engagement, () => client.rpc(call.rpc, { p_engagement: engagement, ...call.args }));
   if (error) throw error;

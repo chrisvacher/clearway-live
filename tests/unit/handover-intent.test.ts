@@ -75,3 +75,12 @@ test("the follow-up window opens an hour early and ends two hours late", () => {
   assert.equal(w.opens.toISOString(), "2026-12-01T14:00:00.000Z");
   assert.equal(w.closes.toISOString(), "2026-12-01T19:00:00.000Z");
 });
+
+test("Fill Affirm together is the facilitator's press: the control route takes it, the phone route refuses it", async () => {
+  const { phoneIntent } = await import("../../lib/interactions/intent");
+  const id = "11111111-1111-4111-8111-111111111111", session = "22222222-2222-4222-8222-222222222222";
+  const body = { kind: "press", id, action: "intent_affirm_text", p: { from: null, session } };
+  assert.equal(phoneIntent(body), null, "a phone or team remote cannot fill it");
+  assert.deepEqual(phoneIntent(body, true), { rpc: "intent_control", args: { p_id: id, p_action: "affirm_text", p: { session } } });
+  assert.equal(phoneIntent({ ...body, p: { from: null, session: "x" } }, true), null, "the step must be a real id");
+});
