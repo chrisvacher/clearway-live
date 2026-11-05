@@ -57,6 +57,10 @@ async function main() {
     };
     const cards = async () => (await sql.query("select c.id from private.intent_cards c join private.vision_outcomes o on o.id=c.outcome_id where c.engagement_id=$1 and not c.deleted order by o.position", [room.id])).rows.map(r => r.id as string);
     const origin = { Origin: app.origin };
+    // A kept-alive connection the server closed while idle resets on first use; send the same request once more.
+    const postJson = async (url: string, options: Parameters<typeof facContext.request.post>[1]) => {
+      try { return await facContext.request.post(url, options); } catch (error) { if (!/ECONNRESET/.test(String(error))) throw error; return await facContext.request.post(url, options); }
+    };
 
     await step("INT-16 Empty: one card for each Vision Outcome on the TV, no names", async () => {
       await press(fac, sql, room.id, "go_live", { session: intent });
@@ -123,7 +127,7 @@ async function main() {
     });
     await step("INT-16 Affirm together fills the sign step from the cards", async () => {
       // The facilitator's own button, through the control route (the phone route refuses this press).
-      const pressed = await facContext.request.post(`${app.origin}/api/control/${room.id}/intent`, { headers: origin, data: { kind: "press", id: randomUUID(), action: "intent_affirm_text", p: { from: (await state()).live_session_id, session: sign } } });
+      const pressed = await postJson(`${app.origin}/api/control/${room.id}/intent`, { headers: origin, data: { kind: "press", id: randomUUID(), action: "intent_affirm_text", p: { from: (await state()).live_session_id, session: sign } } });
       assert.equal(pressed.status(), 200, `the control route takes Fill: ${await pressed.text()}`);
       const refused = await priya.page.request.post(`${app.origin}/api/live/${room.id}/intent`, { headers: origin, data: { kind: "press", id: randomUUID(), action: "intent_affirm_text", p: { from: null, session: sign } } });
       assert.equal(refused.status(), 422, "the phone route refuses it");
@@ -168,7 +172,7 @@ async function main() {
 
     await step("Follow-up: a link and a code from the lead, no Clearway sign-in", async () => {
       await press(fac, sql, room.id, "go_live", { session: intent });
-      const issued = await facContext.request.post(`${app.origin}/api/control/${room.id}/followup`, { headers: origin, data: { action: "issue", attendee: room.attendees[0].id, sessions: [intent, sign],
+      const issued = await postJson(`${app.origin}/api/control/${room.id}/followup`, { headers: origin, data: { action: "issue", attendee: room.attendees[0].id, sessions: [intent, sign],
         opens_at: new Date(Date.now() - 60000).toISOString(), closes_at: new Date(Date.now() + 2 * 3600000).toISOString() } });
       const out = await issued.json(); assert.equal(out.status, "ok", JSON.stringify(out));
       assert.match(out.code, /^[A-Z]{5} [0-9]{4}$/); assert.match(out.link, /\/f\/[A-Za-z0-9_-]{20,}$/);
@@ -197,7 +201,7 @@ async function main() {
       await shared.locator(".tv-church-logo").waitFor({ timeout: 25000 });
       await shot(shared, "follow-up-tv-view");
 
-      const revoked = await facContext.request.post(`${app.origin}/api/control/${room.id}/followup`, { headers: origin, data: { action: "revoke" } });
+      const revoked = await postJson(`${app.origin}/api/control/${room.id}/followup`, { headers: origin, data: { action: "revoke" } });
       assert.equal((await revoked.json()).status, "ok");
       await until(async () => (await state()).remote_holder_id === null, "revoking returns the remote", 8000);
       await visitor.reload();
