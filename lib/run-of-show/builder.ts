@@ -13,7 +13,7 @@ const blurbs: Partial<Record<InteractionKind, string>> = {
   points: "Share a budget across options", grid: "Place items on two axes", form: "Answers only facilitators see",
   sign: "Signatures and names on the screen", statements: "Rate agreement with each, 1 to 5", lens: "The 10-year Future in present-tense sentences", goals: "1-year goals with the four CORE checks",
   bullets: "What is true, one outcome at a time", confirm: "Confirm, rename or challenge each outcome",
-  intent: "One card per outcome, written in pairs", candidates: "Name the priorities, then spend 100 points",
+  intent: "One card per outcome, written in pairs", candidates: "Name the priorities, then weigh them against each other",
 };
 const screenBlurbs: Record<ContentScreen, string> = {
   scripture: "Passage, reference, translation", headline: "One line on the TV, depth on phones", prayer: "A still screen or a single line",
