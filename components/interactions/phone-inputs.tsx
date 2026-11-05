@@ -11,6 +11,7 @@ import type { LiveSnapshot } from "@/lib/live/types";
 import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
 import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
+import { CandidatesInput } from "@/components/interactions/candidates/candidates-input";
 import { LensInput } from "@/components/interactions/lens/lens-input";
 import { LensSummaryInput } from "@/components/interactions/lens-summary/summary-phone";
 
@@ -32,6 +33,7 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   qa: QaPhoneInput,
   lens: LensInput,
   lens_summary: LensSummaryInput,
+  candidates: CandidatesInput,
   bullets: BulletsInput,
   confirm: ConfirmInput,
   choice: ChoiceInput,

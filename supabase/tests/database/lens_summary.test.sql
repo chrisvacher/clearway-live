@@ -113,7 +113,8 @@ select ok(not has_table_privilege('authenticated','private.lens_summary_locks','
 select ok((select conname from pg_constraint where conname='ai_runs_job_check') is not null
  and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'combine_words' and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'overnight_draft'
  and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'merge_reasons' and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'group_lens'
- and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'draft_lens_summary' and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'fold_lens_summary','The job list keeps every earlier job and adds the two new ones');
+ and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'draft_lens_summary' and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'fold_lens_summary'
+ and pg_get_constraintdef((select oid from pg_constraint where conname='ai_runs_job_check')) ~ 'propose_candidates','After every migration the job list keeps every earlier job, the two lens summary jobs and propose_candidates');
 select ok((select count(*) from pg_constraint where conname='ai_runs_session_check')=1,'and the overnight session check stays');
 
 -- ---------- Options ----------

@@ -171,6 +171,15 @@ export function scripted(call: AiCall): string {
   }
   if (job === "draft_lens_summary") return scriptedLensDraft(input);
   if (job === "fold_lens_summary") return scriptedLensFold(input);
+  if (job === "propose_candidates") {
+    // One candidate for each theme that at least two sentences share; the sentences are its sources.
+    const list = (input.sentences ?? []) as { ref: string; text: string }[], candidates: { name: string; sources: string[] }[] = [];
+    for (const [name, re] of lensThemes) {
+      const hits = list.filter(x => re.test(x.text));
+      if (hits.length >= 2) candidates.push({ name, sources: hits.slice(0, 12).map(x => x.ref) });
+    }
+    return JSON.stringify({ candidates: candidates.slice(0, 10) });
+  }
   return "{}";
 }
 
