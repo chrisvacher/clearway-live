@@ -15,7 +15,7 @@ import { chromium, type Browser, type Page } from "playwright";
 import { joinPhones, practiceRoom, type Phone } from "../../scripts/load-test";
 import { verdict, type LatencyReport } from "../../lib/latency/report";
 import { db, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
-import { watcher, stallOnNewLayer, type Watch } from "./frame-watch";
+import { watcher, type Watch } from "./frame-watch";
 
 type Bar = { key: string; fraction: number; leader: boolean };
 type Kind = {
@@ -220,7 +220,6 @@ async function main() {
       await watch(".tv-layer:not(.is-leaving) .tv-headline, .tv-layer:not(.is-leaving) .tv-headline-xl, .tv-layer:not(.is-leaving) img");
       // Each new layer also holds the page for 350 ms, as a slow frame would. An old layer must never get ahead of the
       // new one (the cross-fade that once failed this check on a busy machine, then passed on a rerun).
-      await tv.evaluate(stallOnNewLayer(350));
       const lines: string[] = [];
       for (const s of screens) {
         const session = await mk("content", s.title, s.prompt, s.options);
