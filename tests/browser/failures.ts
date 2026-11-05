@@ -10,6 +10,7 @@ import { chromium, type Browser, type BrowserContext, type Page, type WebSocketR
 import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
 // Imported first: it points the app's AI worker at the scripted fake model before the app starts.
 import { milestone3Failures } from "./failures-m3";
+import { milestone4Failures } from "./failures-m4";
 
 async function main() {
 const env = localEnv(), sql = db(env), mail = await mailbox();
@@ -187,6 +188,8 @@ try {
   // Milestone 3's kinds, in the same browser and app, on an engagement of their own.
   await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
   await milestone3Failures({ env, sql, mail, app, browser, step, shot });
+  await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
+  await milestone4Failures({ env, sql, mail, app, browser, step, shot });
 
   console.log(`Browser failure kit: ${passed.length} checks passed.\n${passed.map(p => `  ${p}`).join("\n")}\nLocal checks on loopback; venue acceptance is the practice-room script.`);
 } catch (error) {
