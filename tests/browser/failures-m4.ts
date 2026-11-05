@@ -196,7 +196,7 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
   await step("FAIL-09 on the lens summary: with AI failing the draft waits, the room's Approve still lands and the TV says nothing about AI", async () => {
     fake({ fail: true });
     await live(summary, "[data-lens-summary]");
-    await grace.page.getByRole("button", { name: "Approve", exact: true }).waitFor({ timeout: 10000 });
+    await ruth.page.getByRole("button", { name: "Approve", exact: true }).waitFor({ timeout: 10000 });
     assert.ok(!/slow|isn.t responding|failed|ai is/.test(await tvSays()), "the TV never says AI is failing");
     await shot(tv, "fail-09-m4-summary-failing-tv");
     fake({});

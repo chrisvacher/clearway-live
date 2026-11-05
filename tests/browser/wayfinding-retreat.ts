@@ -324,7 +324,11 @@ async function main() {
       for (const o of confirmed) assert.ok(text.includes(o.title) || text.includes("Open and welcoming"), `the Map lists the outcome ${o.title}`);
       assert.ok(!text.includes("Not signed off yet"), "all five lenses are signed off");
       assert.ok(text.toLowerCase().includes("10-year future") && text.toLowerCase().includes("3-year vision") && text.toLowerCase().includes("1-year outlook"));
-      assert.ok(text.includes("Rotate volunteers every six months"), "the mitigation is in Key Issues");
+      // Key Issues lists the six most likely and most damaging risks; the mitigation shows when its risk is one of them.
+      const shown = (await sql.query(`select count(*)::int n from (select r.id from private.risks r where r.engagement_id=$1 and not r.deleted and r.merged_into is null order by coalesce(r.likelihood,0)*coalesce(r.impact,0) desc,r.id limit 6) t
+        join private.risk_mitigations m on m.risk_id=t.id and not m.deleted`, [room.id])).rows[0].n;
+      assert.equal(text.includes("Rotate volunteers every six months"), shown > 0, "the mitigation is in Key Issues when its risk is in the six shown");
+      assert.equal(await page.locator(".map-issues li").count() > 0, true, "Key Issues lists the pre-mortem risks");
       const md = await (await facContext.request.get(`${app.origin}/api/control/${room.id}/map?format=md`)).text();
       assert.ok(md.includes("## Page 1: Identity and direction") && md.includes("## Page 2: Action"), "the text download has both pages");
       assert.ok(!/publish to core/i.test(text + md), "no Publish to CORE");

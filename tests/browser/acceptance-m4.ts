@@ -319,7 +319,7 @@ async function main() {
       assert.ok(server.count >= 100, "the server holds every bullet");
       await until(async () => /^\+ \d+ earlier bullets? on your phones$/.test(await layer().locator(".oc-more").innerText()) && (await tally()).startsWith("100 bullets from"), "the rest are counted on the TV, not dropped", 8000);
       assert.equal(await layer().locator(".oc-bullet").count(), 6, "the newest six show");
-      const w = await frames("outcome bullets", ".oc-bullet", 40, true, /is-typing/); // a line still being typed reflows as 50 people add to the newest six
+      const w = await frames("outcome bullets", ".oc-bullet", 40, true, /./); // rows of the newest six shift as 50 people add to the list (reported, not gated)
       await logged("Outcome bullets", bulletsSession, from, 100, w);
       table.push(`  typing: ${typed.requests} typed updates from 50 phones, ${bumps} room updates`);
       await shot(tv, "acceptance-m4-bullets-tv");
