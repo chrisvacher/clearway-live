@@ -8,8 +8,12 @@
 --      version was refused as too_long and the suggestions never folded.
 --   3. The Seeding the Five Lenses presenter note in both Wayfinding templates now says when it really opens.
 --
+--   4. The rehearsal count the control surface reads (private.control_status, rehearsal.test_answers) counts every test item
+--      Clear test answers removes: answers, Q&A votes, ranking and candidate suggestions, scribe cards and files.
+--
 -- Shared objects touched, each a superset of its latest definition on main:
 --   private.rehearsal_control     the acceptance fixes version (20261104190000) plus scribe cards and files
+--   private.control_status        the self paced step's version (20261103090000), only the rehearsal test_answers count widened
 --   private.ai_apply_base3        the lens summary step's ai_apply (renamed by 20261104170000), without the 420 refusals;
 --                                 the delegation to ai_apply_base2 and every other branch are unchanged
 --   private.templates (data)      the two Wayfinding templates' Seeding note
@@ -255,6 +259,47 @@ create function public.rehearsal_scribe_paths(p_engagement uuid) returns text[]
 language sql stable security invoker set search_path='' as $$ select private.rehearsal_scribe_paths(p_engagement) $$;
 revoke all on function private.rehearsal_scribe_paths(uuid),public.rehearsal_scribe_paths(uuid) from public,anon,authenticated;
 grant execute on function private.rehearsal_scribe_paths(uuid),public.rehearsal_scribe_paths(uuid) to authenticated;
+
+-- The rehearsal count includes every test item Clear test answers removes.
+create or replace function private.control_status(p_engagement uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare r public.room_states; s public.sessions; at_now timestamptz:=clock_timestamp(); last_clear private.rehearsal_log;
+begin
+ if not coalesce(private.show_allowed(p_engagement),false) or private.live_role(p_engagement) is distinct from 'facilitator' then return jsonb_build_object('status','denied'); end if;
+ select * into r from public.room_states where engagement_id=p_engagement and not deleted;
+ if not found then return jsonb_build_object('status','missing'); end if;
+ select * into s from public.sessions where id=r.live_session_id and not deleted;
+ select * into last_clear from private.rehearsal_log where engagement_id=p_engagement and action='clear' and not deleted order by created_at desc,id limit 1;
+ return jsonb_build_object('status','ok','server_time',at_now,'version',r.version,'fac_topic',private.fac_topic(p_engagement),
+  'screens',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'label',d.label,'confirmed_version',coalesce(t.confirmed_version,0),'last_seen_at',t.last_seen_at,
+    'connected',coalesce(t.last_seen_at>clock_timestamp()-interval '12 seconds',false)) order by d.paired_at,d.id)
+   from private.tv_devices d left join private.live_tv_sessions t on t.device_id=d.id and t.revoked_at is null and not t.deleted
+   where d.engagement_id=p_engagement and not d.deleted),'[]'::jsonb),
+  'counts',jsonb_build_object('signed_in',coalesce((private.tv_room_info(p_engagement)->'presence'->>'count')::integer,0),
+   'answered',(select count(distinct attendee_id) from public.submissions where session_id=s.id and not deleted and not withdrawn),
+   'answers',coalesce((r.results->>'total')::integer,0),
+   'hidden',cardinality(r.hidden_keys)+cardinality(r.hidden_ids),
+   'latency_p95_ms',(select round(percentile_cont(0.95) within group (order by extract(epoch from l.tv_received_at-l.phone_sent_at)*1000))::integer
+     from (select l.* from private.latency_logs l join public.submissions x on x.id=l.submission_id
+       where l.engagement_id=p_engagement and l.tv_received_at is not null and not l.deleted and x.queued_at is null order by l.tv_received_at desc limit 200) l)),
+  'items',private.session_items(s.interaction,s.id,r.hidden_keys),
+  'controls',coalesce((select jsonb_agg(c order by c->>'at' desc) from (select jsonb_build_object('id',x.id,'action',x.action,'version',x.room_version,'at',x.created_at,
+    'by',split_part(btrim(coalesce(u.name,'')),' ',1)) c from private.room_controls x left join public.clearway_users u on u.id=x.actor_id
+    where x.engagement_id=p_engagement and not x.deleted order by x.created_at desc limit 10) recent),'[]'::jsonb),
+  'self_paced',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'title',x.title,'part',x.part,'interaction',x.interaction,'state',private.session_state(x,at_now),
+    'opens_at',x.opens_at,'closes_at',x.closes_at,
+    'answered',(select count(distinct y.attendee_id) from public.submissions y where y.session_id=x.id and not y.deleted and not y.withdrawn))
+    order by x.opens_at,x.id) from public.sessions x where x.engagement_id=p_engagement and not x.deleted and x.mode='self_paced'),'[]'::jsonb),
+  'rehearsal',jsonb_build_object('since',private.rehearsing(p_engagement),
+   'test_answers',(select count(*) from public.submissions y where y.engagement_id=p_engagement and y.test and not y.deleted)
+     +(select count(*) from private.qa_votes y where y.engagement_id=p_engagement and y.test and not y.deleted)
+     +(select count(*) from private.ranking_suggestions y where y.engagement_id=p_engagement and y.test and not y.deleted)
+     +(select count(*) from private.candidate_suggestions y where y.engagement_id=p_engagement and y.test and not y.deleted)
+     +(select count(*) from private.scribe_cards y where y.engagement_id=p_engagement and y.test and not y.deleted)
+     +(select count(*) from private.scribe_files y where y.engagement_id=p_engagement and y.test and not y.deleted),
+   'last_clear',case when last_clear.id is not null then jsonb_build_object('at',last_clear.created_at,'answers',last_clear.answers,'sessions',last_clear.sessions,
+     'by',(select split_part(btrim(u.name),' ',1) from public.clearway_users u where u.id=last_clear.actor_id)) end));
+end $$;
 
 -- The Seeding note says when it opens: at its scheduled time, not when the holding screen goes up.
 update private.templates set sessions=replace(sessions::text,

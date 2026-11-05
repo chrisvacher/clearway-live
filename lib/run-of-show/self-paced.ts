@@ -70,3 +70,8 @@ export function rehearsalMessage(result: { status: string; answers?: number; ses
     default: return "That didn’t go through. Try again.";
   }
 }
+
+// The Rehearsal panel's count: every test item Clear test answers removes (answers, votes, suggestions, scribe cards
+// and files), so the plainer word is "items". Clear is on whenever there is one, or a rehearsal is running.
+export const testItemsLabel = (n: number) => `${n} test ${n === 1 ? "item" : "items"}`;
+export const canClearTests = (items: number, rehearsing: boolean) => items > 0 || rehearsing;

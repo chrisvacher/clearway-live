@@ -117,6 +117,7 @@ select is(public.rehearsal_scribe_paths(tests.id(100)),array[tests.id(100)::text
 select tests.login(3);
 select is(public.rehearsal_scribe_paths(tests.id(100)),array[]::text[],'A participant is told nothing');
 select tests.login(1);
+select is((public.control_status(tests.id(100))->'rehearsal'->>'test_answers')::integer,2,'The rehearsal count includes the test card and file, not only answers');
 select is(public.rehearsal_control(tests.id(100),tests.id(952),'end')->>'status','ok','The rehearsal ends');
 select is(public.rehearsal_control(tests.id(100),tests.id(953),'clear')->>'status','ok','Clear test answers runs');
 reset role;
