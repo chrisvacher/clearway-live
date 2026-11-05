@@ -12,6 +12,7 @@ import { GoalsOptions } from "@/components/interactions/goals/goals-options";
 import { WallOptions, WordCloudOptions } from "@/components/interactions/ai/ai-options";
 import { CandidatesOptions } from "@/components/interactions/candidates/candidates-options";
 import { LensOptions } from "@/components/interactions/lens/lens-options";
+import { LensSummaryOptions } from "@/components/interactions/lens-summary/summary-options";
 
 // Per-interaction settings in the run of show (SET-07). Each kind's editor writes only
 // session.options; the database's options_<kind> normalizes and checks it on Save.
@@ -35,6 +36,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
   intent: IntentOptionsEditor,
   qa: QaOptions,
   lens: LensOptions,
+  lens_summary: LensSummaryOptions,
   candidates: CandidatesOptions,
 };
 // Each kind's starting options and limits when it is chosen.
@@ -57,5 +59,6 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   intent: { options: { assign: "remote" } },
   qa: { max_sends: 10, max_characters: 200, max_words: 50, options: { any_time: false } },
   lens: { max_sends: 8, max_characters: 200, max_words: 50, options: { lens: 1 } },
+  lens_summary: { max_sends: 1, max_characters: 140, max_words: 50, options: { lens: 1 } },
   candidates: { max_sends: 1, max_characters: 200, max_words: 50, options: { ai: true, cut: 5 } },
 };

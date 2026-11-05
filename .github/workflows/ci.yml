@@ -177,6 +177,17 @@ jobs:
           path: lens-wall-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the lens summary (INT-18) with AI drafts and folds and 50 simulated phones in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p lens-summary-shots && npm run test:lens-summary
+        env:
+          KIT_SHOTS: lens-summary-shots
+      - name: Upload the lens summary screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lens-summary-screens
+          path: lens-summary-shots/
       - name: Test candidate priorities (INT-13) with AI, suggestions, 100 points and 50 simulated phones in a real browser
         if: ${{ !cancelled() }}
         run: mkdir -p candidates-shots && npm run test:candidates

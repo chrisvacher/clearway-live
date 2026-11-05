@@ -11,7 +11,7 @@ import { aiConfig, costUsd, type AiConfig } from "./config";
 import type { AiClient } from "./client";
 import { prompts, promptVersions, type AiInputs, type AiJob } from "./prompts";
 
-export type Claim = { status: "claimed"; run: string; job: AiJob; prompt_version: string; inputs: AiInputs } | { status: "idle" | "busy" | "off" | "cooling" | "missing" | "invalid_request"; ms?: number };
+export type Claim = { status: "claimed"; run: string; job: AiJob; prompt_version: string; inputs: AiInputs } | { status: "idle" | "busy" | "off" | "cooling" | "wait" | "missing" | "invalid_request"; ms?: number };
 export type RunReport = { session: string; runs: { job: AiJob; status: string; ms: number }[]; stopped: string };
 // The model's own reply is kept with the run (inside ai_runs.output.result), so a reply the
 // parser could not read can be looked at afterward. It holds only what the model wrote.
@@ -25,6 +25,12 @@ export async function runSession(db: SupabaseClient, ai: AiClient, session: stri
     const claimed = await db.rpc("ai_claim", { p_session: session, p_lease: lease, p_model: model, p_versions: promptVersions });
     if (claimed.error) { report.stopped = "unavailable"; return report; }
     const claim = claimed.data as Claim;
+    // "wait": work is nearly due (the lens summary folds after 3 quiet seconds). Sleep that long, within the budget, and ask again.
+    if (claim.status === "wait") {
+      const ms = Math.max(100, Math.min(Number(claim.ms) || 500, 4000));
+      if (Date.now() + ms >= deadline) { report.stopped = "wait"; return report; }
+      await sleep(ms); continue;
+    }
     if (claim.status !== "claimed") { report.stopped = claim.status; return report; }
     const prompt = prompts[claim.job], started = Date.now();
     try {

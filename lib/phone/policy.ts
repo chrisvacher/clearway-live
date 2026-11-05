@@ -64,6 +64,7 @@ export function settledReason(status: string): string | null {
   switch (status) {
     case "accepted": case "duplicate": return "";
     case "closed": return "This step closed before your answer arrived.";
+    case "stale": return "The summary changed before your answer arrived. Read the new version.";
     case "limit": return "This answer is over the limit.";
     case "filtered": return "That answer can’t go on the screen. Try different words.";
     case "invalid_answer": case "invalid_request": case "invalid_session": case "conflict": return "This answer couldn’t be sent.";

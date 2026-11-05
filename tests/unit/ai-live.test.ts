@@ -4,12 +4,14 @@ import { test } from "node:test";
 import { aiConfig, costUsd } from "../../lib/ai/config";
 import { aiClient, anthropicClient, type AiClient } from "../../lib/ai/client";
 import { fakeClient, jobOf, recordedClient, scripted } from "../../lib/ai/fake";
-import { capWords, prompts, promptVersions, replyJson, summaryWords, type AiInputs, type AiJob, type GroupOutput, type MergeOutput, type SummaryOutput } from "../../lib/ai/prompts";
+import { capWords, prompts, promptVersions, replyJson, summaryWords, type AiInputs, type AiJob, type GroupOutput, type LensDraftInputs, type LensDraftOutput, type LensFoldInputs, type LensFoldOutput, type MergeOutput, type SummaryOutput } from "../../lib/ai/prompts";
 import { rawChars, runSession, workSessions } from "../../lib/ai/worker";
 import { absorbedInto, aiControlBody, aiNotice, combinedLine, combinedWith, dollars, moreGroups, shownGroups, wallOf, type AiStatus, type WallGroup } from "../../lib/interactions/ai";
 
 type Case = { name: string; job: AiJob; inputs: AiInputs; reply: string;
-  expect: { together?: string[][]; apart?: string[][]; maxGroup?: number; labelWords?: number; joins?: string[][]; neverJoins?: string[][]; maxWords?: number; mentions?: string[] } };
+  expect: { together?: string[][]; apart?: string[][]; maxGroup?: number; labelWords?: number; joins?: string[][]; neverJoins?: string[][]; maxWords?: number; mentions?: string[];
+    summary?: { maxSentences: number; maxChars: number; covers: string[]; mentions: string[] };
+    fold?: { edits: number; adds: number; removes: number; kept: string[]; leftOut: string[]; maxChars: number } } };
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/ai/live.json", import.meta.url), "utf8")) as { names: string[]; cases: Case[] };
 const caseOf = (job: AiJob, n = 0) => fixtures.cases.filter(c => c.job === job)[n];
 const id = (n: number) => `75000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -68,6 +70,46 @@ const textOf = (c: Case, ref: string) => {
   for (const list of [i.words, i.answers, i.questions, i.groups, i.reasons]) { const hit = list?.find(x => x.ref === ref); if (hit) return hit.text ?? hit.label; }
   return undefined;
 };
+// The lens summary's rules, which the database enforces again in code: present tense, no quotes, no names,
+// every line sourced, one screen, and a fold that changes only what a named suggestion asks for.
+const futureWords = /\b(will|would|shall|going to|hope to|plan to|aim to|intend to)\b/i;
+function plainLine(c: Case, text: string) {
+  assert.ok(!futureWords.test(text), `${c.name}: present tense (${text})`);
+  assert.ok(!/["“”]/.test(text), `${c.name}: no quotation marks`);
+  for (const name of fixtures.names) assert.ok(!text.includes(name), `${c.name}: never names people (${name})`);
+  assert.ok(!/[–—]/.test(text), `${c.name}: no em or en dashes`);
+}
+function checkDraft(c: Case, out: LensDraftOutput) {
+  const i = c.inputs as LensDraftInputs, e = c.expect.summary!, known = new Set(i.sentences.map(a => a.ref));
+  assert.ok(out.sentences.length > 0 && out.sentences.length <= e.maxSentences, `${c.name}: up to ${e.maxSentences} sentences`);
+  assert.ok(out.sentences.map(x => x.text).join(" ").length <= e.maxChars, `${c.name}: one screen, ${e.maxChars} characters`);
+  for (const line of out.sentences) { plainLine(c, line.text); assert.ok(line.sources.length > 0, `${c.name}: every line has a source`); for (const r of line.sources) assert.ok(known.has(r), `${c.name}: source ${r} is the room's`); }
+  const used = new Set(out.sentences.flatMap(x => x.sources));
+  for (const r of e.covers) assert.ok(used.has(r), `${c.name}: covers ${r}`);
+  const all = out.sentences.map(x => x.text.toLowerCase()).join(" ");
+  for (const m of e.mentions) assert.ok(all.includes(m), `${c.name}: uses the room's words (${m})`);
+  if (out.note) plainLine(c, out.note);
+}
+function checkFold(c: Case, out: LensFoldOutput) {
+  const i = c.inputs as LensFoldInputs, e = c.expect.fold!, lines = new Map(i.summary.map(l => [l.ref, l.text])), gs = new Set(i.suggestions.map(g => g.ref)), seen = new Set<string>(), named = new Set<string>();
+  let edits = 0, adds = 0;
+  const result: string[] = [];
+  for (const item of out.sentences) {
+    if ("keep" in item) { assert.ok(lines.has(item.keep), `${c.name}: known line ${item.keep}`); assert.ok(!seen.has(item.keep), `${c.name}: a line once`); seen.add(item.keep); result.push(lines.get(item.keep)!); continue; }
+    assert.ok(item.suggestions.length > 0, `${c.name}: a change names the suggestion that asked for it`);
+    for (const g of item.suggestions) { assert.ok(gs.has(g), `${c.name}: known suggestion ${g}`); named.add(g); }
+    plainLine(c, item.text);
+    if ("edit" in item) { assert.ok(lines.has(item.edit) && !seen.has(item.edit), `${c.name}: edits a known line once`); seen.add(item.edit); edits++; } else adds++;
+    result.push(item.text);
+  }
+  for (const r of out.remove) { assert.ok(lines.has(r.ref) && !seen.has(r.ref), `${c.name}: removes a known line once`); assert.ok(r.suggestions.length > 0 && r.suggestions.every(g => gs.has(g)), `${c.name}: a removal names its suggestion`); seen.add(r.ref); r.suggestions.forEach(g => named.add(g)); }
+  assert.equal(edits, e.edits, `${c.name}: edits`); assert.equal(adds, e.adds, `${c.name}: adds`); assert.equal(out.remove.length, e.removes, `${c.name}: removals`);
+  for (const r of lines.keys()) assert.ok(seen.has(r), `${c.name}: every line is kept, edited or removed (${r})`);
+  for (const r of e.kept) assert.ok(out.sentences.some(x => "keep" in x && x.keep === r), `${c.name}: leaves ${r} as it is`);
+  assert.deepEqual([...gs].filter(g => !named.has(g)).sort(), [...e.leftOut].sort(), `${c.name}: suggestions left out`);
+  assert.ok(result.join(" ").length <= e.maxChars, `${c.name}: still one screen`);
+  if (out.note) plainLine(c, out.note);
+}
 function check(c: Case, reply: string) {
   const out = prompts[c.job].parse(reply, c.inputs), e = c.expect;
   if (c.job === "summarize_wall") {
@@ -79,6 +121,8 @@ function check(c: Case, reply: string) {
     assert.ok(!/["“”]/.test(summary), `${c.name}: no quotation marks`);
     return;
   }
+  if (c.job === "draft_lens_summary") return checkDraft(c, out as LensDraftOutput);
+  if (c.job === "fold_lens_summary") return checkFold(c, out as LensFoldOutput);
   if (c.job === "group_wall" || c.job === "group_lens") {
     const groups = (out as GroupOutput).groups, sets = groups.map(g => g.answers.map(r => textOf(c, r)));
     const all = groups.flatMap(g => g.answers);
