@@ -105,7 +105,9 @@ async function main() {
       assert.equal((await control("reasons", { action: "mitigate", item: r.key, text: "Rotate volunteers every six months" })).status, "ok");
       await until(async () => (await layer().locator(".gfs-mit").allInnerTexts()).some(t => t.includes("Rotate volunteers every six months")), "the mitigation on the TV", 8000);
       const rows = (await sql.query("select id, likelihood, impact from private.risks where session_id=$1 and not deleted order by created_at", [pm])).rows;
-      assert.equal(rows.length, 10, "ten risks mirror the ten reasons"); risk = rows[0].id;
+      assert.equal(rows.length, 10, "ten risks mirror the ten reasons");
+      // The ten risks share one created_at, so pick the mitigated reason's own risk by its key.
+      risk = (await sql.query("select id from private.risks where session_id=$1 and item_key=$2 and not deleted", [pm, r.key])).rows[0].id;
       const m = (await sql.query("select recorded_by from private.risk_mitigations where risk_id=$1 and not deleted", [risk])).rows;
       assert.deepEqual(m.map(x => x.recorded_by), ["facilitator"]);
       await shot(tv, "premortem-mitigation-tv");
