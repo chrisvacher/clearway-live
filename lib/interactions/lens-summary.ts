@@ -211,8 +211,6 @@ function inner(v: Record<string, unknown>, action: SummaryAction, id: string): O
   return { id, action, p: {} };
 }
 
-// What a glide watches: the children of a list (an id per element) and their text, in order. Two renders with
-// the same signature changed nothing the eye would see move, so no glide starts.
-export function listSignature(items: { id: string; text: string }[]): string {
-  return items.map(i => `${i.id}\u0002${i.text}`).join("\u0001");
-}
+// A child glides only when its place in the layout moved since the last render. A render that moved nothing, such as the
+// TV's parent re-rendering every frame, never restarts a glide in flight.
+export const glideMoved = (was: number | undefined, now: number): boolean => was !== undefined && Math.abs(now - was) >= 0.5;

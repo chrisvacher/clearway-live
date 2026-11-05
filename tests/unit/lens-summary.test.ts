@@ -6,7 +6,7 @@ import { prompts, promptVersions, type LensDraftInputs, type LensFoldInputs } fr
 import { runSession } from "../../lib/ai/worker";
 import { settledReason } from "../../lib/phone/policy";
 import { interactionKinds, isReservedKind, screenIds } from "../../lib/interactions/kinds";
-import { checkSuggestion, facilitatorState, foldRefused, foldRefusedLine, listSignature, moreOnPhones, ownReply, reconcile, shownLines, sourcesOf, summaryOf, summaryPress, type Change, type Row } from "../../lib/interactions/lens-summary";
+import { checkSuggestion, facilitatorState, foldRefused, foldRefusedLine, glideMoved, moreOnPhones, ownReply, reconcile, shownLines, sourcesOf, summaryOf, summaryPress, type Change, type Row } from "../../lib/interactions/lens-summary";
 
 const uid = (n: number) => `77000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const reply = (v: unknown) => JSON.stringify(v);
@@ -162,13 +162,12 @@ test("The worker sleeps when a fold is nearly due and asks again, within its bud
   assert.equal(late.stopped, "wait", "it gives up when the budget cannot cover the wait");
 });
 
-test("A glide's list signature changes when children are added, removed, reordered or retyped, and not on a plain re-render", () => {
-  const a = [{ id: "1", text: "We welcome every guest." }, { id: "2", text: "We eat together." }];
-  assert.equal(listSignature(a), listSignature(a.map(x => ({ ...x }))), "the same list on every frame is the same signature");
-  assert.notEqual(listSignature(a), listSignature([...a, { id: "3", text: "We pray first." }]), "a child added");
-  assert.notEqual(listSignature(a), listSignature(a.slice(1)), "a child removed");
-  assert.notEqual(listSignature(a), listSignature([a[1], a[0]]), "children reordered");
-  assert.notEqual(listSignature(a), listSignature([a[0], { id: "2", text: "We eat together often." }]), "a child's text changed");
+test("A glide starts only when a child's place in the layout moved, not on a plain re-render", () => {
+  assert.equal(glideMoved(100, 100), false, "the same place on every frame never glides");
+  assert.equal(glideMoved(100, 100.3), false);
+  assert.equal(glideMoved(undefined, 100), false, "a new child arrives, it does not glide");
+  assert.equal(glideMoved(100, 270), true, "a line pushed down by a new one");
+  assert.equal(glideMoved(270, 100), true, "a line that moved up");
 });
 
 test("A fold that applied nothing is said on the control surface instead of 'AI is ready'", () => {

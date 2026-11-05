@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
-import { caretMs, leaveMs, listSignature, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
+import { caretMs, leaveMs, glideMoved, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
 
@@ -19,13 +19,13 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
   return <>{parts.map((p, i) => p.k === "keep" ? <span key={i}>{p.t} </span> : <span key={i} className={`lsm-${p.k}${p.k === "del" && leave ? " is-leaving" : ""}`} data-tc={p.k}>{p.t} </span>)}</>;
 }
 
-// Glide: when a list changes (a fold, a line typed, a card arriving) every child that stays moves from where it
-// was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a
-// change that lands mid-glide starts from the child's visual place, never from a stale one. A glide starts only
-// when the list changed (a child added, removed, reordered, retyped or moved in the layout): the TV's parent re-renders this
-// view about every frame, and a glide that restarted on each render would never leave its first frame.
+// Glide: when a child's place in the layout changes (a fold, a line typed, a card arriving) it moves from where it was
+// last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a change that
+// lands mid-glide starts from the child's visual place, never from a stale one. Layout places are compared layout to
+// layout (offsetTop ignores the glide's own transform): a render that moved nothing leaves every glide in flight alone.
+// The TV's parent re-renders this view about every frame, and a glide restarted on each render never leaves its first frame.
 function useGlide(host: RefObject<HTMLElement | null>) {
-  const seen = useRef(new Map<Element, number>()), ids = useRef(new WeakMap<Element, number>()), count = useRef(0), last = useRef("");
+  const seen = useRef(new Map<Element, number>()), placed = useRef(new Map<Element, number>());
   useEffect(() => {
     let frame = 0;
     const read = () => {
@@ -39,25 +39,19 @@ function useGlide(host: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const root = host.current;
     if (!root) return;
-    const sig = listSignature(Array.from(root.children).map(el => {
-      let id = ids.current.get(el); if (id === undefined) { id = ++count.current; ids.current.set(el, id); }
-      // Layout place (offsetTop ignores the glide's own transform) and class count too, so a move with no text change glides, while a plain re-render never does.
-      return { id: String(id), text: `${el.className}|${(el as HTMLElement).offsetTop}|${el.textContent ?? ""}` };
-    }));
-    if (sig === last.current) return;
-    last.current = sig;
-    if (document.documentElement.dataset.motion === "reduced") return;
-    // Measure where each child sits in the layout with any glide in flight set aside, then start the glide from
-    // where the eye last saw it. Reading the rect with the glide still running would double count it and snap.
-    const moves: [HTMLElement, number][] = [];
+    const nextPlaced = new Map<Element, number>(), moves: [HTMLElement, number][] = [], reduced = document.documentElement.dataset.motion === "reduced";
     for (const node of Array.from(root.children)) {
-      const el = node as HTMLElement, before = seen.current.get(el);
-      if (before === undefined) continue;
+      const el = node as HTMLElement, lay = el.offsetTop, was = placed.current.get(el), before = seen.current.get(el);
+      nextPlaced.set(el, lay);
+      if (reduced || !glideMoved(was, lay) || before === undefined) continue;
+      // Measure where the child sits in the layout with its glide set aside, then start the glide from where the eye last
+      // saw it. Reading the rect with the glide still running would double count it and snap.
       el.style.transition = "none"; el.style.transform = "none";
       const shift = before - el.getBoundingClientRect().top;
       if (Math.abs(shift) >= 0.5) moves.push([el, shift]);
       else { el.style.transition = ""; el.style.transform = ""; }
     }
+    placed.current = nextPlaced;
     for (const [el, shift] of moves) el.style.transform = `translateY(${shift}px)`;
     if (moves.length) void root.offsetHeight;
     for (const [el] of moves) { el.style.transition = ""; el.style.transform = ""; }

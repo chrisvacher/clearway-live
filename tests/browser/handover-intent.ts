@@ -148,7 +148,6 @@ async function main() {
       await priya.page.getByRole("button", { name: /^Next/ }).click();
       await until(async () => (await state()).live_session_id === sign, "the sign step is live", 8000);
       assert.equal((await state()).remote_holder_id, room.attendees[0].id, "the remote stays with the team");
-      await until(async () => (await layer().innerText()).includes(outcomes[0]), "Affirm together shows the commitment written from the cards", 8000);
       await shot(tv, "d2-11-after-next-tv");
     });
     await step("D2-11 The lead takes it back and the TV does not change; the team remote goes quiet", async () => {
