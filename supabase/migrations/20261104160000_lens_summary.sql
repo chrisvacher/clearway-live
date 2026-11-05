@@ -145,7 +145,7 @@ $$;
 -- set only when the version goes straight onto the TV.
 create function private.ls_new_version(p_summary uuid,p_author text,p_run uuid,p_note text,p_texts text[],p_froms uuid[],p_sources jsonb,p_tracked boolean,p_prev uuid,p_show boolean) returns uuid
 language plpgsql security definer set search_path='' as $$
-declare sm private.lens_summaries; vid uuid:=gen_random_uuid(); n integer; i integer; sid uuid;
+declare sm private.lens_summaries; vid uuid:=gen_random_uuid(); n integer; sid uuid;
 begin
  select * into sm from private.lens_summaries where id=p_summary;
  select coalesce(max(version),0)+1 into n from private.lens_summary_versions where summary_id=p_summary;
@@ -306,7 +306,7 @@ begin
    into n_app,n_sug,ppl from public.submissions x
    where x.session_id=p_session and x.engagement_id=p_engagement and not x.deleted and not x.withdrawn and not x.hidden and x.value->>'version'=v.id::text;
   select coalesce(jsonb_agg(jsonb_build_object('id',left(q.id::text,8),'text',q.text) order by q.ts desc,q.id),'[]'::jsonb) into sugg
-   from (select x.id,x.text,x.updated_at as ts from public.submissions x where x.session_id=p_session and x.engagement_id=p_engagement and not x.deleted and not x.withdrawn and not x.hidden
+   from (select x.id,x.text,x.updated_at as ts from public.submissions x where x.session_id=p_session and x.engagement_id=p_engagement and not x.deleted and not x.withdrawn and not x.hidden and not (x.id::text=any(p_hidden))
      and x.value->>'version'=v.id::text and x.value->>'response'='suggest' order by x.updated_at desc,x.id limit 24) q;
   if sm.decision_id is not null and sm.state='signed_off' then select d.decision into dec_text from private.decisions d where d.id=sm.decision_id and not d.deleted; end if;
  end if;
@@ -616,7 +616,7 @@ alter function private.ai_fail(uuid,uuid,text,jsonb) rename to ai_fail_base2;
 create function private.ai_claim(p_session uuid,p_lease uuid,p_model text,p_versions jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare s public.sessions; a private.ai_sessions; r public.room_states; t timestamptz:=clock_timestamp(); sm private.lens_summaries; v private.lens_summary_versions; lk private.lens_summary_locks;
- v_lens smallint; lx smallint; job text; v_inputs jsonb; v_run uuid; sig text; last_sug timestamptz; n_sug integer; n_app integer; base jsonb; wait_ms integer; v_ids jsonb; picked smallint;
+ v_lens smallint; lx smallint; job text; v_inputs jsonb; v_run uuid; sig text; last_sug timestamptz; n_sug integer; n_app integer; base jsonb; v_ids jsonb; picked smallint;
 begin
  select * into s from public.sessions where id=p_session and not deleted;
  if s.id is null or s.interaction<>'lens_summary' then return private.ai_claim_base2(p_session,p_lease,p_model,p_versions); end if;
@@ -712,7 +712,7 @@ $$;
 create function private.ai_apply(p_run uuid,p_lease uuid,p_output jsonb,p_usage jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; a private.ai_sessions; r public.room_states; s public.sessions; sm private.lens_summaries; cv private.lens_summary_versions; lk private.lens_summary_locks;
- t timestamptz:=clock_timestamp(); v_ms integer; v_lens smallint; ids jsonb; ain jsonb; item jsonb; refs jsonb; txt text; why text; prob text; allowed text; srcs jsonb; ref text; pidv uuid; sug integer; i integer; j integer; show boolean;
+ t timestamptz:=clock_timestamp(); v_ms integer; v_lens smallint; ids jsonb; item jsonb; txt text; prob text; allowed text; srcs jsonb; ref text; pidv uuid; sug integer; i integer; show boolean;
  year integer; vid uuid; note text; applied jsonb:='[]'::jsonb; refused jsonb:='[]'::jsonb; entries jsonb:='[]'::jsonb; acc uuid[]:=array[]::uuid[]; pid uuid[]; ptxt text[]; pkey integer[]; q integer; base integer; total integer; cnt integer;
  rt text[]; rf uuid[]; rs jsonb; seen text[]:=array[]::text[]; removed integer:=0; discard boolean:=false; did boolean:=false;
 begin
@@ -844,7 +844,7 @@ begin
   for j in 1..coalesce(cardinality(pid),0) loop
    if pid[j]=any(acc) then continue; end if;
    base:=null;
-   for q in reverse (j-1)..1 loop if pkey[q] is not null then base:=pkey[q]; exit; end if; end loop;
+   for qq in reverse (j-1)..1 loop if pkey[qq] is not null then base:=pkey[qq]; exit; end if; end loop;
    pkey[j]:=coalesce(base,-1000)+j;
    entries:=entries||jsonb_build_array(jsonb_build_object('key',pkey[j],'text',ptxt[j],'from',pid[j],'src',coalesce((select jsonb_agg(src.lens_sentence_id) from private.lens_summary_sources src where src.summary_sentence_id=pid[j] and not src.deleted),'[]'::jsonb)));
   end loop;
