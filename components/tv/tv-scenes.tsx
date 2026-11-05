@@ -36,16 +36,18 @@ function SessionLayers({ frame, flow }: { frame: LiveSnapshot | null; flow?: TvF
   // The new layer joins in the same render as the frame that brought it, so the
   // TV's fit step measures the session that is actually on screen.
   if (frame && id && !layers.some(layer => layer.id === id && !layer.leaving)) {
-    setLayers([...layers.filter(layer => layer.id !== id).map(layer => ({ ...layer, leaving: true, frame: !layer.leaving && last.current?.session?.id === layer.id ? last.current : layer.frame })),
+    setLayers([...layers.filter(layer => layer.id !== id).map(layer => ({ ...layer, leaving: true, entering: false, frame: !layer.leaving && last.current?.session?.id === layer.id ? last.current : layer.frame })),
       { id, frame, leaving: false, entering: layers.length > 0 }]);
   }
   useEffect(() => { if (frame && id) last.current = frame; }, [frame, id]);
   useEffect(() => {
     if (!layers.some(layer => layer.leaving || layer.entering)) return;
-    const raf = requestAnimationFrame(() => requestAnimationFrame(() => setLayers(current => current.map(layer => layer.entering ? { ...layer, entering: false } : layer))));
+    // The new layer fades in by a CSS animation that starts in the same frame the old layer starts to fade
+    // out, so the two stay in step however busy the page is. (It used to be switched on two frames later,
+    // and a slow frame left the old layer almost gone before the new one began.) The layers are tidied once both have finished.
     const wait = box.current ? tokenMs(box.current, "cwl-dur-make-room") + 50 : 750;
-    const timer = setTimeout(() => setLayers(current => current.filter(layer => !layer.leaving)), wait);
-    return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
+    const timer = setTimeout(() => setLayers(current => current.filter(layer => !layer.leaving).map(layer => layer.entering ? { ...layer, entering: false } : layer)), wait);
+    return () => clearTimeout(timer);
   }, [layers]);
   return <div ref={box} className="tv-layers">{layers.map(layer => {
     const shown = !layer.leaving && frame && frame.session?.id === layer.id ? frame : layer.frame, session = shown.session!;
