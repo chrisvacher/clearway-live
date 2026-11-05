@@ -47,6 +47,8 @@
     "test:overnight": "node --import tsx tests/browser/overnight.ts",
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
     "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",
+    "test:acceptance-m4": "node --import tsx tests/browser/acceptance-m4.ts",
+    "test:wayfinding": "node --import tsx tests/browser/wayfinding-retreat.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

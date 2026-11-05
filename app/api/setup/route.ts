@@ -89,7 +89,11 @@ export async function POST(request:NextRequest){
     }
     if(action==="reset_practice"){
       const e=await scoped();if(e.id!==practiceId)return answer({ok:false},400);
-      return answer({ok:(await rpc("reset_practice_room",{}))===true});
+      // The scribe's stored files are put away with their rows by the reset; their bytes go through Storage afterwards.
+      const paths=await client.rpc("practice_scribe_paths",{}).then(r=>Array.isArray(r.data)?(r.data as string[]).filter(p=>typeof p==="string"):[],()=>[] as string[]);
+      const reset=(await rpc("reset_practice_room",{}))===true;
+      if(reset&&paths.length){const gone=await serviceClient().storage.from("scribe").remove(paths).catch(()=>({error:true}));if(gone.error)console.error("Practice scribe files could not be removed from Storage");}
+      return answer({ok:reset});
     }
     if(action==="invite"||action==="prepare_invites"){
       const e=await scoped();if(!uuid(body.batch)||!Array.isArray(body.attendees)||!body.attendees.every(uuid))return answer({ok:false},400);

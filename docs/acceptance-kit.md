@@ -75,3 +75,48 @@ The database job runs `npm run test:acceptance-live` after the existing kits. Th
 - **The word cloud's single-mention row jumped a whole chip for one frame** whenever its oldest chip slid off the left edge (`lib/tv/board.ts`, `Chips.step`). The row's transform was written before the oldest chip was removed and the offset reduced by its width. For one frame, every chip in the row drew 200 to 300 px to the left of where it belonged, then snapped back. The transform is now written after the removal, in the same frame. A unit test (`tests/unit/tv-board.test.ts`, "Retiring a chip off the left edge never shifts the row for a frame") runs the row through a minimal DOM. It fails without the fix (230 px) and passes with it (the spring's own largest step, 68 px). The milestone 2 kits never filled the row past its width.
 
 Nothing else in the app changed.
+
+# Milestone 4: the live-screen kit, the failure kit and the Riverside retreat
+
+Step 8. One migration, `20261104190000_m4_acceptance_fixes.sql`, closes two known gaps (below). Both kits run in CI with screenshots uploaded.
+
+## `npm run test:acceptance-m4`
+
+`tests/browser/acceptance-m4.ts`. One headless TV is paired to the practice room and watched on every animation frame (`tests/browser/frame-watch.ts`) for the whole run. Fifty phones ("Wayfinder 01" to "50") use each Wayfinding kind in turn through the real phone endpoints, with the scripted fake AI model, never the API.
+
+| Kind | What the phones send | What is checked |
+| --- | --- | --- |
+| Lens seeding | 50 sentences, ten for each lens | All stored, no words visible to the TV, a phone snapshot, the room state or the facilitator's count |
+| Lens wall | 50 sentences with AI 2.5 s per call | The lens's seeds come first, the other lenses' stay hidden, clusters equal the server's, under one second from the latency log |
+| Lens summary | 40 Approve, 10 Suggest a change with AI slow | Tally equals the server's, two anonymous cards and the rest counted, decision shows |
+| Candidates | 50 suggestions (rename, merge, add), then 100 points | Suggestions never reach the TV, one tap accepts in place, bars in the server's order, five provisional outcomes |
+| Outcome bullets | 100 bullets typed then added | The room is not told on every keystroke, newest six show, the rest counted |
+| Outcome confirm | 50 answers | Counts equal the server's, no reason or name on the TV, four decided |
+| Pre-mortem | 10 reasons, 50 placements with AI slow | Reasons stamped on the TV page for latency, AI merges, dots equal the server's, mitigation shows |
+| Goals | 30 goals (the limit) and 20 phones reading the form | Letters checked in code, flagged goals outlined, the rest counted |
+| Commander's intent | 12 editors, 36 line updates | Latency stamped on the TV page, other phones watch |
+| Remote handover | Give and take back | All 50 phones read it within one second, the TV unchanged both ways |
+| Affirm together | 50 signatures | 50 on the TV, under one second from the latency log |
+
+For each kind the kit prints the share of answers on the TV under one second and the 95th percentile. Kinds the server's latency log covers (anything sent through `live_submit`) read from it. Reasons, goals and intent lines go through their own endpoints, so the kit stamps their arrival on the TV page (`arrivalRecorder` and `tokenRecorder`) and compares with the send times. Frame sampling fails the run on any blank, dim or jump of 150 px or more, and every step checks that the TV page never reloaded and that no name or email is on it.
+
+## The failure kit on the Wayfinding kinds
+
+`npm run test:browser` now also runs `tests/browser/failures-m4.ts` after milestone 3's checks.
+
+| Check | What it proves |
+| --- | --- |
+| FAIL-01 on the lens wall and the lens summary | Three lens sentences written offline are saved on the phone and sent in the order written, each once, and an offline Approve is sent once and counted on the TV |
+| FAIL-02 on the lens wall and the lens summary | The TV keeps its last screen with Reconnecting, then catches up to the server's count and tally within 3 seconds |
+| FAIL-09 on the lens wall and the lens summary | With AI slow, then failing, every sentence lands at once and only the control surface says so. With AI failing the lens summary room still works |
+| FAIL-10 from the Wayfinding templates | The run of show prints from the Wayfinding template and the day-and-a-half template, with the follow-up part and no Publish to CORE |
+
+## `npm run test:wayfinding`
+
+`tests/browser/wayfinding-retreat.ts`. A Riverside engagement starts from the Wayfinding template, rehearses and clears test answers, pairs a TV and signs in eight phones by email code. It then runs, in order: lens seeding hidden until each lens opens, the lens wall, five lens summaries signed off, candidates renamed and marked as provisional Vision Outcomes, outcome bullets typed on a phone, confirm, the pre-mortem with a mitigation, CORE goals linked to risks, the handover with commander's intent and Affirm together, and the draft Clearway Map. It ends with the day-and-a-half template's follow-up block run through a follow-up link and code with no Clearway sign-in.
+
+## Known gaps closed
+
+- **Clear test answers did not clear candidate suggestions.** `private.candidate_suggestions` now has a `test` column set by the same rehearsal trigger as the other tables, and `rehearsal_control` clear puts away the rehearsal's rows. A real suggestion and another room's are untouched.
+- **The practice reset did not clear scribe cards or scribe files.** `reset_practice_room` now puts both away, and the app route removes the stored bytes from Storage (SQL cannot delete from Storage's tables), using the new `practice_scribe_paths()` for the list. Both fixes are in `supabase/tests/database/m4_acceptance_fixes.test.sql`.
+- **The content-screen cross-fade check failed once and passed on rerun.** Cause: the leaving layer began to fade as soon as it was marked, while the entering layer waited two animation frames to begin. When one frame ran long, the combined cover could dip below one half. The entering layer now fades with a CSS animation that starts on the frame it appears, and the leaving layer is removed on a timer. `acceptance-live` has a regression test that stalls the main thread for 350 ms when a layer is added, and `frame-watch.ts` is shared by both acceptance kits.

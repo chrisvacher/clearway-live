@@ -13,7 +13,7 @@
 // KIT_SHOTS=<folder> saves each failure state. Local only: no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -350,5 +350,4 @@ export async function milestone3Failures({ env, sql, mail, app, browser, step, s
   await press(fac, sql, room.id, "nothing_live");
 
   await Promise.all([tvContext, facContext, ruth.ctx, ben.ctx, grace.ctx].map(c => c.close().catch(() => {})));
-  rmSync(controlDir, { recursive: true, force: true });
 }

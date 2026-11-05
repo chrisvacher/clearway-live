@@ -36,7 +36,7 @@ jobs:
   database:
     name: PostgreSQL 17 schema and role isolation
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -199,6 +199,32 @@ jobs:
         with:
           name: candidates-screens
           path: candidates-shots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test milestone 4 acceptance (every Wayfinding kind, 50 simulated phones, frame sampling)
+        if: ${{ !cancelled() }}
+        run: mkdir -p acceptance-m4-shots && npm run test:acceptance-m4
+        env:
+          KIT_SHOTS: acceptance-m4-shots
+      - name: Upload the milestone 4 acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-m4-screens
+          path: acceptance-m4-shots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test the Riverside Wayfinding retreat end to end in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p wayfinding-shots && npm run test:wayfinding
+        env:
+          KIT_SHOTS: wayfinding-shots
+      - name: Upload the Wayfinding retreat screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wayfinding-screens
+          path: wayfinding-shots/
           if-no-files-found: ignore
           retention-days: 14
       - name: Stop local database
