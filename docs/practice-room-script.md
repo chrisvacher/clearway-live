@@ -1,4 +1,4 @@
-# Milestone 3 practice-room script
+# Practice-room script: milestones 3 and 4
 
 This is the acceptance run for milestone 3, the interaction library. It takes about three hours, so plan two sittings: sections 1 to 5 in one, sections 6 to 11 in the other. Each check names what you do, what the TV and phones should show, and the pass mark. Mark each one pass or fail, and note anything that felt slow, jumpy or confusing, even if it passed.
 
@@ -157,10 +157,98 @@ Run every session in order with Next, from the control surface. Every phone answ
 | Move the TV computer from HDMI to screen mirroring, then share its screen in a video call | The room keeps running. Remote viewers see the live room | No re-pairing |
 | Turn on reduced motion for the TV (setup, TV settings) and run one bar session | Bars and dots take their places at once and fade in briefly | Turn it off again |
 
+## Milestone 4: the Wayfinding sessions
+
+Sections 12 to 21 are the acceptance run for milestone 4. Run them in a Riverside engagement started from the Wayfinding template, with eight real phones, set to "Use AI in live sessions". Press Reset practice room first if you use the practice room instead. There are no Publish to CORE rows: Publish to CORE is not part of the app (Chris, November 4). Section 11 above is carried forward unchanged, and it still applies to every Wayfinding session.
+
+## 12. Start from the template and rehearse (20 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| In setup, choose Start from a template, pick Wayfinding, set the pre-call start and start the engagement | 40 sessions in three parts, Day 1 at 9:00 and Day 2 at 8:30 church time, no Publish to CORE session | Every session has a kind and a time |
+| Choose Rehearse, answer a few steps from the phones, end the rehearsal, then choose Clear test answers | Test answers, candidate suggestions and scribe cards from the rehearsal disappear, real answers stay | Nothing from the rehearsal is left on the TV or in the exports |
+| In the practice room, press Reset practice room after uploading a photo and a card in the scribe console | The scribe cards and the uploaded file are gone too | The scribe console is empty |
+
+## 13. Seed the Five Lenses (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Seeding the Five Lenses on the phones. Each person picks a lens and writes two sentences in the present tense | The phone says the words are hidden. The control surface shows how many are written for each lens, never the words | You cannot read a seeded sentence anywhere, the facilitator included |
+| Go live on the first lens on Day 1 | That lens's seeds appear first on the TV, then live sentences join them | Only the open lens shows its seeds |
+
+## 14. The lens wall (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| With every phone writing, watch the wall while AI is working | Each sentence appears on the TV within about a second and clusters drift into place without jumping | No sentence waits for AI |
+| Switch AI off from the AI panel, then on again | The wall carries on in arrival order, then groups again | The TV never mentions AI |
+
+## 15. The lens summaries (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| After the last lens, go live on The 10-year Future, by lens | A present-tense draft of lens 1 appears on the TV marked as AI, one screen, every line sourced | Lines read in the present tense |
+| Phones tap Approve or Suggest a change | The two counts rise on the TV at once. Up to two suggestions show as anonymous cards, the rest are counted | No name is on the TV |
+| Wait for the folded version, then edit a line by hand | The new version glides in with tracked changes. Your hand edit is not a tracked change and AI leaves it alone | Rows glide, none jump |
+| Mark a decision, then go to the next lens and repeat for all five | Each lens shows Signed off on the TV and takes no more answers | Five lenses signed off |
+
+## 16. Provisional Vision Outcomes (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Go live on Provisional Vision Outcomes, review the AI's candidates and Send to the TV | The cards appear together. Phones can rename, merge or suggest | No suggestion shows on the TV |
+| Accept a rename, a merge and a new candidate with one tap each | The card changes name in place, one card leaves, one arrives | No card jumps |
+| Open the 100 points, let the phones spend them and Mark provisional | Bars glide and re-order in the server's order, five outcomes remain | Five provisional Vision Outcomes |
+
+## 17. The 3-year Vision, first pass and confirm (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Go live on 3-year Vision, first pass. Type a bullet on a phone slowly | The letters appear on the TV as they are typed, marked as typing, until the person taps Add bullet | The bullet stays on the TV when added |
+| Have every phone add two bullets quickly | The newest six show and the rest are counted | Nothing is dropped and nothing flickers |
+| On Day 2, go live on Confirm the Vision Outcomes. Phones confirm, rename or challenge | The TV shows counts only, never reasons. A challenged outcome gets a soft highlight | The facilitator's decision, not the count, confirms an outcome |
+| Mark four outcomes as confirmed | Four rows show decided on the TV | Four to six outcomes are confirmed |
+
+## 18. The pre-mortem (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Go live on the pre-mortem. Everyone names a reason the plan failed | Reasons appear in the TV's legend at once. AI merges duplicates later | Ten fit, an eleventh is turned away politely |
+| Place every reason on the grid | Dots glide to the room's average | The count on the TV is the server's |
+| From the control surface, record a mitigation | It shows under its reason on the TV | The mitigation is there |
+
+## 19. The CORE goals (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Go live on 1-year Outlook. Each phone proposes a goal with a title, result, owner and end date | Goals appear on the TV with four letters, Connected, Owned, Result and End date, each met or missing | A goal missing a letter is outlined |
+| Mark a result as clear from the control surface | Its Result letter turns on | A goal changes by the facilitator's tap only |
+| Add more goals than fit | A line says how many more there are | None is hidden without a count |
+
+## 20. The team takes the remote (40 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Give the remote to a participant from the control surface | Their phone shows Next and Back. The TV does not change | You can take it back with one tap |
+| Go live on Commander's intent and put people in pairs | Pairs show on phones only, never on the TV | Four cards, one for each confirmed outcome |
+| Each pair writes its intent, must-do and what we will stop | Lines replace on the TV as they are written | Nothing flickers |
+| Present one card, then back to all cards | The card grows to full size and shrinks back | Smooth both ways |
+| Go live on Affirm together and have everyone sign | Signatures appear on the TV one at a time, with the full commitment written from the cards | Every phone's signature appears |
+
+## 21. The draft Clearway Map and the video follow-up (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Draft Clearway Map on the control surface | Two pages: Identity and direction, then Action. The 10-year Future shows the signed-off summaries, the 3-year Vision the confirmed outcomes, the 1-year Outlook the goals that meet CORE | Empty fields say they are empty and why. This Year's Priorities is left for Annual Planning |
+| Print or save as PDF, and Download text | Two pages without buttons, and a text file | The Map never appears on the TV or phones |
+| In a day-and-a-half engagement, issue the follow-up link and code for the Follow-up part, then open the link on a phone with no Clearway sign-in | The code unlocks the remote. The page says what the remote never shows | The team facilitator can move Next and Back |
+| Open the link's TV page on the computer shared in the video call | The shared TV view follows the room | Revoking the link returns the remote to you |
+| Print the run of show from the Wayfinding template | Every session, prompt, phone depth and presenter note prints (FAIL-10) | It prints |
+
 ## Afterward
 
 - Note the Phone to TV numbers you read in section 11 before breaking anything.
 - Note which phones and browsers you used, the venue network, and anything that felt slow or wrong.
-- Milestone 3 is accepted when every row passes. A row that fails becomes the next fix.
+- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. A row that fails becomes the next fix.
 
-The browser kits run most of these on every pull request: each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). This script is the real-device, real-room version of them.
+The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). This script is the real-device, real-room version of them.
