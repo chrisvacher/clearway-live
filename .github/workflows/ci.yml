@@ -152,6 +152,18 @@ jobs:
           path: handover-intent-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the Wayfinding templates and the draft Clearway Map in a real browser
+        run: mkdir -p map-templates-shots && npm run test:map-templates
+        env:
+          KIT_SHOTS: map-templates-shots
+      - name: Upload the Map and template screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: map-templates-screens
+          path: map-templates-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the lens wall (INT-12) with AI clusters and 50 simulated phones in a real browser
         if: ${{ !cancelled() }}
         run: mkdir -p lens-wall-shots && npm run test:lens-wall
