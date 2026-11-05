@@ -469,15 +469,15 @@ begin
 
  elsif p_action in ('edit_start','edit_beat','edit_done') then
   if sm.state='signed_off' then return jsonb_build_object('status','invalid_state'); end if;
-  if p_action='edit_done' then delete from private.lens_summary_locks where summary_id=sm.id;
+  if p_action='edit_done' then delete from private.lens_summary_locks where summary_id=sm.id; changed:=true;
   else
    if p ? 'sentence' and (jsonb_typeof(p->'sentence') is distinct from 'string' or p->>'sentence' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') then return jsonb_build_object('status','invalid_request'); end if;
    select * into lk from private.lens_summary_locks where summary_id=sm.id;
    if lk.summary_id is not null and lk.user_id<>me and lk.seen_at>t-interval '40 seconds' then return jsonb_build_object('status','locked','by',(select split_part(btrim(u.name),' ',1) from public.clearway_users u where u.id=lk.user_id)); end if;
    insert into private.lens_summary_locks as ll(summary_id,engagement_id,user_id,sentence_id,seen_at) values(sm.id,p_engagement,me,nullif(p->>'sentence','')::uuid,t)
     on conflict(summary_id) do update set user_id=me,seen_at=t,deleted=false,sentence_id=case when p ? 'sentence' then nullif(p->>'sentence','')::uuid else ll.sentence_id end;
+   changed:=false;
   end if;
-  changed:=false;
 
  elsif p_action='edit' then
   op:=p->>'op';
@@ -678,9 +678,10 @@ begin
  -- 2. Draft the current lens, then the others ahead of time.
  picked:=null;
  for lx in select g::smallint from generate_series(1,5) g order by (g::smallint<>v_lens),g loop
+  if not private.lens_is_open(s.engagement_id,lx) then continue; end if;
   sm:=private.ls_ensure(s.engagement_id,lx);
   select * into sm from private.lens_summaries where id=sm.id;
-  if sm.draft_held or sm.state='signed_off' or not private.lens_is_open(s.engagement_id,lx) then continue; end if;
+  if sm.draft_held or sm.state='signed_off' then continue; end if;
   if exists(select 1 from private.lens_summary_versions x where x.id=sm.current_version_id and not x.deleted and x.undone_at is null) then continue; end if;
   if (select count(*) from private.lens_sentences x where x.engagement_id=s.engagement_id and x.lens=lx and not x.deleted and not x.withdrawn)<2 then continue; end if;
   picked:=lx; exit;
@@ -713,7 +714,7 @@ language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; a private.ai_sessions; r public.room_states; s public.sessions; sm private.lens_summaries; cv private.lens_summary_versions; lk private.lens_summary_locks;
  t timestamptz:=clock_timestamp(); v_ms integer; v_lens smallint; ids jsonb; ain jsonb; item jsonb; refs jsonb; txt text; why text; prob text; allowed text; srcs jsonb; ref text; pidv uuid; sug integer; i integer; j integer; show boolean;
  year integer; vid uuid; note text; applied jsonb:='[]'::jsonb; refused jsonb:='[]'::jsonb; entries jsonb:='[]'::jsonb; acc uuid[]:=array[]::uuid[]; pid uuid[]; ptxt text[]; pkey integer[]; q integer; base integer; total integer; cnt integer;
- rt text[]; rf uuid[]; rs jsonb; changed boolean:=false; seen text[]:=array[]::text[]; removed integer:=0; discard boolean:=false;
+ rt text[]; rf uuid[]; rs jsonb; seen text[]:=array[]::text[]; removed integer:=0; discard boolean:=false; did boolean:=false;
 begin
  select * into run from private.ai_runs where id=p_run;
  if run.id is null or run.job not in ('draft_lens_summary','fold_lens_summary') then return private.ai_apply_base2(p_run,p_lease,p_output,p_usage); end if;
@@ -777,7 +778,7 @@ begin
   end if;
   select array_agg(e->>'text' order by n),array_agg(null::uuid order by n),jsonb_agg(e->'src' order by n) into rt,rf,rs from jsonb_array_elements(entries) with ordinality w2(e,n);
   vid:=private.ls_new_version(sm.id,'ai',run.id,note,rt,rf,rs,false,null,show);
-  changed:=true;
+  did:=true;
   applied:=jsonb_build_array(jsonb_build_object('version',vid,'sentences',cnt));
  else
   -- Fold: the prior lines are kept word for word unless a suggestion is named for the change.
@@ -822,12 +823,12 @@ begin
    seen:=seen||lower(txt);
    if pidv is not null then
     acc:=acc||pidv; pkey[q]:=i*100;
-    if txt<>ptxt[q] then changed:=true; end if;
+    if txt<>ptxt[q] then did:=true; end if;
     entries:=entries||jsonb_build_array(jsonb_build_object('key',i*100,'text',txt,'from',pidv,'src',
       coalesce((select jsonb_agg(distinct u) from (select src.lens_sentence_id::text as u from private.lens_summary_sources src where src.summary_sentence_id=pidv and not src.deleted
          union all select x#>>'{}' from jsonb_array_elements(srcs) x) z(u)),'[]'::jsonb)));
    else
-    changed:=true;
+    did:=true;
     entries:=entries||jsonb_build_array(jsonb_build_object('key',i*100,'text',txt,'from',null,'src',srcs));
    end if;
   end loop;
@@ -837,7 +838,7 @@ begin
    pidv:=case when ref is not null and ids->'s' ? ref then (ids->'s'->>ref)::uuid end;
    sug:=(select count(*) from jsonb_array_elements_text(case when jsonb_typeof(item->'suggestions')='array' then item->'suggestions' else '[]'::jsonb end) g where ids->'g' ? g);
    if pidv is null or not pidv=any(pid) or pidv=any(acc) or sug=0 then refused:=refused||jsonb_build_array(jsonb_build_object('ref',ref,'reason','removal'));
-   else acc:=acc||pidv; removed:=removed+1; changed:=true; end if;
+   else acc:=acc||pidv; removed:=removed+1; did:=true; end if;
   end loop;
   -- A prior line the reply did not account for stays, where it was.
   for j in 1..coalesce(cardinality(pid),0) loop
@@ -848,10 +849,10 @@ begin
    entries:=entries||jsonb_build_array(jsonb_build_object('key',pkey[j],'text',ptxt[j],'from',pid[j],'src',coalesce((select jsonb_agg(src.lens_sentence_id) from private.lens_summary_sources src where src.summary_sentence_id=pid[j] and not src.deleted),'[]'::jsonb)));
   end loop;
   select count(*),sum(length(e->>'text'))+count(*)-1 into cnt,total from jsonb_array_elements(entries) e;
-  if cnt>8 then changed:=false; refused:=refused||jsonb_build_array(jsonb_build_object('reason','too_many'));
-  elsif total>420 then changed:=false; refused:=refused||jsonb_build_array(jsonb_build_object('reason','too_long'));
+  if cnt>8 then did:=false; refused:=refused||jsonb_build_array(jsonb_build_object('reason','too_many'));
+  elsif total>420 then did:=false; refused:=refused||jsonb_build_array(jsonb_build_object('reason','too_long'));
   end if;
-  if changed then
+  if did then
    select array_agg(e->>'text' order by (e->>'key')::integer),array_agg(nullif(e->>'from','')::uuid order by (e->>'key')::integer),jsonb_agg(e->'src' order by (e->>'key')::integer)
     into rt,rf,rs from jsonb_array_elements(entries) e;
    vid:=private.ls_new_version(sm.id,'ai',run.id,note,rt,rf,rs,true,cv.id,show);
@@ -859,11 +860,11 @@ begin
   end if;
  end if;
 
- update private.ai_runs set status='ok',changed=changed,finished_at=t,ms=v_ms,output=jsonb_build_object('result',p_output,'applied',applied,'refused',refused),
+ update private.ai_runs set status='ok',changed=did,finished_at=t,ms=v_ms,output=jsonb_build_object('result',p_output,'applied',applied,'refused',refused),
   input_tokens=private.ai_usage(p_usage,'input_tokens',10000000)::integer,output_tokens=private.ai_usage(p_usage,'output_tokens',10000000)::integer,
   cost_usd=private.ai_usage(p_usage,'cost_usd',1000) where id=run.id;
  if r.live_session_id=run.session_id then update public.room_states set results=private.live_results(run.engagement_id) where engagement_id=run.engagement_id; end if;
- return jsonb_build_object('status','ok','changed',changed,'applied',jsonb_array_length(applied),'refused',jsonb_array_length(refused));
+ return jsonb_build_object('status','ok','changed',did,'applied',jsonb_array_length(applied),'refused',jsonb_array_length(refused));
 end $$;
 
 -- A failed lens summary job goes back to the room (the AI is no longer "working") and a failed fold may be tried again
