@@ -44,3 +44,25 @@ export const stallOnNewLayer = (ms: number) => `(() => {
   new MutationObserver(records => { if (records.some(r => [...r.addedNodes].some(n => n.nodeType === 1 && n.classList.contains("tv-layer") && !n.classList.contains("is-leaving")))) stall(); })
     .observe(document.body, { childList: true, subtree: true });
 })()`;
+
+// Records when a count on the TV rises, for kinds whose answers are not in the server's latency log. `count` is an
+// expression run on the TV page; each unit it rises by is stamped with the clock (the TV page and the kit share one).
+export const arrivalRecorder = (count: string) => `(() => {
+  const w = window; if (w.__arr) w.__arr.stop = true;
+  const a = w.__arr = { times: [], last: ${count}, stop: false };
+  const tick = () => { if (a.stop) return; const n = (${count}); while (a.last < n) { a.times.push(Date.now()); a.last++; } if (n < a.last) a.last = n; requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+})()`;
+// Records the first time each marked text (a token such as k3u1) appears in any element the selector names.
+export const tokenRecorder = (selector: string, pattern: string) => `(() => {
+  const w = window; if (w.__tok) w.__tok.stop = true;
+  const a = w.__tok = { seen: {}, stop: false }, re = new RegExp(${JSON.stringify(pattern)}, "g");
+  const tick = () => { if (a.stop) return; for (const el of document.querySelectorAll(${JSON.stringify(selector)})) for (const m of (el.textContent || "").matchAll(re)) if (!a.seen[m[0]]) a.seen[m[0]] = Date.now(); requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+})()`;
+// The 95th percentile and the share under a second of a list of times in milliseconds.
+export const spread = (ms: number[]) => {
+  const sorted = [...ms].sort((a, b) => a - b), at = (q: number) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(q * sorted.length) - 1)] : 0;
+  const under = sorted.filter(x => x < 1000).length;
+  return { n: sorted.length, under, share: sorted.length ? Math.floor(under / sorted.length * 1000) / 10 : 0, p50: Math.round(at(0.5)), p95: Math.round(at(0.95)), max: Math.round(sorted.at(-1) ?? 0) };
+};
