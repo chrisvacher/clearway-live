@@ -85,7 +85,8 @@ async function main() {
       const text = await page.locator(".map-doc").innerText();
       assert.ok(text.includes("Not signed off yet"), "lenses start unsigned");
       assert.ok(text.includes("Left for the church's Annual Planning") || text.includes("Left for the church’s Annual Planning"), "This Year's Priorities is empty");
-      assert.ok(text.includes("10-year Future") && text.includes("3-year Vision") && text.includes("1-year Outlook"), "horizon terms");
+      const lower = text.toLowerCase(); // the labels are set in capitals
+      assert.ok(lower.includes("10-year future") && lower.includes("3-year vision") && lower.includes("1-year outlook"), "horizon terms");
       await shot(page, "map-empty");
     });
 
