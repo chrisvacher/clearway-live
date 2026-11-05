@@ -1,0 +1,142 @@
+{
+ "about": "Fixture for the propose_candidates prompt (INT-13), from the fictional Riverside engagement. The inputs are what ai_claim hands the worker; the reply is recorded for the fake client.",
+ "cases": [
+  {
+   "name": "Riverside proposes six candidates from all five lenses",
+   "inputs": {
+    "lens_names": [
+     "Congregation",
+     "Community",
+     "Leadership",
+     "Operations",
+     "Learning"
+    ],
+    "base_year": 2026,
+    "min": 6,
+    "max": 10,
+    "sentences": [
+     {
+      "ref": "s1",
+      "id": "76000000-0000-4000-8000-000000000001",
+      "lens": 1,
+      "text": "Neighbours borrow our hall most weekdays",
+      "cluster": "c1"
+     },
+     {
+      "ref": "s2",
+      "id": "76000000-0000-4000-8000-000000000002",
+      "lens": 1,
+      "text": "Strangers are welcomed by name at the door",
+      "cluster": "c1"
+     },
+     {
+      "ref": "s3",
+      "id": "76000000-0000-4000-8000-000000000003",
+      "lens": 1,
+      "text": "We pray together before every meal",
+      "cluster": null
+     },
+     {
+      "ref": "s4",
+      "id": "76000000-0000-4000-8000-000000000004",
+      "lens": 2,
+      "text": "The street knows our church by its open doors",
+      "cluster": null
+     },
+     {
+      "ref": "s5",
+      "id": "76000000-0000-4000-8000-000000000005",
+      "lens": 2,
+      "text": "Our neighbours sit at our table every week",
+      "cluster": null
+     },
+     {
+      "ref": "s6",
+      "id": "76000000-0000-4000-8000-000000000006",
+      "lens": 2,
+      "text": "Guests are greeted before they find a seat",
+      "cluster": "c1"
+     },
+     {
+      "ref": "s7",
+      "id": "76000000-0000-4000-8000-000000000007",
+      "lens": 3,
+      "text": "Leaders are raised here and sent out",
+      "cluster": null
+     },
+     {
+      "ref": "s8",
+      "id": "76000000-0000-4000-8000-000000000008",
+      "lens": 3,
+      "text": "Every leader has an apprentice",
+      "cluster": null
+     },
+     {
+      "ref": "s9",
+      "id": "76000000-0000-4000-8000-000000000009",
+      "lens": 3,
+      "text": "Mentors walk with young leaders",
+      "cluster": null
+     },
+     {
+      "ref": "s10",
+      "id": "76000000-0000-4000-8000-000000000010",
+      "lens": 4,
+      "text": "Volunteers share the work across many hands",
+      "cluster": null
+     },
+     {
+      "ref": "s11",
+      "id": "76000000-0000-4000-8000-000000000011",
+      "lens": 4,
+      "text": "We serve without burning out",
+      "cluster": null
+     },
+     {
+      "ref": "s12",
+      "id": "76000000-0000-4000-8000-000000000012",
+      "lens": 4,
+      "text": "Our budget funds what we pray about",
+      "cluster": null
+     },
+     {
+      "ref": "s13",
+      "id": "76000000-0000-4000-8000-000000000013",
+      "lens": 5,
+      "text": "Everyone is learning and growing in discipleship",
+      "cluster": null
+     },
+     {
+      "ref": "s14",
+      "id": "76000000-0000-4000-8000-000000000014",
+      "lens": 5,
+      "text": "Teaching happens at every table",
+      "cluster": null
+     },
+     {
+      "ref": "s15",
+      "id": "76000000-0000-4000-8000-000000000015",
+      "lens": 5,
+      "text": "Prayer comes first in every decision",
+      "cluster": null
+     }
+    ],
+    "clusters": [
+     {
+      "ref": "c1",
+      "lens": 1,
+      "label": "Welcome at the door",
+      "count": 3
+     }
+    ]
+   },
+   "reply": "{\"candidates\": [{\"name\": \"Welcome at the door\", \"sources\": [\"c1\", \"s5\"]}, {\"name\": \"Neighbours at our table\", \"sources\": [\"s4\", \"s5\"]}, {\"name\": \"Leaders raised and sent out\", \"sources\": [\"s7\", \"s8\", \"s9\"]}, {\"name\": \"Shared work, no burnout\", \"sources\": [\"s10\", \"s11\"]}, {\"name\": \"Learning at every table\", \"sources\": [\"s13\", \"s14\"]}, {\"name\": \"Prayer first in everything\", \"sources\": [\"s3\", \"s12\", \"s15\"]}]}",
+   "expect": {
+    "min": 6,
+    "max": 10,
+    "lenses": 5,
+    "minSources": 2
+   }
+  }
+ ]
+}

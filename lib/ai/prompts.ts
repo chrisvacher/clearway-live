@@ -2,8 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "propose_candidates";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "propose_candidates"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
@@ -16,12 +16,18 @@ export type SummaryInputs = { question: string; count: number; cut_at: string; a
 export type FoldInputs = { questions: { ref: string; id: string; text: string; asked: number }[] };
 // The pre-mortem's reasons (it is 2029 and the plan failed): text and how many people placed each.
 export type ReasonInputs = { reasons: { ref: string; key: string; text: string; count: number }[]; total: number };
-export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs;
+// The candidate priorities (INT-13): every standing sentence of every opened lens wall, under short refs, with the
+// cluster it sits in. The model proposes 6 to 10 candidates, each with the sentences it rests on.
+export type CandidateInputs = { lens_names?: string[]; base_year?: number; min: number; max: number;
+  sentences: { ref: string; id: string; lens: number; text: string; cluster: string | null }[];
+  clusters: { ref: string; lens: number; label: string; count: number }[] };
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | CandidateInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
 export type SummaryOutput = { summary: string };
-export type AiOutput = MergeOutput | GroupOutput | SummaryOutput;
+export type CandidateOutput = { candidates: { name: string; sources: string[] }[] };
+export type AiOutput = MergeOutput | GroupOutput | SummaryOutput | CandidateOutput;
 
 export type Prompt = { job: AiJob; version: string; system: string; maxTokens: number; user: (inputs: AiInputs) => string; parse: (text: string, inputs: AiInputs) => AiOutput };
 
@@ -220,6 +226,34 @@ export const prompts: Record<AiJob, Prompt> = {
     ].join("\n"),
     user: inputs => JSON.stringify({ reasons: (inputs as ReasonInputs).reasons.map(r => ({ ref: r.ref, text: r.text, placed: r.count })) }),
     parse: (text, inputs) => merges(text, (inputs as ReasonInputs).reasons?.map(r => ({ ref: r.ref, texts: [r.text] })) ?? []),
+  },
+  propose_candidates: {
+    job: "propose_candidates", version: "propose-candidates@1", maxTokens: 2500,
+    system: [
+      "You help the facilitator of a church team's Wayfinding retreat, run by Clearway Church Solutions. The team has just described their 10-year Future through the Five Lenses, one sentence at a time, in the present tense.",
+      "Propose between 6 and 10 candidate priorities that the room could turn into provisional Vision Outcomes. A candidate is a direction that several sentences point at, drawn from all Five Lenses, not only the loudest one. Cover every lens that has sentences.",
+      "Give each candidate a short name in plain words: at most 10 words and 80 characters, sentence case, a thing that is true or happening in ten years, not a task. Never put a person's name, a quote or a number the sentences do not contain in a name.",
+      "Each candidate must rest on at least two of the sentences you are given, named by their refs (s1, s2...). A cluster ref (c1...) stands for all sentences in that cluster. Never invent a source. Never write a candidate the sentences do not support. If the sentences support fewer than 6, give fewer.",
+      "Do not merge two different directions to reach a count, and do not split one direction to reach a count. Do not rank the candidates. The room decides.",
+      "Use Clearway's terms exactly: 10-year Future, 3-year Vision, Vision Outcomes.",
+      `Reply as {"candidates":[{"name":"...","sources":["s2","s5","c1"]}]}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as CandidateInputs; return JSON.stringify({ lenses: i.lens_names, year: i.base_year, clusters: i.clusters.map(c => ({ ref: c.ref, lens: c.lens, label: c.label, count: c.count })),
+      sentences: i.sentences.map(x => ({ ref: x.ref, lens: x.lens, text: x.text, ...(x.cluster ? { cluster: x.cluster } : {}) })) }); },
+    parse: (text, inputs) => {
+      const i = inputs as CandidateInputs, raw = replyJson(text).candidates, known = new Set(i.sentences.map(x => x.ref));
+      const expand = (value: unknown): string[] => {
+        const ref = typeof value === "string" ? value.trim().toLowerCase() : typeof value === "number" && Number.isInteger(value) ? `s${value}` : "";
+        if (known.has(ref)) return [ref];
+        return /^c\d+$/.test(ref) ? i.sentences.filter(x => x.cluster === ref).map(x => x.ref) : [];
+      };
+      return { candidates: (Array.isArray(raw) ? raw : []).slice(0, 30).flatMap(c => {
+        const item = (c && typeof c === "object" ? c : {}) as Record<string, unknown>;
+        const name = typeof item.name === "string" ? item.name.replace(/\s+/g, " ").trim().slice(0, 120) : "";
+        const sources = [...new Set(listOf(item.sources).flatMap(expand))].slice(0, 40);
+        return name ? [{ name, sources }] : [];
+      }) };
+    },
   },
 };
 export const promptVersions = Object.fromEntries(aiJobs.map(job => [job, prompts[job].version])) as Record<AiJob, string>;
