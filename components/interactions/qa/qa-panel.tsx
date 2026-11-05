@@ -1,4 +1,5 @@
 "use client";
+import { pressId } from "@/lib/control/own-presses";
 import "./qa.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Eye, EyeOff, Pencil, RotateCcw, Sun, SunDim, Undo2, X } from "lucide-react";
@@ -36,7 +37,7 @@ export function QaPanel({ room, onClose, headingId = "ctl-items-title", session 
   const press = useCallback(async (action: QaAction, extra: Record<string, unknown> = {}) => {
     setBusy(true); setMessage("");
     try {
-      const response = await fetch(`/api/control/${engagement}/qa`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: crypto.randomUUID(), action, ...extra }) });
+      const response = await fetch(`/api/control/${engagement}/qa`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), action, ...extra }) });
       const data = await response.json() as { status: string };
       setMessage(qaMessage(data.status)); load.current();
       return data.status;

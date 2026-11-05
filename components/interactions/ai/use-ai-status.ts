@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { Room } from "@/components/control/live-controls";
 import type { AiAction, AiStatus } from "@/lib/interactions/ai";
+import { pressId } from "@/lib/control/own-presses";
 
 // One reader of the AI panel per engagement and step, shared by every AI piece on the page
 // (the panel, the lists, the remote), polled as a backstop and read again on each room version.
@@ -43,7 +44,7 @@ export function useAiStatus(room: Room, session?: string | null) {
   const press = useCallback(async (action: AiAction, extra: Record<string, unknown> = {}) => {
     setBusy(true); setMessage("");
     try {
-      const response = await fetch(`/api/control/${engagement}/ai`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: crypto.randomUUID(), action, ...extra }) });
+      const response = await fetch(`/api/control/${engagement}/ai`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), action, ...extra }) });
       const data = await response.json() as { status: string };
       if (!["ok", "unchanged", "duplicate"].includes(data.status)) setMessage(aiMessages[data.status] ?? aiMessages.unavailable);
       void read(key, url);

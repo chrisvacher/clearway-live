@@ -1,4 +1,5 @@
 "use client";
+import { useFitCount } from "@/components/tv/use-fit-count";
 import "./outcomes.css";
 import { useEffect, useRef, useState } from "react";
 import { CircleAlert, Check, Hand, List, PencilLine } from "lucide-react";
@@ -54,26 +55,28 @@ export function BulletsTv({ session, frame, flow }: TvViewProps) {
     const timer = setTimeout(() => setNewest(null), ms("cwl-dur-new-hold", 1200));
     return () => clearTimeout(timer);
   }, [newest]);
+  // The newest bullets that fit above the "+ N earlier" line; the older ones are counted on it.
+  const list = useRef<HTMLDivElement>(null), fit = useFitCount(list, bullets.length, "end");
   if (!current) return <div className="tv-board tv-oc"><p className="oc-note">Waiting for the Vision Outcomes.</p></div>;
-  const floor = bullets.length > 4;
+  const floor = bullets.length > 4, out = bullets.length - fit, earlier = current.earlier + out;
   return <div className="tv-board tv-oc"><div className="oc-bullets" data-screen="outcome-bullets">
     <div className="oc-main">
       <div className="oc-title"><span className="oc-num">{current.number}</span><span className="oc-t">{current.title}</span></div>
-      <div className="oc-blist" role="list" aria-label="Bullets">
+      <div className="oc-blist" role="list" aria-label="Bullets" ref={list}>
         {bullets.length === 0 && <div className="oc-empty is-flagged" role="listitem">
           <span className="oc-flag"><CircleAlert aria-hidden="true" />Needs a bullet</span>
           <span className="oc-empty-note">No one has said what&rsquo;s true in {data.year ?? "this year"} yet.</span></div>}
-        {bullets.map(b => <div key={b.id} role="listitem" className={`oc-bullet${floor ? " is-floor" : ""}${newest === b.id ? " is-newest" : ""}${b.typing ? " is-typing" : ""}`} data-newest={newest === b.id ? "true" : undefined}>
+        {bullets.map((b, i) => <div key={b.id} role="listitem" aria-hidden={i < out ? true : undefined} className={`oc-bullet${floor ? " is-floor" : ""}${newest === b.id ? " is-newest" : ""}${b.typing ? " is-typing" : ""}${i < out ? " is-out" : ""}`} data-newest={newest === b.id ? "true" : undefined}>
           <span><Typed text={b.text} /></span></div>)}
       </div>
-      <p className="oc-more">{current.earlier > 0 ? `+ ${current.earlier} earlier ${current.earlier === 1 ? "bullet" : "bullets"} on your phones` : ""}</p>
+      <p className="oc-more">{earlier > 0 ? `+ ${earlier} earlier ${earlier === 1 ? "bullet" : "bullets"} on your phones` : ""}</p>
     </div>
-    <aside className="oc-rail" aria-label="Vision Outcomes">
+    <aside className={`oc-rail${data.outcomes.length > 4 ? " is-dense" : ""}`} aria-label="Vision Outcomes">
       <div className="oc-rail-head">Vision Outcomes</div>
       {data.outcomes.map(o => <div key={o.id} className={`oc-orow${o.id === current.id ? " is-current" : ""}${o.empty ? " is-flagged" : ""}`}
         aria-label={`${o.title}, ${o.count ? `${o.count} ${o.count === 1 ? "bullet" : "bullets"}` : "no bullets yet"}`}>
         <span className="oc-num">{o.number}</span><span className="oc-t">{o.title}</span>
-        <span className="oc-k">{o.count ? <><List aria-hidden="true" />{o.count}</> : <span className="oc-flag"><CircleAlert aria-hidden="true" />Empty</span>}</span>
+        <span className="oc-k">{o.count ? <><List aria-hidden="true" />{o.count}</> : <span className="oc-flag" title="Empty"><CircleAlert aria-hidden="true" /><span className="sr-only">Empty</span></span>}</span>
       </div>)}
     </aside>
   </div></div>;

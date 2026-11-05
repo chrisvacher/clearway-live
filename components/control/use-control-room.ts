@@ -8,6 +8,7 @@ import { actionNames, confirmedVersion, isSyncing, neighbours, resultMessage, up
 import type { ControlAction, ControlNotice, ControlPress, ControlResult, ControlStatus } from "@/lib/control/types";
 import type { RunOfShow } from "@/lib/run-of-show/types";
 import { sortSessions } from "@/lib/run-of-show/policy";
+import { ownPress, pressId } from "@/lib/control/own-presses";
 
 export type Toast = { id: string; text: string };
 const reloadAfterMs = 12000;
@@ -31,7 +32,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const [lastOk, setLastOk] = useState<number | null>(null);
   const [connection, setConnection] = useState<LiveTransport | null>(null);
   const started = useRef(Date.now()), history = useRef(new Map<number, LiveSnapshot>()), appliedAt = useRef(new Map<number, number>());
-  const acks = useRef(new Map<string, number>()), mine = useRef(new Set<string>()), clock = useRef({ offsetMs: 0 });
+  const acks = useRef(new Map<string, number>()), clock = useRef({ offsetMs: 0 });
   const refreshStatus = useRef<() => void>(() => {}), refreshShow = useRef<() => void>(() => {});
 
   const toast = useCallback((text: string) => {
@@ -114,7 +115,9 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
         if ((acks.current.get(notice.screen) ?? 0) < notice.version) { acks.current.set(notice.screen, notice.version); setAckTick(t => t + 1); }
         return;
       }
-      if (notice.id && !mine.current.has(notice.id) && notice.by) toast(`${notice.by} pressed ${actionNames[notice.action] ?? notice.action}`);
+      // Only a press from another device or the team facilitator's remote; this device's own presses, from
+      // any of its panels, never show as "From another remote".
+      if (notice.id && !ownPress(notice.id) && notice.by) toast(`${notice.by} pressed ${actionNames[notice.action] ?? notice.action}`);
       refreshStatus.current(); refreshShow.current();
     }, () => {});
   }, [connection, topic, toast]);
@@ -154,7 +157,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const waiting = awaiting !== null && confirmed !== null && confirmed < awaiting;
 
   const press = useCallback(async (action: ControlAction, extra: Omit<ControlPress, "id" | "action"> = {}) => {
-    const id = crypto.randomUUID(); mine.current.add(id);
+    const id = pressId();
     setPending(action); setMessage("");
     try {
       const response = await fetch(`/api/control/${engagement}`, { method: "POST", headers: { "Content-Type": "application/json" },

@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
+import { useFitCount } from "@/components/tv/use-fit-count";
 import { caretMs, leaveMs, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
@@ -83,7 +84,9 @@ export function LensSummaryView({ frame }: TvViewProps) {
   }, [res.typing, sign]);
   const sweep = useAiSweep<HTMLDivElement>(res.aiState === "drafting" || res.aiState === "folding" ? [`${res.aiState}:${versionId}`] : summary?.author === "ai" ? [versionId] : [], res.lens ? String(res.lens) : null);
   const names = res.lens ? Object.assign([] as string[], { [res.lens - 1]: res.lensName }) : null;
-  const cards = res.suggestions.slice(0, shownSuggestions), further = Math.max(0, res.tally.suggest - cards.length);
+  // The suggestion cards that fit whole above the "+ n more on phones" line; the rest are counted on it.
+  const cards = res.suggestions.slice(0, shownSuggestions), fit = useFitCount(cardsRef, cards.length, "start", 0);
+  const further = Math.max(0, res.tally.suggest - fit);
   return <div className="lsm-tv" data-lens-summary data-ai-state={res.aiState} data-signed={summary?.signed ? "true" : "false"}>
     <header className="lsm-head">
       {res.lens && <LensHeading lens={res.lens} names={names} />}
@@ -114,7 +117,7 @@ export function LensSummaryView({ frame }: TvViewProps) {
           <div><dt>Suggested a change</dt><dd data-tally="suggest">{res.tally.suggest}</dd></div>
         </dl>
         <ul className="lsm-cards" ref={cardsRef}>
-          {cards.map(c => <li key={c.id} className="lsm-card" data-suggestion>{c.text}</li>)}
+          {cards.map((c, i) => <li key={c.id} className={`lsm-card${i >= fit ? " is-out" : ""}`} aria-hidden={i >= fit ? true : undefined} data-suggestion>{c.text}</li>)}
         </ul>
         {further > 0 && <p className="lsm-more" data-more-suggestions>{moreOnPhones(further)}</p>}
       </aside>

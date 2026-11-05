@@ -5,6 +5,8 @@ import type { ControlPanelProps } from "@/components/interactions/control-panels
 import { AiIcon, AiMark } from "@/components/interactions/ai/ai-icon";
 import { pressMessages } from "@/lib/interactions/goals";
 import { aiStateLine, facilitatorState, maxLines, summaryLimit, type FacilitatorState } from "@/lib/interactions/lens-summary";
+import { pressId } from "@/lib/control/own-presses";
+import { lensDecisionField } from "@/components/control/mark-decision";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
 
@@ -18,7 +20,7 @@ const Private = ({ title, children }: { title: string; children: React.ReactNode
 
 async function post(engagement: string, body: Record<string, unknown>) {
   try {
-    const r = await fetch(`/api/control/${engagement}/lens-summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: crypto.randomUUID(), ...body }) });
+    const r = await fetch(`/api/control/${engagement}/lens-summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), ...body }) });
     const out = await r.json().catch(() => ({})) as { status?: string };
     return out.status ?? "unavailable";
   } catch { return "unavailable"; }
@@ -134,7 +136,7 @@ export function LensSummaryPanel({ room }: ControlPanelProps) {
         <p role="status" data-decision><Check size={16} aria-hidden="true" /> {sm.decision.decision}{sm.decision.reasons ? <small> · {sm.decision.reasons}</small> : null}</p>
         <button type="button" className="show-button is-small" disabled={busy} onClick={() => void act({ action: "undecide" })}><Undo2 size={16} aria-hidden="true" />Take back to the screen</button>
       </> : <>
-        <label className="lsm-field">What the room decided<input maxLength={400} value={word} onChange={e => setWord(e.target.value)} /></label>
+        <label className="lsm-field">What the room decided<input id={lensDecisionField} maxLength={400} value={word} onChange={e => setWord(e.target.value)} /></label>
         <label className="lsm-field">Reasons, if any<textarea rows={2} maxLength={1000} value={reasons} onChange={e => setReasons(e.target.value)} /></label>
         <button type="button" className="show-button is-primary" disabled={busy || !sm?.versionId || lines.length === 0} onClick={() => void act({ action: "decide", decision: word, reasons })}><Check size={16} aria-hidden="true" />Mark a decision</button>
       </>}

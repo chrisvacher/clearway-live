@@ -24,7 +24,19 @@ const issueLabel: Record<MapIssue["kind"], string> = { risk: "Risk", tension: "T
 const empty = (why?: string) => `_Empty. ${why ?? ""}_`.trim();
 const bullets = (items: string[]) => items.map(i => `- ${i}`).join("\n");
 const field = (f: MapField) => f.empty ? empty(f.why) : f.items ? bullets(f.items) : f.text ?? "";
-const goalLine = (g: MapGoal) => `- ${g.title}${g.result ? `: ${g.result}` : ""}${g.owner ? ` (${g.owner}` : ""}${g.owner && g.end_date ? `, ${g.end_date})` : g.owner ? ")" : g.end_date ? ` (${g.end_date})` : ""}`;
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+// An end date as people write it: "June 30, 2027". The date is the calendar day as stored, never moved by a
+// time zone. Anything that is not a plain date is shown as it came.
+export function mapDate(value: string | null | undefined): string {
+  if (!value) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  const month = m ? months[Number(m[2]) - 1] : undefined;
+  return m && month && Number(m[3]) >= 1 && Number(m[3]) <= 31 ? `${month} ${Number(m[3])}, ${m[1]}` : value;
+}
+const goalLine = (g: MapGoal) => {
+  const end = mapDate(g.end_date);
+  return `- ${g.title}${g.result ? `: ${g.result}` : ""}${g.owner ? ` (${g.owner}` : ""}${g.owner && end ? `, ${end})` : g.owner ? ")" : end ? ` (${end})` : ""}`;
+};
 
 // A plain text copy of the Map, for the export.
 export function mapMarkdown(d: MapDraft): string {

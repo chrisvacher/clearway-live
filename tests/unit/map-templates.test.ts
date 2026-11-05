@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { mapMarkdown, type MapDraft } from "../../lib/wayfinding/map";
+import { mapDate, mapMarkdown, type MapDraft } from "../../lib/wayfinding/map";
 
 type Item = { title: string; part: string; interaction: string; planned_minutes: number; notes?: string; prompt?: string; offset?: number; day?: number; team_led?: boolean; options?: Record<string, unknown>; segment?: string; mode?: string };
 const sql = readFileSync("supabase/migrations/20261104180000_map_templates.sql", "utf8");
@@ -54,4 +54,15 @@ test("the text copy keeps both pages, the horizon terms and the empty states", (
   assert.ok(md.includes("Leaders raised from within** (provisional)"));
   assert.ok(md.includes("- Risk: We tried all five at once (Launch a season apart)"));
   assert.ok(!/[–—]/.test(md));
+});
+test("end dates read as people write them, in the copy and on the page", () => {
+  const md = mapMarkdown(draft);
+  assert.ok(md.includes("- Launch the pathway: 8 placed (Priya, April 30, 2027)"), md);
+  assert.ok(!md.includes("2027-04-30"));
+  assert.equal(mapDate("2027-06-30"), "June 30, 2027");
+  assert.equal(mapDate("2027-01-01"), "January 1, 2027");
+  assert.equal(mapDate("2027-12-31T00:00:00Z"), "December 31, 2027", "a stored day is never moved by a time zone");
+  assert.equal(mapDate(""), "");
+  assert.equal(mapDate(undefined), "");
+  assert.equal(mapDate("Spring"), "Spring", "anything else shows as it came");
 });

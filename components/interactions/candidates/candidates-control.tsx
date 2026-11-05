@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { EyeOff, Merge, Pencil, Plus, Send, Sparkles, Trash2, Undo2, X, Check } from "lucide-react";
 import type { ControlPanelProps } from "@/components/interactions/control-panels";
 import { candidatesOf, cutRange, markWarning, pressMessages, sentenceCount, stateOf, suggestionLine, type CandidateRow, type CandidatesState } from "@/lib/interactions/candidates";
+import { pressId } from "@/lib/control/own-presses";
 import "./candidates.css";
 
 // The facilitator's side of the candidate priorities (D1-07 to D1-10). The AI's candidates, the sentences
@@ -14,7 +15,7 @@ const Private = ({ title, children }: { title: string; children: React.ReactNode
 
 async function press(engagement: string, body: Record<string, unknown>) {
   try {
-    const r = await fetch(`/api/control/${engagement}/candidates`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: crypto.randomUUID(), ...body }) });
+    const r = await fetch(`/api/control/${engagement}/candidates`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), ...body }) });
     const out = await r.json().catch(() => ({})) as { status?: string };
     return out.status ?? "unavailable";
   } catch { return "unavailable"; }

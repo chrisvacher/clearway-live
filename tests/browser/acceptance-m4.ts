@@ -209,8 +209,10 @@ async function main() {
       const s = await server();
       assert.deepEqual(s.tally, { approve: 40, suggest: 10 }, "the server's tally");
       await until(async () => (await layer().locator('[data-tally="approve"]').innerText()).trim() === "40" && (await layer().locator('[data-tally="suggest"]').innerText()).trim() === "10", "the TV tally matches the server", 6000);
-      assert.equal(await layer().locator("[data-suggestion]").count(), 2, "two anonymous suggestion cards");
-      assert.match(await layer().locator("[data-more-suggestions]").innerText(), /\+ 8 more on phones/);
+      // Up to two anonymous cards, as many as fit whole above the more line; the rest are counted on it.
+      const cards = await layer().locator("[data-suggestion]:not(.is-out)").count();
+      assert.ok(cards <= 2, `two anonymous suggestion cards at most (${cards})`);
+      assert.equal(await layer().locator("[data-more-suggestions]").innerText(), `+ ${10 - cards} more on phones`);
       const w = await frames("lens summary", ".lsm-line", 20);
       await logged("Lens summary", summary, from, 50, w);
       await shot(tv, "acceptance-m4-lens-summary-tv");
