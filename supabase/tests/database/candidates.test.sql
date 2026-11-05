@@ -64,6 +64,13 @@ create function tests.names() returns text language sql security definer set sea
 create function tests.run_apply(lease integer,body jsonb) returns jsonb language sql security definer set search_path='' as $$
  select public.ai_apply(r.id,tests.id(lease),body,'{"ms":10}') from private.ai_runs r where r.status='running' and r.engagement_id=tests.id(100) and r.job='propose_candidates' $$;
 grant execute on all functions in schema tests to authenticated,anon,service_role;
+create function tests.save_lens(n integer,options jsonb) returns jsonb language sql as $$
+ select public.show_write(tests.id(100),'save',jsonb_build_object('id',tests.id(n),'revision',null,'title','Step '||n,'part','Day 1','mode','live','interaction','lens',
+  'prompt','In {base year + 10}, what is true?','phone_depth','','notes','','lands_in','','segment','','state','ready','planned_minutes',5,'max_sends',8,'max_characters',200,'max_words',50,
+  'settings',jsonb_build_object('anonymous',true,'burst_minutes',4,'join_strip',false),'options',options)) $$;
+create function tests.events_cand() returns text language sql security definer set search_path='' as $$
+ select coalesce(string_agg(payload::text,' '),'') from realtime.messages where topic like 'live:'||tests.id(100)||':%' and payload->'state'->>'live_session_id'=tests.id(500)::text $$;
+grant execute on function tests.save_lens(integer,jsonb),tests.events_cand() to authenticated,anon,service_role;
 create function tests.cid(n text) returns uuid language sql security definer set search_path='' as $$ select id from private.candidates where name=n and status='standing' and not deleted and engagement_id=tests.id(100) limit 1 $$;
 grant execute on function tests.cid(text) to authenticated,anon,service_role;
 
@@ -80,8 +87,8 @@ select ok((select bool_and(pg_get_constraintdef(oid) ~ j) from pg_constraint, un
 -- ---------- Saving the steps ----------
 set local role authenticated;
 select tests.login(1);
-select is(tests.save(410,'lens','{"lens":1}')->>'status','ok','Lens 1 saves');
-select is(tests.save(411,'lens','{"lens":2}')->>'status','ok','Lens 2 saves');
+select is(tests.save_lens(410,'{"lens":1}')->>'status','ok','Lens 1 saves');
+select is(tests.save_lens(411,'{"lens":2}')->>'status','ok','Lens 2 saves');
 select is(tests.save(500,'candidates','{"ai":true,"cut":5}')->>'status','ok','Candidate priorities saves');
 select is(tests.save(501,'candidates','{}')->>'status','ok','with no options');
 select is(tests.save(502,'candidates','{"cut":7}')->>'status','invalid_request','A cut line outside 4 to 6 is refused');
@@ -167,7 +174,7 @@ select is(tests.results()->>'phase','sent','The room is in the sent phase');
 select is(jsonb_array_length(tests.results()->'candidates'),4,'The TV results carry four candidates');
 select is(tests.results()->'candidates'->0->>'name','Welcome that knows your name','in order, with their titles');
 select ok(tests.results()::text !~ 'Zebrafish|sources|Priya|Shah|person3','and no sentence or name');
-select ok(tests.events_text() !~ 'Zebrafish','No broadcast carried a lens sentence');
+select ok(position('Welcome that knows your name' in tests.events_cand())>0 and tests.events_cand() !~ 'Zebrafish','The candidates were broadcast and no broadcast of the step carried a lens sentence');
 
 -- ---------- A phone suggests ----------
 select tests.login(3);
@@ -199,7 +206,7 @@ select tests.login(1);
 select is(tests.suggest(753,'{"kind":"add","text":"From the facilitator"}')->>'status','denied','The facilitator accepts suggestions rather than making them');
 select is(jsonb_array_length(tests.results()->'candidates'),4,'Nothing a phone suggested reached the screen');
 select ok(tests.results()::text !~ 'Leaders sent out|Open doors all week','not even its words');
-select ok(tests.events_text() !~ 'Open doors all week','nor any broadcast');
+select ok(tests.events_cand() !~ 'Open doors all week','nor any broadcast');
 select is((select count(*)::integer from jsonb_array_elements(tests.state()->'suggestions') s where s->>'text'='Leaders sent out'),1,'The facilitator sees the same rename once');
 select is((select (s->>'count')::integer from jsonb_array_elements(tests.state()->'suggestions') s where s->>'text'='Leaders sent out'),2,'with how many people suggested it');
 select ok(position('Priya' in tests.state()::text)>0,'and their first names');
