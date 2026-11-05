@@ -322,6 +322,7 @@ create function private.parse_candidates(p_session public.sessions,p_text text,p
 language plpgsql stable security definer set search_path='' as $$
 declare s2 public.sessions:=p_session; b private.candidate_boards;
 begin
+ perform p_text; -- the points are the value; the text is made from it
  select * into b from private.candidate_boards where session_id=p_session.id and not deleted;
  if b.session_id is null or b.phase<>'points' then return jsonb_build_object('status','invalid_answer'); end if;
  s2.options:=jsonb_build_object('items',coalesce((select jsonb_agg(jsonb_build_object('key',c.id::text,'text',c.name) order by c.position,c.created_at,c.id)
@@ -338,6 +339,7 @@ create function private.results_candidates(p_engagement uuid,p_session uuid,p_hi
 language plpgsql stable security definer set search_path='' as $$
 declare s public.sessions; b private.candidate_boards; ph text; v_cut integer; base jsonb; v_bars jsonb:='[]'::jsonb; n integer;
 begin
+ perform p_hidden; -- candidates are never hidden one by one; the facilitator removes them
  select * into s from public.sessions where id=p_session and engagement_id=p_engagement and not deleted and interaction='candidates';
  if s.id is null then return jsonb_build_object('total',0,'people',0,'words','[]'::jsonb); end if;
  select * into b from private.candidate_boards where session_id=p_session and not deleted;
