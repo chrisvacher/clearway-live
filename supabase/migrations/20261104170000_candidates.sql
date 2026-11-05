@@ -281,7 +281,6 @@ begin
  if b.phase='review' then
   -- A redraft replaces the AI's own candidates that nobody has touched.
   update private.candidates set status='removed' where session_id=run.session_id and status='standing' and not deleted and origin='ai' and not edited;
-  update private.candidates set merged_into=null,status='standing' where false;
   select coalesce(array_agg(lower(name)),array[]::text[]) into names from private.candidates where session_id=run.session_id and status='standing' and not deleted;
   select count(*) into v_standing from private.candidates where session_id=run.session_id and status='standing' and not deleted;
   v_pos:=coalesce((select max(position)+1 from private.candidates where session_id=run.session_id and not deleted),0);
@@ -462,8 +461,8 @@ begin
      'count',cardinality(g.ids),'by',g.by) order by g.first_at)
     from (select q.kind,q.candidate_id,q.into_id,min(q.text) as text,array_agg(q.id order by q.created_at,q.id) as ids,min(q.created_at) as first_at,
        (select name from private.candidates where id=q.candidate_id) as cname,(select name from private.candidates where id=q.into_id) as iname,
-       array_agg(distinct split_part(btrim(at.name),' ',1)) as by
-      from private.candidate_suggestions q join public.attendees at on at.id=q.attendee_id and not at.deleted
+       array_agg(distinct split_part(btrim(att.name),' ',1)) as by
+      from private.candidate_suggestions q join public.attendees att on att.id=q.attendee_id and not att.deleted
       where q.session_id=s.id and q.status='pending' and not q.deleted group by q.kind,q.candidate_id,q.into_id,lower(q.text)) g),'[]'::jsonb),
   'wall',jsonb_build_object('lenses',(select jsonb_agg(jsonb_build_object('lens',n,'name',e.lens_names[n],'open',private.lens_is_open(p_engagement,n::smallint),
      'clusters',coalesce((select jsonb_agg(cl order by cl->>'label') from (
