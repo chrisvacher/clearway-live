@@ -5,7 +5,7 @@
 .lsm-steps { display: flex; gap: 28px; margin: 0; padding: 0; list-style: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 .lsm-steps li { display: inline-flex; align-items: center; gap: 0.3em; transition: color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
 .lsm-steps li[data-state="now"] { color: var(--cwl-text); font-weight: var(--fw-bold); box-shadow: 0 0.12em 0 0 var(--cwl-text); }
-.lsm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) calc(560px * var(--cwl-tv-scale)); gap: 56px; }
+.lsm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) calc(560px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px; }
 .lsm-sheet { position: relative; display: flex; flex-direction: column; gap: 20px; min-height: 0; padding: 32px 40px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
   --cwl-ai-start: var(--cw-royal-blue); --cwl-ai-end: var(--cwl-bright-chartreuse); --cwl-ai-glint: var(--cw-sky-blue); }
 .lsm-band { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 28px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.2; }
@@ -36,7 +36,10 @@
 .lsm-tally div { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); }
 .lsm-tally dt { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; }
 .lsm-tally dd { margin: 0; font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
-.lsm-cards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+/* The cards take the space left between the tally and the "+ n more on phones" line, so the line always
+   has its own room; a card that does not fit whole leaves the flow, unseen, and is counted on it. */
+.lsm-cards { position: relative; flex: 1 1 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+.lsm-card.is-out { position: absolute; top: 0; left: 0; right: 0; visibility: hidden; animation: none; }
 .lsm-card { transition: transform var(--cwl-dur-make-room) var(--cwl-ease-signature); padding: 16px 22px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere;
   animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) backwards; }
 @keyframes lsm-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }

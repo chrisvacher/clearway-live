@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, EyeOff, Pencil, Plus, Trash2, Undo2, X } from "lucide-react";
 import type { ControlPanelProps } from "@/components/interactions/control-panels";
 import { dateLabel, flagsOf, goalsResults, needs, pressMessages } from "@/lib/interactions/goals";
+import { pressId } from "@/lib/control/own-presses";
 import "./goals.css";
 
 // The facilitator's private side of the pre-mortem and the goal builder. Nothing here reaches the TV
@@ -13,7 +14,7 @@ const Private = ({ title, children }: { title: string; children: React.ReactNode
 
 async function send(engagement: string, route: "goals" | "reasons", body: Record<string, unknown>) {
   try {
-    const r = await fetch(`/api/control/${engagement}/${route}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: crypto.randomUUID(), ...body }) });
+    const r = await fetch(`/api/control/${engagement}/${route}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), ...body }) });
     const out = await r.json().catch(() => ({})) as { status?: string };
     return out.status ?? "unavailable";
   } catch { return "unavailable"; }

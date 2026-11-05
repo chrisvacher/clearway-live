@@ -3,6 +3,7 @@ import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvFlow } from "@/lib/tv/flow";
 import { cardNeeds, cardsOf, fieldLockMs, intentFields, lineChange, needsText, shortDate, type IntentCard, type IntentField, type IntentStep } from "@/lib/interactions/intent";
 import { LiveView, make, useLiveView } from "@/components/interactions/grid-form-sign/view-base";
+import { fitLines } from "@/lib/tv/fit";
 import "./intent.css";
 
 // INT-16 on the TV (pass 4 IntentCard). Drafting: every card on the wall, its commander's
@@ -16,12 +17,33 @@ type Line = HTMLElement & { _text?: string; _timer?: ReturnType<typeof setTimeou
 class IntentWall extends LiveView {
   private grid: HTMLElement; private pres: HTMLElement; private empty: HTMLElement;
   private cards = new Map<string, HTMLElement>(); private steps = new Map<string, HTMLElement>(); private presented = "";
-  private typed = new Set<string>();
+  private typed = new Set<string>(); private observer?: ResizeObserver;
   constructor(root: HTMLElement, session: string) {
     super(root, session);
     root.classList.add("int-board");
     root.innerHTML = '<p class="int-empty">Waiting for the first card</p><div class="int-grid"></div><div class="int-present" hidden></div>';
     this.empty = root.querySelector(".int-empty")!; this.grid = root.querySelector(".int-grid")!; this.pres = root.querySelector(".int-present")!;
+    // The cards refit their lines when their space changes (room size, the TV's fit, more cards).
+    if (typeof ResizeObserver === "function") { this.observer = new ResizeObserver(() => this.fitLines()); this.observer.observe(this.grid); }
+    void document.fonts?.ready.then(() => this.fitLines());
+  }
+  destroy() { this.observer?.disconnect(); super.destroy(); }
+  // Each card's intent line shows the whole lines that fit between its title and its progress bar,
+  // up to three, and ends in an ellipsis; the bar keeps its own space below it. A line never runs
+  // into the bar or is cut through the middle of its letters. When not even one line fits under a
+  // two-line title, the card tightens (a one-line title, closer rows) so the intent still shows.
+  private fitLines() {
+    if (!this.root.isConnected || this.grid.hidden) return;
+    for (const card of this.cards.values()) {
+      const line = card.querySelector<HTMLElement>(".int-line")!, hd = card.querySelector<HTMLElement>(".int-hd")!, prog = card.querySelector<HTMLElement>(".int-prog")!;
+      const box = getComputedStyle(card), text = getComputedStyle(line), gap = parseFloat(box.rowGap) || 0;
+      const lh = parseFloat(text.lineHeight) || parseFloat(text.fontSize) * 1.25;
+      const lines = () => fitLines(card.clientHeight - parseFloat(box.paddingTop) - parseFloat(box.paddingBottom) - hd.offsetHeight - prog.offsetHeight - 2 * gap, lh, 3);
+      card.classList.remove("is-tight");
+      let n = lines();
+      if (n === 0) { card.classList.add("is-tight"); n = lines(); if (n === 0) card.classList.remove("is-tight"); }
+      if (line.dataset.lines !== String(n)) { line.dataset.lines = String(n); line.style.setProperty("--int-lines", String(n)); }
+    }
   }
   // Put a line's text in place. Typing edits it in place; a rewrite crossfades; the first draw is instant.
   private line(el: Line, text: string, instant: boolean, blank = "Not drafted yet") {
@@ -112,6 +134,7 @@ class IntentWall extends LiveView {
     this.grid.hidden = Boolean(one) || cards.length === 0;
     this.pres.hidden = !one;
     if (one) this.present(one, year, instant); else this.presented = "";
+    this.fitLines();
   }
   protected frame() { return false; }
 }

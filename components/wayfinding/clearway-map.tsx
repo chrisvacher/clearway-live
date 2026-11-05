@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CircleDashed, Download, Printer } from "lucide-react";
-import type { MapDraft, MapField, MapGoal } from "@/lib/wayfinding/map";
+import { mapDate, type MapDraft, type MapField, type MapGoal } from "@/lib/wayfinding/map";
 import "./clearway-map.css";
 
 // An empty field says it is empty and why. Nothing is invented.
@@ -11,7 +11,7 @@ const Field = ({ label, f }: { label: string; f: MapField }) => <div className={
 </div>;
 const Empty = ({ why }: { why?: string }) => <p className="map-empty"><CircleDashed size={14} aria-hidden="true" />{why}</p>;
 const Goals = ({ goals }: { goals: MapGoal[] }) => <ul className="map-goals">{goals.map(g => <li key={g.id}><strong>{g.title}</strong>{g.result && <span>{g.result}</span>}
-  <small>{[g.owner, g.end_date].filter(Boolean).join(" · ")}</small></li>)}</ul>;
+  <small>{[g.owner, mapDate(g.end_date)].filter(Boolean).join(" · ")}</small></li>)}</ul>;
 
 // The draft Map on the control surface. Facilitators only: it is never sent to the TV or phones.
 export function ClearwayMap({ engagement, initial }: { engagement: string; initial: MapDraft }) {

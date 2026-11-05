@@ -178,6 +178,8 @@ async function main() {
 
     await step("Follow-up: a link and a code from the lead, no Clearway sign-in", async () => {
       await press(fac, sql, room.id, "go_live", { session: intent });
+      // The room's own handover is still open, given to Ben in the room.
+      assert.equal((await rpc("handover_control", { p_id: randomUUID(), p_action: "give", p: { from: intent, attendee: room.attendees[1].id } })).status, "ok");
       const issued = await postJson(`${app.origin}/api/control/${room.id}/followup`, { headers: origin, data: { action: "issue", attendee: room.attendees[0].id, sessions: [intent, sign],
         opens_at: new Date(Date.now() - 60000).toISOString(), closes_at: new Date(Date.now() + 2 * 3600000).toISOString() } });
       const out = await issued.json(); assert.equal(out.status, "ok", JSON.stringify(out));
@@ -193,8 +195,16 @@ async function main() {
       const scope = await visitor.locator(".hi-scope").first().innerText();
       assert.ok(scope.includes("alignment signal") && scope.includes("Presenter notes") && scope.includes("Discover data"), "the page says what the remote never shows");
       await shot(visitor, "follow-up-enter");
+      // Ben holds the room's own handover: the phone says what to do, in plain words.
+      await visitor.getByRole("button", { name: "Take the remote" }).click();
+      await visitor.getByText("The room’s own handover is still open. Ask Chris to end it.").waitFor({ timeout: 8000 });
+      assert.equal((await state()).remote_holder_id, room.attendees[1].id, "Ben keeps the remote");
+      // Handed to Priya in the room instead: her follow-up phone carries that same handover on.
+      assert.equal((await rpc("handover_control", { p_id: randomUUID(), p_action: "give", p: { from: intent, attendee: room.attendees[0].id } })).status, "ok");
       await visitor.getByRole("button", { name: "Take the remote" }).click();
       await visitor.getByRole("button", { name: /^Next/ }).waitFor({ timeout: 8000 });
+      assert.ok((await sql.query("select followup_id from private.team_blocks where engagement_id=$1 and ended_at is null", [room.id])).rows[0]?.followup_id, "the open block is now the follow-up's");
+      assert.equal(await visitor.getByText(/This access ends/).count(), 1, "the access's end shows once");
       assert.equal((await state()).remote_holder_id, room.attendees[0].id, "the team facilitator holds the remote");
       await visitor.getByRole("button", { name: /^Next/ }).click();
       await until(async () => (await state()).live_session_id === sign, "Next moved the room", 8000);
@@ -203,6 +213,9 @@ async function main() {
       const shared = await (await browser!.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
       await shared.goto(out.link + "/tv");
       await shared.locator("#fu-code").fill(out.code); await shared.getByRole("button", { name: "Enter" }).click();
+      await shared.getByRole("button", { name: "Show the TV view" }).waitFor({ timeout: 8000 });
+      const tvCopy = await shared.locator("main").innerText();
+      assert.ok(tvCopy.includes("with private notes left out") && !tvCopy.includes("names and private notes"), "the TV view's copy is accurate: Affirm together shows first names");
       await shared.getByRole("button", { name: "Show the TV view" }).click();
       await shared.locator(".tv-church-logo").waitFor({ timeout: 25000 });
       await shot(shared, "follow-up-tv-view");
@@ -213,6 +226,32 @@ async function main() {
       await visitor.reload();
       await visitor.locator("#fu-code").waitFor({ timeout: 8000 });
       assert.equal(await visitor.getByRole("button", { name: /^Next/ }).count(), 0, "a revoked link has no remote");
+    });
+
+    await step("INT-16 Six cards at Medium and Very small: each intent line stops above its progress bar, in whole lines", async () => {
+      for (const [i, title] of ["Families find a home here", "New faith stories", "Every generation serves"].entries()) await sql.query("insert into private.vision_outcomes(engagement_id,title,status,confirmed_at,position) values($1,$2,'confirmed',now(),$3)", [room.id, title, 10 + i]);
+      await sql.query("select private.intent_sync($1)", [room.id]);
+      await sql.query("update private.intent_cards set intent='Every newcomer is known by name and belongs to a group within six weeks of their first Sunday with us' where engagement_id=$1", [room.id]);
+      await press(fac, sql, room.id, "go_live", { session: intent });
+      await until(async () => await layer().locator(".int-card").count() === 6, "six cards on the TV", 10000);
+      for (const size of ["medium", "very_small"]) {
+        await press(fac, sql, room.id, "room_size", { size });
+        await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+        await delay(800);
+        const cards = await layer().locator(".int-card").evaluateAll(els => els.map(card => {
+          const line = card.querySelector<HTMLElement>(".int-line")!, prog = card.querySelector(".int-prog")!.getBoundingClientRect(), box = card.getBoundingClientRect();
+          const r = line.getBoundingClientRect(), shown = getComputedStyle(line).display !== "none" && r.height > 0;
+          const lh = parseFloat(getComputedStyle(line).lineHeight), scale = box.height / (card as HTMLElement).offsetHeight;
+          return { shown, top: box.top, hd: card.querySelector(".int-hd")!.getBoundingClientRect().height, tight: card.classList.contains("is-tight"), bottom: r.bottom, prog: prog.top, progBottom: prog.bottom, cardBottom: box.bottom, lines: shown ? Math.round(line.clientHeight / lh) : 0, whole: !shown || Math.abs(line.clientHeight - Math.round(line.clientHeight / lh) * lh) < 1, scale };
+        }));
+        for (const c of cards) {
+          assert.ok(c.shown, `${size}: the intent shows on every card (${JSON.stringify(c)})`);
+          assert.ok(c.bottom <= c.prog + 0.5, `${size}: the intent stops above its progress bar (${JSON.stringify(c)})`);
+          assert.ok(c.progBottom <= c.cardBottom + 0.5, `${size}: the bar keeps its space inside the card`);
+          assert.ok(c.whole && c.lines >= 1 && c.lines <= 3, `${size}: whole lines, one to three (${JSON.stringify(c)})`);
+        }
+        await shot(tv, `int-16-six-cards-${size}`);
+      }
     });
 
     console.log(`Handover and commander's intent kit: ${passed.length} checks passed.`);

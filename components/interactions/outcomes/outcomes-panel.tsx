@@ -1,4 +1,5 @@
 "use client";
+import { pressId } from "@/lib/control/own-presses";
 import "./outcomes.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CircleAlert, EyeOff, Gavel, Hand, Monitor, PencilLine, Save } from "lucide-react";
@@ -23,7 +24,7 @@ export function BulletsPanel({ room }: ControlPanelProps) {
   if (!live) return null;
   async function run(body: Record<string, unknown>) {
     setBusy(true); setMessage("");
-    try { const out = await press(engagement, { id: crypto.randomUUID(), kind: "bullets", ...body }); if (out.status !== "ok" && out.status !== "duplicate" && out.status !== "unchanged") setMessage(failure(out.status)); else if (body.action === "edit") setEdit(null); }
+    try { const out = await press(engagement, { id: pressId(), kind: "bullets", ...body }); if (out.status !== "ok" && out.status !== "duplicate" && out.status !== "unchanged") setMessage(failure(out.status)); else if (body.action === "edit") setEdit(null); }
     catch { setMessage(failure()); } finally { setBusy(false); }
   }
   const current = data.current;
@@ -53,7 +54,7 @@ function Card({ o, engagement, onDone }: { o: Detail; engagement: string; onDone
   const [descr, setDescr] = useState(o.description ?? ""), [stop, setStop] = useState(o.stop ?? ""), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const decided = o.status !== "provisional", decide = useRef<string | null>(null), details = useRef<string | null>(null);
   async function run(body: Record<string, unknown>, ref: React.MutableRefObject<string | null>, done: string) {
-    ref.current ??= crypto.randomUUID(); setBusy(true); setMessage("");
+    ref.current ??= pressId(); setBusy(true); setMessage("");
     try {
       const out = await press(engagement, { id: ref.current, kind: "confirm", outcome: o.id, ...body });
       if (out.status === "ok" || out.status === "duplicate") { ref.current = null; setMessage(done); onDone(); } else setMessage(failure(out.status));

@@ -3,6 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import { Gavel, X } from "lucide-react";
 import type { Decision } from "@/lib/wayfinding/decision";
 import type { Room } from "./live-controls";
+import { pressId as newPressId } from "@/lib/control/own-presses";
+
+// The lens summary panel's own decision field, which the toolbar's Mark a decision goes to.
+export const lensDecisionField = "lsm-decision";
 
 // Mark a decision (PRD "The room decides by consensus"). Counts and votes show where the room
 // is; the facilitator records what the room decided and why. One press is one record, by a
@@ -24,7 +28,7 @@ export function MarkDecision({ room, variant }: { room: Room; variant: "laptop" 
   useEffect(() => { if (open) void load(); }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   async function save() {
     if (!decision.trim() || state.busy) return;
-    pressId.current ??= crypto.randomUUID();
+    pressId.current ??= newPressId();
     setState({ busy: true, message: "" });
     try {
       const response = await fetch(`/api/control/${engagement}/decision`, { method: "POST", headers: { "Content-Type": "application/json" },
@@ -33,6 +37,15 @@ export function MarkDecision({ room, variant }: { room: Room; variant: "laptop" 
       if (!response.ok || !["ok", "duplicate"].includes(data.status)) throw new Error(data.status === "invalid_request" ? "Check the decision and the reasons." : "We couldn’t save that. Try again.");
       pressId.current = null; setDecision(""); setReasons(""); setState({ busy: false, message: "Decision marked." }); void load();
     } catch (error) { setState({ busy: false, message: error instanceof Error ? error.message : "We couldn’t save that. Try again." }); }
+  }
+  // A lens summary records its own decision (it signs off the lens), in its panel on the laptop. While one
+  // is live there is one Mark a decision: this button goes to the lens's own, and the remote leaves it to the laptop.
+  if (live?.interaction === "lens_summary") {
+    if (variant === "remote") return null;
+    return <button className={btn} disabled={!room.frame} onClick={() => {
+      const field = document.getElementById(lensDecisionField);
+      field?.scrollIntoView({ block: "center", behavior: "smooth" }); field?.focus({ preventScroll: true });
+    }}><Gavel size={18} aria-hidden="true" />Mark a decision</button>;
   }
   if (!open) return <button className={btn} disabled={!room.frame} onClick={() => setOpen(true)}><Gavel size={18} aria-hidden="true" />Mark a decision</button>;
   return <section className="ctl-decision" aria-label="Mark a decision">

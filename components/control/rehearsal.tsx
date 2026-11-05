@@ -6,6 +6,7 @@ import { useSecondTap } from "./live-controls";
 import { stateLabels } from "@/lib/control/policy";
 import { canClearTests, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
 import { SeedCounts } from "@/components/interactions/lens/lens-panel";
+import { pressId } from "@/lib/control/own-presses";
 import "./self-paced.css";
 
 type Room = ReturnType<typeof useControlRoom>;
@@ -52,7 +53,7 @@ export function RehearsalPanel({ room }: { room: Room }) {
   async function send(action: RehearsalAction) {
     setBusy(action); setNote(null);
     try {
-      const response = await fetch(`/api/control/${engagement}/rehearsal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: crypto.randomUUID(), action }) });
+      const response = await fetch(`/api/control/${engagement}/rehearsal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), action }) });
       const result = await response.json() as { status: string; answers?: number; sessions?: number; title?: string };
       const text = rehearsalMessage(result);
       setNote(text ? { text, error: !["ok", "duplicate", "unchanged"].includes(result.status) } : null);

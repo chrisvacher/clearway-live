@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, Pause, Play, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
 import { fillYears } from "@/lib/run-of-show/policy";
-import { stateLabels } from "@/lib/control/policy";
+import { screensDown, stateLabels } from "@/lib/control/policy";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { RoomSize } from "@/lib/control/types";
 import type { useControlRoom } from "./use-control-room";
@@ -38,7 +38,7 @@ export function SyncChip({ room }: { room: Room }) {
 
 // One banner at a time: TV reconnecting > Syncing > fallback mode.
 export function Banners({ room, compact = false }: { room: Room; compact?: boolean }) {
-  const down = (room.status?.screens ?? []).filter(s => !s.connected && s.last_seen_at);
+  const down = screensDown(room.status?.screens ?? [], room.status ? Date.parse(room.status.server_time) : room.now + room.clockOffset);
   const tvOnPhones = Boolean(room.frame?.state.show_tv_on_phones);
   if (down.length) return <div className="ctl-banner is-warning" role="status"><TriangleAlert size={18} aria-hidden="true" /><div>
     <strong>{down.map(s => s.label).join(" and ")} reconnecting.</strong> {compact ? "The room is fine." : "It’s holding the last screen. If it stays down, show the TV view on phones."}

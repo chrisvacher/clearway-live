@@ -12,7 +12,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type Locator, type Page } from "playwright";
 import { promptVersions } from "../../lib/ai/prompts";
 import { verdict } from "../../lib/latency/report";
 import { joinPhones, practiceRoom } from "../../scripts/load-test";
@@ -36,10 +36,10 @@ const futureWords = /\b(will|would|shall|going to|hope to|plan to|aim to|intend 
 // Samples every summary row's place on every frame, and whether a row's element is ever replaced. Rows keep their
 // elements across versions (a redraw would swap them), and none should leap. A plain script, so no bundler helper
 // reaches the page.
-const sampler = `(() => { window.sumSamples = {}; window.sumStop = false; window.sumSeen = { ins: false, del: false, gone: false, first: [...document.querySelectorAll('.tv-layer:not(.is-leaving) .lsm-line')] };
+const sampler = `(() => { window.sumSamples = {}; window.sumInfo = {}; window.sumStop = false; window.sumSeen = { ins: false, del: false, gone: false, first: [...document.querySelectorAll('.tv-layer:not(.is-leaving) .lsm-line')] };
   const ids = new WeakMap(); let n = 0;
   const read = () => { const layer = document.querySelector('.tv-layer:not(.is-leaving)'); if (layer) {
-      for (const el of layer.querySelectorAll('.lsm-line')) { if (!ids.has(el)) ids.set(el, 'row' + ++n); const r = el.getBoundingClientRect(); (window.sumSamples[ids.get(el)] ??= []).push([r.left, r.top, performance.now()]); }
+      for (const el of layer.querySelectorAll('.lsm-line')) { if (!ids.has(el)) ids.set(el, 'row' + ++n); const r = el.getBoundingClientRect(); (window.sumSamples[ids.get(el)] ??= []).push([r.left, r.top, performance.now()]); window.sumInfo[ids.get(el)] = el.className + ' "' + (el.textContent || '').slice(0, 40) + '"'; }
       if (layer.querySelector('.lsm-ins')) window.sumSeen.ins = true; if (layer.querySelector('.lsm-del')) window.sumSeen.del = true; if (layer.querySelector('.lsm-line.is-gone')) window.sumSeen.gone = true; }
     if (!window.sumStop) requestAnimationFrame(read); };
   requestAnimationFrame(read); })()`;
@@ -54,6 +54,19 @@ const rerenderEveryFrame = `(() => { const root = document.querySelector('.tv-st
   if (!dispatch) throw new Error('no TV state to re-render'); window.forceStop = false; window.forceRenders = 0; let flip = false;
   const run = () => { flip = !flip; dispatch(flip ? 15 : 14); window.forceRenders++; if (!window.forceStop) requestAnimationFrame(run); };
   requestAnimationFrame(run); })()`;
+
+// Two anonymous cards at most, as many as fit whole above the "+ n more on phones" line, which keeps its own room.
+async function cardsFit(layer: () => Locator, total: number, label: string) {
+  const g = await layer().evaluate(el => {
+    const shown = [...el.querySelectorAll("[data-suggestion]:not(.is-out)")].map(c => c.getBoundingClientRect());
+    const more = el.querySelector("[data-more-suggestions]"), m = more?.getBoundingClientRect(), clip = el.closest(".tv-layer")!.getBoundingClientRect();
+    return { shown: shown.length, lastBottom: Math.max(0, ...shown.map(c => c.bottom)), moreTop: m?.top ?? Infinity, moreBottom: m?.bottom ?? 0, clipBottom: clip.bottom, more: more?.textContent ?? "" };
+  });
+  assert.ok(g.shown <= 2, `${label}: two anonymous suggestion cards at most on the TV (${JSON.stringify(g)})`);
+  assert.equal(g.more, `+ ${total - g.shown} more on phones`, `${label}: the rest are counted for phones`);
+  assert.ok(g.lastBottom <= g.moreTop + 0.5, `${label}: the more line sits below the cards, never under one (${JSON.stringify(g)})`);
+  if (label === "medium") assert.ok(g.moreBottom <= g.clipBottom + 0.5, `${label}: the more line is whole on the screen (${JSON.stringify(g)})`);
+}
 
 async function main() {
   const env = localEnv(), sql = db(env), mail = await mailbox();
@@ -162,8 +175,7 @@ async function main() {
         const mid = await server();
         assert.equal(mid.tally.approve, 40); assert.equal(mid.tally.suggest, 10, "the tally is the server's");
         await until(async () => (await layer().locator('[data-tally="approve"]').innerText()).trim() === "40" && (await layer().locator('[data-tally="suggest"]').innerText()).trim() === "10", "the TV tally matches the server", 5000);
-        assert.equal(await layer().locator("[data-suggestion]").count(), 2, "two anonymous suggestion cards on the TV");
-        assert.match(await layer().locator("[data-more-suggestions]").innerText(), /\+ 8 more on phones/, "the rest are counted for phones");
+        await cardsFit(layer, 10, "as set");
         await shot(tv, "lens-summary-50-phones");
       });
 
@@ -183,10 +195,15 @@ async function main() {
         assert.ok(seen.ins, "inserted words were underlined on the TV"); assert.ok(seen.del || seen.gone, "struck words or a struck line were shown before they left");
         assert.ok(seen.kept >= seen.started - 1, `rows kept their place in the page across the fold: ${seen.kept} of ${seen.started} (one line may be taken away)`);
         const samples = await tv.evaluate(() => (window as unknown as { sumSamples: Record<string, [number, number, number][]> }).sumSamples);
-        let jumps = 0, frames = 0, largest = 0;
-        for (const pts of Object.values(samples)) for (let i = 1; i < pts.length; i++) { frames++; const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); largest = Math.max(largest, d); if (d >= jump) jumps++; }
-        assert.ok(frames > 0, "rows were sampled");
-        assert.equal(jumps, 0, `no row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
+        const info = await tv.evaluate(() => (window as unknown as { sumInfo: Record<string, string> }).sumInfo);
+        let jumps = 0, frames = 0, largest = 0, worst = "";
+        for (const [row, pts] of Object.entries(samples)) for (let i = 1; i < pts.length; i++) {
+          frames++;
+          const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+          if (d >= jump) jumps++;
+          if (d > largest) { largest = d; worst = `${row} [${info[row] ?? "?"}] moved (${Math.round(pts[i - 1][0])},${Math.round(pts[i - 1][1])}) to (${Math.round(pts[i][0])},${Math.round(pts[i][1])}) in ${Math.round(pts[i][2] - pts[i - 1][2])}ms`; }
+        }
+        assert.equal(jumps, 0, `no row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px: ${worst})`);
         const after = await layer().locator(".lsm-line:not(.is-gone) .lsm-text").allInnerTexts();
         assert.deepEqual(after.map(l => l.replace(/\s+/g, " ").trim()), s.sentences.map(x => x.text), "once the struck words leave, the TV shows the server's lines");
         await shot(tv, "lens-summary-folded");
@@ -200,6 +217,24 @@ async function main() {
         await until(async () => (await layer().locator('[data-tally="approve"]').innerText()).trim() === "30", "the TV counts version 2's approvals", 5000);
         const suggestions1 = (await sql.query("select count(*)::integer n from private.lens_summary_responses where version_id=$1 and not deleted", [firstVersion])).rows[0].n;
         assert.equal(suggestions1, 50, "version 1's answers are kept as history");
+      });
+
+      await step("Suggestion cards fit above the \"+ n more on phones\" line at Medium and Very small", async () => {
+        // AI holds its fold so the cards stay while the room size changes; the facilitator's edit next makes its own version.
+        assert.ok(["ok", "unchanged"].includes((await control("hold")).status));
+        const v2 = (await server()).summary!.version_id;
+        const out = await Promise.all(phones.slice(30, 40).map((p, i) => p.sendValue(room, summary, { version: v2, response: "suggest" }, suggestions[i])));
+        assert.ok(out.every(s => s === "accepted"), `suggestions on version 2: ${[...new Set(out)].join(",")}`);
+        await until(async () => (await layer().locator('[data-tally="suggest"]').innerText()).trim() === "10", "the TV counts version 2's suggestions", 5000);
+        const sizeBefore = (await sql.query("select settings->>'room_size' as s from public.engagements where id=$1", [room])).rows[0].s as string | null;
+        for (const size of ["medium", "very_small"]) {
+          await press(fac, sql, room, "room_size", { size });
+          await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+          let miss: unknown;
+          await until(async () => { try { await cardsFit(layer, 10, size); return true; } catch (error) { miss = error; return false; } }, `the cards fit at ${size}`, 6000).catch(() => { throw miss; });
+          await shot(tv, `lens-summary-cards-${size}`);
+        }
+        await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [room, sizeBefore]);
       });
 
       await step("The facilitator's edit replaces the line on the TV in place, within a second, with no tracked change", async () => {
@@ -224,6 +259,20 @@ async function main() {
       });
 
       await step("Mark a decision: the room's decision, never a count", async () => {
+        // On the laptop there is one Mark a decision while a lens summary is live: the toolbar's goes to the lens's own.
+        const facContext = await browser!.newContext({ viewport: { width: 1440, height: 1000 } });
+        await facContext.addCookies(fac.cookies(app.origin));
+        const laptop = await facContext.newPage(); await laptop.goto(`${app.origin}/control/${room}`);
+        await laptop.locator("#lsm-decision").waitFor({ timeout: 15000 });
+        await laptop.evaluate(() => { for (const b of document.querySelectorAll("button")) if (b.textContent?.includes("Mark a decision") && !b.closest(".lsm-decide")) b.setAttribute("data-toolbar-decision", ""); });
+        assert.equal(await laptop.locator("[data-toolbar-decision]").count(), 1, "one toolbar Mark a decision");
+        await laptop.locator("[data-toolbar-decision]").click();
+        await until(async () => await laptop.evaluate(() => document.activeElement?.id) === "lsm-decision", "the toolbar's Mark a decision goes to the lens's own decision", 3000);
+        assert.equal(await laptop.locator(".ctl-decision").count(), 0, "the general decision panel does not open");
+        const remote = await facContext.newPage(); await remote.goto(`${app.origin}/remote/${room}`);
+        await remote.locator(".ctl-remote-head").waitFor({ timeout: 15000 }); await delay(1000);
+        assert.equal(await remote.locator("button", { hasText: "Mark a decision" }).count(), 0, "the remote leaves the lens's decision to the laptop");
+        await facContext.close();
         const out = await control("decide", { decision: "Signed off", reasons: "The room agrees it describes the 10-year Future." });
         assert.equal(out.status, "ok");
         await until(async () => (await layer().locator(".lsm-signed").count()) > 0, "the TV shows the decision", 5000);

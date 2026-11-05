@@ -128,7 +128,7 @@ export function DemoRoom({ variant = "full" }: { variant?: "full" | "hero" }) {
         <p className="ph-prompt">{script.prompt}</p>
         <p className="ph-who"><span className="ph-marker">Anonymous</span><span><strong>Who sees my answers?</strong> Your answers show on the screen without your name.</span></p>
         {Input ? <Input key={session} step={step} mine={shownMine} open send={answer => send({ text: answer.text, value: answer.value as DemoAnswer["value"] })} change={() => {}} withdraw={() => {}} />
-          : <WordForm key={session} step={step} mine={shownMine} onSend={text => send({ text })} />}
+          : <WordForm key={session} id={hero ? "hero-answer" : "demo-answer"} step={step} mine={shownMine} onSend={text => send({ text })} />}
       </section>
     </div>
   </div>;
@@ -145,14 +145,14 @@ export function DemoRoom({ variant = "full" }: { variant?: "full" | "hero" }) {
     <div className="demo-stage" id="demo-stage">
       <figure className="demo-screen">{screen}<figcaption className="demo-caption">The screen at the front of the room</figcaption></figure>
       <figure className="demo-phone">
-        <div className="demo-phone-frame" data-surface="phone" data-theme="dark">{phone}</div>
+        <div className="demo-phone-frame"><PhoneScale>{phone}</PhoneScale></div>
         <figcaption className="demo-caption">Try it: answer here and watch it land</figcaption>
       </figure>
     </div>
   </div>;
 }
 
-// A phone drawn at its real 390 by 780 size and scaled to fit its frame, so the real phone
+// A phone drawn at its real 390 by 844 size and scaled to fit its frame, so the real phone
 // screen reads as a phone at any size.
 function PhoneScale({ children }: { children: React.ReactNode }) {
   const box = useRef<HTMLDivElement>(null);
@@ -164,7 +164,7 @@ function PhoneScale({ children }: { children: React.ReactNode }) {
   return <div ref={box} className="phone-scale" data-surface="phone" data-theme="dark"><div className="phone-scale-inner">{children}</div></div>;
 }
 
-function WordForm({ step, mine, onSend }: { step: PhoneStep; mine: OwnShown[]; onSend: (text: string) => void }) {
+function WordForm({ id, step, mine, onSend }: { id: string; step: PhoneStep; mine: OwnShown[]; onSend: (text: string) => void }) {
   const [draft, setDraft] = useState(""), [note, setNote] = useState("");
   const check = checkAnswer(draft, step), full = mine.length >= step.max_sends;
   const submit = (event: FormEvent) => {
@@ -177,10 +177,10 @@ function WordForm({ step, mine, onSend }: { step: PhoneStep; mine: OwnShown[]; o
     {mine.length > 0 && <ul className="ph-answers" aria-label="Your answers">{mine.map(a => <li key={a.id} className="ph-answer is-sent">
       <div className="ph-answer-row"><span className="ph-answer-text">{a.text}</span><span className="ph-answer-status"><Check size={16} aria-hidden="true" />Sent</span></div></li>)}</ul>}
     <form className="demo-form" onSubmit={submit}>
-      <label className="ph-label" htmlFor="demo-answer">Your answer</label>
-      <input id="demo-answer" className="ph-input" value={draft} placeholder="A word or two" autoComplete="off" maxLength={80}
-        aria-invalid={Boolean(check.message || note)} aria-describedby="demo-count" onChange={e => { setDraft(e.target.value); setNote(""); }} />
-      <p className="ph-count" id="demo-count" aria-live="polite"><span>{note || check.message || (full ? `You've sent ${step.max_sends}. That's the limit here.` : "Up to 3 words")}</span><span>{check.count}</span></p>
+      <label className="ph-label" htmlFor={id}>Your answer</label>
+      <input id={id} className="ph-input" value={draft} placeholder="A word or two" autoComplete="off" maxLength={80}
+        aria-invalid={Boolean(check.message || note)} aria-describedby={`${id}-count`} onChange={e => { setDraft(e.target.value); setNote(""); }} />
+      <p className="ph-count" id={`${id}-count`} aria-live="polite"><span>{note || check.message || (full ? `You've sent ${step.max_sends}. That's the limit here.` : "Up to 3 words")}</span><span>{check.count}</span></p>
       <div className="ph-actions"><button className="ph-send" disabled={!check.ok || full}><Send size={18} aria-hidden="true" />Send</button></div>
     </form>
   </>;

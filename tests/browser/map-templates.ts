@@ -100,6 +100,7 @@ async function main() {
       await page.getByText("Every Sunday the room holds people who found us through a friend.").waitFor({ timeout: 20000 });
       const text = await page.locator(".map-doc").innerText();
       for (const expect of ["Help every neighbour take a next step with Jesus.", "Hospitality", "Leaders raised from within", "12 apprentice leaders", "Launch the apprentice pathway", "People in groups", "A baptism every month", "Monthly elders meeting", "We tried all five at once"]) assert.ok(text.includes(expect), `shows ${expect}`);
+      assert.ok(text.includes("April 30, 2027") && !text.includes("2027-04-30"), "the end date reads as people write it, not as ISO");
       assert.ok(!text.includes("Design the leader residency"), "a goal that does not meet CORE is left off");
       assert.ok(text.includes("1 goal does not meet CORE yet"), "and counted");
       assert.equal(await page.locator("[data-lens='1'].is-empty").count(), 0, "lens 1 is signed off");
@@ -117,6 +118,7 @@ async function main() {
       const body = await md.text();
       assert.ok(body.includes("## Page 1: Identity and direction") && body.includes("## Page 2: Action") && body.includes("Launch the apprentice pathway"));
       assert.ok(!/[–—]/.test(body), "no dashes in the export");
+      assert.ok(body.includes("April 30, 2027") && !body.includes("2027-04-30"), "the end date reads as people write it in the export too");
     });
 
     await step("Draft Map: facilitators only, and nothing in the room state", async () => {

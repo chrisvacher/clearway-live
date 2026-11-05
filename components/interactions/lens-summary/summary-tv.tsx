@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
+import { useFitCount } from "@/components/tv/use-fit-count";
 import { caretMs, leaveMs, glideMoved, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
@@ -19,18 +20,24 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
   return <>{parts.map((p, i) => p.k === "keep" ? <span key={i}>{p.t} </span> : <span key={i} className={`lsm-${p.k}${p.k === "del" && leave ? " is-leaving" : ""}`} data-tc={p.k}>{p.t} </span>)}</>;
 }
 
-// Glide: when a child's place in the layout changes (a fold, a line typed, a card arriving) it moves from where it was
-// last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a change that
-// lands mid-glide starts from the child's visual place, never from a stale one. Layout places are compared layout to
-// layout (offsetTop ignores the glide's own transform): a render that moved nothing leaves every glide in flight alone.
-// The TV's parent re-renders this view about every frame, and a glide restarted on each render never leaves its first frame.
+// Glide: when a child's place in the layout changes (a fold, a line typed, a card arriving, or anything above it
+// resizing) it moves from where it was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Every frame
+// records each child's visual top and its layout top (the visual top minus its own glide's translateY), so a change that
+// lands mid-glide starts from the child's visual place, and layout is compared layout to layout: a render that moved
+// nothing leaves every glide in flight alone. The TV's parent re-renders this view about every frame, and a glide
+// restarted on each render never leaves its first frame.
+const shiftOf = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42 || 0;
 function useGlide(host: RefObject<HTMLElement | null>) {
-  const seen = useRef(new Map<Element, number>()), placed = useRef(new Map<Element, number>());
+  const seen = useRef(new Map<Element, number>()), laid = useRef(new Map<Element, number>());
   useEffect(() => {
     let frame = 0;
     const read = () => {
       const root = host.current;
-      if (root) { const next = new Map<Element, number>(); for (const el of Array.from(root.children)) next.set(el, el.getBoundingClientRect().top); seen.current = next; }
+      if (root) {
+        const visual = new Map<Element, number>(), layout = new Map<Element, number>();
+        for (const el of Array.from(root.children)) { const top = el.getBoundingClientRect().top; visual.set(el, top); layout.set(el, top - shiftOf(el)); }
+        seen.current = visual; laid.current = layout;
+      }
       frame = requestAnimationFrame(read);
     };
     frame = requestAnimationFrame(read);
@@ -39,22 +46,16 @@ function useGlide(host: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const root = host.current;
     if (!root) return;
-    const nextPlaced = new Map<Element, number>(), moves: [HTMLElement, number][] = [], reduced = document.documentElement.dataset.motion === "reduced";
+    const moves: [HTMLElement, number][] = [], reduced = document.documentElement.dataset.motion === "reduced", now = new Map<Element, number>();
     for (const node of Array.from(root.children)) {
-      const el = node as HTMLElement, lay = el.offsetTop, was = placed.current.get(el), before = seen.current.get(el);
-      nextPlaced.set(el, lay);
-      if (reduced || !glideMoved(was, lay) || before === undefined) continue;
-      // Measure where the child sits in the layout with its glide set aside, then start the glide from where the eye last
-      // saw it. Reading the rect with the glide still running would double count it and snap.
-      el.style.transition = "none"; el.style.transform = "none";
-      const shift = before - el.getBoundingClientRect().top;
-      if (Math.abs(shift) >= 0.5) moves.push([el, shift]);
-      else { el.style.transition = ""; el.style.transform = ""; }
+      const el = node as HTMLElement, lay = el.getBoundingClientRect().top - shiftOf(el), was = laid.current.get(el), before = seen.current.get(el);
+      now.set(el, lay);
+      if (!reduced && before !== undefined && glideMoved(was, lay)) moves.push([el, before - lay]);
     }
-    placed.current = nextPlaced;
-    for (const [el, shift] of moves) el.style.transform = `translateY(${shift}px)`;
+    for (const [el, shift] of moves) { el.style.transition = "none"; el.style.transform = `translateY(${shift}px)`; }
     if (moves.length) void root.offsetHeight;
     for (const [el] of moves) { el.style.transition = ""; el.style.transform = ""; }
+    laid.current = new Map([...laid.current, ...now]);
   });
 }
 
@@ -87,7 +88,9 @@ export function LensSummaryView({ frame }: TvViewProps) {
   }, [res.typing, sign]);
   const sweep = useAiSweep<HTMLDivElement>(res.aiState === "drafting" || res.aiState === "folding" ? [`${res.aiState}:${versionId}`] : summary?.author === "ai" ? [versionId] : [], res.lens ? String(res.lens) : null);
   const names = res.lens ? Object.assign([] as string[], { [res.lens - 1]: res.lensName }) : null;
-  const cards = res.suggestions.slice(0, shownSuggestions), further = Math.max(0, res.tally.suggest - cards.length);
+  // The suggestion cards that fit whole above the "+ n more on phones" line; the rest are counted on it.
+  const cards = res.suggestions.slice(0, shownSuggestions), fit = useFitCount(cardsRef, cards.length, "start", 0);
+  const further = Math.max(0, res.tally.suggest - fit);
   return <div className="lsm-tv" data-lens-summary data-ai-state={res.aiState} data-signed={summary?.signed ? "true" : "false"}>
     <header className="lsm-head">
       {res.lens && <LensHeading lens={res.lens} names={names} />}
@@ -118,7 +121,7 @@ export function LensSummaryView({ frame }: TvViewProps) {
           <div><dt>Suggested a change</dt><dd data-tally="suggest">{res.tally.suggest}</dd></div>
         </dl>
         <ul className="lsm-cards" ref={cardsRef}>
-          {cards.map(c => <li key={c.id} className="lsm-card" data-suggestion>{c.text}</li>)}
+          {cards.map((c, i) => <li key={c.id} className={`lsm-card${i >= fit ? " is-out" : ""}`} aria-hidden={i >= fit ? true : undefined} data-suggestion>{c.text}</li>)}
         </ul>
         {further > 0 && <p className="lsm-more" data-more-suggestions>{moreOnPhones(further)}</p>}
       </aside>

@@ -62,10 +62,10 @@ body:has(> .home) { background: var(--cwl-surface); }
 .hero-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: hero-pulse 1.6s var(--cwl-ease-calm) infinite; }
 @keyframes hero-pulse { 50% { opacity: 0.3; } }
 .demo-room.is-hero { position: absolute; inset: 0; margin: 0; }
-.hero-phone { position: absolute; right: 2%; bottom: 4%; width: 26%; padding: 6px; border-radius: 1.6rem; background: var(--cw-gray-900); box-shadow: 0 24px 40px -16px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
+.hero-phone { position: absolute; right: 2%; bottom: 4%; width: 24%; padding: 5px; border-radius: 1.6rem; background: var(--cw-gray-900); box-shadow: 0 24px 40px -16px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
 /* The real phone screen at 390 by 780, scaled to the frame. */
-.phone-scale { position: relative; width: 100%; aspect-ratio: 390 / 780; overflow: hidden; border-radius: 1.25rem; background: var(--cwl-surface); }
-.phone-scale-inner { position: absolute; top: 0; left: 0; width: 390px; height: 780px; transform: scale(var(--phone-scale, 0.4)); transform-origin: top left; }
+.phone-scale { position: relative; width: 100%; aspect-ratio: 390 / 844; overflow: hidden; border-radius: 1.25rem; background: var(--cwl-surface); }
+.phone-scale-inner { position: absolute; top: 0; left: 0; width: 390px; height: 844px; transform: scale(var(--phone-scale, 0.4)); transform-origin: top left; }
 .phone-scale .ph-app { min-height: 0; height: 100%; overflow: hidden; }
 .phone-scale .ph-texture { position: absolute; }
 .phone-scale .ph-prompt { font-size: var(--cwl-fs-phone-prompt); font-weight: var(--fw-semibold); line-height: 1.3; color: var(--cwl-text); }
@@ -137,9 +137,10 @@ body:has(> .home) { background: var(--cwl-surface); }
 .demo-tab { min-height: var(--cwl-phone-touch); padding: 0 var(--space-5); border: 0; border-radius: var(--cwl-radius-pill); background: transparent; box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); color: var(--cwl-text); font: inherit; font-size: var(--fs-small); font-weight: var(--fw-semibold); cursor: pointer; }
 .demo-tab[aria-selected="true"] { background: var(--cwl-surface-card); box-shadow: none; color: var(--cwl-text-on-card); }
 .demo-tab:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
-.demo-stage { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: var(--space-8); align-items: start; }
+.demo-stage { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: var(--space-8); align-items: start; }
 .demo-screen, .demo-phone { margin: 0; }
-.demo-phone-frame { height: 34rem; overflow: hidden; border-radius: 2rem; box-shadow: 0 0 0 1px var(--cwl-border-strong), 0 0 0 10px var(--cwl-bar-track); }
+.demo-phone-frame { padding: 8px; border-radius: 2.5rem; background: var(--cw-gray-900); box-shadow: 0 24px 48px -24px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
+.demo-phone-frame .phone-scale { border-radius: 2rem; }
 .demo-phone-frame .ph-app { min-height: 100%; height: 100%; overflow-y: auto; }
 .demo-phone-frame .ph-texture { position: absolute; }
 .demo-phone-frame .ph-head { position: sticky; }
@@ -269,7 +270,7 @@ body:has(> .home) { background: var(--cwl-surface); }
   .room-photo { position: static; max-height: 24rem; }
   .room-photo img { height: 24rem; object-fit: cover; }
   .demo-stage { grid-template-columns: 1fr; }
-  .demo-phone { width: min(100%, 24rem); margin-inline: auto; }
+  .demo-phone { width: min(100%, 19rem); margin-inline: auto; }
   .home-panel, .home-close { flex-direction: column; align-items: flex-start; }
   .compare-row { grid-template-columns: 1fr 1fr; }
   .compare-topic { grid-column: 1 / -1; }
@@ -285,7 +286,6 @@ body:has(> .home) { background: var(--cwl-surface); }
   .home-signin { font-size: var(--cwl-fs-phone-micro); padding-inline: var(--space-3); }
   .home-brand .cwl-wordmark { height: var(--cwl-wordmark-h-app); }
   .home-panel, .home-setup { padding: var(--space-6); }
-  .demo-phone-frame { height: 32rem; }
   .photo-tile { width: 240px; }
   .three-panel { min-height: 0; }
   .compare-row, .compare-row.is-head { grid-template-columns: 1fr; }

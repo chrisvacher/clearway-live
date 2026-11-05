@@ -4,6 +4,7 @@ import { Presentation, Shuffle, UserMinus, X } from "lucide-react";
 import type { ControlItemsProps } from "@/components/interactions/control-items";
 import { cardNeeds, cardsOf, maxPeople } from "@/lib/interactions/intent";
 import { post, useIntent } from "./use-intent";
+import { pressId } from "@/lib/control/own-presses";
 import "./handover.css";
 
 const messages: Record<string, string> = {
@@ -25,7 +26,7 @@ export function IntentCards({ room, onClose }: ControlItemsProps) {
   const signs = room.show.sessions.filter(s => s.interaction === "sign");
   const press = async (action: string, p: Record<string, unknown> = {}) => {
     if (!engagement) return; setBusy(true); setMessage("");
-    const out = await post(`/api/control/${engagement}/intent`, { kind: "press", id: crypto.randomUUID(), action: `intent_${action}`, p: { from: room.frame?.state.live_session_id ?? null, ...p } });
+    const out = await post(`/api/control/${engagement}/intent`, { kind: "press", id: pressId(), action: `intent_${action}`, p: { from: room.frame?.state.live_session_id ?? null, ...p } });
     setBusy(false); void read();
     if (!["ok", "unchanged", "duplicate"].includes(out.status)) setMessage(messages[out.status] ?? messages.unavailable);
     else if (action === "affirm_text") setFilled(true);
