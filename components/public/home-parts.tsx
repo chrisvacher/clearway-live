@@ -83,13 +83,15 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
   </div>;
 }
 
-// The numbers band. Every tool the room can answer with, named as the run of show names it.
-// Typed against the interaction library, so a new kind can't be left out of the count.
+// The numbers band. Every tool the room can answer with, named for the way people give input,
+// so a visitor who has never seen a Wayfinding retreat knows what each one is. Typed against
+// the interaction library, so a new kind can't be left out of the count.
 const tools: Record<Exclude<InteractionKind, "content">, string> = {
-  word_cloud: "Word cloud", wall: "Open text", qa: "Q&A", choice: "Multiple choice", scale: "Scale", ranking: "Ranking",
-  points: "100 points", grid: "2x2 grid", form: "Private form", sign: "Sign together", statements: "Statements",
-  lens: "Lens wall", lens_summary: "Lens summary", candidates: "Candidate priorities", goals: "CORE goals",
-  intent: "Commander's intent", bullets: "Outcome bullets", confirm: "Outcome confirm",
+  word_cloud: "Word cloud", wall: "Open-ended responses", qa: "Questions and upvotes", choice: "Multiple choice",
+  scale: "Rating scale", ranking: "Ranking", points: "100-point allocation", grid: "2x2 matrix",
+  form: "Private responses", sign: "Group sign-off", statements: "Agree or disagree", lens: "Themed brainstorm",
+  lens_summary: "Live draft review", candidates: "Cluster and rename", goals: "Shared goal building",
+  intent: "Shared statement writing", bullets: "Collaborative lists", confirm: "Consensus check",
 };
 export const toolNames = Object.values(tools);
 export function StatsBand() {
@@ -116,7 +118,7 @@ export function StatsBand() {
       <div className="stat-visual" aria-hidden="true"><span key={at} className="stat-pill is-tool">{toolNames[at]}</span></div>
       <p className="stat-n">{toolNames.length}</p>
       <p className="stat-l">facilitation tools built in</p>
-      <p className="stat-s">From a quick word cloud to the CORE goals that close the retreat.</p>
+      <p className="stat-s">From a quick word cloud to a full consensus check.</p>
     </Reveal>
     <Reveal className="stat" step={3}>
       <div className="stat-visual" aria-hidden="true"><span className="stat-pill is-code">A7C3E91F</span><QrCode size={22} /></div>
