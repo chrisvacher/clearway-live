@@ -355,8 +355,7 @@ begin
  end if;
  base:=jsonb_build_object('phase',ph,'words','[]'::jsonb,
   'total',case when ph in ('points','marked') then (select count(*) from private.bar_answers(p_engagement,p_session)) else 0 end,
-  'people',case when ph in ('points','marked') then (select count(distinct attendee_id) from private.bar_answers(p_engagement,p_session))
-    else (select count(distinct attendee_id) from private.candidate_suggestions where session_id=p_session and not deleted) end);
+  'people',case when ph in ('points','marked') then (select count(distinct attendee_id) from private.bar_answers(p_engagement,p_session)) else 0 end);
  if ph in ('sent','points') then
   base:=base||jsonb_build_object('candidates',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'num',x.num,'name',x.name,
      'from',(select count(*) from private.candidate_sources cs where cs.candidate_id=x.id and not cs.deleted)) order by x.num)
