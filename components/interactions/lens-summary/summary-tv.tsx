@@ -37,15 +37,20 @@ function useGlide(host: RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
     const root = host.current;
     if (!root || document.documentElement.dataset.motion === "reduced") return;
+    // Measure where each child sits in the layout with any glide in flight set aside, then start the glide from
+    // where the eye last saw it. Reading the rect with the glide still running would double count it and snap.
+    const moves: [HTMLElement, number][] = [];
     for (const node of Array.from(root.children)) {
       const el = node as HTMLElement, before = seen.current.get(el);
       if (before === undefined) continue;
+      el.style.transition = "none"; el.style.transform = "none";
       const shift = before - el.getBoundingClientRect().top;
-      if (Math.abs(shift) < 0.5) continue;
-      el.style.transition = "none"; el.style.transform = `translateY(${shift}px)`;
-      void el.offsetHeight;
-      el.style.transition = ""; el.style.transform = "";
+      if (Math.abs(shift) >= 0.5) moves.push([el, shift]);
+      else { el.style.transition = ""; el.style.transform = ""; }
     }
+    for (const [el, shift] of moves) el.style.transform = `translateY(${shift}px)`;
+    if (moves.length) void root.offsetHeight;
+    for (const [el] of moves) { el.style.transition = ""; el.style.transform = ""; }
   });
 }
 
