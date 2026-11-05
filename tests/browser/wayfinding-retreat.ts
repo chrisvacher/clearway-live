@@ -295,7 +295,7 @@ async function main() {
       await goLive(intent, ".int-card");
       await control("handover_control", "give", { attendee: room.attendees[0].id });
       assert.equal((await state()).remote_holder_id, room.attendees[0].id, "the remote is with the team");
-      assert.ok(!/Wayfinder|Ruth/.test(await tvText()), "no name on the TV");
+      assert.ok(!new RegExp(`\\b(${people.join("|")})\\b`).test(await layer().innerText()), "no name on the TV");
       const cards = (await sql.query("select c.id from private.intent_cards c join private.vision_outcomes o on o.id=c.outcome_id where c.engagement_id=$1 and not c.deleted order by o.position", [room.id])).rows.map(r => r.id as string);
       assert.equal(cards.length, 4, "one card for each confirmed outcome");
       for (const [i, card] of cards.entries()) await control("intent_control", "assign", { card, attendees: [room.attendees[i].id] });

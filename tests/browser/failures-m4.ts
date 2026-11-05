@@ -50,6 +50,8 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
   const layer = () => tv.locator(".tv-layer:not(.is-leaving)").last();
   const live = async (session: string, ready: string) => {
     await press(fac, sql, room.id, "go_live", { session });
+    // Back on a step the room has closed, it is read-only until Reopen (live controls).
+    if ((await sql.query("select state from public.sessions where id=$1", [session])).rows[0].state === "closed") await press(fac, sql, room.id, "reopen");
     await layer().locator(ready).first().waitFor({ timeout: 10000 });
     await delay(900);
   };

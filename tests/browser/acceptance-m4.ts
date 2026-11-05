@@ -434,7 +434,7 @@ async function main() {
     });
 
     // ---------- Commander's intent and the remote changing hands ----------
-    const intent = await mk("intent", "Commander's intent", "Write the commander's intent for your outcome", { assign: "remote" }, { sends: 1, chars: 400, part: "Day 2", settings: { anonymous: false } });
+    const intent = await mk("intent", "Commander's intent", "Write the commander's intent for your outcome", { assign: "remote" }, { sends: 1, chars: 280, part: "Day 2", settings: { anonymous: false } });
     const sign = await mk("sign", "Affirm together", "Our shared commitment", { text: "" }, { sends: 1, chars: 200, part: "Day 2", settings: { anonymous: false } });
     const attendeeOf = (i: number) => attendees.find(a => a.name === `Wayfinder ${String(i + 1).padStart(2, "0")}`)!;
     await step("Commander's intent, 15 of 50 phones editing in threes: lines replace on the TV under one second and the other phones watch", async () => {
