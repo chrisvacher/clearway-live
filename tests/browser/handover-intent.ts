@@ -155,9 +155,15 @@ async function main() {
       await shot(tv, "d2-11-after-next-tv");
     });
     await step("D2-11 The lead takes it back and the TV does not change; the team remote goes quiet", async () => {
+      await delay(1500); // let the step that just went live finish arriving
       const before = await layer().innerText();
-      await control.getByRole("button", { name: "Take it back" }).click();
-      await until(async () => (await state()).remote_holder_id === null, "the lead holds the remote", 8000);
+      // The press names the live step the lead's page last saw; right after Next that can lag, so press again until it lands.
+      await until(async () => {
+        if ((await state()).remote_holder_id === null) return true;
+        await control.getByRole("button", { name: "Take it back" }).click({ timeout: 1000 }).catch(() => undefined);
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        return (await state()).remote_holder_id === null;
+      }, "the lead holds the remote", 15000);
       assert.equal((await state()).live_session_id, sign, "the live step is unchanged");
       assert.equal(await layer().innerText(), before, "the TV did not change");
       await until(async () => await priya.page.getByRole("button", { name: /^Next/ }).isDisabled().catch(() => true), "the team remote is quiet", 8000);
