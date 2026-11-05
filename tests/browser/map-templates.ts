@@ -20,12 +20,6 @@ async function main() {
   const step = async (name: string, run: () => Promise<void>) => { await run(); passed.push(name); console.log(`ok · ${name}`); };
   try {
     await sql.connect();
-    // Step 2b registers lens_summary; until it is on this database the kit stands one in.
-    if (!(await sql.query("select 1 from private.interaction_kinds where kind='lens_summary'")).rowCount) {
-      await sql.query("insert into private.interaction_kinds(kind,label,input,one_per_person,counts,structured,shares_answers,spotlight,named,position) values('lens_summary','Lens summary',true,true,'people',true,false,'none','never',28)");
-      await sql.query(`create function private.options_lens_summary(p jsonb,p_engagement uuid) returns jsonb language sql stable security definer set search_path='' as $f$
-        select case when jsonb_typeof(p)='object' and not exists(select 1 from jsonb_object_keys(p) k where k not in ('lens','ai')) then p end $f$`);
-    }
     const kinds = new Set((await sql.query("select kind from private.interaction_kinds")).rows.map(r => r.kind as string));
     const start = "2026-11-02T14:00:00Z";
     const sessions = (id: string) => sql.query<Row>("select title,part,position,interaction,planned_start,planned_minutes,mode,team_led,segment,options,closes_at from public.sessions where engagement_id=$1 and not deleted order by position", [id]).then(r => r.rows);

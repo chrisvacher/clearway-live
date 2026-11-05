@@ -59,14 +59,6 @@ insert into private.lens_summary_sentences(id,engagement_id,version_id,position,
  (tests.id(3802),tests.id(100),tests.id(3702),0,'Our neighbours call the building theirs.');
 update private.lens_summaries set state='signed_off',signed_off_version_id=tests.id(3701),current_version_id=tests.id(3701) where id=tests.id(3601);
 
--- Stand-in for the lens_summary kind while step 2b is not on this database.
-do $$ begin
- if not exists(select 1 from private.interaction_kinds where kind='lens_summary') then
-  insert into private.interaction_kinds(kind,label,input,one_per_person,counts,structured,shares_answers,spotlight,named,position) values('lens_summary','Lens summary',true,true,'people',true,false,'none','never',28);
-  execute $f$ create function private.options_lens_summary(p jsonb,p_engagement uuid) returns jsonb language sql stable security definer set search_path='' as $g$
-   select case when jsonb_typeof(p)='object' and not exists(select 1 from jsonb_object_keys(p) k where k not in ('lens','ai')) then p end $g$ $f$;
- end if;
-end $$;
 
 -- ---------- Who may read the draft Map ----------
 select is((select count(*) from pg_class where oid='private.map_drafts'::regclass and relrowsecurity and relforcerowsecurity),1::bigint,'The draft Map is under forced row-level security');

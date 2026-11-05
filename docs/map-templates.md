@@ -57,4 +57,4 @@ The Scripture and prayer screens (PRE-06 to PRE-09, D1-04, D2-02) are wired in a
 
 - pgTAP `supabase/tests/database/map_templates.test.sql`: roles (facilitator, admin, participant, TV, another room's facilitator, anonymous), the Map's content rules, the templates and starting from them.
 - Unit `tests/unit/map-templates.test.ts`.
-- Browser `npm run test:map-templates`: starts an engagement from each template, checks every session's kind, place and timing, then assembles a Map from seeded Riverside records and reads, prints and downloads it. Until step 2b is on the database, the kit registers a stand-in `lens_summary` kind.
+- Browser `npm run test:map-templates`: starts an engagement from each template, checks every session's kind, place and timing, then assembles a Map from seeded Riverside records and reads, prints and downloads it.
