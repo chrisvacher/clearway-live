@@ -2,8 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
@@ -16,12 +16,22 @@ export type SummaryInputs = { question: string; count: number; cut_at: string; a
 export type FoldInputs = { questions: { ref: string; id: string; text: string; asked: number }[] };
 // The pre-mortem's reasons (it is 2029 and the plan failed): text and how many people placed each.
 export type ReasonInputs = { reasons: { ref: string; key: string; text: string; count: number }[]; total: number };
-export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs;
+// The lens summary (INT-18). The draft reads the lens's sentences (a1..) and clusters (c1..); the fold also reads
+// the summary on the TV (s1..), how many people approved and the suggestions (g1..), in the order they came.
+// "ids" maps refs back to rows for the database; the prompt never prints it.
+export type LensDraftInputs = { job: "draft"; lens: number; lens_name: string; lens_names?: string[]; base_year: number; year: number; max_chars: number; max_sentences: number;
+  sentences: { ref: string; text: string }[]; clusters: { ref: string; label: string; members: string[] }[]; summary_id?: string; ids?: unknown };
+export type LensFoldInputs = Omit<LensDraftInputs, "job"> & { job: "fold"; version?: string; approvals: number;
+  summary: { ref: string; text: string; sources: string[] }[]; suggestions: { ref: string; text: string }[] };
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
 export type SummaryOutput = { summary: string };
-export type AiOutput = MergeOutput | GroupOutput | SummaryOutput;
+export type LensDraftOutput = { sentences: { text: string; sources: string[] }[]; note?: string };
+export type LensFoldOutput = { sentences: ({ keep: string } | { edit: string; text: string; suggestions: string[]; sources?: string[] } | { text: string; suggestions: string[]; sources?: string[] })[];
+  remove: { ref: string; suggestions: string[] }[]; note?: string };
+export type AiOutput = MergeOutput | GroupOutput | SummaryOutput | LensDraftOutput | LensFoldOutput;
 
 export type Prompt = { job: AiJob; version: string; system: string; maxTokens: number; user: (inputs: AiInputs) => string; parse: (text: string, inputs: AiInputs) => AiOutput };
 
@@ -131,6 +141,16 @@ export function capWords(text: string, max = summaryWords): string {
 
 const rules = "Use only the refs you are given. Reply with one JSON object and nothing else.";
 
+// ---------- The lens summary (INT-18) ----------
+const refList = (value: unknown, allowed: Set<string>) => [...new Set(listOf(value).map(refOf).filter(r => allowed.has(r)))];
+const lineText = (value: unknown) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, 600) : "";
+const noteOf = (value: unknown) => typeof value === "string" ? value.replace(/\s+/g, " ").trim().slice(0, 300) : "";
+const summaryRules = [
+  "Write in the present tense, as if the 10-year Future is true today. Never use will, would, shall, going to, hope to, plan to, aim to or intend to.",
+  "Use the room's own words and ideas. Never add a fact, number, date or name nobody wrote. No quotation marks. Never name a person.",
+  "One plain sentence per idea. At most 8 sentences and 420 characters in all, counting every sentence. Keep each line short enough to read from across the room.",
+].join("\n");
+
 export const prompts: Record<AiJob, Prompt> = {
   combine_words: {
     job: "combine_words", version: "combine-words@2", maxTokens: 800,
@@ -220,6 +240,74 @@ export const prompts: Record<AiJob, Prompt> = {
     ].join("\n"),
     user: inputs => JSON.stringify({ reasons: (inputs as ReasonInputs).reasons.map(r => ({ ref: r.ref, text: r.text, placed: r.count })) }),
     parse: (text, inputs) => merges(text, (inputs as ReasonInputs).reasons?.map(r => ({ ref: r.ref, texts: [r.text] })) ?? []),
+  },
+  // The lens summary draft. Present tense, 10-year Future, each line cites the sentences it comes from. The
+  // database refuses a line with no real source, a future tense, a quote or a number nobody wrote.
+  draft_lens_summary: {
+    job: "draft_lens_summary", version: "draft-lens-summary@1", maxTokens: 900,
+    system: [
+      "You draft a one-screen summary of one lens of a church's 10-year Future, live at a Wayfinding retreat run by Clearway Church Solutions. It goes straight on the TV for the team to approve or change.",
+      "You see the lens, the year, the room's sentences (a1, a2...) and how they cluster (c1, c2...). Each sentence already describes the 10-year Future in the present tense.",
+      "Write the picture the room drew: the ideas most sentences share first, then the ones fewer people wrote. Do not drop a clear idea because only one person wrote it, but never invent one.",
+      summaryRules,
+      "Every sentence cites the room sentences it comes from, by ref (a1, a2...), never by their text. A sentence with no source is thrown away.",
+      `Reply as {"sentences":[{"text":"Every family finds a place to belong.","sources":["a1","a4"]}],"note":"optional, one short line for the facilitator"}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as LensDraftInputs; return JSON.stringify({
+      lens: i.lens_name, horizon: "10-year Future", year: i.year, max_sentences: i.max_sentences, max_characters: i.max_chars,
+      clusters: i.clusters.map(c => ({ ref: c.ref, label: c.label, sentences: c.members })),
+      sentences: i.sentences.map(a => ({ ref: a.ref, text: a.text })) }); },
+    parse: (text, inputs) => {
+      const i = inputs as LensDraftInputs, refs = new Set((i.sentences ?? []).map(a => a.ref));
+      const body = replyJson(text);
+      const sentences = listOf(body.sentences).flatMap(item => {
+        if (!item || typeof item !== "object") return [];
+        const o = item as Record<string, unknown>, t = lineText(o.text);
+        return t ? [{ text: t, sources: refList(o.sources, refs) }] : [];
+      }).slice(0, 16);
+      const note = noteOf(body.note);
+      return note ? { sentences, note } : { sentences };
+    },
+  },
+  // The fold. The room's suggestions (g1, g2...) become a new version. A line changes only when a suggestion is
+  // named for it; everything else is kept word for word. Counts never decide: approvals are context, not a vote.
+  fold_lens_summary: {
+    job: "fold_lens_summary", version: "fold-lens-summary@1", maxTokens: 1200,
+    system: [
+      "You fold the room's suggestions into a new version of a lens summary, live at a Wayfinding retreat for a church team, run by Clearway Church Solutions. The summary describes one lens of the 10-year Future and is on the TV now.",
+      "You see the summary lines (s1, s2...), the room's sentences they come from (a1, a2...), and anonymous suggestions (g1, g2...) typed on phones. Some people also tapped Approve; that count is context, not a vote, and never a reason to change or keep a line.",
+      "Change a line only when a suggestion asks for it, and name the suggestions you used. Keep every other line exactly as it is. A suggestion that only repeats the room's sentences, or asks for something the room never said, is left out.",
+      "Fold what the suggestions ask: reword a line, add a line, or remove one. Several suggestions that ask for the same change fold into one. Suggestions that disagree: keep the line as it is and say so in the note.",
+      summaryRules,
+      "For each line in the new version, in order, give one of: {\"keep\":\"s1\"}; {\"edit\":\"s2\",\"text\":\"...\",\"suggestions\":[\"g1\"],\"sources\":[\"a3\"]}; or a new line {\"text\":\"...\",\"suggestions\":[\"g2\"],\"sources\":[\"a5\"]}. To remove a line, leave it out of sentences and list it in remove with the suggestions that asked: {\"ref\":\"s3\",\"suggestions\":[\"g4\"]}.",
+      "Name suggestions and room sentences by ref, never by their text. A change that names no suggestion is ignored.",
+      `Reply as {"sentences":[{"keep":"s1"},{"edit":"s2","text":"...","suggestions":["g1"]}],"remove":[],"note":"optional, one short line for the facilitator"}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as LensFoldInputs; return JSON.stringify({
+      lens: i.lens_name, horizon: "10-year Future", year: i.year, max_sentences: i.max_sentences, max_characters: i.max_chars,
+      approved: i.approvals,
+      summary: i.summary.map(l => ({ ref: l.ref, text: l.text, from: l.sources })),
+      suggestions: i.suggestions.map(g => ({ ref: g.ref, text: g.text })),
+      sentences: i.sentences.map(a => ({ ref: a.ref, text: a.text })) }); },
+    parse: (text, inputs) => {
+      const i = inputs as LensFoldInputs, sRefs = new Set((i.summary ?? []).map(l => l.ref)), gRefs = new Set((i.suggestions ?? []).map(g => g.ref)), aRefs = new Set((i.sentences ?? []).map(a => a.ref));
+      const body = replyJson(text);
+      const sentences = listOf(body.sentences).flatMap((item): LensFoldOutput["sentences"] => {
+        if (!item || typeof item !== "object") return [];
+        const o = item as Record<string, unknown>;
+        const keep = refOf(o.keep), edit = refOf(o.edit), t = lineText(o.text), suggestions = refList(o.suggestions, gRefs), sources = refList(o.sources, aRefs);
+        if (keep) return sRefs.has(keep) ? [{ keep }] : [];
+        if (edit) return sRefs.has(edit) && t ? [{ edit, text: t, suggestions, ...(sources.length ? { sources } : {}) }] : [];
+        return t ? [{ text: t, suggestions, ...(sources.length ? { sources } : {}) }] : [];
+      }).slice(0, 16);
+      const remove = listOf(body.remove).flatMap(item => {
+        if (!item || typeof item !== "object") return [];
+        const o = item as Record<string, unknown>, ref = refOf(o.ref);
+        return sRefs.has(ref) ? [{ ref, suggestions: refList(o.suggestions, gRefs) }] : [];
+      }).slice(0, 16);
+      const note = noteOf(body.note);
+      return note ? { sentences, remove, note } : { sentences, remove };
+    },
   },
 };
 export const promptVersions = Object.fromEntries(aiJobs.map(job => [job, prompts[job].version])) as Record<AiJob, string>;

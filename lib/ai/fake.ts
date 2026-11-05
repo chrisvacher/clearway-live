@@ -86,6 +86,46 @@ function scriptedOvernight(call: AiCall): string {
   return JSON.stringify(out);
 }
 
+// The lens summary's stand-in. The draft makes one line per cluster, in the room's own words (the cluster's
+// first sentence), then the sentences no cluster holds, within 8 lines and 420 characters. The fold follows the
+// prompt's rules: "Add ..." adds a line, "Remove ..." removes the line it shares most words with, anything else
+// rewords the line it shares most words with (or adds a line when it shares none). Lines it changes name the
+// suggestion; every other line is kept.
+const tidyLine = (text: string) => { const t = text.trim().replace(/\s+/g, " ").replace(/^[-:,\s]+/, ""); return `${t.charAt(0).toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? "" : "."}`; };
+function scriptedLensDraft(input: Record<string, unknown>) {
+  const sentences = (input.sentences ?? []) as { ref: string; text: string }[], clusters = (input.clusters ?? []) as { ref: string; sentences?: string[] }[];
+  const byRef = new Map(sentences.map(a => [a.ref, a])), used = new Set<string>(), out: { text: string; sources: string[] }[] = []; let total = 0;
+  const put = (text: string, sources: string[]) => {
+    const t = tidyLine(text);
+    if (out.length >= 8 || total + t.length + (out.length ? 1 : 0) > 420) return;
+    total += t.length + (out.length ? 1 : 0); out.push({ text: t, sources });
+  };
+  for (const c of clusters) {
+    const members = (c.sentences ?? []).filter(r => byRef.has(r)); if (!members.length) continue;
+    members.forEach(r => used.add(r)); put(byRef.get(members[0])!.text, members);
+  }
+  for (const a of sentences) if (!used.has(a.ref)) { used.add(a.ref); put(a.text, [a.ref]); }
+  return JSON.stringify({ sentences: out });
+}
+function scriptedLensFold(input: Record<string, unknown>) {
+  const summary = (input.summary ?? []) as { ref: string; text: string }[], suggestions = (input.suggestions ?? []) as { ref: string; text: string }[];
+  const edits = new Map<string, { text: string; suggestions: string[] }>(), removed = new Map<string, string[]>(), added: { text: string; suggestions: string[] }[] = [];
+  const closest = (text: string) => { const mine = words(text); let best: { ref: string; n: number } | null = null;
+    for (const l of summary) { const n = shared(mine, words(l.text)); if (n > (best?.n ?? 0)) best = { ref: l.ref, n }; } return best; };
+  for (const g of suggestions) {
+    const add = /^(?:add|include)\b[:\s]*(.+)$/i.exec(g.text), drop = /^(?:remove|drop)\b[:\s]*(.+)$/i.exec(g.text);
+    if (add) { added.push({ text: tidyLine(add[1]), suggestions: [g.ref] }); continue; }
+    if (drop) { const hit = closest(drop[1]); if (hit) removed.set(hit.ref, [...(removed.get(hit.ref) ?? []), g.ref]); continue; }
+    const hit = closest(g.text);
+    if (hit && !edits.has(hit.ref) && !removed.has(hit.ref)) edits.set(hit.ref, { text: tidyLine(g.text), suggestions: [g.ref] });
+    else if (!hit) added.push({ text: tidyLine(g.text), suggestions: [g.ref] });
+  }
+  const sentences: Record<string, unknown>[] = [];
+  for (const l of summary) { if (removed.has(l.ref)) continue; const e = edits.get(l.ref); sentences.push(e ? { edit: l.ref, ...e } : { keep: l.ref }); }
+  sentences.push(...added);
+  return JSON.stringify({ sentences, remove: [...removed].map(([ref, suggestions]) => ({ ref, suggestions })) });
+}
+
 export function scripted(call: AiCall): string {
   if (isOvernight(call)) return scriptedOvernight(call);
   const job = jobOf(call), input = replyJson(call.user);
@@ -125,6 +165,8 @@ export function scripted(call: AiCall): string {
     }
     return JSON.stringify({ groups });
   }
+  if (job === "draft_lens_summary") return scriptedLensDraft(input);
+  if (job === "fold_lens_summary") return scriptedLensFold(input);
   return "{}";
 }
 
