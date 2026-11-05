@@ -74,7 +74,8 @@ function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
     const px = card ? parseFloat(getComputedStyle(card).fontSize) || 0 : 0, min = px > 36 ? 36 / px : 1;
     let fit = 1;
     while (el.scrollHeight > el.clientHeight + 1 && fit > min) { fit = Math.max(min, fit - 0.04); el.style.setProperty("--cd-fit", String(fit)); }
-  });
+    // Only when the cards change: the TV's parent re-renders about every frame, and a forced layout each time would slow the names arriving.
+  }, [data.candidates, data.merges]);
 
   // Every card keeps its element (keyed by candidate). When its place changes, it glides from where it was
   // seen (a card already moving continues from where it is) in the same commit, so no frame shows it jumping.
