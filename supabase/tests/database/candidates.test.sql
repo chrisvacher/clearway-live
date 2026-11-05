@@ -57,7 +57,7 @@ create function tests.say(n integer,session integer,text_ text) returns jsonb la
 create function tests.suggest(n integer,p jsonb) returns jsonb language sql as $$ select public.candidate_suggest(tests.id(100),tests.id(n),tests.live(),p) $$;
 create function tests.points(n integer,session integer,p jsonb) returns jsonb language sql as $$
  select public.live_submit(tests.id(100),tests.id(n),tests.id(session),0,'submit','',now(),null,0,jsonb_build_object('points',p)) $$;
-create function tests.cand(id integer) returns private.candidates language sql security definer set search_path='' as $$ select * from private.candidates where id=tests.id(id) $$;
+create function tests.cand(n integer) returns private.candidates language sql security definer set search_path='' as $$ select * from private.candidates where id=tests.id(n) $$;
 create function tests.state() returns jsonb language sql as $$ select public.candidates_state(tests.id(100)) $$;
 create function tests.names() returns text language sql security definer set search_path='' as $$
  select coalesce(string_agg(name,'|' order by position,created_at),'') from private.candidates where engagement_id=tests.id(100) and status='standing' and not deleted $$;
