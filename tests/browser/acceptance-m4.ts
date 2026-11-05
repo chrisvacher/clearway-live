@@ -37,7 +37,6 @@ const candidateNames = ["Reaching new people", "Raising leaders from within", "W
 const reasonTexts = ["Volunteers burn out and quit", "Burned out volunteers quit serving", "Budget runs short mid year", "Budget shortfall hits mid year", "Staff turnover stalls the plan",
   "Leaders lose interest after launch", "Nobody owns the follow up", "The building project delays everything", "Families drift to online only", "Prayer fades from our meetings"];
 const bulletLines = ["Every new family is known by name", "Leaders are raised from within", "Our groups multiply every year", "Prayer fills the week", "Young adults serve as leaders", "Neighbors ask to join us"];
-const signText = "We commit to the goals we set together.\n\n## How we will hold each other\nWe meet monthly to review the plan.";
 const summarySuggestions = ["Add: kids and adults eat at the same tables", "Add: we pray for our neighbours by name", "Guests are greeted by name before every service", "Leaders raise up the next leaders from every ministry",
   "Remove the line about praying before we plan", "We eat together every week after worship", "Guests are greeted by name before every service starts", "Leaders raise up the next leaders from every ministry we run",
   "We eat together every week after the service", "Neighbours know us by first name"];

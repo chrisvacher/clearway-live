@@ -10,7 +10,6 @@
 //   FAIL-10 the run of show printing from the Wayfinding template (and the day-and-a-half one).
 // KIT_SHOTS=<folder> saves each failure state. Local only: no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
-import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Browser, BrowserContext, Page, WebSocketRoute } from "playwright";
 import { engagement, facilitator, mailbox, pairTv, press, startApp, until, type Env } from "./harness";
