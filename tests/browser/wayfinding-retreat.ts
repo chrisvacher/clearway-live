@@ -119,10 +119,11 @@ async function main() {
       assert.equal((await sql.query("select count(*)::int n from public.submissions where session_id=$1 and not deleted and test", [celebrate])).rows[0].n, 1, "the rehearsal answer is marked as a test");
       assert.equal((await rpc("rehearsal_control", { p_id: randomUUID(), p_action: "end" })).status, "ok");
       assert.equal(await answer(1, celebrate, "real"), "accepted");
-      assert.equal((await rpc("rehearsal_control", { p_id: randomUUID(), p_action: "clear" })).status, "ok");
+      await press(fac, sql, room.id, "nothing_live");
+      const cleared = await rpc("rehearsal_control", { p_id: randomUUID(), p_action: "clear" });
+      assert.equal(cleared.status, "ok", JSON.stringify(cleared));
       assert.equal((await sql.query("select count(*)::int n from public.submissions where session_id=$1 and not deleted and test", [celebrate])).rows[0].n, 0, "no test answer is left");
       assert.equal((await sql.query("select count(*)::int n from public.submissions where session_id=$1 and not deleted", [celebrate])).rows[0].n, 1, "the real answer stands");
-      await press(fac, sql, room.id, "nothing_live");
       await sql.query("update public.submissions set deleted=true where session_id=$1", [celebrate]);
     });
 
