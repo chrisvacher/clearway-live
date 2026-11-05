@@ -16,9 +16,9 @@
 .lsm-busy { background: transparent; color: inherit; box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
 .lsm-lines { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; overflow: hidden; }
 .lsm-line { display: grid; grid-template-rows: 1fr; padding-bottom: 14px; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); line-height: 1.2; overflow-wrap: anywhere;
-  transition: grid-template-rows var(--cwl-dur-hide) var(--cwl-ease-signature), opacity var(--cwl-dur-hide) var(--cwl-ease-exit), padding var(--cwl-dur-hide) var(--cwl-ease-signature); }
+  transition: grid-template-rows var(--cwl-dur-hide) var(--cwl-ease-signature), opacity var(--cwl-dur-hide) var(--cwl-ease-exit), padding var(--cwl-dur-hide) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .lsm-line-in { min-height: 0; overflow: hidden; }
-.lsm-line.is-new { animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
+.lsm-line.is-new { animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) backwards; }
 .lsm-line.is-leaving { grid-template-rows: 0fr; opacity: 0; padding-bottom: 0; }
 .lsm-text { animation: lsm-replace var(--cwl-dur-line-replace) var(--cwl-ease-signature) both; }
 .lsm-caret { display: inline-block; width: 0.08em; height: 0.9em; margin-left: 0.1em; vertical-align: -0.1em; background: currentColor; animation: lsm-blink 1000ms steps(1) infinite; }
@@ -37,8 +37,8 @@
 .lsm-tally dt { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; }
 .lsm-tally dd { margin: 0; font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
 .lsm-cards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
-.lsm-card { padding: 16px 22px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere;
-  animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
+.lsm-card { transition: transform var(--cwl-dur-make-room) var(--cwl-ease-signature); padding: 16px 22px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere;
+  animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) backwards; }
 @keyframes lsm-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes lsm-replace { from { opacity: 0; } to { opacity: 1; } }
 @keyframes lsm-draw { from { background-size: 0 var(--cwl-tc-line); } to { background-size: 100% var(--cwl-tc-line); } }

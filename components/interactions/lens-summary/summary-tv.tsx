@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Check } from "lucide-react";
 import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
@@ -19,9 +19,41 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
   return <>{parts.map((p, i) => p.k === "keep" ? <span key={i}>{p.t} </span> : <span key={i} className={`lsm-${p.k}${p.k === "del" && leave ? " is-leaving" : ""}`} data-tc={p.k}>{p.t} </span>)}</>;
 }
 
+// Glide: when a list changes (a fold, a line typed, a card arriving) every child that stays moves from where it
+// was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a
+// change that lands mid-glide starts from the child's visual place, never from a stale one.
+function useGlide(host: RefObject<HTMLElement | null>) {
+  const seen = useRef(new Map<Element, number>());
+  useEffect(() => {
+    let frame = 0;
+    const read = () => {
+      const root = host.current;
+      if (root) { const next = new Map<Element, number>(); for (const el of Array.from(root.children)) next.set(el, el.getBoundingClientRect().top); seen.current = next; }
+      frame = requestAnimationFrame(read);
+    };
+    frame = requestAnimationFrame(read);
+    return () => cancelAnimationFrame(frame);
+  }, [host]);
+  useLayoutEffect(() => {
+    const root = host.current;
+    if (!root || document.documentElement.dataset.motion === "reduced") return;
+    for (const node of Array.from(root.children)) {
+      const el = node as HTMLElement, before = seen.current.get(el);
+      if (before === undefined) continue;
+      const shift = before - el.getBoundingClientRect().top;
+      if (Math.abs(shift) < 0.5) continue;
+      el.style.transition = "none"; el.style.transform = `translateY(${shift}px)`;
+      void el.offsetHeight;
+      el.style.transition = ""; el.style.transform = "";
+    }
+  });
+}
+
 export function LensSummaryView({ frame }: TvViewProps) {
   const res = useMemo(() => summaryOf(frame?.state.results), [frame?.state.results]);
   const summary = res.summary, shown = summary ? shownLines(summary) : [], versionId = summary?.versionId ?? "";
+  const linesRef = useRef<HTMLOListElement>(null), cardsRef = useRef<HTMLUListElement>(null);
+  useGlide(linesRef); useGlide(cardsRef);
   const keys = useRef(0), [rows, setRows] = useState<Row[]>([]), [leave, setLeave] = useState(false), [caret, setCaret] = useState<string | null>(null);
   // The signature of what is on screen: the version, and every line's text (a facilitator's edit keeps the version).
   const sign = shown.map(l => `${l.id}:${l.text}`).join("\u0001");
@@ -64,7 +96,7 @@ export function LensSummaryView({ frame }: TvViewProps) {
           </> : <span className="lsm-who"><AiMark /> 10-year Future</span>}
           {(res.aiState === "drafting" || res.aiState === "folding") && summary && <span className="lsm-busy" role="status">{stateLine[res.aiState]}</span>}
         </div>
-        {summary ? <ol className="lsm-lines">
+        {summary ? <ol className="lsm-lines" ref={linesRef}>
           {rows.map(r => <li key={r.key} className={`lsm-line is-${r.state}${r.state === "gone" && leave ? " is-leaving" : ""}`} data-line={r.id} data-state={r.state}>
             <div className="lsm-line-in"><span key={r.rev} className="lsm-text"><Words parts={r.parts} text={r.text} leave={leave} /></span>{caret === r.id && r.state !== "gone" && <span className="lsm-caret" aria-hidden="true" />}</div>
           </li>)}
@@ -76,7 +108,7 @@ export function LensSummaryView({ frame }: TvViewProps) {
           <div><dt>Approved</dt><dd data-tally="approve">{res.tally.approve}</dd></div>
           <div><dt>Suggested a change</dt><dd data-tally="suggest">{res.tally.suggest}</dd></div>
         </dl>
-        <ul className="lsm-cards">
+        <ul className="lsm-cards" ref={cardsRef}>
           {cards.map(c => <li key={c.id} className="lsm-card" data-suggestion>{c.text}</li>)}
         </ul>
         {further > 0 && <p className="lsm-more" data-more-suggestions>{moreOnPhones(further)}</p>}
