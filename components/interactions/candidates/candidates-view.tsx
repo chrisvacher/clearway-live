@@ -66,6 +66,15 @@ function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
     seen.current = ids; last.current = data.candidates;
   }, [data.candidates, data.merges]);
 
+  // Fit: rows size to their names. If the cards pass the board, the type steps down (never below the room minimum, which
+  // is the token floor over the body size) until every card sits on one screen.
+  useLayoutEffect(() => {
+    const el = host.current; if (!el) return;
+    const min = 36 / 44; // the token floor over the body size
+    let fit = 1; el.style.setProperty("--cd-fit", "1");
+    while (el.scrollHeight > el.clientHeight + 1 && fit > min) { fit = Math.max(min, fit - 0.04); el.style.setProperty("--cd-fit", String(fit)); }
+  });
+
   // Every card keeps its element (keyed by candidate). When its place changes, it glides from where it was
   // seen (a card already moving continues from where it is) in the same commit, so no frame shows it jumping.
   useLayoutEffect(() => {

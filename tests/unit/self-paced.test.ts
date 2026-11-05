@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { canClearTests, testItemsLabel } from "../../lib/run-of-show/self-paced";
+import { canClearTests, testAnswersLabel } from "../../lib/run-of-show/self-paced";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -188,5 +188,5 @@ test("Clear test answers is on when a rehearsal left only non-answer test items"
   assert.equal(canClearTests(0, false), false, "nothing to clear");
   assert.equal(canClearTests(1, false), true, "one candidate suggestion is enough");
   assert.equal(canClearTests(0, true), true, "a running rehearsal can be cleared");
-  assert.equal(testItemsLabel(1), "1 test item"); assert.equal(testItemsLabel(3), "3 test items");
+  assert.equal(testAnswersLabel(1), "1 test answer"); assert.equal(testAnswersLabel(3), "3 test answers");
 });

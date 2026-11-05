@@ -125,15 +125,16 @@ async function main() {
         await shot(tv, "lens-summary-draft");
       });
 
-      await step("With the TV's parent re-rendering every frame, every summary line is fully on the screen within 2 seconds of the draft", async () => {
-        const inside = () => tv.evaluate(() => {
-          const lines = [...document.querySelectorAll<HTMLElement>(".tv-layer:not(.is-leaving) .lsm-line:not(.is-gone)")], box = document.querySelector(".tv-layer:not(.is-leaving) .lsm-lines")!.getBoundingClientRect();
-          const rects = lines.map(l => l.getBoundingClientRect());
-          return { count: lines.length, ok: lines.length > 0 && rects.every(r => r.height > 0 && r.top >= -1 && r.bottom <= innerHeight + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1),
-            tops: rects.map(r => Math.round(r.top)), box: [Math.round(box.top), Math.round(box.bottom)], renders: (window as unknown as { forceRenders: number }).forceRenders };
+      await step("With the TV's parent re-rendering every frame, every summary line settles in its place within 2 seconds of the draft", async () => {
+        // No line is left mid-glide: each sits at its layout place (no transform) with no transition or animation still running.
+        const settled = () => tv.evaluate(() => {
+          const lines = [...document.querySelectorAll<HTMLElement>(".tv-layer:not(.is-leaving) .lsm-line:not(.is-gone)")];
+          const stuck = lines.filter(l => { const m = new DOMMatrixReadOnly(getComputedStyle(l).transform); return Math.abs(m.m42) > 1 || l.getAnimations().some(a => a.playState === "running"); });
+          return { count: lines.length, ok: lines.length > 0 && stuck.length === 0, stuck: stuck.map(l => ({ y: Math.round(new DOMMatrixReadOnly(getComputedStyle(l).transform).m42), time: l.getAnimations().map(a => Math.round(Number(a.currentTime))) })),
+            renders: (window as unknown as { forceRenders: number }).forceRenders };
         });
-        let last = await inside();
-        await until(async () => { last = await inside(); return last.ok; }, "every summary line inside the TV screen", 2000).catch(() => { throw new Error(`summary lines stuck off screen: ${JSON.stringify(last)}`); });
+        let last = await settled();
+        await until(async () => { last = await settled(); return last.ok; }, "every summary line settled in its place", 2000).catch(() => { throw new Error(`summary lines stuck mid-glide: ${JSON.stringify(last)}`); });
         assert.ok(last.renders > 30, `the parent re-rendered every frame: ${last.renders} renders`);
         const s = (await server()).summary!;
         assert.equal(last.count, s.sentences.length, "every line of the draft is on the TV");

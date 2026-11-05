@@ -4,7 +4,7 @@ import { Download, FlaskConical } from "lucide-react";
 import type { useControlRoom } from "./use-control-room";
 import { useSecondTap } from "./live-controls";
 import { stateLabels } from "@/lib/control/policy";
-import { canClearTests, rehearsalMessage, testItemsLabel, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
+import { canClearTests, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
 import { SeedCounts } from "@/components/interactions/lens/lens-panel";
 import "./self-paced.css";
 
@@ -63,7 +63,7 @@ export function RehearsalPanel({ room }: { room: Room }) {
   return <div className="sp-rehearsal" data-rehearsing={on ? "on" : "off"}>
     {on ? <p className="ctl-banner is-warning" role="status"><FlaskConical size={18} aria-hidden="true" /><span><strong>Rehearsing.</strong> Answers from every phone are test answers until you end the rehearsal or clear them.</span></p>
       : <p className="ctl-notes">Rehearse this run of show here, then clear the test answers before the real session.</p>}
-    <p className="ctl-label" aria-live="polite">{testItemsLabel(tests)}</p>
+    <p className="ctl-label" aria-live="polite">{testAnswersLabel(tests)}</p>
     <div className="ctl-row">
       {on ? <button className="show-button is-small" disabled={Boolean(busy) || closed} onClick={() => void send("end")}>End rehearsal</button>
         : <button className="show-button is-small" disabled={Boolean(busy) || closed} onClick={() => void send("start")}>Start rehearsal</button>}
