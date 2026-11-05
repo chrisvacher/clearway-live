@@ -343,7 +343,13 @@ async function main() {
     // ---------- The day-and-a-half template's follow-up block ----------
     await step("Day-and-a-half template: the follow-up block runs by a link and code with no Clearway sign-in, and the remote never shows the lead's private views", async () => {
       const half = await engagement(sql, ["Ruth", "Ben"]);
-      await sql.query("update public.attendees set verified_at=now() where engagement_id=$1", [half.id]);
+      // The team's own facilitator signs in as an attendee, as a person in the room does.
+      const lead = await browser!.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const leadPage = await lead.newPage(); await leadPage.goto(`${app.origin}/room/${half.id}`);
+      const before = mail.count;
+      await leadPage.fill("#room-email", half.attendees[0].email); await leadPage.getByRole("button", { name: "Send me a sign-in code" }).click();
+      await leadPage.fill("#room-code", await mail.code(half.attendees[0].email, before)); await leadPage.getByRole("button", { name: "Sign in" }).click();
+      await leadPage.locator(".ph-app").waitFor({ timeout: 15000 });
       const f2 = await facilitator(env, sql, half.id);
       const { data, error } = await f2.client.rpc("template_write", { p_action: "apply", p_input: { template: halfDay, engagement: half.id, start } });
       assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data)); assert.equal(data.count, 41);
@@ -376,7 +382,7 @@ async function main() {
       const revoked = await ctx2.request.post(`${app.origin}/api/control/${half.id}/followup`, { headers: origin, data: { action: "revoke" } });
       assert.equal((await revoked.json()).status, "ok");
       await until(async () => (await sql.query("select remote_holder_id from public.room_states where engagement_id=$1", [half.id])).rows[0].remote_holder_id === null, "revoking returns the remote", 8000);
-      await ctx2.close();
+      await ctx2.close(); await lead.close();
     });
 
     console.log(`Riverside Wayfinding retreat kit: ${passed.length} checks passed.\n${passed.map(p => `  ${p}`).join("\n")}`);

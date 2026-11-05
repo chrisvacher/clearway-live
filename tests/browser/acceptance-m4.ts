@@ -467,10 +467,10 @@ async function main() {
       assert.equal(statuses.length, 36);
       await delay(1500);
       const seen = await tv.evaluate(() => (window as unknown as { __tok: { seen: Record<string, number> } }).__tok.seen);
-      // A line replaces the one before it in its place, so the TV may show only the newest of a quick run: every editor's last line must appear.
-      const finals = editors.map(i => `k${i}u2`);
-      assert.ok(finals.every(t => seen[t]), `every editor's last line appeared on the TV (${finals.filter(t => seen[t]).length} of 12; ${Object.keys(seen).length} of 36 lines seen)`);
-      const ms = finals.map(t => seen[t] - sent[t]);
+      // The card on the TV shows the commander's intent line; the other fields (must-do, what we stop) are for the pairs' phones and the records.
+      const shownTokens = editors.filter(e => e % 3 === 0).flatMap(e => [0, 1, 2].map(u => `k${e}u${u}`));
+      const ms = shownTokens.filter(t => seen[t]).map(t => seen[t] - sent[t]);
+      assert.equal(ms.length, shownTokens.length, `every commander's intent line appeared on the TV (${ms.length} of ${shownTokens.length})`);
       const sp = spread(ms), w = await frames("commander's intent", ".int-card", 20);
       table.push(`${"Commander's intent (lines)".padEnd(34)} ${String(sp.under).padStart(3)} of ${String(sp.n).padEnd(3)} under 1 s (${sp.share}%), 95th ${sp.p95} ms, largest step ${Math.round(w.worst)} px over ${w.steps} item frames (stamped on the TV)`);
       assert.ok(sp.share >= 95, `95 in 100 under one second on loopback (${sp.share}%, 95th ${sp.p95} ms)`);
