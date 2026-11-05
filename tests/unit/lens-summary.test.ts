@@ -6,7 +6,7 @@ import { prompts, promptVersions, type LensDraftInputs, type LensFoldInputs } fr
 import { runSession } from "../../lib/ai/worker";
 import { settledReason } from "../../lib/phone/policy";
 import { interactionKinds, isReservedKind, screenIds } from "../../lib/interactions/kinds";
-import { checkSuggestion, facilitatorState, foldRefused, foldRefusedLine, glideMoved, moreOnPhones, ownReply, reconcile, shownLines, sourcesOf, summaryOf, summaryPress, type Change, type Row } from "../../lib/interactions/lens-summary";
+import { checkSuggestion, facilitatorState, foldRefused, foldRefusedLine, glideMoved, lineSize, moreOnPhones, ownReply, reconcile, shownLines, sourcesOf, summaryOf, summaryPress, type Change, type Row } from "../../lib/interactions/lens-summary";
 
 const uid = (n: number) => `77000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const reply = (v: unknown) => JSON.stringify(v);
@@ -181,4 +181,17 @@ test("A fold that applied nothing is said on the control surface instead of 'AI 
   assert.equal(foldRefused(base({ job: "draft_lens_summary", status: "ok", changed: false, undone: false })), false);
   assert.equal(foldRefused(base({ job: "fold_lens_summary", status: "ok", changed: false, undone: false }, "folding")), false, "not while AI is working");
   assert.equal(foldRefused(null), false);
+});
+
+test("The TV's lines take the largest size that fits, down to the floor and never below it", () => {
+  const tried: number[] = [], under = (limit: number) => (px: number) => { tried.push(px); return px <= limit; };
+  assert.equal(lineSize(under(100), 36, 52.8), 52.8, "a summary that fits keeps the body size");
+  assert.deepEqual(tried, [52.8], "one measurement when it fits");
+  tried.length = 0;
+  assert.equal(lineSize(under(44.5), 36, 52.8), 44, "the largest whole pixel that fits");
+  assert.ok(tried.length <= 6, `a binary search: ${tried.length} measurements`);
+  assert.equal(lineSize(under(36), 36, 52.8), 36, "the floor itself");
+  assert.equal(lineSize(under(20), 36, 52.8), 36, "when nothing fits, the lines keep the floor and never go below it");
+  assert.equal(lineSize(under(100), 36, 36), 36, "a body size at the floor");
+  assert.equal(lineSize(under(39.9), 36.5, 40.2), 39, "a floor between whole pixels");
 });

@@ -68,6 +68,23 @@ async function cardsFit(layer: () => Locator, total: number, label: string) {
   if (label === "medium") assert.ok(g.moreBottom <= g.clipBottom + 0.5, `${label}: the more line is whole on the screen (${JSON.stringify(g)})`);
 }
 
+// Every line of the summary sits whole inside the sheet's list of lines and on the screen, at a size the back of the room can
+// read (never below the floor ramp's 36px floor). Nothing is clipped by the list's overflow or the TV's edge.
+async function linesFit(layer: () => Locator, count: number, label: string) {
+  const g = await layer().evaluate(el => {
+    const list = el.querySelector(".lsm-lines")!.getBoundingClientRect(), stage = el.closest(".tv-stage")!.getBoundingClientRect();
+    const lines = [...el.querySelectorAll<HTMLElement>(".lsm-line:not(.is-gone)")].map(l => ({ r: l.getBoundingClientRect(), px: parseFloat(getComputedStyle(l).fontSize), text: (l.textContent || "").slice(0, 30) }));
+    return { list: { top: list.top, bottom: list.bottom, left: list.left, right: list.right }, stage: { top: Math.max(0, stage.top), bottom: Math.min(innerHeight, stage.bottom), left: Math.max(0, stage.left), right: Math.min(innerWidth, stage.right) },
+      lines: lines.map(l => ({ top: l.r.top, bottom: l.r.bottom, left: l.r.left, right: l.r.right, px: l.px, text: l.text })) };
+  });
+  assert.equal(g.lines.length, count, `${label}: every line of the summary is on the TV`);
+  for (const l of g.lines) {
+    assert.ok(l.top >= g.list.top - 0.5 && l.bottom <= g.list.bottom + 0.5 && l.left >= g.list.left - 0.5 && l.right <= g.list.right + 0.5, `${label}: the line sits whole inside the sheet (${JSON.stringify({ line: l, list: g.list })})`);
+    assert.ok(l.top >= g.stage.top - 0.5 && l.bottom <= g.stage.bottom + 0.5 && l.left >= g.stage.left - 0.5 && l.right <= g.stage.right + 0.5, `${label}: the line is on the screen (${JSON.stringify({ line: l, stage: g.stage })})`);
+    assert.ok(l.px >= 36, `${label}: the line is readable from the back of the room (${l.px}px)`);
+  }
+}
+
 async function main() {
   const env = localEnv(), sql = db(env), mail = await mailbox();
   const app = await startApp(env, mail.url);
@@ -152,6 +169,19 @@ async function main() {
         const s = (await server()).summary!;
         assert.equal(last.count, s.sentences.length, "every line of the draft is on the TV");
         await tv.evaluate(() => { (window as unknown as { forceStop: boolean }).forceStop = true; });
+      });
+
+      await step("Every line of the draft shows whole in the sheet, on the screen, at Medium and Very small", async () => {
+        const count = (await server()).summary!.sentences.length;
+        const sizeBefore = (await sql.query("select settings->>'room_size' as s from public.engagements where id=$1", [room])).rows[0].s as string | null;
+        for (const size of ["medium", "very_small"]) {
+          await press(fac, sql, room, "room_size", { size });
+          await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+          let miss: unknown;
+          await until(async () => { try { await linesFit(layer, count, size); return true; } catch (error) { miss = error; return false; } }, `every line fits at ${size}`, 6000).catch(() => { throw miss; });
+          await shot(tv, `lens-summary-lines-${size}`);
+        }
+        await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [room, sizeBefore]);
       });
 
       // ---------- 50 phones, AI slow ----------

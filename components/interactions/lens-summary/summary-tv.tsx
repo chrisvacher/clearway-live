@@ -5,7 +5,8 @@ import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
 import { useFitCount } from "@/components/tv/use-fit-count";
-import { caretMs, leaveMs, glideMoved, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
+import { flushSync } from "react-dom";
+import { caretMs, leaveMs, glideMoved, lineSize, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
 
@@ -59,12 +60,57 @@ function useGlide(host: RefObject<HTMLElement | null>) {
   });
 }
 
+// Fit: every line of the summary shows whole in the sheet, at every room size. A long summary that needs more room than the
+// sheet has steps the whole screen's type down evenly (--lsm-fit scales the room's ramp, as the TV's own fit step does) until it
+// fits, down to the floor ramp of the Very large room; the lines alone may then step on down to that ramp's floor size, never
+// below. The size is searched a pixel of line type at a time before paint, whenever the lines, the struck words or the room
+// change, and set before the glide runs, so the glide sees the lines' new places and moves them there: nothing jumps.
+function useLineFit(list: RefObject<HTMLOListElement | null>, sign: string) {
+  const seen = useRef(""), watch = useRef<{ el: Element | null; ro: ResizeObserver | null; kids: Set<Element> }>({ el: null, ro: null, kids: new Set() }), [, redraw] = useState(0);
+  const fit = () => {
+    const el = list.current, host = el?.closest<HTMLElement>(".tv-layer") ?? el?.closest<HTMLElement>(".lsm-tv");
+    if (!el || !host) return false;
+    const was = host.style.getPropertyValue("--lsm-fit"), px = (name: string) => parseFloat(getComputedStyle(el).getPropertyValue(name));
+    const key = () => `${sign}|${el.clientWidth}x${el.clientHeight}|${px("--lsm-line-size")}|${px("--lsm-line-least")}`;
+    if (key() === seen.current) return false;
+    host.style.setProperty("--lsm-fit", "1");
+    const most = px("--lsm-line-size"), least = px("--lsm-line-least");
+    if (!(most > 0) || !(least > 0)) { seen.current = key(); return false; }
+    const need = () => Array.from(el.children).reduce((h, c) => h + (c as HTMLElement).offsetHeight, 0);
+    const scale = (size: number) => size >= most ? "1" : String(size / most);
+    const fits = (size: number) => { host.style.setProperty("--lsm-fit", scale(size)); return need() <= el.clientHeight + 0.5; };
+    const fit = scale(lineSize(fits, least, most));
+    host.style.setProperty("--lsm-fit", fit);
+    seen.current = key();
+    return fit !== (was || "1");
+  };
+  const latest = useRef(fit);
+  latest.current = fit;
+  useLayoutEffect(() => {
+    fit();
+    // The sheet and its lines also change size without a render of this view (the TV's own fit step changing the ramp around
+    // them); a new fit then re-renders, so the glide moves the lines to their new places.
+    const el = list.current, w = watch.current;
+    if (el !== w.el) {
+      w.ro?.disconnect(); w.el = el; w.ro = null; w.kids = new Set();
+      if (el && typeof ResizeObserver === "function") { w.ro = new ResizeObserver(() => { if (latest.current()) flushSync(() => redraw(n => n + 1)); }); w.ro.observe(el); }
+    }
+    if (el && w.ro) {
+      for (const kid of w.kids) if (kid.parentElement !== el) { w.ro.unobserve(kid); w.kids.delete(kid); }
+      for (const kid of Array.from(el.children)) if (!w.kids.has(kid)) { w.kids.add(kid); w.ro.observe(kid); }
+    }
+  });
+  useEffect(() => () => watch.current.ro?.disconnect(), []);
+}
+
 export function LensSummaryView({ frame }: TvViewProps) {
   const res = useMemo(() => summaryOf(frame?.state.results), [frame?.state.results]);
   const summary = res.summary, shown = summary ? shownLines(summary) : [], versionId = summary?.versionId ?? "";
   const linesRef = useRef<HTMLOListElement>(null), cardsRef = useRef<HTMLUListElement>(null);
-  useGlide(linesRef); useGlide(cardsRef);
   const keys = useRef(0), [rows, setRows] = useState<Row[]>([]), [leave, setLeave] = useState(false), [caret, setCaret] = useState<string | null>(null);
+  // What decides the lines' height: each row's words (struck and inserted ones too), the struck words leaving, and the caret.
+  useLineFit(linesRef, `${rows.map(r => `${r.key}:${r.state}:${r.parts ? r.parts.map(p => p.k + p.t).join(" ") : r.text}`).join("\u0001")}|${leave}|${caret}`);
+  useGlide(linesRef); useGlide(cardsRef);
   // The signature of what is on screen: the version, and every line's text (a facilitator's edit keeps the version).
   const sign = shown.map(l => `${l.id}:${l.text}`).join("\u0001");
   useEffect(() => {
