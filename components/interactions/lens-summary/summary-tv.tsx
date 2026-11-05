@@ -71,7 +71,7 @@ export function LensSummaryView({ frame }: TvViewProps) {
   useEffect(() => {
     setLeave(false);
     if (!versionId) return;
-    const a = setTimeout(() => setLeave(true), struckHoldMs), b = setTimeout(() => setRows(r => r.some(x => x.state === "gone") ? r.filter(x => x.state !== "gone") : r), struckHoldMs + leaveMs);
+    const a = setTimeout(() => setLeave(true), struckHoldMs), b = setTimeout(() => setRows(r => r.some(x => x.state === "gone" || x.parts?.some(q => q.k === "del")) ? r.filter(x => x.state !== "gone").map(x => x.parts?.some(q => q.k === "del") ? { ...x, parts: x.parts.filter(q => q.k !== "del") } : x) : r), struckHoldMs + leaveMs);
     return () => { clearTimeout(a); clearTimeout(b); };
   }, [versionId]);
   // The caret follows the line the facilitator is typing and clears itself when they stop.
