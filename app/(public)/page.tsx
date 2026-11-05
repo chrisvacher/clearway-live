@@ -37,8 +37,8 @@ const gallery: GalleryItem[] = [
     tv: "/home/tv-wall.webp", tvAlt: "The TV: an AI summary above a theme called Baptisms, with the newest answers", phone: "/home/phone-wall.webp", phoneAlt: "The phone: a sentence sent, with room to write another" },
   { key: "points", tag: "100 points", name: "Where would you spend it?", text: "Everyone spreads 100 points across the priorities. Bars grow and trade places as answers land, and a line shows where the top few end.",
     tv: "/home/tv-points.webp", tvAlt: "The TV: five priorities as bars, Shared priorities leading at 33 percent", phone: "/home/phone-points.webp", phoneAlt: "The phone: sliders placing 100 points" },
-  { key: "grid", tag: "2x2 grid", name: "Effort and impact, placed by everyone", text: "Each person places each item between two axes. The screen shows where the room put it, one numbered dot per item.",
-    tv: "/home/tv-grid.webp", tvAlt: "The TV: a 2x2 grid of effort and impact with five numbered focus areas", phone: "/home/phone-grid.webp", phoneAlt: "The phone: placing focus areas on the grid" },
+  { key: "grid", tag: "2x2 matrix", name: "Effort and impact, placed by everyone", text: "Each person places each item between two axes. The screen shows where the room put it, one numbered dot per item.",
+    tv: "/home/tv-grid.webp", tvAlt: "The TV: a 2x2 matrix of effort and impact with five numbered focus areas", phone: "/home/phone-grid.webp", phoneAlt: "The phone: placing focus areas on the grid" },
   { key: "qa", tag: "Q&A", name: "The questions people actually have", text: "Anonymous questions the room can upvote. The most asked rise to the top, and the facilitator spotlights one at a time.",
     tv: "/home/tv-qa.webp", tvAlt: "The TV: questions ranked by votes, Who decides what we stop doing on top with 8", phone: "/home/phone-qa.webp", phoneAlt: "The phone: questions with upvote buttons and a box to ask" },
   { key: "sign", tag: "Sign together", name: "A commitment the whole team signs", text: "Each person signs on their phone, and the signatures gather on the screen as one shared commitment.",
@@ -52,7 +52,7 @@ const compare = [
   { topic: "How honest it gets", without: "People soften what they think when everyone can see who said it.", with: "Answers show on the screen without names." },
   { topic: "Reading the room", without: "The facilitator senses agreement by feel.", with: "Agreement and tension show on the screen as they form." },
   { topic: "What's kept", without: "Easel sheets photographed and retyped afterwards.", with: "Every answer is kept with the step it belongs to, and the easel is still there." },
-  { topic: "Leaving the room", without: "A plan that arrives weeks later in a report.", with: "Goals with an owner and a date before you leave, ready for CORE." },
+  { topic: "Leaving the room", without: "A plan that arrives weeks later in a report.", with: "Goals with an owner and a date before you leave, ready for the year ahead." },
 ];
 
 const steps = [
@@ -60,15 +60,15 @@ const steps = [
   { name: "Pre-call", photo: "/home/room-boardroom.webp", text: "Ninety minutes on video, one to two weeks out. The team signs in, looks at what the survey said, celebrates what God has done and starts writing." },
   { name: "Day 1", photo: "/home/room-five-lenses.webp", text: "The 10-year Future through the Five Lenses, written in the present tense. Then the 3-year Vision and its Vision Outcomes, held provisionally overnight." },
   { name: "Overnight", photo: "/home/room-retreat-venue.webp", text: "Your facilitators review a draft of each lens built from the room's own words, every sentence traced to the answers it came from." },
-  { name: "Day 2", photo: "/home/room-u-table.webp", text: "A read-back to confirm the room was heard, a pre-mortem on what could stop the plan, the 1-year Outlook as CORE goals, then your own team takes the remote." },
-  { name: "After", photo: "/home/room-calendar.webp", text: "Vision Outcomes and goals go to CORE in one step, and your report and a draft visibility plan are assembled from the engagement." },
+  { name: "Day 2", photo: "/home/room-u-table.webp", text: "A read-back to confirm the room was heard, a pre-mortem on what could stop the plan, the 1-year Outlook as goals with an owner and an end date, then your own team takes the remote." },
+  { name: "After", photo: "/home/room-calendar.webp", text: "Vision Outcomes and goals move in one step to CORE, Clearway's dashboard for the year ahead, and your report and a draft visibility plan are assembled from the engagement." },
 ];
 
 const room = [
   { icon: Monitor, name: "One TV, on its own computer", text: "The church sets up a computer at the TV. It opens live.clearway.co/tv and pairs with a six-digit code." },
   { icon: ALargeSmall, name: "Type sized for the room", text: "One setting scales every word on the screen, down to a U-shape of eight, where the type is largest." },
   { icon: Timer, name: "Phones in short bursts", text: "Phones come out for three to five minutes with a quiet countdown, then go back down so the team can talk." },
-  { icon: WifiOff, name: "Ready for weak wifi", text: "Answers save on the phone and send in order when the signal returns. The screen holds its last picture." },
+  { icon: WifiOff, name: "Ready for weak Wi-Fi", text: "Answers save on the phone and send in order when the signal returns. The screen holds its last picture." },
   { icon: NotebookPen, name: "A scribe at the side table", text: "Quotes, decisions, tensions and actions captured as tagged cards, with photos of the easel." },
   { icon: Users, name: "The room decides together", text: "Votes and points show where the room is. They don't decide. The team decides together, by consensus." },
 ];
@@ -92,8 +92,11 @@ const faqs = [
   { q: "Do I need to download an app?", a: "No. Clearway Live runs in your phone's browser. Point your camera at the QR code on the TV, or enter the room code at live.clearway.co." },
   { q: "Do I need an account?", a: "No account or password. The first time, you confirm your email with a six-digit code, so the room knows you're on your team's list. After that your phone stays signed in for the engagement." },
   { q: "Who sees what I write?", a: "On the screen, nobody sees your name. Nobody in the room sees who wrote what, the facilitator included. Your name is kept with your answers only for the record. When a step needs a name, like signing a commitment, your phone tells you before you answer." },
-  { q: "What if the wifi drops?", a: "Your answers save on your phone and send in order when the signal comes back. The screen keeps its last picture, and the easel is still the room's first record." },
-  { q: "What does our church need to set up?", a: "A TV or projector with a computer connected to it, and wifi for the room. The computer opens live.clearway.co/tv, and your facilitator pairs it with a code." },
+  { q: "Can I change my answer?", a: "Yes. While a step is open, your own answers stay on your phone, and you can change or withdraw them. The screen moves with you." },
+  { q: "Can I try it before the retreat?", a: "Yes. The practice room works on any phone, with no code and no sign-in, so you can see how answering feels before the day." },
+  { q: "What if the Wi-Fi drops?", a: "Your answers save on your phone and send in order when the signal comes back. The screen keeps its last picture, and the easel is still the room's first record." },
+  { q: "What does our church need to set up?", a: "A TV or projector with a computer connected to it, and Wi-Fi for the room. The computer opens live.clearway.co/tv, and your facilitator pairs it with a code." },
+  { q: "What happens to our answers afterwards?", a: "They stay with your church's engagement, and your facilitators use them to write your report. Elders can be given a read-only copy of the finished plan, which never shows individual answers." },
   { q: "How is AI used?", a: "AI groups similar answers and drafts summaries. Every grouping on the screen is marked and can be undone, and nothing drafted overnight reaches the room until your facilitators have reviewed it." },
 ];
 
@@ -135,7 +138,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </div>
           </div>
           <div className="home-hero-visual" aria-label="A Clearway retreat room, with the screen and a phone">
-            <div className="hero-photo"><Image src="/home/room-wayfinding-report.webp" alt="A Clearway facilitator presenting a Wayfinding report to a church team at round tables" fill priority sizes="(max-width: 1024px) 92vw, 640px" /></div>
+            <div className="hero-photo"><Image src="/home/room-stained-glass.webp" alt="A church leadership team around a U-shaped table, facing a Clearway screen" fill priority sizes="(max-width: 1024px) 92vw, 640px" /></div>
             <DemoRoom variant="hero" />
           </div>
         </div>
@@ -145,7 +148,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="home-width">
           <Reveal className="why-head">
             <p className="home-eyebrow">New to Clearway Live?</p>
-            <h2 id="why-title" className="home-h2">Every voice in the room, <strong>on one screen.</strong></h2>
+            <h2 id="why-title" className="home-h2">Every voice in the room,<br /> <strong>on one screen.</strong></h2>
             <p className="home-lead">Your church is planning its next season with Clearway. Clearway Live is how your leadership team thinks out loud together: everyone answers on their own phone, and the room&apos;s answers appear on the screen as they&apos;re sent.</p>
           </Reveal>
           <div className="why-grid">
@@ -166,7 +169,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="home-width">
           <Reveal>
             <p className="home-eyebrow">How it works</p>
-            <h2 id="how-title" className="home-h2">Look up together. <strong>Answer on your own.</strong></h2>
+            <h2 id="how-title" className="home-h2">Look up together.<br /> <strong>Answer on your own.</strong></h2>
             <p className="home-lead">Your team watches one screen at the front of the room and answers on their own phones, while your facilitator moves the room from one step to the next.</p>
           </Reveal>
           <Reveal><ThreeScreens /></Reveal>
@@ -197,7 +200,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <p className="home-lead">Your facilitator chooses how the room answers. Pick one to see it on the TV and on a phone. These are real screens from a Riverside Church team workshop.</p>
           </Reveal>
           <Reveal><Gallery items={gallery} /></Reveal>
-          <p className="home-small">Also multiple choice, scale, ranking, statements and private forms, where only the facilitators read the answers and the screen shows a count.</p>
+          <p className="home-small">Also multiple choice, rating scales, ranking, agree or disagree statements, and private responses, where only the facilitators read the answers and the screen shows a count. Wayfinding adds its own tools, from a themed brainstorm to a consensus check.</p>
         </div>
       </section>
 
@@ -245,7 +248,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           <div>
             <Reveal>
               <p className="home-eyebrow">In the room</p>
-              <h2 id="room-title" className="home-h2">Made for a team <strong>around one table.</strong></h2>
+              <h2 id="room-title" className="home-h2">Made for a team<br /> <strong>around one table.</strong></h2>
               <p className="home-lead">A Wayfinding retreat is usually about eight leaders in a U-shape with one TV, a facilitator, a co-facilitator and a scribe.</p>
             </Reveal>
             <div className="room-list">
@@ -269,7 +272,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         <div className="home-width">
           <Reveal>
             <p className="home-eyebrow">Privacy</p>
-            <h2 id="privacy-title" className="home-h2">Say what you actually think. <strong>The screen won&apos;t say it was you.</strong></h2>
+            <h2 id="privacy-title" className="home-h2">Say what you actually think.<br /> <strong>The screen won&apos;t say it was you.</strong></h2>
           </Reveal>
           <div className="home-grid four">
             <Reveal className="home-card"><span className="home-icon"><EyeOff size={22} aria-hidden="true" /></span><h3 className="home-h3">No names on the screen</h3>
@@ -279,7 +282,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <Reveal step={2} className="home-card"><span className="home-icon"><Lock size={22} aria-hidden="true" /></span><h3 className="home-h3">Private forms stay private</h3>
               <p>Your facilitators read the answers. The screen shows how many people have answered, and the answers are kept out of its data entirely.</p></Reveal>
             <Reveal step={3} className="home-card"><span className="home-icon"><AiIcon size={22} /></span><h3 className="home-h3">AI you can see</h3>
-              <p>Every AI grouping is marked and can be undone. <Link href="/how-we-use-ai" className="home-inline">How we use AI</Link></p></Reveal>
+              <p>AI groups similar answers and drafts summaries. Each one is marked and can be undone, and your team decides what stays. <Link href="/how-we-use-ai" className="home-inline">How we use AI</Link></p></Reveal>
           </div>
         </div>
       </section>
@@ -304,6 +307,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <p className="home-eyebrow">Questions</p>
             <h2 id="faq-title" className="home-h2">Before <strong>you join.</strong></h2>
             <p className="home-lead">The things people ask on the morning of a retreat.</p>
+            <div className="faq-try">
+              <span className="home-icon"><Smartphone size={20} aria-hidden="true" /></span>
+              <div><h3 className="home-h3">Try it before the day</h3>
+                <p>Answer a few questions in the practice room and watch them land, on your own phone.</p>
+                <Link href="/practice" prefetch={false} className="faq-try-link">Join the practice room <ArrowRight size={16} aria-hidden="true" /></Link></div>
+            </div>
           </Reveal>
           <div className="faq">
             {faqs.map((f, i) => <details key={f.q} className="faq-item" open={i === 0}><summary>{f.q}</summary><p>{f.a}</p></details>)}

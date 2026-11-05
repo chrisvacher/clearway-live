@@ -4,7 +4,8 @@
    inside it. Lime and Sunrise appear only inside those screens, plus the live tag. */
 body:has(> .home) { background: var(--cwl-surface); }
 .home { min-height: 100svh; background: var(--cwl-surface); color: var(--cwl-text); font-family: var(--cwl-font); overflow-x: clip; }
-.home p { margin: 0; }
+.home p { margin: 0; text-wrap: pretty; }
+.home h1, .home h2, .home h3 { text-wrap: balance; }
 .home-width { width: min(100%, var(--container-max)); margin-inline: auto; padding-inline: var(--space-6); }
 
 /* Header: the Clearway Live lockup, the page's sections, and sign-in for facilitators. */
@@ -107,7 +108,7 @@ body:has(> .home) { background: var(--cwl-surface); }
 .photo-tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 600ms var(--ease-mochary); }
 .photo-tile:hover img { transform: scale(1.05); }
 @keyframes photo-drift { to { transform: translateX(calc(-50% - var(--space-2))); } }
-.photo-caption { margin-top: var(--space-6) !important; font-size: var(--fs-small); color: var(--cwl-text-muted); }
+.home .photo-caption { margin: var(--space-6) auto 0; font-size: var(--fs-small); color: var(--cwl-text-muted); }
 
 /* How it works: tabs that move on by themselves, beside the screen they describe. */
 .three { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-10); align-items: center; margin-top: var(--space-10); }
@@ -137,7 +138,7 @@ body:has(> .home) { background: var(--cwl-surface); }
 .demo-tab { min-height: var(--cwl-phone-touch); padding: 0 var(--space-5); border: 0; border-radius: var(--cwl-radius-pill); background: transparent; box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); color: var(--cwl-text); font: inherit; font-size: var(--fs-small); font-weight: var(--fw-semibold); cursor: pointer; }
 .demo-tab[aria-selected="true"] { background: var(--cwl-surface-card); box-shadow: none; color: var(--cwl-text-on-card); }
 .demo-tab:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
-.demo-stage { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: var(--space-8); align-items: start; }
+.demo-stage { display: grid; grid-template-columns: minmax(0, 1fr) 18rem; gap: var(--space-8); align-items: center; }
 .demo-screen, .demo-phone { margin: 0; }
 .demo-phone-frame { padding: 8px; border-radius: 2.5rem; background: var(--cw-gray-900); box-shadow: 0 24px 48px -24px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
 .demo-phone-frame .phone-scale { border-radius: 2rem; }
@@ -235,11 +236,15 @@ body:has(> .home) { background: var(--cwl-surface); }
 .quote-card { position: relative; display: flex; flex-direction: column; gap: var(--space-5); height: 100%; padding: var(--space-8); border-radius: var(--cwl-radius-card); background: var(--cwl-bar-track); box-shadow: inset 0 0 0 1px var(--cwl-border); }
 .quote-mark { color: var(--cwl-text-muted); }
 .quote-card blockquote { margin: 0; flex: 1; }
-.quote-card blockquote p { font-size: var(--fs-lead); line-height: var(--lh-body); font-weight: var(--fw-light); color: var(--cwl-text); }
+.quote-card blockquote p { font-size: var(--fs-lead); line-height: var(--lh-body); font-weight: var(--fw-regular); color: var(--cwl-text); }
 .quote-who { display: grid; gap: 2px; font-size: var(--fs-small); color: var(--cwl-text-muted); }
 .quote-who strong { font-size: var(--fs-body); color: var(--cwl-text); }
 
 /* Questions */
+.faq-try { display: flex; gap: var(--space-4); margin-top: var(--space-8); padding: var(--space-6); border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); box-shadow: inset 0 0 0 1px var(--cwl-border); }
+.faq-try .home-icon { flex: none; margin: 0; }
+.faq-try p { font-size: var(--fs-small); line-height: var(--lh-body); color: var(--cwl-text-muted); }
+.faq-try-link { display: inline-flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); font-weight: var(--fw-bold); color: var(--cwl-text); text-decoration: underline; text-underline-offset: 3px; }
 .faq-grid { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); gap: var(--space-12); align-items: start; }
 .faq { display: grid; gap: var(--space-3); }
 .faq-item { border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); box-shadow: inset 0 0 0 1px var(--cwl-border), var(--shadow-md); }
