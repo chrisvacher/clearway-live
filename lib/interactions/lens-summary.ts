@@ -214,3 +214,15 @@ function inner(v: Record<string, unknown>, action: SummaryAction, id: string): O
 // A child glides only when its place in the layout moved since the last render. A render that moved nothing, such as the
 // TV's parent re-rendering every frame, never restarts a glide in flight.
 export const glideMoved = (was: number | undefined, now: number): boolean => was !== undefined && Math.abs(now - was) >= 0.5;
+
+// The TV's line type: the largest size from `most` (the body size) down to `least` (the floor), in whole pixels below `most`, at
+// which every line fits whole in the sheet. A binary search, so a fit takes a handful of measurements. When even `least` does
+// not fit, the lines keep `least`: type never goes below what the back of the room can read.
+export function lineSize(fits: (px: number) => boolean, least: number, most: number): number {
+  if (!(most > least)) return Math.max(most, least);
+  if (fits(most)) return most;
+  let lo = Math.ceil(least), hi = Math.ceil(most) - 1;
+  if (hi < lo || !fits(lo)) return least;
+  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (fits(mid)) lo = mid; else hi = mid - 1; }
+  return lo;
+}

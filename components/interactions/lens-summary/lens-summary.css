@@ -1,12 +1,29 @@
 /* INT-18, the lens summary (milestone 4, step 2b). Tokens only. The screen is alive: rows keep their place,
    lines replace themselves in place, tracked changes draw across, and nothing waits for a reveal. */
-.lsm-tv { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: var(--space-5); }
-.lsm-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
-.lsm-steps { display: flex; gap: 28px; margin: 0; padding: 0; list-style: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+/* The summary is one screen: every line, up to the 8-line cap, shows whole in the sheet at every room size. While a lens summary
+   is up the session's headline steps down to a compact line at the floor size (the session title above it gives way), the lens
+   chip and the lens steps share one row, and the sheet takes most of the width. When a long summary still needs room, useLineFit
+   sets --lsm-fit below 1: this screen's ramp shrinks evenly, as the TV's own fit step shrinks the whole ramp, down to the floor
+   ramp of the Very large room (the type sizes below are that ramp's, as in live_tokens.css), and the lines alone may then step
+   on down to that ramp's floor size, never below it. */
+@property --lsm-line-size { syntax: "<length>"; inherits: true; initial-value: 0px; }
+@property --lsm-line-least { syntax: "<length>"; inherits: true; initial-value: 0px; }
+.tv-layer.is-input[data-kind="lens_summary"] { gap: var(--space-3);
+  --cwl-tv-scale: max(1, calc(var(--cwl-room-scale) * var(--cwl-fit-scale) * var(--lsm-fit, 1)));
+  --cwl-fs-tv-headline: calc(64px * var(--cwl-tv-scale)); --cwl-fs-tv-main: calc(56px * var(--cwl-tv-scale)); --cwl-fs-tv-body: calc(44px * var(--cwl-tv-scale));
+  --cwl-fs-tv-floor: calc(36px * var(--cwl-tv-scale)); --cwl-fs-tv-eyebrow: calc(36px * var(--cwl-tv-scale)); }
+.tv-layer.is-input[data-kind="lens_summary"] .tv-eyebrow { position: absolute; visibility: hidden; }
+.tv-layer.is-input[data-kind="lens_summary"] .tv-headline { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-medium); line-height: 1.2; margin-bottom: 0; }
+/* The lines' size: the body size of the room's ramp times --lsm-fit, carried on below the floor ramp down to its floor size. */
+.lsm-tv { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: var(--space-4);
+  --lsm-line-least: 36px; --lsm-line-size: max(var(--lsm-line-least), calc(44px * var(--cwl-room-scale) * var(--cwl-fit-scale) * var(--lsm-fit, 1))); }
+.lsm-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
+.lsm-head .lens-heading { flex: none; gap: var(--space-3); padding: var(--space-2) var(--space-5); font-size: var(--cwl-fs-tv-floor); }
+.lsm-steps { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px 28px; min-width: 0; margin: 0; padding: 0; list-style: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 .lsm-steps li { display: inline-flex; align-items: center; gap: 0.3em; transition: color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
 .lsm-steps li[data-state="now"] { color: var(--cwl-text); font-weight: var(--fw-bold); box-shadow: 0 0.12em 0 0 var(--cwl-text); }
-.lsm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) calc(560px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 56px; }
-.lsm-sheet { position: relative; display: flex; flex-direction: column; gap: 20px; min-height: 0; padding: 32px 40px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
+.lsm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) calc(440px * var(--cwl-tv-scale)); grid-template-rows: minmax(0, 1fr); gap: 40px; }
+.lsm-sheet { position: relative; display: flex; flex-direction: column; gap: 16px; min-height: 0; padding: 24px 36px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
   --cwl-ai-start: var(--cw-royal-blue); --cwl-ai-end: var(--cwl-bright-chartreuse); --cwl-ai-glint: var(--cw-sky-blue); }
 .lsm-band { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 28px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.2; }
 .lsm-band .cwl-ai-mark { width: 1em; height: 1em; }
@@ -15,27 +32,29 @@
 .lsm-signed, .lsm-busy { display: inline-flex; align-items: center; gap: 0.3em; padding: 0.05em 0.5em; border-radius: var(--cwl-radius-marker); background: var(--cwl-text-on-card); color: var(--cwl-surface-card); font-weight: var(--fw-bold); }
 .lsm-busy { background: transparent; color: inherit; box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
 .lsm-lines { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; overflow: hidden; }
-.lsm-line { display: grid; grid-template-rows: 1fr; padding-bottom: 14px; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); line-height: 1.2; overflow-wrap: anywhere;
-  transition: grid-template-rows var(--cwl-dur-hide) var(--cwl-ease-signature), opacity var(--cwl-dur-hide) var(--cwl-ease-exit), padding var(--cwl-dur-hide) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+/* Only a leaving line eases its height away; a line whose type the fit steps keeps its padding, so the fit measures it at once. */
+.lsm-line { display: grid; grid-template-rows: 1fr; padding-bottom: 14px; font-size: var(--lsm-line-size); font-weight: var(--fw-semibold); line-height: 1.2; overflow-wrap: anywhere;
+  transition: transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .lsm-line-in { min-height: 0; overflow: hidden; }
 .lsm-line.is-new { animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) backwards; }
-.lsm-line.is-leaving { grid-template-rows: 0fr; opacity: 0; padding-bottom: 0; }
+.lsm-line.is-leaving { grid-template-rows: 0fr; opacity: 0; padding-bottom: 0;
+  transition: grid-template-rows var(--cwl-dur-hide) var(--cwl-ease-signature), opacity var(--cwl-dur-hide) var(--cwl-ease-exit), padding var(--cwl-dur-hide) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .lsm-text { animation: lsm-replace var(--cwl-dur-line-replace) var(--cwl-ease-signature) both; }
 .lsm-caret { display: inline-block; width: 0.08em; height: 0.9em; margin-left: 0.1em; vertical-align: -0.1em; background: currentColor; animation: lsm-blink 1000ms steps(1) infinite; }
 .lsm-ins, .lsm-del { background-repeat: no-repeat; animation: lsm-draw var(--cwl-dur-tc-strike) var(--cwl-ease-signature) both; }
 .lsm-ins { background-image: linear-gradient(currentColor, currentColor); background-position: 0 calc(100% + var(--cwl-tc-offset) * 0.3); background-size: 100% var(--cwl-tc-line); }
-.lsm-del { background-image: linear-gradient(currentColor, currentColor); background-position: 0 55%; background-size: 100% var(--cwl-tc-line); opacity: 0.75;
-  transition: opacity var(--cwl-dur-hide) var(--cwl-ease-exit), font-size var(--cwl-dur-hide) var(--cwl-ease-signature); }
-.lsm-del.is-leaving { opacity: 0; font-size: 0; }
+.lsm-del { background-image: linear-gradient(currentColor, currentColor); background-position: 0 55%; background-size: 100% var(--cwl-tc-line); opacity: 0.75; }
+.lsm-del.is-leaving { opacity: 0; font-size: 0; transition: opacity var(--cwl-dur-hide) var(--cwl-ease-exit), font-size var(--cwl-dur-hide) var(--cwl-ease-signature); }
 .lsm-line.is-gone .lsm-text { opacity: 0.75; }
 .lsm-empty { margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); color: var(--cwl-text-on-card); opacity: 0.8; }
 .lsm-more { flex: none; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 .lsm-sheet .lsm-more { color: var(--cwl-text-on-card); }
 .lsm-side { display: flex; flex-direction: column; gap: 24px; min-width: 0; min-height: 0; }
-.lsm-tally { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 0; }
-.lsm-tally div { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); }
-.lsm-tally dt { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; }
-.lsm-tally dd { margin: 0; font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
+/* One count to a row, the number first, so the side column can stay narrow and the sheet keeps the width. */
+.lsm-tally { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin: 0; }
+.lsm-tally div { display: flex; align-items: center; gap: 20px; padding: 12px 20px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); }
+.lsm-tally dt { min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; overflow-wrap: normal; }
+.lsm-tally dd { order: -1; flex: none; min-width: 2ch; margin: 0; font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
 /* The cards take the space left between the tally and the "+ n more on phones" line, so the line always
    has its own room; a card that does not fit whole leaves the flow, unseen, and is counted on it. */
 .lsm-cards { position: relative; flex: 1 1 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
