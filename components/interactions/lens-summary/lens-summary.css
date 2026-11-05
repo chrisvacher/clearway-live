@@ -1,0 +1,85 @@
+/* INT-18, the lens summary (milestone 4, step 2b). Tokens only. The screen is alive: rows keep their place,
+   lines replace themselves in place, tracked changes draw across, and nothing waits for a reveal. */
+.lsm-tv { display: flex; flex-direction: column; flex: 1; min-height: 0; gap: var(--space-5); }
+.lsm-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
+.lsm-steps { display: flex; gap: 28px; margin: 0; padding: 0; list-style: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.lsm-steps li { display: inline-flex; align-items: center; gap: 0.3em; transition: color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.lsm-steps li[data-state="now"] { color: var(--cwl-text); font-weight: var(--fw-bold); box-shadow: 0 0.12em 0 0 var(--cwl-text); }
+.lsm-body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) calc(560px * var(--cwl-tv-scale)); gap: 56px; }
+.lsm-sheet { position: relative; display: flex; flex-direction: column; gap: 20px; min-height: 0; padding: 32px 40px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
+  --cwl-ai-start: var(--cw-royal-blue); --cwl-ai-end: var(--cwl-bright-chartreuse); --cwl-ai-glint: var(--cw-sky-blue); }
+.lsm-band { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 28px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.2; }
+.lsm-band .cwl-ai-mark { width: 1em; height: 1em; }
+.lsm-who { display: inline-flex; align-items: center; gap: 0.4em; font-weight: var(--fw-bold); }
+.lsm-ver { font-variant-numeric: tabular-nums; }
+.lsm-signed, .lsm-busy { display: inline-flex; align-items: center; gap: 0.3em; padding: 0.05em 0.5em; border-radius: var(--cwl-radius-marker); background: var(--cwl-text-on-card); color: var(--cwl-surface-card); font-weight: var(--fw-bold); }
+.lsm-busy { background: transparent; color: inherit; box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
+.lsm-lines { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; overflow: hidden; }
+.lsm-line { display: grid; grid-template-rows: 1fr; padding-bottom: 14px; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); line-height: 1.2; overflow-wrap: anywhere;
+  transition: grid-template-rows var(--cwl-dur-hide) var(--cwl-ease-signature), opacity var(--cwl-dur-hide) var(--cwl-ease-exit), padding var(--cwl-dur-hide) var(--cwl-ease-signature); }
+.lsm-line-in { min-height: 0; overflow: hidden; }
+.lsm-line.is-new { animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
+.lsm-line.is-leaving { grid-template-rows: 0fr; opacity: 0; padding-bottom: 0; }
+.lsm-text { animation: lsm-replace var(--cwl-dur-line-replace) var(--cwl-ease-signature) both; }
+.lsm-caret { display: inline-block; width: 0.08em; height: 0.9em; margin-left: 0.1em; vertical-align: -0.1em; background: currentColor; animation: lsm-blink 1000ms steps(1) infinite; }
+.lsm-ins, .lsm-del { background-repeat: no-repeat; animation: lsm-draw var(--cwl-dur-tc-strike) var(--cwl-ease-signature) both; }
+.lsm-ins { background-image: linear-gradient(currentColor, currentColor); background-position: 0 calc(100% + var(--cwl-tc-offset) * 0.3); background-size: 100% var(--cwl-tc-line); }
+.lsm-del { background-image: linear-gradient(currentColor, currentColor); background-position: 0 55%; background-size: 100% var(--cwl-tc-line); opacity: 0.75;
+  transition: opacity var(--cwl-dur-hide) var(--cwl-ease-exit), font-size var(--cwl-dur-hide) var(--cwl-ease-signature); }
+.lsm-del.is-leaving { opacity: 0; font-size: 0; }
+.lsm-line.is-gone .lsm-text { opacity: 0.75; }
+.lsm-empty { margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); color: var(--cwl-text-on-card); opacity: 0.8; }
+.lsm-more { flex: none; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.lsm-sheet .lsm-more { color: var(--cwl-text-on-card); }
+.lsm-side { display: flex; flex-direction: column; gap: 24px; min-width: 0; min-height: 0; }
+.lsm-tally { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 0; }
+.lsm-tally div { display: flex; flex-direction: column; gap: 4px; padding: 16px 20px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); }
+.lsm-tally dt { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; }
+.lsm-tally dd { margin: 0; font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
+.lsm-cards { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 20px; min-height: 0; }
+.lsm-card { padding: 16px 22px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere;
+  animation: lsm-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
+@keyframes lsm-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes lsm-replace { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lsm-draw { from { background-size: 0 var(--cwl-tc-line); } to { background-size: 100% var(--cwl-tc-line); } }
+@keyframes lsm-blink { 50% { opacity: 0; } }
+[data-motion="reduced"] .lsm-line, [data-motion="reduced"] .lsm-del, [data-motion="reduced"] .lsm-steps li { transition-duration: 0ms; }
+[data-motion="reduced"] .lsm-line.is-new, [data-motion="reduced"] .lsm-card, [data-motion="reduced"] .lsm-text, [data-motion="reduced"] .lsm-ins, [data-motion="reduced"] .lsm-del { animation: none; }
+[data-motion="reduced"] .lsm-caret { animation: none; }
+
+/* ---------- Phones ---------- */
+.lsm-phone { display: flex; flex-direction: column; gap: var(--space-3); }
+.lsm-ph-meta { display: inline-flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.lsm-ph-meta .cwl-ai-mark { width: 16px; height: 16px; }
+.lsm-ph-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
+.lsm-ph-lines > li { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) 14px; border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); }
+.lsm-ph-lines p { margin: 0; font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-semibold); line-height: 1.4; overflow-wrap: anywhere; }
+.lsm-ph-from { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--cwl-phone-touch); padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.lsm-ph-from:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.lsm-ph-sources { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-medium); }
+.lsm-ph-actions { flex-wrap: wrap; align-items: center; }
+
+/* ---------- Control surface ---------- */
+.lsm-panel { --lsm-gap: var(--space-2); }
+.lsm-nav { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.lsm-nav-chips { display: flex; flex-wrap: wrap; gap: var(--space-1); margin: 0; padding: 0; list-style: none; flex: 1; }
+.lsm-chip { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0; min-height: var(--space-8); padding: var(--space-1) var(--space-3); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: transparent; color: inherit; font: inherit; font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); cursor: pointer; }
+.lsm-chip small { color: var(--cwl-app-text-muted); font-weight: var(--fw-medium); }
+.lsm-chip[aria-current="step"] { border-color: var(--cwl-app-primary); box-shadow: inset 0 0 0 1px var(--cwl-app-primary); }
+.lsm-chip:disabled { cursor: not-allowed; color: var(--cwl-app-text-muted); }
+.lsm-edit { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+.lsm-edit > li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-1) var(--space-2); align-items: start; }
+.lsm-edit textarea, .lsm-add input, .lsm-field input, .lsm-field textarea { width: 100%; padding: var(--space-2) var(--space-3); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; resize: vertical; }
+.lsm-edit textarea:focus, .lsm-add input:focus, .lsm-field input:focus, .lsm-field textarea:focus { outline: 3px solid var(--cwl-focus-ring); outline-offset: 1px; }
+.lsm-edit textarea:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); }
+.lsm-sources { grid-column: 1 / -1; font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
+.lsm-sources ul { margin: var(--space-1) 0 0; padding-left: 1.1em; }
+.lsm-add { display: flex; gap: var(--space-2); align-items: center; }
+.lsm-ai { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
+.lsm-ai-state { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+.lsm-suggestions { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-1); max-height: 14em; overflow: auto; }
+.lsm-suggestions li { padding: var(--space-2) var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-button); overflow-wrap: anywhere; }
+.lsm-decide { display: flex; flex-direction: column; gap: var(--space-2); }
+.lsm-field { display: flex; flex-direction: column; gap: var(--space-1); font-weight: var(--fw-semibold); }
+.lsm-versions ol { margin: var(--space-2) 0 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: var(--space-2); }
+.lsm-versions ul { margin: var(--space-1) 0 0; padding-left: 1.1em; }
