@@ -354,7 +354,11 @@ async function main() {
       await press(f2, sql, half.id, "go_live", { session: follow[0].id });
       const issued = await ctx2.request.post(`${app.origin}/api/control/${half.id}/followup`, { headers: origin, data: { action: "issue", attendee: half.attendees[0].id, sessions: follow.map(s => s.id),
         opens_at: new Date(Date.now() - 60000).toISOString(), closes_at: new Date(Date.now() + 2 * 3600000).toISOString() } });
-      const out = await issued.json(); assert.equal(out.status, "ok", JSON.stringify(out));
+      const out = await issued.json();
+      if (out.status !== "ok") {
+        const seen = (await sql.query("select (select count(*)::int from public.attendees where id=$2 and engagement_id=$1 and not deleted and verified_at is not null) as who, (select count(*)::int from public.sessions where id=any($3::uuid[]) and engagement_id=$1 and not deleted and mode='live') as live", [half.id, half.attendees[0].id, follow.map(s => s.id)])).rows[0];
+        assert.fail(`the follow-up link was refused: ${JSON.stringify(out)} (attendee ok ${seen.who}, live sessions ${seen.live} of ${follow.length})`);
+      }
       assert.match(out.code, /^[A-Z]{5} [0-9]{4}$/); assert.match(out.link, /\/f\/[A-Za-z0-9_-]{20,}$/);
       const visitor = await (await browser!.newContext({ viewport: { width: 390, height: 844 }, isMobile: true })).newPage();
       await visitor.goto(out.link);

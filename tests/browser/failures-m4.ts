@@ -209,7 +209,8 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
       const f = await facilitator(env, sql, made.id);
       const { data, error } = await f.client.rpc("template_write", { p_action: "apply", p_input: { template, engagement: made.id, start: "2026-11-02T14:00:00Z" } });
       assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data));
-      const print = await facContext.newPage(); await print.goto(`${app.origin}/setup/${made.id}/run-of-show/print`);
+      const printContext = await browser.newContext({ viewport: { width: 1440, height: 1400 } }); await printContext.addCookies(f.cookies(app.origin));
+      const print = await printContext.newPage(); await print.goto(`${app.origin}/setup/${made.id}/run-of-show/print`);
       await print.locator("main").waitFor({ timeout: 15000 });
       const text = await print.locator("main").innerText();
       for (const want of ["Run of show", "Pre-call", "Day 1", "Day 2", "Five Lenses: Congregation", "Self-paced", "If the tech fails", ...extra]) assert.ok(text.includes(want), `${name} print has: ${want}`);
@@ -218,7 +219,7 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
       assert.ok(rows >= 40, `${name}: ${rows} sessions print`);
       assert.doesNotMatch(text, /Content · Live.*Five Lenses/, "a Wayfinding kind is never printed as Content");
       if (process.env.KIT_SHOTS) await print.screenshot({ path: `${process.env.KIT_SHOTS}/fail-10-m4-print-${template === wayfindingTemplate ? "wayfinding" : "half-day"}.png`, fullPage: true });
-      await print.close();
+      await printContext.close();
     }
   });
   await press(fac, sql, room.id, "nothing_live");
