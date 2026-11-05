@@ -91,6 +91,7 @@ function scriptedOvernight(call: AiCall): string {
 // prompt's rules: "Add ..." adds a line, "Remove ..." removes the line it shares most words with, anything else
 // rewords the line it shares most words with (or adds a line when it shares none). Lines it changes name the
 // suggestion; every other line is kept.
+const futureTense = /\b(will|would|shall|going to|hope to|plan to|aim to|intend to)\b/i;
 const tidyLine = (text: string) => { const t = text.trim().replace(/\s+/g, " ").replace(/^[-:,\s]+/, ""); return `${t.charAt(0).toUpperCase()}${t.slice(1)}${/[.!?]$/.test(t) ? "" : "."}`; };
 function scriptedLensDraft(input: Record<string, unknown>) {
   const sentences = (input.sentences ?? []) as { ref: string; text: string }[], clusters = (input.clusters ?? []) as { ref: string; sentences?: string[] }[];
@@ -102,9 +103,11 @@ function scriptedLensDraft(input: Record<string, unknown>) {
   };
   for (const c of clusters) {
     const members = (c.sentences ?? []).filter(r => byRef.has(r)); if (!members.length) continue;
-    members.forEach(r => used.add(r)); put(byRef.get(members[0])!.text, members);
+    members.forEach(r => used.add(r));
+    const first = members.map(r => byRef.get(r)!).find(a => !futureTense.test(a.text));
+    if (first) put(first.text, members);
   }
-  for (const a of sentences) if (!used.has(a.ref)) { used.add(a.ref); put(a.text, [a.ref]); }
+  for (const a of sentences) if (!used.has(a.ref)) { used.add(a.ref); if (!futureTense.test(a.text)) put(a.text, [a.ref]); }
   return JSON.stringify({ sentences: out });
 }
 function scriptedLensFold(input: Record<string, unknown>) {
@@ -113,6 +116,7 @@ function scriptedLensFold(input: Record<string, unknown>) {
   const closest = (text: string) => { const mine = words(text); let best: { ref: string; n: number } | null = null;
     for (const l of summary) { const n = shared(mine, words(l.text)); if (n > (best?.n ?? 0)) best = { ref: l.ref, n }; } return best; };
   for (const g of suggestions) {
+    if (futureTense.test(g.text)) continue;
     const add = /^(?:add|include)\b[:\s]*(.+)$/i.exec(g.text), drop = /^(?:remove|drop)\b[:\s]*(.+)$/i.exec(g.text);
     if (add) { added.push({ text: tidyLine(add[1]), suggestions: [g.ref] }); continue; }
     if (drop) { const hit = closest(drop[1]); if (hit) removed.set(hit.ref, [...(removed.get(hit.ref) ?? []), g.ref]); continue; }

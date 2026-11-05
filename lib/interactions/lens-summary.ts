@@ -91,7 +91,7 @@ export function reconcile(prev: Row[], next: { id: string; text: string }[], cha
     const old = pick[i] >= 0 ? live[pick[i]] : null, c = tracked ? at.get(i + 1) : undefined;
     const parts = c ? c.parts : null;
     if (!old) return { key: makeKey(), id: n.id, text: n.text, parts, state: "new", rev: 0 };
-    const grew = n.text.startsWith(old.text) && n.text.length >= old.text.length;
+    const grew = n.text.length >= old.text.length && n.text.startsWith(old.text.replace(/[.!?\s]+$/, ""));
     return { key: old.key, id: n.id, text: n.text, parts, state: "steady", rev: old.text === n.text || grew ? old.rev : old.rev + 1 };
   });
   // Lines that are no longer in the summary stay, struck, in the place they held, then leave.
