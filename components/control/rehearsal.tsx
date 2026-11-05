@@ -4,7 +4,7 @@ import { Download, FlaskConical } from "lucide-react";
 import type { useControlRoom } from "./use-control-room";
 import { useSecondTap } from "./live-controls";
 import { stateLabels } from "@/lib/control/policy";
-import { rehearsalMessage, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
+import { canClearTests, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
 import { SeedCounts } from "@/components/interactions/lens/lens-panel";
 import { pressId } from "@/lib/control/own-presses";
 import "./self-paced.css";
@@ -64,11 +64,11 @@ export function RehearsalPanel({ room }: { room: Room }) {
   return <div className="sp-rehearsal" data-rehearsing={on ? "on" : "off"}>
     {on ? <p className="ctl-banner is-warning" role="status"><FlaskConical size={18} aria-hidden="true" /><span><strong>Rehearsing.</strong> Answers from every phone are test answers until you end the rehearsal or clear them.</span></p>
       : <p className="ctl-notes">Rehearse this run of show here, then clear the test answers before the real session.</p>}
-    <p className="ctl-label" aria-live="polite">{tests} test {tests === 1 ? "answer" : "answers"}</p>
+    <p className="ctl-label" aria-live="polite">{testAnswersLabel(tests)}</p>
     <div className="ctl-row">
       {on ? <button className="show-button is-small" disabled={Boolean(busy) || closed} onClick={() => void send("end")}>End rehearsal</button>
         : <button className="show-button is-small" disabled={Boolean(busy) || closed} onClick={() => void send("start")}>Start rehearsal</button>}
-      <button className="show-button is-small sp-clear" disabled={Boolean(busy) || closed || live || (!tests && !on)} aria-describedby={live ? "sp-clear-why" : undefined}
+      <button className="show-button is-small sp-clear" disabled={Boolean(busy) || closed || live || !canClearTests(tests, on)} aria-describedby={live ? "sp-clear-why" : undefined}
         onClick={() => confirm.tap("clear", () => void send("clear"))}>{busy === "clear" ? "Clearing..." : confirm.armed === "clear" ? `Tap again to clear ${tests}` : "Clear test answers"}</button>
     </div>
     {live && <p id="sp-clear-why" className="show-help">Choose Nothing live first. Test answers can’t be cleared while a session is live.</p>}

@@ -4,7 +4,7 @@ import { Check, ChevronLeft, ChevronRight, EyeOff, Pause, Play, Plus, Redo2, Tra
 import type { ControlPanelProps } from "@/components/interactions/control-panels";
 import { AiIcon, AiMark } from "@/components/interactions/ai/ai-icon";
 import { pressMessages } from "@/lib/interactions/goals";
-import { aiStateLine, facilitatorState, maxLines, summaryLimit, type FacilitatorState } from "@/lib/interactions/lens-summary";
+import { aiStateLine, facilitatorState, foldRefused, foldRefusedLine, maxLines, summaryLimit, type FacilitatorState } from "@/lib/interactions/lens-summary";
 import { pressId } from "@/lib/control/own-presses";
 import { lensDecisionField } from "@/components/control/mark-decision";
 import "@/components/interactions/ai/ai.css";
@@ -83,7 +83,7 @@ export function LensSummaryPanel({ room }: ControlPanelProps) {
     setDrafts({}); void load();
   }
   if (!live || !session) return null;
-  const ai = data?.ai, lines = sm?.lines ?? [], stateLine = ai ? aiStateLine[ai.state] : "";
+  const ai = data?.ai, lines = sm?.lines ?? [], stateLine = ai ? foldRefused(data) ? foldRefusedLine : aiStateLine[ai.state] : "";
   const jump = (to: number | "next" | "prev") => void act({ action: "show", to });
   return <Private title="Lens summary">
     <div className="lsm-nav">

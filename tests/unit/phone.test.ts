@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PhoneOutbox } from "../../lib/phone/outbox";
-import { checkAnswer, keepSettled, limitHint, ownAnswers, sendsUsed, settledReason, type SettledAnswer } from "../../lib/phone/policy";
+import { checkAnswer, keepSettled, limitHint, ownAnswers, selfListHidden, sendsUsed, settledReason, type SettledAnswer } from "../../lib/phone/policy";
 import type { OutboxEntry, OwnAnswer } from "../../lib/phone/types";
 import type { SubmissionRequest } from "../../lib/live/types";
 
@@ -102,4 +102,11 @@ test("an answer written offline is marked queued from the start", () => {
   box.add(request("1"));
   assert.equal(box.entries[0].request.queuedAt, "2026-11-01T12:00:00.000Z");
   box.stop();
+});
+
+test("the self-paced list hides only under a live step that takes input", () => {
+  assert.equal(selfListHidden(true, true, true), true, "a live input step hides it");
+  assert.equal(selfListHidden(true, true, false), false, "a live content step (a holding screen) leaves it visible");
+  assert.equal(selfListHidden(false, false, true), false);
+  assert.equal(selfListHidden(true, false, true), false);
 });

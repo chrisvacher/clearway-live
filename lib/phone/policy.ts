@@ -71,3 +71,9 @@ export function settledReason(status: string): string | null {
     default: return null;
   }
 }
+
+// The self-paced list hides only under a live step that takes input. A content step (holding, scripture, prayer,
+// headline, image, screen check) leaves it visible, so a holding screen that says "Pick a lens on your phone" works.
+export function selfListHidden(isLive: boolean, running: boolean, takesInputKind: boolean): boolean {
+  return isLive && running && takesInputKind;
+}

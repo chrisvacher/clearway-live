@@ -10,14 +10,18 @@ import "./handover.css";
 const messages: Record<string, string> = {
   moved: "The room moved on. Check what is live and try again.", invalid_state: "That can’t be done on this step now.", missing: "That card or person is no longer there.",
   denied: "That isn’t yours to press.", unavailable: "The room didn’t answer. Try again.", outside_block: "That is outside your block.", closed: "This engagement has closed.",
+  invalid_request: "That didn’t work. Check the step and try again.",
 };
+const filledNote = "Filled from the cards. The TV’s Affirm together now shows the commitment.";
+// An Affirm together step whose text is still the template’s prompt has not been filled from the cards.
+const unfilled = (s: { options: Record<string, unknown> }) => typeof s.options?.text !== "string" || !s.options.text.trim();
 
 // The commander's intent cards on the control surface: who works each, Present one card at full size,
 // and Affirm together. Pairs are set here or picked on phones, as the step is set up.
 export function IntentCards({ room, onClose }: ControlItemsProps) {
   const engagement = room.frame?.state.engagement_id ?? "", cards = cardsOf(room.frame?.state.results);
   const { view, read } = useIntent(`/api/control/${engagement}/intent`, room.frame?.version);
-  const [busy, setBusy] = useState(false), [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [filled, setFilled] = useState(false);
   const spot = room.frame?.state.spotlight_key ?? null;
   const signs = room.show.sessions.filter(s => s.interaction === "sign");
   const press = async (action: string, p: Record<string, unknown> = {}) => {
@@ -25,12 +29,15 @@ export function IntentCards({ room, onClose }: ControlItemsProps) {
     const out = await post(`/api/control/${engagement}/intent`, { kind: "press", id: pressId(), action: `intent_${action}`, p: { from: room.frame?.state.live_session_id ?? null, ...p } });
     setBusy(false); void read();
     if (!["ok", "unchanged", "duplicate"].includes(out.status)) setMessage(messages[out.status] ?? messages.unavailable);
+    else if (action === "affirm_text") setFilled(true);
   };
   const people = view?.people ?? [];
   return <section aria-labelledby="ctl-items-title">
     <div className="ctl-row is-between"><h2 id="ctl-items-title">Outcome cards</h2>{onClose && <button className="show-button is-icon" aria-label="Close outcome cards" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
     <p className="show-help">One card for each Vision Outcome. Pairs are first names, only here and on phones.</p>
     {message && <p className="show-message is-error" role="alert">{message}</p>}
+    {filled && !message && <p className="show-help" role="status">{filledNote}</p>}
+    {signs.some(unfilled) && <p className="show-message is-error" role="status" data-affirm-unfilled>Affirm together still has the template’s words. Fill it from the cards before you go live on it.</p>}
     <div className="hi-row">
       <button type="button" className="show-button is-small" disabled={busy} onClick={() => void press("auto")}><Shuffle size={16} aria-hidden="true" />Pair everyone</button>
       <button type="button" className="show-button is-small" disabled={busy} onClick={() => void press("clear")}><UserMinus size={16} aria-hidden="true" />Clear pairs</button>

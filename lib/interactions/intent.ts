@@ -74,6 +74,8 @@ export const shortDate = (iso: string | null) => {
 // the same list in private.room_control; a press outside it is refused there.
 export const teamPresses = ["go_live", "next", "back", "reopen", "phones_down", "open_phones", "spotlight", "clear_spotlight", "hide", "unhide", "room_size"] as const;
 export const teamIntentPresses = ["intent_assign", "intent_auto", "intent_clear", "intent_present"] as const;
+// Filling the Affirm together text from the cards is the facilitator's alone (the database refuses everyone else).
+export const facilitatorIntentPresses = ["intent_affirm_text"] as const;
 export const isTeamPress = (action: unknown): boolean => (teamPresses as readonly unknown[]).includes(action) || (teamIntentPresses as readonly unknown[]).includes(action);
 
 // ---------- Requests from a phone ----------
@@ -84,7 +86,7 @@ export type PhoneIntent =
   | { rpc: "intent_join" | "intent_leave"; args: { p_card: string } }
   | { rpc: "room_control" | "intent_control"; args: { p_id: string; p_action: string; p: Record<string, unknown> } };
 const editOps = ["set", "step_add", "step_set", "step_remove", "release"];
-export function phoneIntent(value: unknown): PhoneIntent | null {
+export function phoneIntent(value: unknown, facilitator = false): PhoneIntent | null {
   if (!isRecord(value)) return null;
   if (value.kind === "join" || value.kind === "leave") return isId(value.card) ? { rpc: value.kind === "join" ? "intent_join" : "intent_leave", args: { p_card: value.card } } : null;
   if (value.kind === "edit") {
@@ -95,6 +97,10 @@ export function phoneIntent(value: unknown): PhoneIntent | null {
     if ((value.op === "step_add" || (value.op === "step_set" && "text" in p)) && (typeof p.text !== "string" || p.text.length > maxStepLength)) return null;
     if ((value.op === "step_set" || value.op === "step_remove") && !isId(p.step)) return null;
     return { rpc: "intent_edit", args: { p_card: value.card, p_op: value.op, p } };
+  }
+  if (value.kind === "press" && facilitator && (facilitatorIntentPresses as readonly unknown[]).includes(value.action)) {
+    if (!isId(value.id) || !isRecord(value.p) || !isId(value.p.session)) return null;
+    return { rpc: "intent_control", args: { p_id: value.id, p_action: "affirm_text", p: { session: value.p.session } } };
   }
   if (value.kind === "press") {
     // The holder's presses. The database refuses anything the holder is not allowed to press.

@@ -36,14 +36,24 @@ const futureWords = /\b(will|would|shall|going to|hope to|plan to|aim to|intend 
 // Samples every summary row's place on every frame, and whether a row's element is ever replaced. Rows keep their
 // elements across versions (a redraw would swap them), and none should leap. A plain script, so no bundler helper
 // reaches the page.
-const sampler = `(() => { window.sumSamples = {}; window.sumStop = false; window.sumSeen = { ins: false, del: false, gone: false, first: [...document.querySelectorAll('.tv-layer:not(.is-leaving) .lsm-line')] };
+const sampler = `(() => { window.sumSamples = {}; window.sumInfo = {}; window.sumStop = false; window.sumSeen = { ins: false, del: false, gone: false, first: [...document.querySelectorAll('.tv-layer:not(.is-leaving) .lsm-line')] };
   const ids = new WeakMap(); let n = 0;
   const read = () => { const layer = document.querySelector('.tv-layer:not(.is-leaving)'); if (layer) {
-      for (const el of layer.querySelectorAll('.lsm-line')) { if (!ids.has(el)) ids.set(el, 'row' + ++n); const r = el.getBoundingClientRect(); (window.sumSamples[ids.get(el)] ??= []).push([r.left, r.top, performance.now()]); }
+      for (const el of layer.querySelectorAll('.lsm-line')) { if (!ids.has(el)) ids.set(el, 'row' + ++n); const r = el.getBoundingClientRect(); (window.sumSamples[ids.get(el)] ??= []).push([r.left, r.top, performance.now()]); window.sumInfo[ids.get(el)] = el.className + ' "' + (el.textContent || '').slice(0, 40) + '"'; }
       if (layer.querySelector('.lsm-ins')) window.sumSeen.ins = true; if (layer.querySelector('.lsm-del')) window.sumSeen.del = true; if (layer.querySelector('.lsm-line.is-gone')) window.sumSeen.gone = true; }
     if (!window.sumStop) requestAnimationFrame(read); };
   requestAnimationFrame(read); })()`;
 const jump = 160;
+
+// Forces the TV's parent to re-render on every frame, as the real TV's arrival flow does. It finds the React state
+// that holds the TV's name limit (the number 14) on the page's fiber tree and sets it to a new value each frame
+// (the join board is the only place that reads it), so every view below re-renders each frame.
+const rerenderEveryFrame = `(() => { const root = document.querySelector('.tv-stage'); const key = Object.keys(root).find(k => k.startsWith('__reactFiber$'));
+  let fiber = root[key], dispatch = null;
+  while (fiber && !dispatch) { for (let h = fiber.memoizedState; h && typeof h === 'object'; h = h.next) { if (h.memoizedState === 14 && h.queue && h.queue.dispatch) { dispatch = h.queue.dispatch; break; } } fiber = fiber.return; }
+  if (!dispatch) throw new Error('no TV state to re-render'); window.forceStop = false; window.forceRenders = 0; let flip = false;
+  const run = () => { flip = !flip; dispatch(flip ? 15 : 14); window.forceRenders++; if (!window.forceStop) requestAnimationFrame(run); };
+  requestAnimationFrame(run); })()`;
 
 // Two anonymous cards at most, as many as fit whole above the "+ n more on phones" line, which keeps its own room.
 async function cardsFit(layer: () => Locator, total: number, label: string) {
@@ -105,6 +115,7 @@ async function main() {
       const written = await Promise.all(lensSentences.map((text, i) => phones[i].send(room, wall, text)));
       assert.ok(written.every(w => w.status === "accepted"), `the lens sentences were accepted: ${written.map(w => w.status).join(",")}`);
       await until(async () => { await poke(); return (await sql.query("select count(*)::integer n from private.ai_groups where session_id=$1 and not deleted and undone_at is null", [wall])).rows[0].n >= 3; }, "AI clustered the lens wall", 30000);
+      await tv.evaluate(rerenderEveryFrame);
       await press(fac, sql, room, "go_live", { session: summary });
       await layer().locator("[data-lens-summary]").waitFor({ timeout: 10000 });
       await step("The draft goes straight to the TV: present tense, one screen, every line sourced, marked AI", async () => {
@@ -125,6 +136,22 @@ async function main() {
         assert.equal(bare, 0, "every line is linked to its source sentences");
         assert.equal((await server()).tally.approve + (await server()).tally.suggest, 0, "the tally starts at zero");
         await shot(tv, "lens-summary-draft");
+      });
+
+      await step("With the TV's parent re-rendering every frame, every summary line settles in its place within 2 seconds of the draft", async () => {
+        // No line is left mid-glide: each sits at its layout place (no transform) with no transition or animation still running.
+        const settled = () => tv.evaluate(() => {
+          const lines = [...document.querySelectorAll<HTMLElement>(".tv-layer:not(.is-leaving) .lsm-line:not(.is-gone)")];
+          const stuck = lines.filter(l => { const m = new DOMMatrixReadOnly(getComputedStyle(l).transform); return Math.abs(m.m42) > 1 || l.getAnimations().some(a => a.playState === "running"); });
+          return { count: lines.length, ok: lines.length > 0 && stuck.length === 0, stuck: stuck.map(l => ({ y: Math.round(new DOMMatrixReadOnly(getComputedStyle(l).transform).m42), time: l.getAnimations().map(a => Math.round(Number(a.currentTime))) })),
+            renders: (window as unknown as { forceRenders: number }).forceRenders };
+        });
+        let last = await settled();
+        await until(async () => { last = await settled(); return last.ok; }, "every summary line settled in its place", 2000).catch(() => { throw new Error(`summary lines stuck mid-glide: ${JSON.stringify(last)}`); });
+        assert.ok(last.renders > 30, `the parent re-rendered every frame: ${last.renders} renders`);
+        const s = (await server()).summary!;
+        assert.equal(last.count, s.sentences.length, "every line of the draft is on the TV");
+        await tv.evaluate(() => { (window as unknown as { forceStop: boolean }).forceStop = true; });
       });
 
       // ---------- 50 phones, AI slow ----------
@@ -168,10 +195,15 @@ async function main() {
         assert.ok(seen.ins, "inserted words were underlined on the TV"); assert.ok(seen.del || seen.gone, "struck words or a struck line were shown before they left");
         assert.ok(seen.kept >= seen.started - 1, `rows kept their place in the page across the fold: ${seen.kept} of ${seen.started} (one line may be taken away)`);
         const samples = await tv.evaluate(() => (window as unknown as { sumSamples: Record<string, [number, number, number][]> }).sumSamples);
-        let jumps = 0, frames = 0, largest = 0;
-        for (const pts of Object.values(samples)) for (let i = 1; i < pts.length; i++) { frames++; const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); largest = Math.max(largest, d); if (d >= jump) jumps++; }
-        assert.ok(frames > 0, "rows were sampled");
-        assert.equal(jumps, 0, `no row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px)`);
+        const info = await tv.evaluate(() => (window as unknown as { sumInfo: Record<string, string> }).sumInfo);
+        let jumps = 0, frames = 0, largest = 0, worst = "";
+        for (const [row, pts] of Object.entries(samples)) for (let i = 1; i < pts.length; i++) {
+          frames++;
+          const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+          if (d >= jump) jumps++;
+          if (d > largest) { largest = d; worst = `${row} [${info[row] ?? "?"}] moved (${Math.round(pts[i - 1][0])},${Math.round(pts[i - 1][1])}) to (${Math.round(pts[i][0])},${Math.round(pts[i][1])}) in ${Math.round(pts[i][2] - pts[i - 1][2])}ms`; }
+        }
+        assert.equal(jumps, 0, `no row jumped across ${frames} sampled frames (largest step ${Math.round(largest)}px: ${worst})`);
         const after = await layer().locator(".lsm-line:not(.is-gone) .lsm-text").allInnerTexts();
         assert.deepEqual(after.map(l => l.replace(/\s+/g, " ").trim()), s.sentences.map(x => x.text), "once the struck words leave, the TV shows the server's lines");
         await shot(tv, "lens-summary-folded");

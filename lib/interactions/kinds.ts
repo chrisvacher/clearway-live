@@ -11,6 +11,13 @@ export const screenIds: Record<InteractionKind, string> = {
   word_cloud: "INT-01", wall: "INT-02", qa: "INT-03", choice: "INT-04", scale: "INT-05", ranking: "INT-06", points: "INT-07",
   grid: "INT-08", form: "INT-09", sign: "INT-10", intent: "INT-16", statements: "INT-17", content: "Content", bullets: "D1-11", confirm: "D2-05", goals: "INT-15", lens: "INT-12", lens_summary: "INT-18", candidates: "INT-13",
 };
+// The registry's labels (private.interaction_kinds), for places that have no server kind in hand, such as the
+// template preview. The run of show shows the same words.
+export const kindLabels: Record<InteractionKind, string> = {
+  word_cloud: "Word cloud", wall: "Open text", qa: "Q&A", choice: "Multiple choice", scale: "Scale", ranking: "Ranking", points: "100 points",
+  grid: "2x2 grid", form: "Private form", sign: "Sign together", statements: "Statements", content: "Content screen", goals: "CORE goals",
+  bullets: "Outcome bullets", confirm: "Outcome confirm", intent: "Commander's intent", lens: "Lens wall", lens_summary: "Lens summary", candidates: "Candidate priorities",
+};
 export type KindInfo = {
   kind: InteractionKind; label: string; input: boolean; one_per_person: boolean; counts: "people" | "answers" | "none";
   structured: boolean; shares_answers: boolean; spotlight: "none" | "id" | "key"; named?: "never" | "always" | "setting";
@@ -95,3 +102,7 @@ export function outlineRows(outline: string) {
     return match ? { time: match[1], text: match[2] } : { time: "", text: line };
   });
 }
+
+// The words the template preview shows for a session: the kind's label, or the content screen's own label.
+export const kindLabel = (interaction: string, screen: string | null) => interaction === "content"
+  ? contentLabels[contentScreens.includes(screen as ContentScreen) ? screen as ContentScreen : "headline"] : kindLabels[interaction as InteractionKind] ?? fallbackKinds[interaction]?.label ?? interaction;

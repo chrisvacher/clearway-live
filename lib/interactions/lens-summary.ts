@@ -170,6 +170,15 @@ export const aiStateLine: Record<AiState, string> = {
   held: "AI is on hold for this lens.", idle: "AI is ready.", waiting: "AI folds in suggestions after a quiet moment.",
 };
 
+// A fold that came back with nothing applied (refused whole, or no change) leaves the suggestions standing and
+// AI idle. Say so, rather than "AI is ready"; Fold in now tries again.
+export const foldRefusedLine = "AI couldn't fold these in. Fold in now to try again.";
+export function foldRefused(state: FacilitatorState | null): boolean {
+  const run = state?.ai.lastRun;
+  return Boolean(state && run && run.job === "fold_lens_summary" && run.status === "ok" && !run.changed && !run.undone && state.ai.on && state.ai.state === "idle"
+    && state.summary && state.summary.suggestions.length > 0 && state.summary.state !== "signed_off");
+}
+
 // One press from the control surface, by a client-made id (a repeat of the id is a duplicate).
 export const summaryActions = ["show", "edit_start", "edit_beat", "edit", "edit_done", "undo", "fold_now", "hold", "release", "redraft", "ai_on", "ai_off", "decide", "undecide"] as const;
 export type SummaryAction = typeof summaryActions[number];
@@ -201,3 +210,7 @@ function inner(v: Record<string, unknown>, action: SummaryAction, id: string): O
   if (action === "decide") return { id, action, p: { decision: clean(v.decision, 400), reasons: typeof v.reasons === "string" ? v.reasons.trim().slice(0, 1000) : "" } };
   return { id, action, p: {} };
 }
+
+// A child glides only when its place in the layout moved since the last render. A render that moved nothing, such as the
+// TV's parent re-rendering every frame, never restarts a glide in flight.
+export const glideMoved = (was: number | undefined, now: number): boolean => was !== undefined && Math.abs(now - was) >= 0.5;

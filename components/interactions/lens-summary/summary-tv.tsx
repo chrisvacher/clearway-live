@@ -5,7 +5,7 @@ import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
 import { useFitCount } from "@/components/tv/use-fit-count";
-import { caretMs, leaveMs, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
+import { caretMs, leaveMs, glideMoved, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
 
@@ -20,16 +20,24 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
   return <>{parts.map((p, i) => p.k === "keep" ? <span key={i}>{p.t} </span> : <span key={i} className={`lsm-${p.k}${p.k === "del" && leave ? " is-leaving" : ""}`} data-tc={p.k}>{p.t} </span>)}</>;
 }
 
-// Glide: when a list changes (a fold, a line typed, a card arriving) every child that stays moves from where it
-// was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a
-// change that lands mid-glide starts from the child's visual place, never from a stale one.
+// Glide: when a child's place in the layout changes (a fold, a line typed, a card arriving, or anything above it
+// resizing) it moves from where it was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Every frame
+// records each child's visual top and its layout top (the visual top minus its own glide's translateY), so a change that
+// lands mid-glide starts from the child's visual place, and layout is compared layout to layout: a render that moved
+// nothing leaves every glide in flight alone. The TV's parent re-renders this view about every frame, and a glide
+// restarted on each render never leaves its first frame.
+const shiftOf = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42 || 0;
 function useGlide(host: RefObject<HTMLElement | null>) {
-  const seen = useRef(new Map<Element, number>());
+  const seen = useRef(new Map<Element, number>()), laid = useRef(new Map<Element, number>());
   useEffect(() => {
     let frame = 0;
     const read = () => {
       const root = host.current;
-      if (root) { const next = new Map<Element, number>(); for (const el of Array.from(root.children)) next.set(el, el.getBoundingClientRect().top); seen.current = next; }
+      if (root) {
+        const visual = new Map<Element, number>(), layout = new Map<Element, number>();
+        for (const el of Array.from(root.children)) { const top = el.getBoundingClientRect().top; visual.set(el, top); layout.set(el, top - shiftOf(el)); }
+        seen.current = visual; laid.current = layout;
+      }
       frame = requestAnimationFrame(read);
     };
     frame = requestAnimationFrame(read);
@@ -37,21 +45,17 @@ function useGlide(host: RefObject<HTMLElement | null>) {
   }, [host]);
   useLayoutEffect(() => {
     const root = host.current;
-    if (!root || document.documentElement.dataset.motion === "reduced") return;
-    // Measure where each child sits in the layout with any glide in flight set aside, then start the glide from
-    // where the eye last saw it. Reading the rect with the glide still running would double count it and snap.
-    const moves: [HTMLElement, number][] = [];
+    if (!root) return;
+    const moves: [HTMLElement, number][] = [], reduced = document.documentElement.dataset.motion === "reduced", now = new Map<Element, number>();
     for (const node of Array.from(root.children)) {
-      const el = node as HTMLElement, before = seen.current.get(el);
-      if (before === undefined) continue;
-      el.style.transition = "none"; el.style.transform = "none";
-      const shift = before - el.getBoundingClientRect().top;
-      if (Math.abs(shift) >= 0.5) moves.push([el, shift]);
-      else { el.style.transition = ""; el.style.transform = ""; }
+      const el = node as HTMLElement, lay = el.getBoundingClientRect().top - shiftOf(el), was = laid.current.get(el), before = seen.current.get(el);
+      now.set(el, lay);
+      if (!reduced && before !== undefined && glideMoved(was, lay)) moves.push([el, before - lay]);
     }
-    for (const [el, shift] of moves) el.style.transform = `translateY(${shift}px)`;
+    for (const [el, shift] of moves) { el.style.transition = "none"; el.style.transform = `translateY(${shift}px)`; }
     if (moves.length) void root.offsetHeight;
     for (const [el] of moves) { el.style.transition = ""; el.style.transform = ""; }
+    laid.current = new Map([...laid.current, ...now]);
   });
 }
 
