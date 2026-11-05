@@ -165,6 +165,19 @@ jobs:
           path: lens-wall-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test candidate priorities (INT-13) with AI, suggestions, 100 points and 50 simulated phones in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p candidates-shots && npm run test:candidates
+        env:
+          KIT_SHOTS: candidates-shots
+      - name: Upload the candidate priorities screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidates-screens
+          path: candidates-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

@@ -12,6 +12,7 @@ import { QaTv } from "@/components/interactions/qa/qa-tv";
 import { BulletsTv, ConfirmTv } from "@/components/interactions/outcomes/outcomes-tv";
 import { GoalsView } from "@/components/interactions/goals/goals-view";
 import { WallView } from "@/components/interactions/ai/wall-view";
+import { CandidatesView } from "@/components/interactions/candidates/candidates-view";
 import { LensView } from "@/components/interactions/lens/lens-view";
 
 // The TV view for each kind that takes input. A view draws from the server's results and
@@ -24,6 +25,7 @@ export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>
   word_cloud: props => <LiveBoard kind="word_cloud" {...props} />,
   wall: WallView,
   lens: LensView,
+  candidates: CandidatesView,
   choice: props => <LiveBars kind="choice" {...props} />,
   scale: props => <LiveScale {...props} />,
   ranking: props => <LiveBars kind="ranking" {...props} />,
