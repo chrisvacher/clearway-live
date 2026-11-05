@@ -23,7 +23,7 @@
 -- path from a phone to the TV: a suggestion is stored and shown to the facilitator first.
 --
 -- Shared objects touched (each a superset of its latest definition on main, per the milestone 4 brief):
---   private.ai_runs (ai_runs_job_check)   gains 'propose_candidates'
+--   private.ai_runs (ai_runs_job_check)   gains 'propose_candidates' (and keeps step 2b's lens summary jobs)
 --   private.ai_on                          also true for a candidates session
 --   private.ai_claim, private.ai_apply     now wrappers: a candidates session is handled here, every other kind
 --                                          goes to the unchanged function, renamed ai_claim_base3 and ai_apply_base3
@@ -35,7 +35,7 @@ insert into private.interaction_kinds(kind,label,input,one_per_person,counts,str
  ('candidates','Candidate priorities',true,true,'people',true,true,'none','never',120);
 
 alter table private.ai_runs drop constraint ai_runs_job_check;
-alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft','propose_candidates'));
+alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft','draft_lens_summary','fold_lens_summary','propose_candidates'));
 
 -- ---------- Tables ----------
 create table private.candidate_boards (
@@ -142,7 +142,7 @@ comment on table private.candidate_suggestions is 'What a phone suggested: a ren
 create or replace function private.ai_on(p_session uuid) returns boolean
 language sql stable security definer set search_path='' as $$
  select coalesce((select coalesce(e.settings->>'ai_enabled','false')='true'
-   and (s.interaction in ('word_cloud','wall','qa','candidates') or (s.interaction='grid' and s.options->>'preset'='pre_mortem') or (s.interaction='lens' and coalesce(s.options->>'seed','false')<>'true'))
+   and (s.interaction in ('word_cloud','wall','qa','candidates','lens_summary') or (s.interaction='grid' and s.options->>'preset'='pre_mortem') or (s.interaction='lens' and coalesce(s.options->>'seed','false')<>'true'))
    and coalesce(a.ai,case when jsonb_typeof(s.options->'ai')='boolean' then (s.options->>'ai')::boolean end,true)
   from public.sessions s join public.engagements e on e.id=s.engagement_id and not e.deleted
   left join private.ai_sessions a on a.session_id=s.id and not a.deleted
@@ -671,6 +671,7 @@ begin
  perform 1 from public.room_states where engagement_id=eng for update;
  update public.submissions set deleted=true where engagement_id=eng and not deleted;
  update private.latency_logs set deleted=true where engagement_id=eng and not deleted;
+ delete from private.lens_summary_locks where engagement_id=eng;
  update private.candidate_suggestions set deleted=true where engagement_id=eng and not deleted;
  update private.candidate_sources set deleted=true where engagement_id=eng and not deleted;
  update private.candidates set deleted=true,outcome_id=null where engagement_id=eng and not deleted;
@@ -682,6 +683,14 @@ begin
  update private.lens_summary_versions set deleted=true where engagement_id=eng and not deleted;
  update private.lens_sentences set deleted=true where engagement_id=eng and not deleted;
  update private.lens_openings set deleted=true where engagement_id=eng and not deleted;
+ update private.overnight_publications set withdrawn_at=coalesce(withdrawn_at,clock_timestamp()) where engagement_id=eng and withdrawn_at is null;
+ delete from private.review_presence where engagement_id=eng;
+ update private.draft_photo_texts set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_notes set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_sources set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_bullets set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_outcomes set deleted=true where engagement_id=eng and not deleted;
+ update private.overnight_rounds set deleted=true where engagement_id=eng and not deleted;
  update private.first_steps set deleted=true where engagement_id=eng and not deleted;
  update private.intent_card_people set deleted=true where engagement_id=eng and not deleted;
  update private.intent_cards set deleted=true where engagement_id=eng and not deleted;

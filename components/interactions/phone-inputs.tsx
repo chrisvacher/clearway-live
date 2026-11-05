@@ -13,6 +13,7 @@ import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 import { CandidatesInput } from "@/components/interactions/candidates/candidates-input";
 import { LensInput } from "@/components/interactions/lens/lens-input";
+import { LensSummaryInput } from "@/components/interactions/lens-summary/summary-phone";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
 // text form. An input sends through the phone's outbox (offline queueing, order, ids and
@@ -31,6 +32,7 @@ export type PhoneInputProps = {
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
   qa: QaPhoneInput,
   lens: LensInput,
+  lens_summary: LensSummaryInput,
   candidates: CandidatesInput,
   bullets: BulletsInput,
   confirm: ConfirmInput,
