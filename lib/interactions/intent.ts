@@ -123,6 +123,13 @@ export const followupLabels: Record<FollowupState, string> = {
 export const followupStatusText: Record<string, string> = {
   invalid: "That link isn't valid. Ask for a new one.", wrong: "That code doesn't match.", locked: "Too many tries. Try again in 10 minutes, or ask for the code again.",
   revoked: "This access was turned off.", ended: "This follow-up has ended.", before: "This follow-up hasn't opened yet.", denied: "That didn't work. Enter the code again.",
-  unavailable: "The room didn't answer. Try again.", limited: "Too many tries. Wait a moment.", busy: "Someone else already has the remote.",
+  unavailable: "The room didn't answer. Try again.", limited: "Too many tries. Wait a moment.", busy: "The room's own handover is still open. Ask the lead facilitator to end it.",
   lead_has_it: "The lead facilitator has the remote. Ask for it back.", outside_block: "That is outside your block.",
 };
+// What the follow-up phone says when Take the remote does not go through. Busy means the room's own handover,
+// given to someone else in the room, is still open: only the lead can end it.
+export function followupTakeText(status: string, lead?: string | null): string {
+  if (status === "busy") return `The room’s own handover is still open. Ask ${lead?.trim() || "the lead facilitator"} to end it.`;
+  if (status === "lead_has_it" && lead?.trim()) return `${lead.trim()} has the remote. Ask for it back.`;
+  return followupStatusText[status] ?? followupStatusText.unavailable;
+}

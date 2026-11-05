@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Eye, EyeOff, Lock, LockOpen, Merge, Sun, SunDim, Undo2, X } from "lucide-react";
 import type { ControlItemsProps } from "@/components/interactions/control-items";
 import { gridColor } from "@/lib/interactions/grid-form-sign";
+import { pressId } from "@/lib/control/own-presses";
 import "./grid-form-sign.css";
 
 type GridItem = { key: string; text: string; num?: number; count: number; hidden: boolean; into?: string };
@@ -22,7 +23,7 @@ function useKindPress(room: ControlItemsProps["room"]) {
     setBusy(true); setMessage("");
     try {
       const response = await fetch(`/api/control/${engagement}/grid-form-sign`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, id: crypto.randomUUID(), action, from: room.frame?.state.live_session_id ?? null, ...extra }) });
+        body: JSON.stringify({ kind, id: pressId(), action, from: room.frame?.state.live_session_id ?? null, ...extra }) });
       const data = await response.json().catch(() => ({ status: "unavailable" })) as { status: string };
       if (!["ok", "duplicate", "unchanged"].includes(data.status)) setMessage(messages[data.status] ?? messages.unavailable);
     } catch { setMessage(messages.unavailable); } finally { setBusy(false); }

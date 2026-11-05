@@ -123,6 +123,8 @@ async function main() {
       await until(async () => await control.locator(".oc-panel").count() > 0, "the panel", 10000);
       await control.locator(".oc-panel li", { hasText: titles[3] }).getByRole("button", { name: "Show on the screen" }).click();
       await until(async () => (await layer().locator(".oc-title .oc-t").innerText()) === titles[3], "the TV on the fourth outcome", 4000);
+      await delay(1500);
+      assert.equal(await control.locator(".ctl-toast").count(), 0, "the laptop's own press is never shown as from another remote");
       assert.equal(await layer().locator(".oc-empty").count(), 1, "outlined with Needs a bullet");
       assert.ok((await layer().locator(".oc-empty").innerText()).includes("Needs a bullet"));
       await shot(tv, "d1-11-empty-tv"); await shot(control, "d1-11-control");
@@ -135,6 +137,7 @@ async function main() {
     const pick = async (page: Page, title: string, name: string) => page.locator("fieldset", { hasText: title }).getByRole("button", { name, exact: true }).click();
     await step("D2-05: phones confirm, rename or challenge with an optional reason; the TV shows counts only", async () => {
       await live(confirmId, "confirm");
+      await control.locator(".ctl-toast", { hasText: "From another remote" }).first().waitFor({ timeout: 5000 });
       assert.equal(await layer().locator(".oc-crow").count(), 4);
       for (const person of [priya, ben, ruth]) await person.page.locator("fieldset").first().waitFor({ timeout: 10000 });
       await pick(priya.page, titles[0], "Confirm"); await pick(priya.page, titles[1], "Challenge");
@@ -255,9 +258,45 @@ async function main() {
       const server = (await results(practiceRoom)).current as { count: number; bullets: unknown[] };
       assert.ok(server.count >= 100, "the server holds every bullet");
       await until(async () => /^\+ \d+ earlier bullets? on your phones$/.test(await pLayer().locator(".oc-more").innerText()), "the rest are counted, not dropped", 8000);
-      assert.equal(await pLayer().locator(".oc-bullet").count(), 6, "the newest six show");
+      const shown = await pLayer().locator(".oc-bullet:not(.is-out)").count();
+      assert.ok(shown >= 1 && shown <= 6, `at most the newest six show (${shown})`);
+      const earlier = Number((await pLayer().locator(".oc-more").innerText()).match(/\d+/)![0]);
+      assert.equal(earlier + shown, server.count, "every bullet is either on the TV or counted on the earlier line");
       assert.ok((await ptv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).startsWith("100 bullets from "), "100 bullets on the TV");
       await shot(ptv, "d1-11-crowded-tv");
+      // At Medium and Very small, long bullets: the ones that show fit above the "+ N earlier" line, which stays
+      // whole on the screen, and the rail's outcome names wrap between words.
+      const long = ["Every newcomer has a friend in the church within six weeks of arriving here", "Twelve apprentice leaders serve alongside a ministry lead every Sunday", "Newcomers join a group in their first season with us"];
+      for (const [i, text] of long.entries()) assert.equal(await phones[i].send(pbul, randomUUID(), 0, `${text} ${i}`, { outcome: pout[0] }), "accepted");
+      const before = (await sql.query("select settings->>'room_size' as s from public.engagements where id=$1", [practiceRoom])).rows[0].s as string | null;
+      for (const size of ["medium", "very_small"]) {
+        await press(pfac, sql, practiceRoom, "room_size", { size });
+        await until(async () => (await ptv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+        await until(async () => (await pLayer().locator(".oc-bullet:not(.is-out)").last().innerText()).includes(long[2]), "the newest long bullet shows", 8000);
+        await delay(800);
+        const g = await pLayer().evaluate(layer => {
+          const shown = [...layer.querySelectorAll(".oc-bullet:not(.is-out)")].map(b => b.getBoundingClientRect());
+          const more = layer.querySelector(".oc-more")!.getBoundingClientRect(), clip = layer.getBoundingClientRect();
+          // A word broken across two lines draws as two boxes.
+          const broken: string[] = [];
+          for (const t of layer.querySelectorAll(".oc-orow .oc-t")) {
+            const node = t.firstChild; if (!node || node.nodeType !== 3) continue;
+            const text = node.textContent ?? ""; let at = 0;
+            for (const word of text.split(" ")) {
+              const r = document.createRange(); r.setStart(node, at); r.setEnd(node, at + word.length); at += word.length + 1;
+              const tops = new Set([...r.getClientRects()].filter(x => x.width > 0).map(x => Math.round(x.top)));
+              if (tops.size > 1) broken.push(word);
+            }
+          }
+          return { shown: shown.length, lastBottom: Math.max(...shown.map(b => b.bottom)), moreTop: more.top, moreBottom: more.bottom, clipBottom: clip.bottom, more: layer.querySelector(".oc-more")!.textContent, broken };
+        });
+        assert.ok(g.shown >= 1 && g.lastBottom <= g.moreTop + 0.5, `${size}: the bullets stop above the "+ N earlier" line (${JSON.stringify(g)})`);
+        assert.ok(g.moreBottom <= g.clipBottom + 0.5, `${size}: the "+ N earlier" line is whole on the screen (${JSON.stringify(g)})`);
+        assert.match(g.more ?? "", /^\+ \d+ earlier bullets? on your phones$/);
+        assert.deepEqual(g.broken, [], `${size}: no outcome name breaks inside a word`);
+        await shot(ptv, `d1-11-fit-${size}`);
+      }
+      await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [practiceRoom, before]);
     });
     await step("D2-05 Crowded, 50 phones: confirm, rename and challenge, the TV's counts match the server and no reason reaches it", async () => {
       await crowd("confirm", pcon, async (p, i) => {

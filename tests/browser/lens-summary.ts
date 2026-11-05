@@ -12,7 +12,7 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type Locator, type Page } from "playwright";
 import { promptVersions } from "../../lib/ai/prompts";
 import { verdict } from "../../lib/latency/report";
 import { joinPhones, practiceRoom } from "../../scripts/load-test";
@@ -44,6 +44,19 @@ const sampler = `(() => { window.sumSamples = {}; window.sumStop = false; window
     if (!window.sumStop) requestAnimationFrame(read); };
   requestAnimationFrame(read); })()`;
 const jump = 160;
+
+// Two anonymous cards at most, as many as fit whole above the "+ n more on phones" line, which keeps its own room.
+async function cardsFit(layer: () => Locator, total: number, label: string) {
+  const g = await layer().evaluate(el => {
+    const shown = [...el.querySelectorAll("[data-suggestion]:not(.is-out)")].map(c => c.getBoundingClientRect());
+    const more = el.querySelector("[data-more-suggestions]"), m = more?.getBoundingClientRect(), clip = el.closest(".tv-layer")!.getBoundingClientRect();
+    return { shown: shown.length, lastBottom: Math.max(0, ...shown.map(c => c.bottom)), moreTop: m?.top ?? Infinity, moreBottom: m?.bottom ?? 0, clipBottom: clip.bottom, more: more?.textContent ?? "" };
+  });
+  assert.ok(g.shown <= 2, `${label}: two anonymous suggestion cards at most on the TV (${JSON.stringify(g)})`);
+  assert.equal(g.more, `+ ${total - g.shown} more on phones`, `${label}: the rest are counted for phones`);
+  assert.ok(g.lastBottom <= g.moreTop + 0.5, `${label}: the more line sits below the cards, never under one (${JSON.stringify(g)})`);
+  if (label === "medium") assert.ok(g.moreBottom <= g.clipBottom + 0.5, `${label}: the more line is whole on the screen (${JSON.stringify(g)})`);
+}
 
 async function main() {
   const env = localEnv(), sql = db(env), mail = await mailbox();
@@ -135,8 +148,7 @@ async function main() {
         const mid = await server();
         assert.equal(mid.tally.approve, 40); assert.equal(mid.tally.suggest, 10, "the tally is the server's");
         await until(async () => (await layer().locator('[data-tally="approve"]').innerText()).trim() === "40" && (await layer().locator('[data-tally="suggest"]').innerText()).trim() === "10", "the TV tally matches the server", 5000);
-        assert.equal(await layer().locator("[data-suggestion]").count(), 2, "two anonymous suggestion cards on the TV");
-        assert.match(await layer().locator("[data-more-suggestions]").innerText(), /\+ 8 more on phones/, "the rest are counted for phones");
+        await cardsFit(layer, 10, "as set");
         await shot(tv, "lens-summary-50-phones");
       });
 
@@ -175,6 +187,24 @@ async function main() {
         assert.equal(suggestions1, 50, "version 1's answers are kept as history");
       });
 
+      await step("Suggestion cards fit above the \"+ n more on phones\" line at Medium and Very small", async () => {
+        // AI holds its fold so the cards stay while the room size changes; the facilitator's edit next makes its own version.
+        assert.ok(["ok", "unchanged"].includes((await control("hold")).status));
+        const v2 = (await server()).summary!.version_id;
+        const out = await Promise.all(phones.slice(30, 40).map((p, i) => p.sendValue(room, summary, { version: v2, response: "suggest" }, suggestions[i])));
+        assert.ok(out.every(s => s === "accepted"), `suggestions on version 2: ${[...new Set(out)].join(",")}`);
+        await until(async () => (await layer().locator('[data-tally="suggest"]').innerText()).trim() === "10", "the TV counts version 2's suggestions", 5000);
+        const sizeBefore = (await sql.query("select settings->>'room_size' as s from public.engagements where id=$1", [room])).rows[0].s as string | null;
+        for (const size of ["medium", "very_small"]) {
+          await press(fac, sql, room, "room_size", { size });
+          await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+          let miss: unknown;
+          await until(async () => { try { await cardsFit(layer, 10, size); return true; } catch (error) { miss = error; return false; } }, `the cards fit at ${size}`, 6000).catch(() => { throw miss; });
+          await shot(tv, `lens-summary-cards-${size}`);
+        }
+        await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [room, sizeBefore]);
+      });
+
       await step("The facilitator's edit replaces the line on the TV in place, within a second, with no tracked change", async () => {
         const state = (await fac.client.rpc("lens_summary_state", { p_engagement: room })).data as { summary: { sentences: { id: string; text: string }[] } };
         const target = state.summary.sentences[0], text = "Every guest is greeted by name at the door.";
@@ -197,6 +227,20 @@ async function main() {
       });
 
       await step("Mark a decision: the room's decision, never a count", async () => {
+        // On the laptop there is one Mark a decision while a lens summary is live: the toolbar's goes to the lens's own.
+        const facContext = await browser!.newContext({ viewport: { width: 1440, height: 1000 } });
+        await facContext.addCookies(fac.cookies(app.origin));
+        const laptop = await facContext.newPage(); await laptop.goto(`${app.origin}/control/${room}`);
+        await laptop.locator("#lsm-decision").waitFor({ timeout: 15000 });
+        await laptop.evaluate(() => { for (const b of document.querySelectorAll("button")) if (b.textContent?.includes("Mark a decision") && !b.closest(".lsm-decide")) b.setAttribute("data-toolbar-decision", ""); });
+        assert.equal(await laptop.locator("[data-toolbar-decision]").count(), 1, "one toolbar Mark a decision");
+        await laptop.locator("[data-toolbar-decision]").click();
+        await until(async () => await laptop.evaluate(() => document.activeElement?.id) === "lsm-decision", "the toolbar's Mark a decision goes to the lens's own decision", 3000);
+        assert.equal(await laptop.locator(".ctl-decision").count(), 0, "the general decision panel does not open");
+        const remote = await facContext.newPage(); await remote.goto(`${app.origin}/remote/${room}`);
+        await remote.locator(".ctl-remote-head").waitFor({ timeout: 15000 }); await delay(1000);
+        assert.equal(await remote.locator("button", { hasText: "Mark a decision" }).count(), 0, "the remote leaves the lens's decision to the laptop");
+        await facContext.close();
         const out = await control("decide", { decision: "Signed off", reasons: "The room agrees it describes the 10-year Future." });
         assert.equal(out.status, "ok");
         await until(async () => (await layer().locator(".lsm-signed").count()) > 0, "the TV shows the decision", 5000);

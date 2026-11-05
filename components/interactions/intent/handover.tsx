@@ -4,6 +4,7 @@ import { Hand, Link2, RotateCcw, Undo2 } from "lucide-react";
 import type { Room } from "@/components/control/live-controls";
 import { followupLabels, followupStatusText, followupWindow, type FollowupState } from "@/lib/interactions/intent";
 import { post, type RemoteState } from "./use-intent";
+import { pressId } from "@/lib/control/own-presses";
 import "./handover.css";
 
 type Person = { id: string; first: string };
@@ -27,7 +28,7 @@ export function HandoverPanel({ room }: { room: Room }) {
   useEffect(() => { void read(); }, [room.frame?.version, read]);
   const act = async (action: "give" | "take_back" | "end", p: Record<string, unknown> = {}) => {
     setBusy(true); setMessage("");
-    const out = await post(`/api/control/${engagement}/handover`, { id: crypto.randomUUID(), action, p: { from: live, ...p } });
+    const out = await post(`/api/control/${engagement}/handover`, { id: pressId(), action, p: { from: live, ...p } });
     setBusy(false); void read();
     if (!["ok", "unchanged", "duplicate"].includes(out.status)) setMessage(messages[out.status] ?? messages.unavailable);
   };

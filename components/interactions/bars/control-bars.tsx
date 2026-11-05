@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { EyeOff, Plus, Split, X } from "lucide-react";
+import { pressId } from "@/lib/control/own-presses";
 import "./bars.css";
 import type { ControlPanelProps } from "@/components/interactions/control-panels";
 
@@ -33,7 +34,7 @@ export function RankingPanel({ room }: ControlPanelProps) {
     const key = group.ids[0]; setBusy(key); setMessage("");
     try {
       const r = await fetch(`/api/control/${engagement}/ranking`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: crypto.randomUUID(), action, ids: group.ids, text: (edits[key] ?? group.text).trim() }) });
+        body: JSON.stringify({ id: pressId(), action, ids: group.ids, text: (edits[key] ?? group.text).trim() }) });
       const out = await r.json().catch(() => ({})) as { status?: string };
       if (out.status !== "ok" && out.status !== "duplicate") setMessage(out.status === "exists" ? "That option is already on the list." : out.status === "full" ? "A ranking holds twelve options at most." : "That didn’t go through. Try again.");
     } catch { setMessage("That didn’t go through. Try again."); }

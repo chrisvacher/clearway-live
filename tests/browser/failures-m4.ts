@@ -218,6 +218,11 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
       const rows = (await sql.query("select count(*)::int n from public.sessions where engagement_id=$1 and not deleted", [made.id])).rows[0].n as number;
       assert.ok(rows >= 40, `${name}: ${rows} sessions print`);
       assert.doesNotMatch(text, /Content · Live.*Five Lenses/, "a Wayfinding kind is never printed as Content");
+      assert.doesNotMatch(text, /\.\. /, `${name}: no time is followed by a second period`);
+      const contentRows = await print.locator("tbody tr").filter({ hasText: /Content screen · / }).allInnerTexts();
+      assert.ok(contentRows.length > 0 && contentRows.every(row => !row.includes("-minute burst")), `${name}: a content screen prints no burst line`);
+      const kindRows = await print.locator("tbody tr").filter({ hasText: /Five Lenses: Congregation/ }).allInnerTexts();
+      assert.ok(kindRows.some(row => row.includes("-minute burst")), `${name}: a step that takes answers still prints its burst line`);
       if (process.env.KIT_SHOTS) await print.screenshot({ path: `${process.env.KIT_SHOTS}/fail-10-m4-print-${template === wayfindingTemplate ? "wayfinding" : "half-day"}.png`, fullPage: true });
       await printContext.close();
     }

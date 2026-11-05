@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { KeyRound, Monitor, Smartphone } from "lucide-react";
-import { followupStatusText, normalizeCode, validCode } from "@/lib/interactions/intent";
+import { followupStatusText, followupTakeText, normalizeCode, validCode } from "@/lib/interactions/intent";
 import { TeamRemote, type TeamBlockStep, type TeamRoom } from "@/components/interactions/intent/team-remote";
 import { post } from "@/components/interactions/intent/use-intent";
 import "@/components/interactions/intent/handover.css";
@@ -31,7 +31,7 @@ export function FollowupClient({ token, as }: { token: string; as: "tv" | "remot
     await read();
   };
   const send = useCallback(async (action: string, p: Record<string, unknown>) => post("/api/followup", { action: "press", as, press: { id: crypto.randomUUID(), action, p } }), [as]);
-  const take = async () => { setBusy(true); setMessage(""); const out = await post("/api/followup", { action: "take", as }); setBusy(false); if (out.status !== "ok") setMessage(followupStatusText[out.status] ?? followupStatusText.unavailable); void read(); };
+  const take = async () => { setBusy(true); setMessage(""); const out = await post("/api/followup", { action: "take", as }); setBusy(false); if (out.status !== "ok") setMessage(followupTakeText(out.status, snap?.lead)); void read(); };
   const ask = async () => { setBusy(true); const out = await post("/api/followup", { action: "ask", as }); setBusy(false); setMessage(out.status === "ok" ? "Asked. The lead facilitator has your message." : followupStatusText[out.status] ?? followupStatusText.unavailable); };
   void gone;
   if (!checked) return <main className="fu"><p className="ph-text">One moment.</p></main>;
@@ -49,7 +49,7 @@ export function FollowupClient({ token, as }: { token: string; as: "tv" | "remot
     <header><p className="ctl-eyebrow">{snap.church}</p><h1>Hello{snap.first ? `, ${snap.first}` : ""}</h1></header>
     {message && <p className="show-message" role="status">{message}</p>}
     {as === "tv" ? <section aria-label="Show the TV view">
-      <p className="show-help">Open this on the computer you share in the video call. The room’s TV view opens in this tab, with names and private notes left out.</p>
+      <p className="show-help">Open this on the computer you share in the video call. The room’s TV view opens in this tab, with private notes left out.</p>
       <TvPair onMessage={setMessage} />
     </section> : <>
       {snap.kind !== "remote" ? <section aria-label="Take the remote">
@@ -64,7 +64,8 @@ export function FollowupClient({ token, as }: { token: string; as: "tv" | "remot
       <aside className="hi-scope"><b>This remote shows</b><ul className="hi-scope"><li>The steps in your block and what is live</li><li>Go live, Next, Back, Phones down, Open phones</li><li>Pairs by first name and Present for each card</li></ul>
         <b>It never shows</b><ul className="hi-scope"><li>The alignment signal</li><li>Presenter notes</li><li>Discover data</li><li>Any step outside your block</li></ul></aside>
     </>}
-    <p className="show-help">This access ends {snap.closes_at ? new Date(snap.closes_at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }) : "soon"}.</p>
+    {/* The team remote says when the access ends; the page says it only where the remote is not shown. */}
+    {!(as === "remote" && snap.kind === "remote" && snap.closes_at) && <p className="show-help">This access ends {snap.closes_at ? new Date(snap.closes_at).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" }) : "soon"}.</p>}
   </main>;
 }
 

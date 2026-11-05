@@ -90,3 +90,22 @@ export function resultMessage(result: ControlResult) {
     default: return "We couldn’t reach the room. The TV and phones keep running. Try again.";
   }
 }
+
+// The TVs to name in "… reconnecting" (FAIL-02). A TV that was paired again (a new browser on the same
+// screen, or a pairing left from an earlier day) leaves its old pairing behind under the same name, so
+// screens are taken one per name, the one connected or seen most recently standing for it. A screen with
+// no live session (never shown, or unpaired) is not counted. One silent for longer than staleMs is an old
+// pairing, not a TV dropping out, unless no TV is connected at all: then the one seen last is named.
+export const staleScreenMs = 15 * 60_000;
+export function screensDown(screens: ControlScreen[], serverNow: number, staleMs = staleScreenMs): ControlScreen[] {
+  const seen = (s: ControlScreen) => s.last_seen_at ? Date.parse(s.last_seen_at) : 0;
+  const byName = new Map<string, ControlScreen>();
+  for (const s of screens) {
+    if (!s.last_seen_at && !s.connected) continue;
+    const key = s.label.trim().toLowerCase(), held = byName.get(key);
+    if (!held || (s.connected && !held.connected) || (s.connected === held.connected && seen(s) > seen(held))) byName.set(key, s);
+  }
+  const named = [...byName.values()];
+  const up = named.some(s => s.connected), last = Math.max(0, ...named.map(seen));
+  return named.filter(s => !s.connected && (serverNow - seen(s) <= staleMs || (!up && seen(s) === last)));
+}
