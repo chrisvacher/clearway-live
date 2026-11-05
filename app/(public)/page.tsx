@@ -5,7 +5,7 @@ import {
   ALargeSmall, ArrowRight, Check, Ear, EyeOff, Flag, Laptop, Lock, Monitor, NotebookPen, Quote, ScanEye, Smartphone, Timer, UserCheck, Users, WifiOff, X,
 } from "lucide-react";
 import { DemoRoom } from "@/components/public/demo-room";
-import { Gallery, Reveal, ThreeScreens, type GalleryItem } from "@/components/public/home-parts";
+import { Gallery, Reveal, StatsBand, ThreeScreens, type GalleryItem } from "@/components/public/home-parts";
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { AiIcon } from "@/components/interactions/ai/ai-icon";
 import "./home.css";
@@ -186,12 +186,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
       </section>
 
       <section className="stats" aria-label="Clearway Live in numbers">
-        <div className="home-width stats-row">
-          <div className="stat"><span className="stat-n">&lt;1<small>s</small></span><span className="stat-l">from a phone to the screen</span></div>
-          <div className="stat"><span className="stat-n">0</span><span className="stat-l">apps to install</span></div>
-          <div className="stat"><span className="stat-n">11</span><span className="stat-l">ways to ask the room</span></div>
-          <div className="stat"><span className="stat-n">1</span><span className="stat-l">code to join the room</span></div>
-        </div>
+        <StatsBand />
       </section>
 
       <section className="home-section" id="ask" data-theme="light" aria-labelledby="ask-title">
