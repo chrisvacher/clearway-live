@@ -22,7 +22,7 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
 // Glide: when a list changes (a fold, a line typed, a card arriving) every child that stays moves from where it
 // was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a
 // change that lands mid-glide starts from the child's visual place, never from a stale one. A glide starts only
-// when the list changed (a child added, removed, reordered or its text changed): the TV's parent re-renders this
+// when the list changed (a child added, removed, reordered, retyped or moved in the layout): the TV's parent re-renders this
 // view about every frame, and a glide that restarted on each render would never leave its first frame.
 function useGlide(host: RefObject<HTMLElement | null>) {
   const seen = useRef(new Map<Element, number>()), ids = useRef(new WeakMap<Element, number>()), count = useRef(0), last = useRef("");
@@ -41,7 +41,8 @@ function useGlide(host: RefObject<HTMLElement | null>) {
     if (!root) return;
     const sig = listSignature(Array.from(root.children).map(el => {
       let id = ids.current.get(el); if (id === undefined) { id = ++count.current; ids.current.set(el, id); }
-      return { id: String(id), text: el.textContent ?? "" };
+      // Layout place (offsetTop ignores the glide's own transform) and class count too, so a move with no text change glides, while a plain re-render never does.
+      return { id: String(id), text: `${el.className}|${(el as HTMLElement).offsetTop}|${el.textContent ?? ""}` };
     }));
     if (sig === last.current) return;
     last.current = sig;

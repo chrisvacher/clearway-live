@@ -66,12 +66,13 @@ function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
     seen.current = ids; last.current = data.candidates;
   }, [data.candidates, data.merges]);
 
-  // Fit: rows size to their names. If the cards pass the board, the type steps down (never below the room minimum, which
-  // is the token floor over the body size) until every card sits on one screen.
+  // Fit: rows size to their names. If the cards pass the board, the type steps down (never below the room minimum, 36px) until every card sits on one screen.
   useLayoutEffect(() => {
     const el = host.current; if (!el) return;
-    const min = 36 / 44; // the token floor over the body size
-    let fit = 1; el.style.setProperty("--cd-fit", "1");
+    // The room minimum is 36px on a 1080p TV (the token floor at scale 1), so the type may step down to it and no further.
+    const card = el.querySelector<HTMLElement>(".cd-card"); el.style.setProperty("--cd-fit", "1");
+    const px = card ? parseFloat(getComputedStyle(card).fontSize) || 0 : 0, min = px > 36 ? 36 / px : 1;
+    let fit = 1;
     while (el.scrollHeight > el.clientHeight + 1 && fit > min) { fit = Math.max(min, fit - 0.04); el.style.setProperty("--cd-fit", String(fit)); }
   });
 
