@@ -45,6 +45,16 @@ const sampler = `(() => { window.sumSamples = {}; window.sumStop = false; window
   requestAnimationFrame(read); })()`;
 const jump = 160;
 
+// Forces the TV's parent to re-render on every frame, as the real TV's arrival flow does. It finds the React state
+// that holds the TV's name limit (the number 14) on the page's fiber tree and sets it to a new value each frame
+// (the join board is the only place that reads it), so every view below re-renders each frame.
+const rerenderEveryFrame = `(() => { const root = document.querySelector('.tv-stage'); const key = Object.keys(root).find(k => k.startsWith('__reactFiber$'));
+  let fiber = root[key], dispatch = null;
+  while (fiber && !dispatch) { for (let h = fiber.memoizedState; h && typeof h === 'object'; h = h.next) { if (h.memoizedState === 14 && h.queue && h.queue.dispatch) { dispatch = h.queue.dispatch; break; } } fiber = fiber.return; }
+  if (!dispatch) throw new Error('no TV state to re-render'); window.forceStop = false; window.forceRenders = 0; let flip = false;
+  const run = () => { flip = !flip; dispatch(flip ? 15 : 14); window.forceRenders++; if (!window.forceStop) requestAnimationFrame(run); };
+  requestAnimationFrame(run); })()`;
+
 async function main() {
   const env = localEnv(), sql = db(env), mail = await mailbox();
   const app = await startApp(env, mail.url);
@@ -92,6 +102,7 @@ async function main() {
       const written = await Promise.all(lensSentences.map((text, i) => phones[i].send(room, wall, text)));
       assert.ok(written.every(w => w.status === "accepted"), `the lens sentences were accepted: ${written.map(w => w.status).join(",")}`);
       await until(async () => { await poke(); return (await sql.query("select count(*)::integer n from private.ai_groups where session_id=$1 and not deleted and undone_at is null", [wall])).rows[0].n >= 3; }, "AI clustered the lens wall", 30000);
+      await tv.evaluate(rerenderEveryFrame);
       await press(fac, sql, room, "go_live", { session: summary });
       await layer().locator("[data-lens-summary]").waitFor({ timeout: 10000 });
       await step("The draft goes straight to the TV: present tense, one screen, every line sourced, marked AI", async () => {
@@ -112,6 +123,21 @@ async function main() {
         assert.equal(bare, 0, "every line is linked to its source sentences");
         assert.equal((await server()).tally.approve + (await server()).tally.suggest, 0, "the tally starts at zero");
         await shot(tv, "lens-summary-draft");
+      });
+
+      await step("With the TV's parent re-rendering every frame, every summary line is fully on the screen within 2 seconds of the draft", async () => {
+        const inside = () => tv.evaluate(() => {
+          const lines = [...document.querySelectorAll<HTMLElement>(".tv-layer:not(.is-leaving) .lsm-line:not(.is-gone)")], box = document.querySelector(".tv-layer:not(.is-leaving) .lsm-lines")!.getBoundingClientRect();
+          const rects = lines.map(l => l.getBoundingClientRect());
+          return { count: lines.length, ok: lines.length > 0 && rects.every(r => r.height > 0 && r.top >= -1 && r.bottom <= innerHeight + 1 && r.top >= box.top - 1 && r.bottom <= box.bottom + 1),
+            tops: rects.map(r => Math.round(r.top)), box: [Math.round(box.top), Math.round(box.bottom)], renders: (window as unknown as { forceRenders: number }).forceRenders };
+        });
+        let last = await inside();
+        await until(async () => { last = await inside(); return last.ok; }, "every summary line inside the TV screen", 2000).catch(() => { throw new Error(`summary lines stuck off screen: ${JSON.stringify(last)}`); });
+        assert.ok(last.renders > 30, `the parent re-rendered every frame: ${last.renders} renders`);
+        const s = (await server()).summary!;
+        assert.equal(last.count, s.sentences.length, "every line of the draft is on the TV");
+        await tv.evaluate(() => { (window as unknown as { forceStop: boolean }).forceStop = true; });
       });
 
       // ---------- 50 phones, AI slow ----------

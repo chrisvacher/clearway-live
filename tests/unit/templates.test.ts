@@ -106,3 +106,10 @@ test("SET-07: a session added as self-paced starts as a Draft with a week-long w
   assert.equal(droppedSession(holding, id(0), "Day 1", kinds, id(2), "self_paced", now).mode, "live");
   assert.deepEqual([...partTimes([row(0, { planned_start: "2026-11-19T14:00:00.000Z" }), s, row(3)]).values()].map(t => t.offset), [0, null, 10], "it takes no room time");
 });
+
+test("the template preview shows the registry labels for the Wayfinding kinds, not their code names", async () => {
+  const { kindLabel } = await import("../../lib/interactions/kinds");
+  const expected: Record<string, string> = { lens: "Lens wall", lens_summary: "Lens summary", candidates: "Candidate priorities", bullets: "Outcome bullets", confirm: "Outcome confirm", goals: "CORE goals", intent: "Commander's intent" };
+  for (const [kind, label] of Object.entries(expected)) assert.equal(kindLabel(kind, null), label);
+  assert.equal(kindLabel("wall", null), "Open text");
+});

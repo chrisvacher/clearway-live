@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, EyeOff, FlaskConical, LayoutDashboard, LayoutTemplate, Play, Plus, Trash2, X } from "lucide-react";
-import { contentLabels, contentScreens, fallbackKinds, type ContentScreen } from "@/lib/interactions/kinds";
+import { kindLabel } from "@/lib/interactions/kinds";
 import { clock } from "@/lib/run-of-show/builder";
 import { parts } from "@/lib/run-of-show/types";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
@@ -11,10 +11,6 @@ import { practiceId } from "@/lib/room/practice";
 import type { Template, TemplateLibrary as Library } from "@/lib/templates/types";
 import "@/components/run-of-show/builder.css";
 
-const labels: Record<string, string> = { word_cloud: "Word cloud", wall: "Open text", qa: "Q&A", choice: "Multiple choice", scale: "Scale", ranking: "Ranking", points: "100 points",
-  grid: "2x2 grid", form: "Private form", sign: "Sign together", statements: "Statements" };
-const kindLabel = (interaction: string, screen: string | null) => interaction === "content"
-  ? contentLabels[contentScreens.includes(screen as ContentScreen) ? screen as ContentScreen : "headline"] : labels[interaction] ?? fallbackKinds[interaction]?.label ?? interaction;
 // "90 minutes", "2 hours", "2 hours 15 minutes".
 export function length(minutes: number) {
   if (minutes < 120) return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;

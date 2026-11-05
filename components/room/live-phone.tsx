@@ -5,7 +5,7 @@ import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
 import { PhoneContent, phoneContentWaits } from "./phone-content";
-import { checkAnswer, limitHint, ownAnswers, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
+import { checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
 import { browserStore } from "@/lib/phone/outbox";
 import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
@@ -143,9 +143,9 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const named = selfView ? selfView.settings?.anonymous === false : isLive && frame?.session?.settings?.anonymous === false;
   const notYet = Boolean(selfView && selfView.state === "ready");
   // The self-paced sessions a person can open from here: everything but the one on screen,
-  // and never under a live step that is taking answers.
+  // and never under a live step that is taking answers (a content step, such as a holding screen, leaves the list).
   const others = selfPaced.filter(s => s.id !== view?.id && s.state !== "closed");
-  const selfList = others.length > 0 && !(isLive && running) ? <section className="ph-self" aria-labelledby="ph-self-title">
+  const selfList = others.length > 0 && !selfListHidden(isLive, running, asks) ? <section className="ph-self" aria-labelledby="ph-self-title">
     <h2 id="ph-self-title">On your phone</h2>
     <ul>{others.map(s => <li key={s.id}><button type="button" onClick={() => go(s.id)}><strong>{s.title}</strong><span>{windowLabel(s, zone, serverNow)}</span></button></li>)}</ul>
   </section> : null;

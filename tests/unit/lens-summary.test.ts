@@ -6,7 +6,7 @@ import { prompts, promptVersions, type LensDraftInputs, type LensFoldInputs } fr
 import { runSession } from "../../lib/ai/worker";
 import { settledReason } from "../../lib/phone/policy";
 import { interactionKinds, isReservedKind, screenIds } from "../../lib/interactions/kinds";
-import { checkSuggestion, facilitatorState, moreOnPhones, ownReply, reconcile, shownLines, sourcesOf, summaryOf, summaryPress, type Change, type Row } from "../../lib/interactions/lens-summary";
+import { checkSuggestion, facilitatorState, foldRefused, foldRefusedLine, listSignature, moreOnPhones, ownReply, reconcile, shownLines, sourcesOf, summaryOf, summaryPress, type Change, type Row } from "../../lib/interactions/lens-summary";
 
 const uid = (n: number) => `77000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const reply = (v: unknown) => JSON.stringify(v);
@@ -160,4 +160,26 @@ test("The worker sleeps when a fold is nearly due and asks again, within its bud
   assert.deepEqual(calls, ["ai_claim", "ai_claim"]); assert.equal(report.stopped, "idle"); assert.ok(Date.now() - t >= 100, "it waited");
   const late = await runSession({ rpc: async () => ({ data: { status: "wait", ms: 4000 }, error: null }) } as never, ai, uid(1), { ...aiConfig({}), budgetMs: 500 });
   assert.equal(late.stopped, "wait", "it gives up when the budget cannot cover the wait");
+});
+
+test("A glide's list signature changes when children are added, removed, reordered or retyped, and not on a plain re-render", () => {
+  const a = [{ id: "1", text: "We welcome every guest." }, { id: "2", text: "We eat together." }];
+  assert.equal(listSignature(a), listSignature(a.map(x => ({ ...x }))), "the same list on every frame is the same signature");
+  assert.notEqual(listSignature(a), listSignature([...a, { id: "3", text: "We pray first." }]), "a child added");
+  assert.notEqual(listSignature(a), listSignature(a.slice(1)), "a child removed");
+  assert.notEqual(listSignature(a), listSignature([a[1], a[0]]), "children reordered");
+  assert.notEqual(listSignature(a), listSignature([a[0], { id: "2", text: "We eat together often." }]), "a child's text changed");
+});
+
+test("A fold that applied nothing is said on the control surface instead of 'AI is ready'", () => {
+  const base = (lastRun: Record<string, unknown>, state = "idle") => facilitatorState({ status: "ok", session: uid(1), lens: 1, lens_names: ["A"], version: 4, room: results(), lenses: [],
+    summary: { id: uid(2), state: "on_screen", version_id: uid(3), author: "ai", tracked: false, draft_held: false, fold_held: false, decision: null, sentences: [], versions: [],
+      suggestions: [{ id: uid(6), text: "Add the kids", at: "now" }], tally: { approve: 1, suggest: 1 }, attendees: 8, lock: null },
+    ai: { on: true, engagement: true, state, wait_ms: null, running_ms: null, failing: false, last_run: lastRun } });
+  assert.equal(foldRefused(base({ job: "fold_lens_summary", status: "ok", changed: false, undone: false })), true);
+  assert.match(foldRefusedLine, /Fold in now to try again/);
+  assert.equal(foldRefused(base({ job: "fold_lens_summary", status: "ok", changed: true, undone: false })), false, "a fold that applied is fine");
+  assert.equal(foldRefused(base({ job: "draft_lens_summary", status: "ok", changed: false, undone: false })), false);
+  assert.equal(foldRefused(base({ job: "fold_lens_summary", status: "ok", changed: false, undone: false }, "folding")), false, "not while AI is working");
+  assert.equal(foldRefused(null), false);
 });

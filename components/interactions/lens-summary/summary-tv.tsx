@@ -4,7 +4,7 @@ import { Check } from "lucide-react";
 import type { TvViewProps } from "@/components/interactions/tv-views";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
-import { caretMs, leaveMs, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
+import { caretMs, leaveMs, listSignature, moreOnPhones, reconcile, shownLines, shownSuggestions, struckHoldMs, summaryOf, type Part, type Row } from "@/lib/interactions/lens-summary";
 import "@/components/interactions/ai/ai.css";
 import "./lens-summary.css";
 
@@ -21,9 +21,11 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
 
 // Glide: when a list changes (a fold, a line typed, a card arriving) every child that stays moves from where it
 // was last seen to where it now sits, on --cwl-dur-make-room (FLIP). Positions are recorded every frame, so a
-// change that lands mid-glide starts from the child's visual place, never from a stale one.
+// change that lands mid-glide starts from the child's visual place, never from a stale one. A glide starts only
+// when the list changed (a child added, removed, reordered or its text changed): the TV's parent re-renders this
+// view about every frame, and a glide that restarted on each render would never leave its first frame.
 function useGlide(host: RefObject<HTMLElement | null>) {
-  const seen = useRef(new Map<Element, number>());
+  const seen = useRef(new Map<Element, number>()), ids = useRef(new WeakMap<Element, number>()), count = useRef(0), last = useRef("");
   useEffect(() => {
     let frame = 0;
     const read = () => {
@@ -36,7 +38,14 @@ function useGlide(host: RefObject<HTMLElement | null>) {
   }, [host]);
   useLayoutEffect(() => {
     const root = host.current;
-    if (!root || document.documentElement.dataset.motion === "reduced") return;
+    if (!root) return;
+    const sig = listSignature(Array.from(root.children).map(el => {
+      let id = ids.current.get(el); if (id === undefined) { id = ++count.current; ids.current.set(el, id); }
+      return { id: String(id), text: el.textContent ?? "" };
+    }));
+    if (sig === last.current) return;
+    last.current = sig;
+    if (document.documentElement.dataset.motion === "reduced") return;
     // Measure where each child sits in the layout with any glide in flight set aside, then start the glide from
     // where the eye last saw it. Reading the rect with the glide still running would double count it and snap.
     const moves: [HTMLElement, number][] = [];
