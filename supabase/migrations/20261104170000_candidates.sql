@@ -474,7 +474,7 @@ begin
      'loose',(select count(*) from public.sessions w cross join lateral private.lens_open_sentences(w.id) l
         where w.engagement_id=p_engagement and not w.deleted and w.interaction='lens' and w.options->>'lens'=n::text and coalesce(w.options->>'seed','false')<>'true'
          and not exists(select 1 from private.ai_group_members gm join private.ai_groups g on g.id=gm.group_id and g.undone_at is null and not g.deleted where gm.submission_id=l.id and gm.removed_at is null and not gm.deleted))
-     ) order by n) from generate_series(1,5) n));
+     ) order by n) from generate_series(1,5) n)));
  return out;
 end $$;
 
