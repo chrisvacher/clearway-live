@@ -71,6 +71,9 @@ export const actionNames: Record<string, string> = {
   room_size: "Room size", close_part: "Close the day", burst_ended: "Burst ended",
   turn_ai_on: "Turn AI on", turn_ai_off: "Turn AI off", undo_ai_combine: "Undo an AI combine", undo_ai_group: "Undo an AI group", redo_ai_group: "Redo an AI group",
   pin_group: "Pin a group", unpin_group: "Unpin a group", rename_group: "Rename a group", undo_last_ai_change: "Undo last AI change", show_summary: "Show summary", hide_summary: "Hide summary",
+  candidates_draft: "Draft candidates", candidates_add: "Add a candidate", candidates_rename: "Rename a candidate", candidates_remove: "Remove a candidate", candidates_merge: "Merge candidates",
+  candidates_accept: "Accept a suggestion", candidates_dismiss: "Dismiss a suggestion", candidates_send: "Send candidates to the TV", candidates_hold: "Hold candidates back", candidates_open_points: "Open 100 points",
+  candidates_back: "Back to candidates", candidates_cut: "Move the cut line", candidates_mark: "Mark provisional Vision Outcomes",
 };
 // Copy shown after a refused press. Plain, verb-led, no dashes.
 export function resultMessage(result: ControlResult) {

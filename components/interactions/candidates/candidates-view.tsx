@@ -1,0 +1,111 @@
+"use client";
+import "./candidates.css";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { TvViewProps } from "@/components/interactions/tv-views";
+import { LiveBars } from "@/components/interactions/bars/tv-bars";
+import type { LiveSnapshot } from "@/lib/live/types";
+import { candidatesOf, type Candidate } from "@/lib/interactions/candidates";
+import { reducedMotion, tokenMs } from "@/lib/tv/board";
+
+// The frame the TV is showing for this step: the arrival flow's, or the latest when there is none.
+function useShown(session: string, frame: LiveSnapshot | null, flow?: TvViewProps["flow"]) {
+  const [shown, setShown] = useState<LiveSnapshot | null>(() => flow?.current?.frame ?? frame);
+  useEffect(() => {
+    if (!flow) { setShown(frame); return; }
+    if (flow.current) setShown(flow.current.frame);
+    return flow.subscribe(next => setShown(next.frame));
+  }, [flow, frame]);
+  return shown?.session?.id === session ? shown : null;
+}
+
+// A title that changes in place: the old words fade out as the new ones fade in, on the same line,
+// so an accepted rename never moves the card.
+function Title({ text }: { text: string }) {
+  const was = useRef(text), [old, setOld] = useState<{ text: string; key: number } | null>(null), key = useRef(0);
+  useEffect(() => {
+    if (was.current === text) return;
+    const before = was.current; was.current = text; key.current += 1;
+    setOld({ text: before, key: key.current });
+    const timer = setTimeout(() => setOld(null), 700);
+    return () => clearTimeout(timer);
+  }, [text]);
+  return <span className="cd-title"><span key={`now-${key.current}`} className={old ? "cd-in" : ""}>{text}</span>{old && <span key={`old-${old.key}`} className="cd-out" aria-hidden="true">{old.text}</span>}</span>;
+}
+
+// D1-07, D1-09 and D1-10 on the TV. Candidate priorities show a number and a title only: the sources, the
+// lenses and the AI badge stay on the control surface. One color for every card. While the facilitator
+// reviews, the TV waits. A merge glides the leaving card onto the one it joins; a rename changes in place;
+// a new card arrives; the rest move to their new places. Then the 100 points use the same bars as INT-07,
+// and the marked ones stand alone, outlined, as the provisional Vision Outcomes.
+export function CandidatesView({ session, frame, flow }: TvViewProps) {
+  const shown = useShown(session, frame, flow), data = candidatesOf(shown?.state.results);
+  if (!shown) return <div className="tv-board tv-cd"><p className="cd-note">Waiting for the candidates.</p></div>;
+  if (data.phase === "points") return <LiveBars kind="points" session={session} frame={shown} flow={flow} />;
+  if (data.phase === "review" || !data.candidates.length) return <div className="tv-board tv-cd" data-phase="review"><p className="cd-note">The facilitator is reviewing the candidates. They will be here in a moment.</p></div>;
+  return <Cards data={data} />;
+}
+
+function Cards({ data }: { data: ReturnType<typeof candidatesOf> }) {
+  const host = useRef<HTMLDivElement>(null), rects = useRef(new Map<string, DOMRect>()), seen = useRef<Set<string> | null>(null), last = useRef<Candidate[]>([]);
+  const [fresh, setFresh] = useState<Set<string>>(new Set()), [ghosts, setGhosts] = useState<{ c: Candidate; from: DOMRect; to: string }[]>([]);
+  const marked = data.phase === "marked";
+
+  // New cards arrive. A card that left because of a merge becomes a ghost that glides onto its target.
+  useLayoutEffect(() => {
+    const ids = new Set(data.candidates.map(c => c.id));
+    if (seen.current) {
+      setFresh(new Set(data.candidates.filter(c => !seen.current!.has(c.id)).map(c => c.id)));
+      const gone = last.current.filter(c => !ids.has(c.id) && rects.current.has(c.id));
+      const joins = gone.flatMap(c => { const m = data.merges.find(x => x.from === c.id && ids.has(x.into)); return m ? [{ c, from: rects.current.get(c.id)!, to: m.into }] : []; });
+      if (joins.length) setGhosts(g => [...g, ...joins]);
+    }
+    seen.current = ids; last.current = data.candidates;
+  }, [data.candidates, data.merges]);
+
+  // The rest of the cards move to their new places (FLIP), never jump.
+  useLayoutEffect(() => {
+    const el = host.current; if (!el) return;
+    const next = new Map<string, DOMRect>();
+    el.querySelectorAll<HTMLElement>("[data-cid]").forEach(card => {
+      const id = card.dataset.cid!, rect = card.getBoundingClientRect(), before = rects.current.get(id);
+      next.set(id, rect);
+      if (before && !reducedMotion(el) && (Math.abs(before.left - rect.left) > 1 || Math.abs(before.top - rect.top) > 1)) {
+        const dur = tokenMs(el, "cwl-dur-regroup") || 600;
+        card.animate([{ transform: `translate(${before.left - rect.left}px, ${before.top - rect.top}px)` }, { transform: "none" }], { duration: dur, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)" });
+      }
+    });
+    rects.current = next;
+  });
+
+  return <div className="tv-board tv-cd" data-phase={data.phase}>
+    {marked && <p className="cd-head">Provisional Vision Outcomes</p>}
+    <div className="cd-grid" ref={host} role="list" aria-label={marked ? "Provisional Vision Outcomes" : "Candidate priorities"}>
+      {data.candidates.map(c => <div key={c.id} role="listitem" data-cid={c.id} className={`cd-card${fresh.has(c.id) ? " is-new" : ""}${marked ? " is-marked" : ""}`}>
+        <span className="cd-num">{c.num}</span><Title text={c.name} />
+      </div>)}
+    </div>
+    {ghosts.map(g => <Ghost key={g.c.id} ghost={g} host={host} done={() => setGhosts(list => list.filter(x => x.c.id !== g.c.id))} />)}
+  </div>;
+}
+
+// The leaving card, drawn where it was, gliding onto its target and fading as it lands.
+function Ghost({ ghost, host, done }: { ghost: { c: Candidate; from: DOMRect; to: string }; host: React.RefObject<HTMLDivElement | null>; done: () => void }) {
+  const el = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const node = el.current, grid = host.current; if (!node || !grid) { done(); return; }
+    const target = grid.querySelector<HTMLElement>(`[data-cid="${ghost.to}"]`)?.getBoundingClientRect();
+    if (!target || reducedMotion(grid)) { done(); return; }
+    const dur = tokenMs(grid, "cwl-dur-regroup") || 600;
+    const move = node.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${target.left - ghost.from.left}px, ${target.top - ghost.from.top}px)`, opacity: 0 }], { duration: dur, easing: "cubic-bezier(0.22, 0.61, 0.36, 1)", fill: "forwards" });
+    move.onfinish = done;
+    return () => move.cancel();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Placed where the card was, before the first paint.
+  useLayoutEffect(() => {
+    const node = el.current, root = host.current?.parentElement?.getBoundingClientRect(); if (!node) return;
+    node.style.setProperty("left", `${ghost.from.left - (root?.left ?? 0)}px`); node.style.setProperty("top", `${ghost.from.top - (root?.top ?? 0)}px`);
+    node.style.setProperty("width", `${ghost.from.width}px`); node.style.setProperty("height", `${ghost.from.height}px`);
+  }, [ghost, host]);
+  return <div ref={el} className="cd-card cd-ghost" aria-hidden="true">
+    <span className="cd-num">{ghost.c.num}</span><span className="cd-title">{ghost.c.name}</span></div>;
+}

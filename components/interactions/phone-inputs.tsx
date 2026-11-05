@@ -11,6 +11,7 @@ import type { LiveSnapshot } from "@/lib/live/types";
 import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/outcomes-phone";
 import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
+import { CandidatesInput } from "@/components/interactions/candidates/candidates-input";
 import { LensInput } from "@/components/interactions/lens/lens-input";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
@@ -30,6 +31,7 @@ export type PhoneInputProps = {
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
   qa: QaPhoneInput,
   lens: LensInput,
+  candidates: CandidatesInput,
   bullets: BulletsInput,
   confirm: ConfirmInput,
   choice: ChoiceInput,
