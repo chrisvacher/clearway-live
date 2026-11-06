@@ -49,6 +49,7 @@
     "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",
     "test:acceptance-m4": "node --import tsx tests/browser/acceptance-m4.ts",
     "test:wayfinding": "node --import tsx tests/browser/wayfinding-retreat.ts",
+    "test:discover": "node --import tsx tests/browser/discover.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {
@@ -58,12 +59,14 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "0.511.0",
+    "mammoth": "1.13.0",
     "next": "15.5.28",
     "pg": "8.23.1",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "server-only": "0.0.1",
-    "tailwind-merge": "3.3.1"
+    "tailwind-merge": "3.3.1",
+    "unpdf": "1.9.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "3.3.1",

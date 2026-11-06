@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Copy, DoorOpen, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
-  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Users, type LucideProps } from "lucide-react";
+  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Search, Users, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
@@ -329,6 +329,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
       <Link href={base}><LayoutDashboard aria-hidden="true" size={18} />Overview</Link>
       <Link href={`${base}#attendees`}><Users aria-hidden="true" size={18} />Attendees</Link>
       <Link href={`${base}/run-of-show`} aria-current="page"><ListOrdered aria-hidden="true" size={18} />Run of show</Link>
+      <Link href={`${base}/discover`}><Search aria-hidden="true" size={18} />Discover</Link>
       <Link href={`/control/${ctx.id}`}><Radio aria-hidden="true" size={18} />Live room</Link>
       <Link href={`${base}/tv`}><Monitor aria-hidden="true" size={18} />Pair a TV</Link>
       <Link href={`${base}/door`}><DoorOpen aria-hidden="true" size={18} />Door list</Link>
