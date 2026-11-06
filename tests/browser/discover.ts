@@ -140,15 +140,19 @@ async function main() {
     });
 
     await step("Before the migration is run, the page says Discover isn't ready and setup is unchanged", async () => {
-      await sql.query("alter function public.discover_state(uuid) rename to discover_state_off");
-      try {
+      // The API caches the function list, so tell it to look again after each rename and load the page until it agrees.
+      const reload = () => sql.query("notify pgrst, 'reload schema'");
+      const seen = async (text: string | RegExp, role: "heading" | "text") => until(async () => {
         await page.goto(url);
-        await page.getByText("Discover isn't ready yet.").waitFor({ timeout: 15000 });
+        return role === "heading" ? (await page.getByRole("heading", { name: text }).count()) > 0 : (await page.getByText(text).count()) > 0;
+      }, `the page shows ${text}`, 45000);
+      await sql.query("alter function public.discover_state(uuid) rename to discover_state_off"); await reload();
+      try {
+        await seen("Discover isn't ready yet.", "text");
         await page.goto(`${app.origin}/setup/${room.id}`);
         await page.getByRole("link", { name: "Edit run of show" }).waitFor({ timeout: 15000 });
-      } finally { await sql.query("alter function public.discover_state_off(uuid) rename to discover_state"); }
-      await page.goto(url);
-      await page.getByRole("heading", { name: "Survey findings" }).waitFor();
+      } finally { await sql.query("alter function public.discover_state_off(uuid) rename to discover_state"); await reload(); }
+      await seen("Survey findings", "heading");
     });
 
     console.log(`Discover kit: ${passed.length} checks passed.`);
