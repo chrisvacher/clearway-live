@@ -6,6 +6,7 @@ import { aiClient } from "./client";
 import { workSessions } from "./worker";
 import { workOvernight } from "./overnight";
 import { workThemes } from "./themes";
+import { workHeard } from "./heard";
 
 // Schedules AI work to run after the response has been sent (Vercel keeps the function
 // alive for it with waitUntil), so it can never delay an answer reaching the TV. With no
@@ -81,6 +82,29 @@ export function kickThemes(engagement: string, force = false) {
         await workThemes(db, ai, engagement, aiConfig());
       } catch (error) {
         console.error("Discover themes unavailable", { code: error instanceof Error ? error.name : "failed" });
+      }
+    });
+  } catch { /* Outside a request (tests): nothing to schedule. */ }
+}
+
+// What We Heard: a press on Draft What We Heard makes a pending round; this runs it after the response, and the page's own poll asks again, so a
+// first try that failed is retried after its pause with nobody pressing anything.
+const lastHeard = new Map<string, number>();
+export function kickHeard(engagement: string, force = false) {
+  const ai = aiClient();
+  if (!ai) return;
+  const now = Date.now();
+  if (!force && now - (lastHeard.get(engagement) ?? 0) < 4000) return;
+  lastHeard.set(engagement, now);
+  try {
+    after(async () => {
+      try {
+        const db = serviceClient();
+        const { data, error } = await db.rpc("discover_heard_due", { p_engagement: engagement });
+        if (error || data !== true) return;
+        await workHeard(db, ai, engagement, aiConfig());
+      } catch (error) {
+        console.error("What We Heard unavailable", { code: error instanceof Error ? error.name : "failed" });
       }
     });
   } catch { /* Outside a request (tests): nothing to schedule. */ }

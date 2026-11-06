@@ -9,12 +9,17 @@ import { ReadOnlyThemes } from "./theme-list";
 import { ThemesPanel } from "./themes-panel";
 import type { ThemesState } from "@/lib/discover/themes";
 import { useThemes } from "./use-themes";
+import { HeardPanel } from "./heard-panel";
+import { useHeard } from "./use-heard";
+import type { HeardState } from "@/lib/discover/heard";
 import { useDiscover } from "./use-discover";
 
 // The Discover page for one engagement (SET-06 and the survey findings form). Facilitators only.
-export function Discover({ engagement, title, initial, closed, governance, initialThemes }: { engagement: string; title: string; initial: DiscoverState; closed: boolean; governance: string; initialThemes: ThemesState | null }) {
+export function Discover({ engagement, title, initial, closed, governance, initialThemes, initialHeard }: { engagement: string; title: string; initial: DiscoverState; closed: boolean; governance: string; initialThemes: ThemesState | null; initialHeard: HeardState | null }) {
   const { state, refresh, send } = useDiscover(engagement, initial);
   const themes = useThemes(engagement, initialThemes, state.findings.map(f => `${f.id}:${f.rests_on}:${f.title}`).join("|"));
+  // What We Heard reads again when a theme is accepted, renamed, merged or turned down above.
+  const heard = useHeard(engagement, initialHeard, (themes.state?.themes ?? []).map(t => `${t.id}:${t.status}:${t.label}:${t.rests_on}`).join("|"));
   return <main id="main" className="dsc">
     <header className="dsc-head"><span className="dsc-private"><Lock aria-hidden="true" />Only you see this</span><h1>Discover</h1><span className="dsc-muted">{title}</span>
       <nav className="dsc-links" aria-label="Setup"><Link href={`/setup/${engagement}`}>Edit engagement</Link><Link href={`/setup/${engagement}/run-of-show`}>Edit run of show</Link></nav></header>
@@ -31,5 +36,9 @@ export function Discover({ engagement, title, initial, closed, governance, initi
     <section className="dsc-part" aria-labelledby="dsc-themes"><h2 id="dsc-themes">Themes</h2>
       {themes.state ? <ThemesPanel state={themes.state} now={themes.now()} send={themes.send} closed={closed} /> : <ReadOnlyThemes themes={state.themes} />}
     </section>
+    {heard.state ? <section className="dsc-part" aria-labelledby="dsc-heard"><h2 id="dsc-heard">What We Heard</h2>
+      <p>AI drafts one headline with depth for each What We Heard step in the pre-call, from the themes you accepted. Edit each one and press Apply to write it into the step. Nothing reaches the TV or phones until that step goes live.</p>
+      <HeardPanel engagement={engagement} state={heard.state} now={heard.now()} send={heard.send} closed={closed} />
+    </section> : null}
   </main>;
 }

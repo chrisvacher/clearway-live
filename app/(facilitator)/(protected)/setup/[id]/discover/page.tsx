@@ -5,6 +5,7 @@ import { uuid } from "@/lib/room/policy";
 import { governanceWord } from "@/lib/discover/policy";
 import { readDiscover } from "@/lib/discover/server";
 import type { ThemesState } from "@/lib/discover/themes";
+import type { HeardState } from "@/lib/discover/heard";
 import { Discover } from "@/components/discover/discover";
 
 // Discover for one engagement: the survey report's findings, interview and input-conversation notes, and themes.
@@ -22,5 +23,8 @@ export default async function DiscoverPage({ params }: { params: Promise<{ id: s
     <Link className="text-link" href={`/setup/${id}`}>Back to the engagement</Link></div></main>;
   const { data: themes, error: themesError } = await client.rpc("discover_themes_state", { p_engagement: id });
   const initialThemes = !themesError && themes?.status === "ok" ? ({ ...themes, slow_after_ms: undefined } as ThemesState) : null;
-  return <Discover engagement={id} title={engagement.title} initial={state} closed={engagement.status === "closed"} governance={governanceWord(church?.governance_body_name)} initialThemes={initialThemes} />;
+  // What We Heard: if its functions are not in the database yet, the section is left out and nothing else changes.
+  const { data: heard, error: heardError } = await client.rpc("discover_heard_state", { p_engagement: id });
+  const initialHeard = !heardError && heard?.status === "ok" ? ({ ...heard, slow_after_ms: undefined } as HeardState) : null;
+  return <Discover engagement={id} title={engagement.title} initial={state} closed={engagement.status === "closed"} governance={governanceWord(church?.governance_body_name)} initialThemes={initialThemes} initialHeard={initialHeard} />;
 }

@@ -264,6 +264,17 @@ jobs:
           path: themes-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test What We Heard (draft from accepted themes, edit, apply into the step, nothing accepted, slow and failed AI, who can reach it) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p heard-shots && npm run test:what-we-heard
+        env:
+          KIT_SHOTS: heard-shots
+      - name: Upload the What We Heard screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: what-we-heard-screens
+          path: heard-shots/
       - name: Test the alignment signal (cards on the control surface and the remote, nothing on the TV or phones, dismiss, citation, neutral question, laptop closed) in a real browser
         if: ${{ !cancelled() }}
         run: mkdir -p signal-shots && npm run test:signal

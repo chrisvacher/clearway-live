@@ -18,21 +18,21 @@
 --   public.signal_state, public.signal_act (security invoker wrappers; every check is in the private functions)
 --
 -- Shared objects touched, each a superset of its latest definition:
---   private.ai_runs ai_runs_job_check   step 3's list (20261106030000) plus alignment_signal
+--   private.ai_runs ai_runs_job_check   step 4's list (20261106040000, which holds step 3's) plus alignment_signal; ai_runs_session_check is not touched (the signal has a session)
 --   private.live_public_state           the qa version (20261103070000) plus state.neutral_question, only while one is up
 --   private.ai_claim                    step 2's wrapper (20261106020000), renamed ai_claim_pre_signal, plus the signal's claim
 --   private.ai_apply                    step 2's wrapper, renamed ai_apply_pre_signal, plus the signal's apply
 --   private.ai_fail                     step 2's wrapper, renamed ai_fail_pre_signal, plus the signal's failure
 --   private.ai_status                   step 2's wrapper, renamed ai_status_pre_signal; the signal's own run never reads as AI being slow
---   private.reset_practice_room         step 2's wrapper (20261106020000) replaced in place, plus the signal's records (not renamed: an earlier test reads the base chain)
---   private.rehearsal_control           step 2's wrapper, renamed rehearsal_control_pre_signal, plus Clear test answers for signals
+--   private.reset_practice_room         step 4's wrapper (20261106040000), renamed reset_practice_room_base5 and wrapped, plus the signal's records
+--   private.rehearsal_control           step 4's wrapper (20261106040000), renamed rehearsal_control_pre_signal, plus Clear test answers for signals
 -- Not touched, on purpose: ai_on (the signal runs where AI is already on) and ai_due (it already hands the live step to the worker;
 -- the 3-second status poll asks again, which is how the 45 second rule is kept with nobody answering).
 begin;
 
 -- ---------- The AI job check ----------
 alter table private.ai_runs drop constraint ai_runs_job_check;
-alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft','draft_lens_summary','fold_lens_summary','propose_candidates','fold_four_lists','draft_discover_themes','alignment_signal'));
+alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft','draft_lens_summary','fold_lens_summary','propose_candidates','fold_four_lists','draft_discover_themes','draft_what_we_heard','alignment_signal'));
 
 -- ---------- Records ----------
 -- A card: its kind and theme (step 1's columns), the one line and title the model wrote, the neutral question it suggests, the
@@ -434,17 +434,15 @@ language sql security invoker set search_path='' as $$ select private.signal_act
 alter function private.rehearsal_control(uuid,uuid,text) rename to rehearsal_control_pre_signal;
 
 -- The practice room's reset also forgets the signal: its cards (the earlier reset already puts every card away), the phones-down record and watermarks
--- of every step, and a neutral question on the TV. Step 2's wrapper over reset_practice_room_base, with the signal's lines added (an earlier test
--- reads that chain, so it is replaced in place and not wrapped again).
-create or replace function private.reset_practice_room() returns boolean
+-- of every step, and a neutral question on the TV. The newest definition (step 4's wrapper) is renamed reset_practice_room_base5 and wrapped; the name keeps
+-- the reset_practice_room_base chain an earlier test reads.
+alter function private.reset_practice_room() rename to reset_practice_room_base5;
+create function private.reset_practice_room() returns boolean
 language plpgsql security definer set search_path='' as $$
 declare eng uuid:='90000000-0000-4000-8000-000000000010'::uuid; ok boolean;
 begin
- ok:=private.reset_practice_room_base();
+ ok:=private.reset_practice_room_base5();
  if ok then
-  update private.four_list_agrees set deleted=true where engagement_id=eng and not deleted;
-  update private.four_list_folds set deleted=true where engagement_id=eng and not deleted;
-  update private.four_list_cards set deleted=true where engagement_id=eng and not deleted;
   update private.signals set deleted=true,on_tv=false where engagement_id=eng and not deleted;
   update private.ai_sessions set phones_down_at=null,signal_at=null,signal_seen_at=null,signal_seen_ids=array[]::uuid[],signal_phones_seen=false,signal_failed_at=null where engagement_id=eng;
   update public.room_states set neutral_question=null where engagement_id=eng and neutral_question is not null;
@@ -478,7 +476,7 @@ revoke all on function private.signal_phones_down(),private.signal_ask_guard(),p
  private.signal_neutral(text,text),private.signal_state(uuid,uuid),private.signal_act(uuid,uuid,uuid,text,jsonb),
  private.ai_claim_pre_signal(uuid,uuid,text,jsonb),private.ai_apply_pre_signal(uuid,uuid,jsonb,jsonb),private.ai_fail_pre_signal(uuid,uuid,text,jsonb),private.ai_status_pre_signal(uuid,uuid),
  private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),private.ai_status(uuid,uuid),
- private.reset_practice_room(),private.rehearsal_control_pre_signal(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text),
+ private.reset_practice_room_base5(),private.reset_practice_room(),private.rehearsal_control_pre_signal(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text),
  public.signal_state(uuid,uuid),public.signal_act(uuid,uuid,uuid,text,jsonb)
  from public,anon,authenticated;
 -- The control surface and the remote call these as the signed-in facilitator; the checks are inside.
