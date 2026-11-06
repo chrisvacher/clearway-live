@@ -420,7 +420,7 @@ async function main() {
 
     const cover = `(() => { const w = window; w.__cf = { frames: 0, min: 1, blank: 0, maxAsk: 0, stop: false }; const read = () => { if (w.__cf.stop) return; const ls = [...document.querySelectorAll(".tv-layers .tv-layer")].map(l => +getComputedStyle(l).opacity), ask = document.querySelector(".tv-ask"), a = ask ? +getComputedStyle(ask).opacity : 0;
         const c = 1 - ls.reduce((x, o) => x * (1 - o), 1) * (1 - a); w.__cf.frames++; if (c < w.__cf.min) w.__cf.min = c; if (c < 0.5) w.__cf.blank++; if (a > w.__cf.maxAsk) w.__cf.maxAsk = a; requestAnimationFrame(read); }; requestAnimationFrame(read); })()`;
-    await step("The neutral question: the TV cross-fades to it with no blank frame, the count and the AI line are hidden and carry no theme, number or kind; Back to the session restores them", async () => {
+    await step("The neutral question: the TV cross-fades to it with no blank frame, the count is hidden and the question carries no theme, number or kind; Back to the session restores it", async () => {
       await control.locator("[data-signal-panel] [data-signal-id]").filter({ hasText: "Divergent" }).first().click();
       const detail = control.locator("[data-signal-detail=\"divergent\"]");
       const box = detail.getByRole("textbox"); await box.waitFor({ timeout: 5000 });
@@ -463,9 +463,11 @@ async function main() {
       const cloud = await mk("word_cloud", "Words for our church", "One word for our church today.", { sends: 3, chars: 40, words: 2 });
       await press(lead, sql, room, "go_live", { session: cloud });
       await layer().locator(".tv-board, .tv-cloud, .tv-words").first().waitFor({ timeout: 10000 }).catch(() => {});
-      // Synonyms the scripted model combines, and one word that speaks of the thin finding so a card (with its question) is raised on this step.
-      const sentWords = ["youth", "teens", "teenagers", "kids", "children", "welcome", "welcoming", "families", "families", "families"];
-      const sent = await Promise.all(sentWords.map(async (w, i) => { await delay(Math.floor(rnd() * 1500)); return phones[20 + i].send(room, cloud, w).then(r => r.status); }));
+      // Combining starts at 30 different words. Synonyms the scripted model combines, one word that speaks of the thin finding (so a card with a question is raised on this step), and fillers.
+      const sentWords = ["youth", "teens", "teenagers", "kids", "children", "welcome", "welcoming", "families", "hospitality", "alpha", "baptisms", "momentum", "prayer", "worship", "hope", "generosity", "music", "outreach", "unity",
+        "care", "joy", "seniors", "students", "friends", "food", "fellowship", "service", "grace", "truth", "mission", "faith", "love"];
+      assert.equal(new Set(sentWords).size, 32);
+      const sent = await Promise.all(sentWords.map(async (w, i) => { await delay(Math.floor(rnd() * 3000)); return phones[18 + i].send(room, cloud, w).then(r => r.status); }));
       assert.deepEqual([...new Set(sent)], ["accepted"], "every word accepted");
       const aiLine = tv.locator(".tv-foot [data-ai-foot]");
       await until(async () => (await aiLine.innerText().catch(() => "")).trim().length > 0, "the AI line on the TV once words are combined", 30000);
@@ -496,6 +498,7 @@ async function main() {
       await shot(tv, "neutral-question-ai-line");
       await press(lead, sql, room, "nothing_live");
       await press(lead, sql, room, "go_live", { session: wall });
+      if ((await sql.query("select state from public.sessions where id=$1", [wall])).rows[0].state === "closed") await press(lead, sql, room, "reopen");
       await layer().locator(".tv-board, .ai-wall, .tv-feed").first().waitFor({ timeout: 10000 }).catch(() => {});
     });
 
