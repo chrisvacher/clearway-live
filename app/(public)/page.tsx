@@ -138,7 +138,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             </div>
           </div>
           <div className="home-hero-visual" aria-label="A Clearway retreat room, with the screen and a phone">
-            <div className="hero-photo"><Image src="/home/room-stained-glass.webp" alt="A church leadership team around a U-shaped table, facing a Clearway screen" fill priority sizes="(max-width: 1024px) 92vw, 640px" /></div>
+            <div className="hero-photo"><Image src="/home/room-hero-table.webp" alt="A Clearway facilitator leading a church team around a boardroom table, with Scripture on the screen" fill priority sizes="(max-width: 1024px) 92vw, 640px" /></div>
             <DemoRoom variant="hero" />
           </div>
         </div>
