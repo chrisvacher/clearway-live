@@ -227,6 +227,19 @@ jobs:
           path: wayfinding-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test Discover setup (survey findings, notes by paste and file, who can reach it) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p discover-shots && npm run test:discover
+        env:
+          KIT_SHOTS: discover-shots
+      - name: Upload the Discover screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: discover-screens
+          path: discover-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the Four Helpful Lists with 50 simulated phones in real browsers
         if: ${{ !cancelled() }}
         run: mkdir -p four-lists-shots && npm run test:four-lists
