@@ -13,6 +13,10 @@ type Case = { name: string; inputs: HeardInputs; reply: string; expect: { headli
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/ai/what-we-heard.json", import.meta.url), "utf8")) as { names: string[]; cases: Case[] };
 const riverside = fixtures.cases[0];
 const named = (text: string) => fixtures.names.filter(n => new RegExp(`\\b${n}\\b`, "i").test(text));
+// The same words the database checks: a spelled-out figure must be one the themes carry as a word, or (one to twenty) as digits.
+const numberWords = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
+const wordsOutside = (text: string, have: string) => (text.toLowerCase().match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|half|halves|thirds?|most|all|none)\b/g) ?? [])
+  .filter(w => !new RegExp(`\\b${w}\\b`, "i").test(have) && !(numberWords.includes(w) && digits(have).includes(String(numberWords.indexOf(w) + 1))));
 const digits = (text: string) => [...new Set(text.match(/[0-9]+/g) ?? [])];
 const id = (n: number) => `85600000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 // Everything a source's themes carry, the way the database reads it when it checks a number.
@@ -60,11 +64,20 @@ test("The recorded Riverside reply: a lead and sources of its own, quotes by ref
     assert.deepEqual(named(`${h.line} ${h.detail}`), [], `no person in the ${h.source} headline`);
     const have = digits(known(riverside.inputs, h.source));
     assert.ok(digits(`${h.line} ${h.detail}`).every(d => have.includes(d)), `${h.source}: every number is one the themes carry`);
+    assert.deepEqual(wordsOutside(`${h.line} ${h.detail}`, known(riverside.inputs, h.source)), [], `${h.source}: no spelled-out figure the themes do not carry`);
     assert.ok((h.line.match(/\*\*/g) ?? []).length <= 2, "at most one bold phrase");
     assert.ok(!/["“”]/.test(h.line + h.detail), "nothing quoted in the words");
     assert.ok(h.line.length <= 140 && h.detail.length <= 400);
     assert.equal(riverside.inputs.sources.find(s => s.key === h.source)!.themes.find(t => t.ref === h.lead)!.thin, riverside.expect.thinLead[h.source]);
   }
+});
+
+test("The spelled-out figure check is real: it flags a number word the themes do not carry and allows one they do", () => {
+  const have = "Small groups are hard to find 2 of 3 2 of 3 interviews";
+  assert.deepEqual(wordsOutside("Seven of the interviews said so", have), ["seven"]);
+  assert.deepEqual(wordsOutside("Two of three interviews said so", have), [], "two and three are carried as 2 and 3");
+  assert.deepEqual(wordsOutside("most interviews said all of it", have), ["most", "all"]);
+  assert.deepEqual(wordsOutside("interviews named small groups", have), []);
 });
 
 test("The never-names-people check is real: names in the engagement never reach the model, the reply writes around them, and the check fails if it does not", () => {

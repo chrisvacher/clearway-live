@@ -215,12 +215,13 @@ begin
      'offered',r.last_offered,'refused',r.last_refused,'kept',r.last_kept) end,
   'sources',coalesce((select jsonb_agg(jsonb_build_object('key',v.k,'name',v.name,
      'step',(select jsonb_build_object('id',s.session_id,'title',s.title,'part',s.part,'state',s.state) from st s where s.source_key=v.k),
-     'themes',(select count(*) from th t where t.source_key=v.k),
-     'thin_themes',(select count(*) from th t where t.source_key=v.k and t.thin),
+     'themes',(select count(*) from th t where t.source_key=v.k and not t.named),
+     'thin_themes',(select count(*) from th t where t.source_key=v.k and not t.named and t.thin),
+     'named_themes',(select count(*) from th t where t.source_key=v.k and t.named),
      'draft',(select jsonb_build_object('id',d.id,'number',d.number,'line',d.line,'detail',d.detail,'quotes',d.quotes,'rests',d.rests,'thin',d.thin,'thin_reason',d.thin_reason,
         'basis',d.basis,'by_hand',d.by_hand,'edited',d.edited,'ai',d.ai_run is not null,'applied_at',d.applied_at,
-        'stale',not d.by_hand and exists(select 1 from private.discover_themes x where x.engagement_id=p_engagement and not x.deleted and x.updated_at>d.drafted_at
-           and x.source=case v.k when 'survey' then 'survey' when 'four_lists' then 'four_lists' else 'conversations' end))
+        'stale',not d.by_hand and (exists(select 1 from th t join private.discover_themes x on x.id=t.theme_id where t.source_key=v.k and x.updated_at>d.drafted_at)
+           or exists(select 1 from unnest(d.theme_ids) i where not exists(select 1 from th t where t.source_key=v.k and t.theme_id=i))))
        from private.heard_drafts d where d.engagement_id=p_engagement and d.source_key=v.k and not d.deleted)) order by v.ord)
     from (values (1,'survey','Congregational survey'),(2,'four_lists','Four Helpful Lists'),(3,'input','Board and staff input conversations'),(4,'interviews','Leadership interviews')) v(ord,k,name)),'[]'::jsonb))
  into out;
@@ -279,6 +280,8 @@ begin
   select coalesce(array_agg(x::integer),array[]::integer[]) into keep from jsonb_array_elements_text(p->'keep') x where x ~ '^[0-9]$';
   select coalesce(jsonb_agg(e.q order by e.ord),'[]'::jsonb) into v_quotes from jsonb_array_elements(d.quotes) with ordinality e(q,ord) where (e.ord-1)::integer=any(keep);
  end if;
+ -- Only a real change counts as an edit (and takes back "applied"): pressing Apply on a draft as it stands changes nothing.
+ if (d.number,d.line,d.detail,d.quotes) is not distinct from (v_number,v_line,v_detail,v_quotes) then return jsonb_build_object('status','ok'); end if;
  update private.heard_drafts set number=v_number,line=v_line,detail=v_detail,quotes=v_quotes,edited=true,applied_at=null,applied_session=null where id=d.id;
  return jsonb_build_object('status','ok');
 end $$;
@@ -344,10 +347,20 @@ begin
  return jsonb_build_object('status','claimed','run',v_run,'job','draft_what_we_heard','prompt_version',p_versions->>'draft_what_we_heard','inputs',v_inputs);
 end $$;
 
+-- A spelled-out figure is a figure too. A number word (one to twenty, half, third, most, all, none) in the words must be one the themes
+-- carry as a word, or, for one to twenty, a number the themes carry as digits ("two" is allowed when they say 2).
+create function private.heard_words_ok(p_text text,p_have_text text,p_have text[]) returns boolean
+language sql immutable security invoker set search_path='' as $$
+ select not exists(
+  select 1 from regexp_matches(lower(coalesce(p_text,'')),'\m(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|half|halves|thirds?|most|all|none)\M','g') m(a)
+  where not (lower(coalesce(p_have_text,'')) ~ ('\m'||m.a[1]||'\M')
+   or coalesce(array_position(array['one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'],m.a[1])::text=any(p_have),false)))
+$$;
+
 -- Keep a headline only under the rules that are code, never prompt: it names a lead theme and rests on themes of its own source; the number
 -- is the lead theme's own figure (the model never writes one); a number in the line or detail must be in what it rests on; nothing quoted or
 -- filtered; at most one bold phrase; no name anywhere; quotes are chosen by ref and copied from the inputs, so they are word for word. A draft the
--- facilitator has edited and not applied is kept as it is.
+-- facilitator edited, typed by hand or applied is kept as it is.
 create function private.discover_heard_apply(p_run uuid,p_lease uuid,p_output jsonb,p_usage jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; r private.heard_rounds; t timestamptz:=clock_timestamp(); in_ jsonb; v_ms integer; h jsonb; key text; src jsonb; lead jsonb; lead_ref text; refs text[]; qrefs text[]; inc jsonb;
@@ -391,7 +404,7 @@ begin
   select coalesce(array_agg(n),array[]::text[]) into need from unnest(private.ai_numbers(v_line||' '||v_detail)) n;
   select string_agg((x.value->>'label')||' '||(x.value->>'detail')||' '||(x.value->>'figure')||' '||(x.value->>'count'),E'\n') into have_text from jsonb_array_elements(inc) x;
   have:=private.ai_numbers(coalesce(have_text,'')||' '||coalesce(src->>'basis',''));
-  if not need<@have then refused:=refused||jsonb_build_array(jsonb_build_object('source',key,'reason','number')); continue; end if;
+  if not need<@have or not private.heard_words_ok(v_line||' '||v_detail,coalesce(have_text,'')||' '||coalesce(src->>'basis',''),have) then refused:=refused||jsonb_build_array(jsonb_build_object('source',key,'reason','number')); continue; end if;
   -- Up to three quotes, chosen by ref from the themes it rests on; with none chosen, the lead theme's own first two.
   select coalesce(array_agg(distinct lower(btrim(s#>>'{}'))),array[]::text[]) into qrefs from jsonb_array_elements(case when jsonb_typeof(h->'quotes')='array' then h->'quotes' else '[]'::jsonb end) s where jsonb_typeof(s)='string';
   select coalesce(jsonb_agg(w.j order by w.pos),'[]'::jsonb) into qs from (
@@ -405,10 +418,10 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('label',left(x.value->>'label',120),'count',x.value->>'count','thin',(x.value->>'thin')::boolean) order by x.ord),'[]'::jsonb) into chips from jsonb_array_elements(inc) with ordinality x(value,ord);
   select coalesce(array_agg((x.value->>'id')::uuid order by x.ord),array[]::uuid[]) into ids from jsonb_array_elements(inc) with ordinality x(value,ord);
   v_thin:=coalesce((lead->>'thin')::boolean,false);
-  -- A draft the facilitator edited and has not applied stays as it is.
+  -- A draft the facilitator edited, typed by hand or applied stays as it is.
   select * into prev from private.heard_drafts where engagement_id=run.engagement_id and source_key=key and not deleted for update;
   if found then
-   if prev.edited and prev.applied_at is null then kept:=kept+1; done:=done||key; continue; end if;
+   if prev.edited or prev.by_hand or prev.applied_at is not null then kept:=kept+1; done:=done||key; continue; end if;
    update private.heard_drafts set deleted=true where id=prev.id;
   end if;
   insert into private.heard_drafts(engagement_id,source_key,number,line,detail,quotes,rests,thin,thin_reason,basis,theme_ids,ai_run,drafted_at)
@@ -458,7 +471,7 @@ language sql security invoker set search_path='' as $$ select private.discover_h
 create function public.discover_heard_fail(p_run uuid,p_lease uuid,p_error text,p_usage jsonb) returns jsonb
 language sql security invoker set search_path='' as $$ select private.discover_heard_fail(p_run,p_lease,p_error,p_usage) $$;
 
-revoke all on function private.heard_source_key(text),private.heard_steps(uuid),private.heard_themes(uuid),private.heard_inputs(uuid),
+revoke all on function private.heard_source_key(text),private.heard_steps(uuid),private.heard_themes(uuid),private.heard_inputs(uuid),private.heard_words_ok(text,text,text[]),
  private.discover_heard_state(uuid),private.discover_heard_start(uuid,uuid),private.discover_heard_edit(uuid,text,jsonb),private.discover_heard_discard(uuid,text),private.discover_heard_applied(uuid,text,uuid),
  private.discover_heard_due(uuid),private.discover_heard_claim(uuid,uuid,text,jsonb),private.discover_heard_apply(uuid,uuid,jsonb,jsonb),private.discover_heard_fail(uuid,uuid,text,jsonb),
  public.discover_heard_state(uuid),public.discover_heard_start(uuid,uuid),public.discover_heard_edit(uuid,text,jsonb),public.discover_heard_discard(uuid,text),public.discover_heard_applied(uuid,text,uuid),

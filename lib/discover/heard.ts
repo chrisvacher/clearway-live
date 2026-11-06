@@ -18,7 +18,7 @@ export type HeardDraft = {
   by_hand: boolean; edited: boolean; ai: boolean; applied_at: string | null; stale: boolean;
 };
 export type HeardStep = { id: string; title: string; part: string; state: string };
-export type HeardSource = { key: HeardKey; name: string; step: HeardStep | null; themes: number; thin_themes: number; draft: HeardDraft | null };
+export type HeardSource = { key: HeardKey; name: string; step: HeardStep | null; themes: number; thin_themes: number; named_themes?: number; draft: HeardDraft | null };
 export type HeardRound = { status: "pending" | "drafting" | "ready" | "failed" | "idle"; requested_at: string; attempts: number; error: string | null; ok_at: string | null; offered: number | null; refused: number | null; kept: number | null };
 export type HeardState = { status: "ok"; server_time: string; ai: boolean; slow_after_ms?: number; round: HeardRound | null; sources: HeardSource[] };
 

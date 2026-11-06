@@ -213,6 +213,8 @@ select is(public.discover_heard_apply(tests.run(),tests.id(600),
    'line','interviews named **small groups** as hard to find','detail','Two of three interviews said newcomers cannot find a way in.',
    'quotes',jsonb_build_array(tests.qref('Small groups are hard to find','Newcomers','interviews'),'q99')),
   jsonb_build_object('source','input','lead','t99','line','a lead that is not on the page','detail','x'),
+  jsonb_build_object('source','input','lead',tests.tref('Volunteers are stretched'),'line','conversations named **volunteers** as stretched','detail','Seven of the conversations said the same few people carry the work.'),
+  jsonb_build_object('source','input','lead',tests.tref('Volunteers are stretched'),'line','most conversations named **volunteers** as stretched','detail','The same few people carry the work.'),
   jsonb_build_object('source','input','lead',tests.tref('Volunteers are stretched'),'line','Ruth said volunteers are stretched','detail','The same people carry the work.'),
   jsonb_build_object('source','input','lead',tests.tref('Volunteers are stretched'),'line','9 conversations said volunteers are stretched','detail','The same people carry the work.'),
   jsonb_build_object('source','input','lead',tests.tref('Volunteers are stretched'),'line','**volunteers** are **stretched**','detail','The same people carry the work.'),
@@ -225,7 +227,7 @@ select is(public.discover_heard_apply(tests.lastrun(),tests.id(600),'{"headlines
 reset role;
 select is((select count(*)::integer from private.heard_drafts where engagement_id=tests.id(100) and not deleted),4,'Four drafts stand, one for each source');
 select is((select string_agg(r->>'source'||':'||(r->>'reason'),',' order by r->>'source',r->>'reason') from private.ai_runs a,jsonb_array_elements(a.output->'refused') r where a.job='draft_what_we_heard' and a.engagement_id=tests.id(100)),
- 'input:name,input:number,input:text,input:text,input:unsourced','Refused: no lead on the page, a name, a number no source has, two bold phrases, a quote mark');
+ 'input:name,input:number,input:number,input:number,input:text,input:text,input:unsourced','Refused: no lead on the page, a name, a number no source has (in digits, as "Seven", or as "most"), two bold phrases, a quote mark');
 select is((select output->>'offered'||' '||(output->>'kept') from private.ai_runs where job='draft_what_we_heard' and engagement_id=tests.id(100)),'4 0','The run records what it offered and kept');
 select is(tests.draft('survey','number'),'31%','The number on a headline is its lead theme''s own figure');
 select is(tests.draft('interviews','number'),'2 of 3','a count for the others');
@@ -253,6 +255,15 @@ update private.discover_themes set label='A clearer way into groups' where id=(s
 set local role authenticated;
 select tests.login(1);
 select is((select s->'draft'->>'stale' from jsonb_array_elements(tests.hstate()->'sources') s where s->>'key'='survey'),'true','A theme that changes after the draft marks it stale');
+reset role;
+update private.discover_themes set label='A draft one, renamed' where id=tests.id(25);
+set local role authenticated;
+select tests.login(1);
+select is((select s->'draft'->>'stale' from jsonb_array_elements(tests.hstate()->'sources') s where s->>'key'='interviews'),'false','A theme that is not accepted changing does not mark a draft stale');
+select is(tests.theme(26,'conversations','Priya runs the welcome table','Priya greets newcomers.',array[tests.id(12)])->>'status','ok','An accepted theme that names someone is added');
+select is((select s->>'themes'||'/'||(s->>'named_themes') from jsonb_array_elements(tests.hstate()->'sources') s where s->>'key'='interviews'),'2/1','The page does not count it, and says one was left out');
+select is(public.discover_theme_act(tests.id(100),tests.id(26),'undo',null)->>'status','ok','It is taken back');
+select is((select s->>'named_themes' from jsonb_array_elements(tests.hstate()->'sources') s where s->>'key'='interviews'),'0','and nothing is left out');
 
 -- ---------- Edit, discard, applied ----------
 select is(public.discover_heard_edit(tests.id(100),'survey','{"number":"31%","line":"named **a clearer way into groups** as what to improve","detail":"27 of 87 asked for a clear way into a group.\n\nRead it with care."}')->>'status','ok','The facilitator edits a draft');
@@ -277,7 +288,14 @@ select is((select s->'draft'->>'applied_at' is not null from jsonb_array_element
 select is(public.discover_heard_edit(tests.id(100),'survey','{"line":"named **a clearer way** as what to improve"}')->>'status','ok','Editing an applied draft');
 select is((select s->'draft'->>'applied_at' from jsonb_array_elements(tests.hstate()->'sources') s where s->>'key'='survey'),null,'puts it back to not yet applied');
 
--- A second round: a draft the facilitator edited and has not applied is kept; the rest are replaced; a thin lead is marked thin.
+select is(public.discover_heard_edit(tests.id(100),'four_lists',tests.q($$select jsonb_build_object('number',number,'line',line,'detail',detail)::text from private.heard_drafts where engagement_id='ae040000-0000-4000-8000-000000000100' and source_key='four_lists' and not deleted$$)::jsonb)->>'status','ok','Pressing Apply on a draft as it stands saves it unchanged');
+select is(tests.draft('four_lists','edited'),'false','and it is not marked edited');
+select is(public.discover_heard_applied(tests.id(100),'four_lists',tests.id(311))->>'status','ok','An AI draft is applied');
+select is(public.discover_heard_edit(tests.id(100),'four_lists',tests.q($$select jsonb_build_object('number',number,'line',line,'detail',detail)::text from private.heard_drafts where engagement_id='ae040000-0000-4000-8000-000000000100' and source_key='four_lists' and not deleted$$)::jsonb)->>'status','ok','Applying it again as it stands');
+select is(tests.draft('four_lists','applied_at') is not null,true,'does not take back its applied mark');
+select is(public.discover_heard_discard(tests.id(100),'input')->>'status','ok','The AI input draft is put away');
+select is(public.discover_heard_edit(tests.id(100),'input','{"line":"Input conversations named **tired volunteers**","number":"2 of 2"}')->>'status','ok','and one is typed by hand in its place');
+-- A second round: a draft the facilitator edited, typed by hand or applied is kept; the rest are replaced; a thin lead is marked thin.
 select is(public.discover_heard_discard(tests.id(100),'interviews')->>'status','ok','The hand-written interviews draft is put away so the next round can offer one');
 select is(public.discover_heard_start(tests.id(100),tests.id(502))->>'status','ok','Draft What We Heard can be pressed again once the round is ready');
 reset role;
@@ -287,10 +305,14 @@ select is(public.discover_heard_claim(tests.id(100),tests.id(610),'fake-model','
 select is(public.discover_heard_apply(tests.run(),tests.id(610),
  jsonb_build_object('headlines',jsonb_build_array(
   jsonb_build_object('source','survey','lead',tests.tref('People under 30'),'line','survey answers came from **people under 30**','detail','Six answers cannot speak for every young adult.'),
+  jsonb_build_object('source','four_lists','lead',tests.tref('Volunteers are burning out'),'line','a new line that must not replace an applied draft','detail','Five of six people wrote or agreed with this.'),
+  jsonb_build_object('source','input','lead',tests.tref('Volunteers are stretched'),'line','a new input line that must not replace a typed draft','detail','The same few people carry the work.'),
   jsonb_build_object('source','interviews','lead',tests.tref('Worship is a strength'),'line','interview named **worship** as a strength','detail','One of three interviews said people are proud of the music.',
    'quotes',jsonb_build_array(tests.qref('Worship is a strength','music'))))),'{}')->>'status','ok','A second apply');
 reset role;
-select is((select output->>'offered'||' '||(output->>'kept') from private.ai_runs where job='draft_what_we_heard' and engagement_id=tests.id(100) and id<>(select ai_run from private.heard_drafts where source_key='four_lists' and not deleted and engagement_id=tests.id(100))),'1 1','It offers one and keeps the one the facilitator edited');
+select is((select output->>'offered'||' '||(output->>'kept') from private.ai_runs where job='draft_what_we_heard' and engagement_id=tests.id(100) and id<>(select ai_run from private.heard_drafts where source_key='four_lists' and not deleted and engagement_id=tests.id(100))),'1 3','It offers one and keeps the edited, the applied and the hand-typed drafts');
+select is(tests.draft('four_lists','line'),'people on the lists said **volunteers** are burning out','An applied draft stands as it was');
+select is(tests.draft('input','line'),'Input conversations named **tired volunteers**','and so does one typed by hand');
 select is(tests.draft('survey','line'),'named **a clearer way** as what to improve','The edited survey draft is as the facilitator left it');
 select is(tests.draft('interviews','thin'),'true','A thin lead makes a thin draft');
 select is(tests.draft('interviews','thin_reason'),'1 of 3 interviews','with its count as the reason');
@@ -365,6 +387,8 @@ select is((select deleted from private.heard_drafts where engagement_id='9000000
 select is((select deleted from private.heard_drafts where engagement_id='90000000-0000-4000-8000-000000000010' and source_key='survey' limit 1),false,'and keeps the one made before the rehearsal');
 select is((select count(*)::integer from private.heard_drafts where engagement_id=tests.id(100) and not deleted),4,'and no draft in another engagement');
 insert into private.heard_rounds(engagement_id,status) values('90000000-0000-4000-8000-000000000010','ready');
+insert into attendees(id,engagement_id,name,email,room_role) values(tests.id(530),'90000000-0000-4000-8000-000000000010','Practice person','practice530@example.org','participant');
+insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at) values(tests.id(531),'90000000-0000-4000-8000-000000000010',tests.id(330),tests.id(530),'A practice answer','[]'::jsonb,now());
 set local role authenticated;
 select tests.login(1);
 select is(public.reset_practice_room(),true,'The practice room resets');
@@ -372,7 +396,7 @@ reset role;
 select is((select count(*)::integer from private.heard_drafts where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'No draft is left in the practice room');
 select is((select count(*)::integer from private.heard_rounds where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'and no round');
 select is((select count(*)::integer from private.heard_drafts where engagement_id=tests.id(100) and not deleted),4,'The first engagement keeps its drafts');
-select is((select count(*)::integer from private.survey_findings where engagement_id=tests.id(100) and not deleted),3,'and earlier steps'' records are still intact (the reset still runs them)');
+select is((select count(*)::integer from public.submissions where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'and the base reset still runs: the practice room''s answer is put away');
 
 select * from finish();
 rollback;

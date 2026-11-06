@@ -66,7 +66,7 @@ async function main() {
     await theme("four_lists", "Hard to find a small group", "Newcomers cannot find a way into a group.", [cardRows[0].card_id]);
     const quote = (themeId: string, note: string, text: string) => sql.query("update private.discover_theme_sources set quote=$3 where theme_id=$1 and note_id=$2", [themeId, note, text]);
     await quote(small, ids[0], "Newcomers cannot find a small group to join."); await quote(small, ids[2], "Small groups are hard to find for new families too.");
-    await quote(stretched, ids[3], "The same five people every week.");
+    await quote(stretched, ids[3], "The same five people every week."); await quote(stretched, ids[4], "The same few people do everything.");
     await sql.query("update private.discover_theme_sources set quote='Hard to find a small group as a newcomer' where card_id=$1", [cardRows[0].card_id]);
     // Make the leadership interviews source have nothing accepted: turn the interview theme down.
     await rpc("discover_theme_act", { p_engagement: room.id, p_theme: small, p_action: "undo", p: null });
@@ -128,7 +128,7 @@ async function main() {
       await source("four_lists").getByRole("button", { name: "Apply" }).click();
       await source("four_lists").locator(".dsc-applied").waitFor({ timeout: 20000 });
       const after = await stepRow("four_lists");
-      assert.ok(after.prompt.length > 5, "the headline is written");
+      assert.equal(after.prompt, "people wrote or agreed about **hard to find a small group**", "the headline is written exactly as drafted");
       assert.ok(after.options.number, "with its number");
       assert.match(after.options.source, /^Four Helpful Lists/, "the source line keeps the source's name");
       assert.equal(after.options.screen, "headline");
@@ -137,21 +137,40 @@ async function main() {
       assert.ok(after.revision > before.revision, "it went through the run of show's save");
       assert.ok((await drafts()).find(r => r.source_key === "four_lists")?.applied_at, "the draft is marked applied");
       await source("survey").getByRole("button", { name: "Apply" }).click();
-      await until(async () => (await stepRow("survey")).prompt.includes("who decides"), "the edited survey headline is written", 15000);
+      await until(async () => (await stepRow("survey")).prompt === "named **who decides** as what to improve", "the edited survey headline is written exactly", 15000);
       assert.equal((await sql.query("select count(*)::int n from public.sessions where engagement_id=$1 and title like 'What we heard%' and state<>'draft'", [room.id])).rows[0].n, 0, "no step is ready or on the TV");
       await shot(page, "applied");
     });
 
-    await step("A step that is on the TV now takes the change through the same save, and stays where it is", async () => {
+    await step("Quote ticks follow the saved quotes, so the next Apply is right", async () => {
+      const row = source("input"), boxes = row.locator(".dsc-wwh-quotes input[type=checkbox]"), items = row.locator(".dsc-wwh-quotes li span");
+      await until(async () => (await boxes.count()) === 2, "two quotes are offered");
+      const [first, second] = (await items.allInnerTexts()).map(t => t.split("\n")[0].trim());
+      await boxes.first().uncheck();
+      await row.getByRole("button", { name: "Save draft" }).click();
+      await until(async () => (await boxes.count()) === 1, "the saved draft keeps one quote");
+      assert.equal(await boxes.first().isChecked(), true, "and its tick is on");
+      assert.equal((await items.first().innerText()).split("\n")[0].trim(), second);
+      assert.equal(await row.getByRole("button", { name: "Save draft" }).isEnabled(), false, "nothing is left unsaved");
+      await row.getByRole("button", { name: "Apply" }).click();
+      await row.locator(".dsc-applied").waitFor({ timeout: 20000 });
+      const depth = (await stepRow("input")).phone_depth as string;
+      assert.ok(depth.includes(second) && !depth.includes(first), "Apply writes the quote that was kept, not the one taken out");
+    });
+
+    await step("A step that is on the TV now cannot be changed from here", async () => {
       await sql.query("update public.sessions set state='live' where id=$1", [steps.input]);
-      const before = await stepRow("input");
-      await source("input").getByRole("button", { name: "Apply" }).click();
-      await source("input").locator(".dsc-applied").waitFor({ timeout: 20000 });
+      const before = await stepRow("input"), line = (await drafts()).find(r => r.source_key === "input")!.line as string;
+      await page.goto(url);
+      await source("input").getByText("On the TV now").waitFor({ timeout: 15000 });
+      assert.equal(await source("input").getByRole("button", { name: "Apply" }).isDisabled(), true, "Apply is off");
+      await source("input").getByText("That step is on the TV right now. Apply after it's off.").waitFor();
+      const post = await context.request.post(`${app.origin}/api/discover/${room.id}/heard`, { headers: { Origin: app.origin }, data: { action: "apply", source: "input", number: "2 of 2", line, detail: "" } });
+      assert.equal(post.status(), 409); assert.equal((await post.json()).status, "running", "and so is the route");
       const after = await stepRow("input");
-      assert.ok(after.prompt.includes("volunteers") || after.prompt.length > 5, "the headline is written");
-      assert.equal(after.state, "live", "the step stays live");
-      assert.ok(after.revision > before.revision, "through the run of show's own save");
+      assert.equal(after.prompt, before.prompt); assert.equal(after.revision, before.revision, "the live step is untouched");
       await sql.query("update public.sessions set state='draft' where id=$1", [steps.input]);
+      await page.goto(url);
     });
 
     await step("A slow draft says so, and the facilitator types a headline by hand while it runs", async () => {

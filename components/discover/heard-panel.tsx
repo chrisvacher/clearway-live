@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Check, Loader2, PenLine, Trash2, TriangleAlert } from "lucide-react";
 import { AiIcon, AiMark } from "@/components/interactions/ai/ai-icon";
 import { boldParts, depthBlocks } from "@/lib/interactions/kinds";
-import { DETAIL_MAX, LINE_MAX, NUMBER_MAX, draftView, headlineText, heardFor, phoneDepth, sourceNote, type HeardDraft, type HeardSource, type HeardState } from "@/lib/discover/heard";
+import { DETAIL_MAX, LINE_MAX, NUMBER_MAX, draftView, headlineText, heardFor, heardMessage, phoneDepth, sourceNote, type HeardDraft, type HeardSource, type HeardState } from "@/lib/discover/heard";
 import { ThinFlag } from "./thin-flag";
 import { useFlip } from "./theme-motion";
 import type { HeardReply } from "./use-heard";
@@ -53,29 +53,30 @@ function SourceRow({ engagement, source: s, send, closed }: { engagement: string
     <header className="dsc-wwh-head"><h3 id={`wwh-${s.key}`}>{s.name}</h3>
       <span className="dsc-muted">{s.step ? `${s.step.title}, ${s.step.part}` : "No step in the run of show"}</span>
       {live ? <span className="dsc-chip">On the TV now</span> : null}</header>
-    {s.draft ? <DraftRow key={s.draft.id} source={s} draft={s.draft} send={send} closed={closed} />
+    {s.draft ? <DraftRow key={`${s.draft.id}:${s.draft.quotes.map(q => q.text).join("|")}`} source={s} draft={s.draft} send={send} closed={closed} running={Boolean(live)} />
       : <div className="dsc-wwh-empty">
         <p data-note={note.kind}>{note.kind === "no_step" ? <>No step in the run of show uses the source &ldquo;{s.name}&rdquo;. Add a What We Heard headline step with that source, in <Link href={`/setup/${engagement}/run-of-show`}>the run of show</Link>.</>
           : note.kind === "nothing" ? `Nothing accepted yet for ${heardFor[s.key]}. Accept themes above, or type this headline by hand.`
           : `${note.themes} accepted ${note.themes === 1 ? "theme" : "themes"}${note.thin ? `, ${note.thin} thin` : ""}. Draft What We Heard to get a headline, or type one by hand.`}</p>
-        {s.step && !closed ? <HandForm source={s} send={send} /> : null}
+        {s.step && !closed ? <HandForm source={s} send={send} running={Boolean(live)} /> : null}
       </div>}
+    {s.named_themes ? <p className="dsc-muted" data-note="named">{s.named_themes === 1 ? "1 theme left out because it names someone." : `${s.named_themes} themes left out because they name someone.`}</p> : null}
   </section>;
 }
 
 // A headline typed by hand, for when AI is slow, failed or off, or the facilitator wants to start from nothing.
-function HandForm({ source, send }: { source: HeardSource; send: Send }) {
+function HandForm({ source, send, running }: { source: HeardSource; send: Send; running: boolean }) {
   const [open, setOpen] = useState(false);
   if (!open) return <button type="button" className="dsc-btn is-compact" onClick={() => setOpen(true)}><PenLine aria-hidden="true" />Type it by hand</button>;
-  return <Fields source={source} draft={null} send={send} closed={false} />;
+  return <Fields source={source} draft={null} send={send} closed={false} running={running} />;
 }
 
-function DraftRow({ source, draft, send, closed }: { source: HeardSource; draft: HeardDraft; send: Send; closed: boolean }) {
-  return <Fields source={source} draft={draft} send={send} closed={closed} />;
+function DraftRow({ source, draft, send, closed, running }: { source: HeardSource; draft: HeardDraft; send: Send; closed: boolean; running: boolean }) {
+  return <Fields source={source} draft={draft} send={send} closed={closed} running={running} />;
 }
 
 // The draft's fields: the number, the line, the detail and the quotes to keep, how it will read on the TV and on phones, and Apply.
-function Fields({ source, draft, send, closed }: { source: HeardSource; draft: HeardDraft | null; send: Send; closed: boolean }) {
+function Fields({ source, draft, send, closed, running = false }: { source: HeardSource; draft: HeardDraft | null; send: Send; closed: boolean; running?: boolean }) {
   const [number, setNumber] = useState(draft?.number ?? ""), [line, setLine] = useState(draft?.line ?? ""), [detail, setDetail] = useState(draft?.detail ?? "");
   const [keep, setKeep] = useState<boolean[]>(() => (draft?.quotes ?? []).map(() => true));
   const [busy, setBusy] = useState(false), [say, setSay] = useState<{ text: string; ok: boolean }>({ text: "", ok: true });
@@ -112,9 +113,10 @@ function Fields({ source, draft, send, closed }: { source: HeardSource; draft: H
       <div className="dsc-wwh-depth">{depthBlocks(phoneDepth(shown)).map((b, i) => b.kind === "quote" ? <blockquote key={i}>{b.text}{b.source ? <cite>{b.source}</cite> : null}</blockquote> : b.kind === "text" ? <p key={i}>{b.text}</p> : null)}</div></details>
     {draft?.stale ? <p className="dsc-draftnote is-warn"><TriangleAlert aria-hidden="true" />Themes changed since this was drafted. Redraft What We Heard to read them again.</p> : null}
     <div className="acts">
-      <button type="button" className="dsc-btn is-primary" disabled={busy || closed || !line.trim() || !source.step} onClick={() => void act("apply")}>{busy ? <Loader2 className="dsc-spin" aria-hidden="true" /> : <Check aria-hidden="true" />}Apply</button>
+      <button type="button" className="dsc-btn is-primary" disabled={busy || closed || running || !line.trim() || !source.step} onClick={() => void act("apply")}>{busy ? <Loader2 className="dsc-spin" aria-hidden="true" /> : <Check aria-hidden="true" />}Apply</button>
       <button type="button" className="dsc-btn" disabled={busy || closed || !line.trim() || !dirty} onClick={() => void act("edit")}>Save draft</button>
       {draft && !closed ? <button type="button" className="dsc-btn is-ghost" disabled={busy} onClick={() => void send({ action: "discard", source: source.key })}><Trash2 aria-hidden="true" />Discard draft</button> : null}
+      {running ? <span className="dsc-muted" data-note="running">{heardMessage("running")}</span> : null}
       {applied ? <span className="dsc-applied"><Check aria-hidden="true" />Applied to the step</span> : null}
     </div>
     <p className={`dsc-status${say.text && !say.ok ? " is-err" : say.text ? " is-ok" : ""}`} role="status" aria-live="polite">{say.text}</p>
