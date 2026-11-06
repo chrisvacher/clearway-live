@@ -4,6 +4,8 @@ Design pass 6 covers Discover in the app and the alignment signal: the congregat
 
 Archive SHA-256 (`clearway-live-design-pass-6.zip`, November 3, 2026): `942c55318fa914bc9579713ceee70fb76ca5842348b2c4178f30bef975db95d5`.
 
+**November 5:** the app doesn't read the congregational survey (Chris), so SET-04, SET-04 results and SET-10, and the SurveyLink, ResponseCount, QuestionResult, SurveyResultScreen, SegmentFilter and DuplicateFlag components, are shelved. The survey report's findings are added by hand in setup. The Four Helpful Lists, SET-06, What We Heard and the signal stand.
+
 ## What's in it
 
 - Hi-fi screens by screen ID: SET-04, SET-04 results, SET-10, SET-05, INT-11, SET-06, PRE-08 What We Heard, FAC-02 and the FAC-03 signal list, each with its empty, live, thin, error and reduced-motion states, in Navy and Off-White. FAC-02 shows the control surface with its TV mirror, the TV, phones and the facilitator's own remote together.
