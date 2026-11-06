@@ -57,6 +57,19 @@
 /* The wall fits every name (sign-view.tsx sets each card's size and type from fitWall). Only
    a wall too full to hold everyone fades its edges, rolls, and counts the rest beneath it. */
 .gfs-names-box { position: relative; min-height: 0; display: flex; flex-direction: column; }
+/* Affirm together: the outcomes being affirmed, across the top in up to two columns, then the wall and the count. */
+.tv-board.gfs-sign.has-outcomes { grid-template-rows: auto minmax(0, 1fr); row-gap: 16px; }
+/* With the outcomes above, the count steps down a size and sits in the row beneath them, so the signatures and the count both stay on screen. */
+.has-outcomes .gfs-sign-side { min-height: 0; gap: 2px; justify-content: flex-start; }
+.has-outcomes .gfs-how { line-height: 1.15; }
+.has-outcomes .gfs-big { font-size: var(--cwl-fs-tv-headline); }
+.has-outcomes .gfs-of { font-size: var(--cwl-fs-tv-floor); }
+.gfs-outcomes { grid-column: 1 / -1; margin: 0; padding: 0; list-style: none; display: grid; grid-auto-flow: column; grid-template-rows: repeat(var(--gfs-rows, 1), auto); grid-template-columns: repeat(var(--gfs-cols, 1), minmax(0, 1fr)); gap: 4px 48px; }
+.gfs-outcomes[hidden] { display: none; }
+.gfs-outcomes li { display: flex; align-items: flex-start; gap: 0.5em; min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.1; color: var(--cwl-text); }
+.gfs-outcomes .n { flex: none; display: inline-grid; place-items: center; min-width: 1.3em; height: 1.3em; margin-top: 0; border-radius: var(--cwl-radius-marker); background: var(--cwl-text); color: var(--cwl-surface); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; }
+.gfs-outcomes .n[hidden] { display: none; }
+.gfs-outcomes .t { min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .gfs-names-clip { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .gfs-names-box.is-full .gfs-names-clip { -webkit-mask-image: linear-gradient(to bottom, transparent, black 3%, black 92%, transparent); mask-image: linear-gradient(to bottom, transparent, black 3%, black 92%, transparent); }
 .gfs-more { flex: none; margin: 0.2em 0 0; line-height: 1.3; font-weight: var(--fw-bold); color: var(--cwl-text-muted); font-variant-numeric: tabular-nums; }

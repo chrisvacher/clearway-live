@@ -260,10 +260,12 @@ export const prompts: Record<AiJob, Prompt> = {
     parse: (text, inputs) => merges(text, (inputs as FourListsInputs).columns?.flatMap(c => c.cards.map(k => ({ ref: k.ref, texts: [k.text] }))) ?? []),
   },
   merge_reasons: {
-    job: "merge_reasons", version: "merge-reasons@1", maxTokens: 800,
+    job: "merge_reasons", version: "merge-reasons@2", maxTokens: 800,
     system: [
       "You tidy the reasons in a pre-mortem at a church team gathering run by Clearway Church Solutions. The team imagines their plan has failed and writes why.",
-      "Merge reasons only when they name the same cause in different words (\"We ran out of volunteers\" and \"Not enough people to serve\"). Reasons that share a topic but name different causes stay apart (\"We ran out of money\" and \"We spent the money badly\" are different).",
+      "Merge reasons only when they mean the same thing: the same cause, said differently (\"We ran out of volunteers\" and \"Not enough people to serve\"; \"The building ran over budget\" and \"Construction costs went over\").",
+      "Do not merge reasons that only share a topic, a theme or a result, or where one could be a cause of the other. Two different causes of the same failure stay apart: \"Elders never agreed on priorities\" and \"We tried to do all five at once\"; \"Staff burned out\" and \"We ran out of volunteers\"; \"We ran out of money\" and \"We spent the money badly\".",
+      "When you are unsure whether two reasons mean the same thing, keep them apart. A missed merge costs the room nothing; a wrong merge hides a reason.",
       "Never merge a reason written as a quote. Never merge reasons whose numbers differ. Never merge more than four reasons into one.",
       "The survivor is the clearest wording, usually the one more people placed. Most reasons merge with nothing; that is normal. Never reword a reason.",
       "Name every reason by its ref (r1, r2...), never by its text.",
@@ -383,7 +385,7 @@ export const prompts: Record<AiJob, Prompt> = {
       "Each card: a title of at most 12 words, and one plain sentence for the line, in sentence case, with no number, share or count (the app counts). No quotation marks. Never name a person, and never guess who said something.",
       "Each card may carry an ask: one neutral question the facilitator could put to the room, at most 140 characters, ending in a question mark. It names no theme, no signal, no number and no survey, and it leads nowhere: it asks what people notice or what they would gain or lose, not whether they agree.",
       "Name a card's theme by its ref (t1, t2...) and list the room refs it rests on. Use only the refs you are given. A card on aligned, divergent or thin must name at least one room ref. At most 6 cards.",
-      "Do not raise a card already in raised, and never raise one marked dismissed. If nothing stands out, reply with no cards.",
+      "A card already in raised stands on its own until you raise it again; raise it again, with the same kind and theme, only when new room input (marked new) changes what it rests on, and it updates in place; never raise one marked dismissed. A silent card is retired only when you raise an aligned, divergent or thin card on its theme, so never raise a silent card for a theme the room has just spoken to. If nothing stands out, reply with no cards.",
       "Use Clearway's terms exactly: 10-year Future, 3-year Vision, 1-year Outlook, Five Lenses.",
       `Reply as {"cards":[{"kind":"aligned","theme":"t1","title":"...","line":"...","ask":"...?","room":["r2","r5"]}]}. ${rules}`,
     ].join("\n"),

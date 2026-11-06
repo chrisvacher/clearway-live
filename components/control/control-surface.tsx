@@ -97,7 +97,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           </div>
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
-        <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} /></Private>
+        <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} live={room.frame?.state.live_session_id ?? null} promoted={room.frame?.promoted_quote?.text ?? null} /></Private>
         <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
         <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>

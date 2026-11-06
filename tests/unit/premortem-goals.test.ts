@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { controlPress, dateLabel, flagsOf, goalBody, goalFields, goalsForm, goalsResults, letters, missing, needs, reasonBody, seasonEnd } from "../../lib/interactions/goals";
+import { controlPress, dateLabel, dateShort, goalColumns, goalPlaces, needsLine, flagsOf, goalBody, goalFields, goalsForm, goalsResults, letters, missing, needs, reasonBody, seasonEnd } from "../../lib/interactions/goals";
+import { prompts } from "../../lib/ai/prompts";
 import { gridOf, premortemPrompt } from "../../lib/interactions/grid-form-sign";
 import { interactionKinds, isReservedKind } from "../../lib/interactions/kinds";
 
@@ -87,4 +88,39 @@ test("the form a phone is handed is read only when ok", () => {
 test("the Pre-mortem preset names its prompt and keeps its reasons on the grid kind", () => {
   assert.match(premortemPrompt, /this plan failed\. Why\?$/);
   assert.equal(gridOf({ preset: "pre_mortem", items: [{ key: "r1", text: "T" }] }).preset, "pre_mortem");
+});
+
+test("The TV's goal cards: two columns where the width allows, each card in the shorter column, what does not fit counted", () => {
+  // Medium (floor 43.2): the list is wide enough for two columns; the default (floor 54) is not.
+  assert.equal(goalColumns(1128, 43.2, 26), 2);
+  assert.equal(goalColumns(990, 54, 32), 1);
+  assert.equal(dateShort("2026-12-31"), "Dec 31");
+  assert.equal(dateShort("nope"), "");
+  // Six goals of 250 px in a 578 px list, two columns: the first four stand, two wait.
+  const two = goalPlaces([250, 250, 250, 250, 250, 250], 2, 24, 578);
+  assert.deepEqual(two.map(p => p.shown), [true, true, true, true, false, false]);
+  assert.deepEqual(two.slice(0, 4).map(p => [p.col, p.y]), [[0, 0], [1, 0], [0, 274], [1, 274]]);
+  // A tall card goes in the column that is shorter: the next card sits beside it, then under the short one.
+  const mixed = goalPlaces([400, 150, 150, 150], 2, 20, 700);
+  assert.deepEqual(mixed.map(p => [p.col, p.y]), [[0, 0], [1, 0], [1, 170], [1, 340]]);
+  // One column: the cards stack and the rest wait; the first card always shows, even taller than the list.
+  assert.deepEqual(goalPlaces([300, 300], 1, 20, 250).map(p => p.shown), [true, false]);
+  assert.deepEqual(goalPlaces([200, 200, 200], 1, 20, 450).map(p => p.shown), [true, true, false]);
+});
+
+test("The TV's one line of what a goal needs, in the order of the letters", () => {
+  assert.equal(needsLine([], false), "");
+  assert.equal(needsLine(["R"], false), "Needs result");
+  assert.equal(needsLine(["E", "O"], false), "Needs owner, date");
+  assert.equal(needsLine(["R"], true), "Needs result, risk");
+  assert.equal(needsLine([], true), "Needs risk");
+});
+
+test("merge-reasons@2 merges only the same cause said differently, and names what must stay apart", () => {
+  const p = prompts.merge_reasons;
+  assert.equal(p.version, "merge-reasons@2");
+  const system = p.system;
+  assert.match(system, /Merge reasons only when they mean the same thing/);
+  for (const apart of ["Elders never agreed on priorities", "We tried to do all five at once", "Staff burned out", "We ran out of volunteers"]) assert.ok(system.includes(apart), apart);
+  assert.match(system, /When you are unsure[^.]*keep them apart/);
 });

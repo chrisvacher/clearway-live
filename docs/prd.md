@@ -762,7 +762,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 
 **INT-12 Lens wall and lens seeding** (milestone 4)
 
-- Seeding: a self-paced session that opens during the pre-call and stays open until Day 1. People write sentences for each lens. They're hidden from everyone, the facilitator and the control surface included, until the lens opens (Decided November 3). The facilitator sees only how many have been written.
+- Seeding: a self-paced session that opens during the pre-call and stays open until Day 1. People write sentences for each lens. They're hidden from everyone, the facilitator and the control surface included, until the lens opens (Decided November 3). A seeded sentence may run to 400 characters; the live wall keeps 280 (Decided November 5). The facilitator sees only how many have been written.
 - Live: present-tense sentences, several per person, with a gentle present-tense reminder on the phone.
 - TV: seeded sentences appear first, then new ones fade in and the wall reflows. Similar sentences lean together into clusters under growing labels while people are still typing.
 

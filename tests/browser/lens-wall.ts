@@ -14,7 +14,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
 import { promptVersions } from "../../lib/ai/prompts";
 import { verdict } from "../../lib/latency/report";
-import { describe, practiceRoom, runLoad } from "../../scripts/load-test";
+import { Phone, describe, practiceRoom, runLoad } from "../../scripts/load-test";
 import { db, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
 
 // The scripted fake model reads this file on every call: slow or well.
@@ -99,6 +99,23 @@ async function main() {
       await step("No AI input carried a name or an email", async () => {
         const runs = (await sql.query("select inputs::text as inputs from private.ai_runs where session_id=$1", [lens])).rows as { inputs: string }[];
         assert.ok(runs.length > 0 && runs.every(r => !r.inputs.includes("@example.org") && !/"(name|email)"/.test(r.inputs)));
+      });
+      await step("A seeded sentence may run to 400 characters, the live wall keeps its own limit (November 5)", async () => {
+        const seeding = (await sql.query(`insert into public.sessions(engagement_id,title,part,position,interaction,prompt,state,mode,opens_at,closes_at,options,max_sends,max_characters,max_words)
+          values($1,$2,'Pre-call',904,'lens','Describe the 10-year Future for a lens, as if it is true today','ready','self_paced',now()-interval '1 hour',now()+interval '2 days',
+          coalesce(private.session_options('lens','{"seed":true}'::jsonb,$1),'{}'::jsonb),3,200,50) returning id`, [practiceRoom, `Seed length ${randomUUID().slice(0, 6)}`])).rows[0].id as string;
+        try {
+          const phone = new Phone(app.origin); await phone.join(practiceRoom, "Seed length phone");
+          const sentence = (n: number) => `We welcome every stranger by name ${"and sit with them ".repeat(30)}`.slice(0, n).trimEnd().padEnd(n, "x");
+          assert.equal(await phone.sendValue(practiceRoom, seeding, { lens: 2 }, sentence(400)), "accepted", "400 characters land although the step says 200");
+          assert.equal(await phone.sendValue(practiceRoom, seeding, { lens: 2 }, sentence(401)), "invalid_answer", "401 do not");
+          assert.equal(await phone.sendValue(practiceRoom, lens, {}, sentence(281)), "limit", "a live lens sentence still stops at the step's limit (280)");
+          assert.equal((await sql.query("select max(length(text))::int n from private.lens_sentences where session_id=$1 and not deleted", [seeding])).rows[0].n, 400, "stored whole");
+        } finally {
+          await sql.query("update private.lens_sentences set deleted=true where session_id=$1", [seeding]).catch(() => {});
+          await sql.query("update public.submissions set deleted=true where session_id=$1", [seeding]).catch(() => {});
+          await sql.query("update public.sessions set deleted=true where id=$1", [seeding]).catch(() => {});
+        }
       });
       await press(fac, sql, practiceRoom, "nothing_live");
     } finally {

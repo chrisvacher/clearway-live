@@ -43,3 +43,28 @@ The control surface's right column has a private Scribe panel. The database send
 - Migration: `supabase/migrations/20261104100000_scribe_console.sql`. Tests: `supabase/tests/database/scribe_console.test.sql`, `tests/unit/scribe.test.ts`, `tests/browser/scribe.ts` (`npm run test:scribe`).
 - Code: `lib/scribe/*` (policy, outbox, image, request shaping, server), `app/api/scribe/[id]`, `app/api/run-of-show/[id]/team-led`, `components/scribe/*`.
 - The local stack and CI now run Supabase Storage. `private.scribe_storage_setup()` makes the bucket and its policies; the migration runs it, and the browser kit runs it again in case Storage started after the migration.
+
+## Promoting a quote to the TV (step 3b)
+
+A facilitator can put a scribe quote on the TV from the scribe feed on the control surface (FAC-01): **Promote to TV** on a quote card, **Take off the TV** on the card that is up, or Take off the TV on the remote. The TV shows PromotedQuote: pass 3's spotlight (the Navy scrim and the Sunrise card) with the Scripture screen's light and bold treatment, the eyebrow "From the room", the quote in light type with its second half bold, and the live step's name under it. It shows the words only. Never the speaker, the scribe, a time or the card's id: the shared room state carries `promoted_quote: { text, session }` and nothing else.
+
+- **It is an overlay.** The live step keeps running and taking answers underneath. Taking the quote down plays the spotlight's reverse and the step is exactly as it was: no blank frame, no reload, no lost answer.
+- **One at a time.** Promoting another quote crossfades over the first (the scrim never lifts). Motion comes from the spotlight tokens; reduced motion shows the final state at once.
+- **Every screen agrees.** The promotion is part of the room state, so it carries the room version, comes with every snapshot (a TV that reloads or reconnects shows it) and appears in the control surface's and the remote's TV view. Promote and Take down are one press each (`quote_promote`, `quote_take_down`, through `POST /api/control/[id]/quote`), decided under the room lock and moving the room version once. A repeat changes nothing.
+- **Who.** The lead and co-facilitators (and admins) of the engagement. Not the scribe, participants, TVs, anon, or a facilitator of another engagement.
+- **Where it lives.** On the card (`private.scribe_cards.promoted_session`, `promoted_text`, `promoted_at`, one per engagement), so Reset practice room and Clear test answers, which already put the cards away, clear it with no change to either. The words are copied when it is promoted: a later edit on the scribe console never changes what the room sees.
+- **Off, in plain words.** Promote is disabled, with the reason beside it, when nothing is live ("Put a step on the TV first."), during a team-led step ("The team has the room, so a quote can’t go on the TV now."), and for a card with no words. Only quotes can be promoted.
+- **Long quotes** wrap at headline size, then shrink until the card fits the screen (never clip), then widen the card, then run in two columns. A 2,000-character quote ends at about 26 px at the default room size and at Medium.
+
+Defaults chosen (flagged for Chris):
+
+| Question | Default |
+| --- | --- |
+| Do phones show a quote that is up? | No. Phones stay on the live step. (A phone showing the TV view shows what the TV shows.) |
+| Can the facilitator trim the words before promoting? | No. The quote goes as the scribe wrote it; trim it on the scribe console, then take down and promote again |
+| Can the remote take it down? | Yes. The remote shows the quote while it is up, with Take off the TV |
+| What happens when the live step changes while a quote is up? | The quote comes down with the same room version, and does not return if the room goes back. It also comes down when the TV leaves the step (holding, join, screen check), when a Spotlight starts, when a part closes, and on Reset practice room |
+| Promote while a Spotlight is up? | The quote replaces it: one thing over the screen at a time |
+| Which quotes can be promoted? | Any quote of the engagement while a step is live, even one filed under another step; the feed lists the live step's cards, and the quote on the TV always stays in the feed so it can be taken down |
+
+Code: migration `supabase/migrations/20261106050000_promoted_quote.sql` (it wraps `private.live_public_state` and `private.scribe_state` by renaming each to `..._pre_quote`, and adds a `room_states` trigger that clears the promotion), `supabase/tests/database/promoted_quote.test.sql`, `tests/unit/promoted-quote.test.ts`, `tests/browser/promoted-quote.ts` (`npm run test:promoted-quote`), `components/tv/promoted-quote.tsx`, `components/control/quote-on-tv.tsx`, `lib/quote/promoted.ts`, `app/api/control/[id]/quote`.

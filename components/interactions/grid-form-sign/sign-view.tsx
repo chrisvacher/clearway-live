@@ -1,7 +1,7 @@
 "use client";
 import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvFlow } from "@/lib/tv/flow";
-import { fitWall, signaturePath, signersOf, sigHeight, sigWidth, strokesOf, wallLayout } from "@/lib/interactions/grid-form-sign";
+import { fitWall, signaturePath, signersOf, signSections, sigHeight, sigWidth, strokesOf, wallLayout } from "@/lib/interactions/grid-form-sign";
 import { LiveView, make, spring, step, useLiveView, type Spring } from "./view-base";
 import { reducedMotion } from "@/lib/tv/board";
 import "./grid-form-sign.css";
@@ -49,7 +49,7 @@ function glide(springs: Spring[], rate: number, dt: number, snap: boolean) {
 // newest row and back, never jumping. Hide fades a name and the rest close the gap.
 // Reduced motion: no roll, newest in view.
 class SignWall extends LiveView {
-  private box: HTMLElement; private clip: HTMLElement; private names: HTMLElement; private wait: HTMLElement; private more: HTMLElement;
+  private outcomes: HTMLElement; private box: HTMLElement; private clip: HTMLElement; private names: HTMLElement; private wait: HTMLElement; private more: HTMLElement;
   private of: HTMLElement; private how: HTMLElement;
   private count: Count; private cards = new Map<string, Card>();
   // The card's width, row height and type size, shared by every card so they resize together.
@@ -59,9 +59,9 @@ class SignWall extends LiveView {
   constructor(root: HTMLElement, session: string) {
     super(root, session);
     root.classList.add("gfs-sign");
-    root.innerHTML = '<div class="gfs-names-box"><div class="gfs-names-clip"><p class="gfs-wait">Waiting for the first signature</p><div class="gfs-names"></div></div><p class="gfs-more" aria-live="polite"></p></div>'
+    root.innerHTML = '<ol class="gfs-outcomes" aria-label="What we affirm" hidden></ol><div class="gfs-names-box"><div class="gfs-names-clip"><p class="gfs-wait">Waiting for the first signature</p><div class="gfs-names"></div></div><p class="gfs-more" aria-live="polite"></p></div>'
       + '<div class="gfs-sign-side"><p class="gfs-big" aria-live="polite">0</p><p class="gfs-of"></p><p class="gfs-how"></p></div>';
-    this.box = root.querySelector(".gfs-names-box")!; this.clip = root.querySelector(".gfs-names-clip")!; this.names = root.querySelector(".gfs-names")!;
+    this.outcomes = root.querySelector(".gfs-outcomes")!; this.box = root.querySelector(".gfs-names-box")!; this.clip = root.querySelector(".gfs-names-clip")!; this.names = root.querySelector(".gfs-names")!;
     this.wait = root.querySelector(".gfs-wait")!; this.more = root.querySelector(".gfs-more")!;
     this.of = root.querySelector(".gfs-of")!; this.how = root.querySelector(".gfs-how")!;
     this.count = new Count(root.querySelector(".gfs-big")!);
@@ -95,8 +95,26 @@ class SignWall extends LiveView {
       return { lines, words, over };
     };
   }
+  // The outcomes the room is affirming, listed above the signatures as the phones list them. Written in
+  // place; the wall below refits (and glides) to the room the list leaves it.
+  private list(frame: LiveSnapshot) {
+    const sections = signSections(frame.session?.options), rows = this.outcomes;
+    while (rows.children.length > sections.length) rows.lastElementChild!.remove();
+    sections.forEach((x, i) => {
+      let li = rows.children[i] as HTMLElement | undefined;
+      if (!li) { li = make("li", ""); li.innerHTML = '<span class="n"></span><span class="t"></span>'; rows.appendChild(li); }
+      const n = li.firstElementChild as HTMLElement, t = li.lastElementChild as HTMLElement, num = x.n === null ? "" : String(x.n);
+      if (n.textContent !== num) n.textContent = num;
+      n.hidden = !num;
+      if (t.textContent !== x.title) t.textContent = x.title;
+    });
+    rows.style.setProperty("--gfs-rows", String(Math.ceil(sections.length / 2)));
+    rows.style.setProperty("--gfs-cols", String(sections.length > 1 ? 2 : 1));
+    rows.hidden = !sections.length; this.root.classList.toggle("has-outcomes", sections.length > 0);
+  }
   protected draw(frame: LiveSnapshot, fresh: string | null, instant: boolean) {
     this.last = frame;
+    this.list(frame);
     this.place(frame, instant);
     const signers = signersOf(frame.state.results);
     const n = Number(frame.state.results.people) || signers.length, here = Math.max(frame.presence?.count ?? 0, n);

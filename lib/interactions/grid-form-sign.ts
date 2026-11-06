@@ -111,6 +111,15 @@ export function formAnswer(drafts: Record<string, string>, questions: FormQuesti
 // The signature field is 600 by 200; a stroke is "M12 34L13 35...", whole numbers only.
 export const sigWidth = 600, sigHeight = 200, maxInk = 7000;
 export const signText = (options: unknown) => text(record(options).text);
+// The titles of the text's "## Title" sections, for the TV to list above the signatures (Affirm together
+// writes "## 1. Outcome title" for each confirmed Vision Outcome). A leading "1." becomes the number.
+export type SignSection = { n: number | null; title: string };
+export function signSections(options: unknown): SignSection[] {
+  return signText(options).replace(/\r\n?/g, "\n").split("\n").filter(line => line.startsWith("## ")).slice(0, 12).map(line => {
+    const title = line.slice(3).trim(), m = title.match(/^(\d{1,2})\.\s+(.+)$/);
+    return m ? { n: Number(m[1]), title: m[2] } : { n: null, title };
+  }).filter(x => x.title);
+}
 export const strokesOf = (value: unknown): string[] => list(record(value).strokes).filter((s): s is string => typeof s === "string" && /^M\d{1,3} \d{1,3}(L\d{1,3} \d{1,3})*$/.test(s));
 export const inkLength = (strokes: string[]) => strokes.reduce((n, s) => n + s.length, 0);
 // Adds a point to the stroke being drawn, skipping points too close to the last one.

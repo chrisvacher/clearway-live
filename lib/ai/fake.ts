@@ -189,14 +189,14 @@ const stem = (w: string) => w.slice(0, 4);
 const signalAsks: Record<SignalKind, string> = { aligned: "What does this look like on a Sunday?", divergent: "What would we gain or lose by going that way?", silent: "Where have you seen this in our church?", thin: "What have you noticed about this?" };
 const differentWay = /third service|another service|move everything|every ministry/i;
 function scriptedSignal(input: Record<string, unknown>): string {
-  const themes = (input.themes ?? []) as { ref: string; label: string; weight: string }[], room = (input.room ?? []) as { ref: string; text: string }[];
+  const themes = (input.themes ?? []) as { ref: string; label: string; weight: string }[], room = (input.room ?? []) as { ref: string; text: string; new?: boolean }[];
   const raised = (input.raised ?? []) as { kind: string; theme: string | null }[], phonesDown = input.phones_down === true;
   const up = (kind: string, theme: string) => raised.some(r => r.kind === kind && r.theme === theme);
   const cards: SignalOutput["cards"] = [], hit = (theme: { label: string }) => { const mine = new Set([...words(theme.label)].map(stem)); return room.filter(r => [...words(r.text)].some(w => mine.has(stem(w)))); };
   const matched = new Map(themes.map(t => [t.ref, hit(t)]));
   for (const t of themes) {
     const rows = matched.get(t.ref)!;
-    if (t.weight === "strong" && rows.length && !up("aligned", t.ref)) cards.push({ kind: "aligned", theme: t.ref, title: `${t.label} shows up in the room`, line: `Answers here speak of ${t.label.toLowerCase()}, as the Discover findings do.`, ask: signalAsks.aligned, room: rows.slice(0, 6).map(r => r.ref), also: [] });
+    if (t.weight === "strong" && rows.length && (!up("aligned", t.ref) || rows.some(r => r.new))) cards.push({ kind: "aligned", theme: t.ref, title: `${t.label} shows up in the room`, line: `Answers here speak of ${t.label.toLowerCase()}, as the Discover findings do.`, ask: signalAsks.aligned, room: rows.slice(0, 6).map(r => r.ref), also: [] });
     else if (t.weight === "strong" && !rows.length && phonesDown && !up("silent", t.ref)) cards.push({ kind: "silent", theme: t.ref, title: `${t.label} has not come up`, line: `Nothing in the room yet speaks of ${t.label.toLowerCase()}.`, ask: signalAsks.silent, room: [], also: [] });
     else if (t.weight === "thin" && rows.length && !up("thin", t.ref)) cards.push({ kind: "thin", theme: t.ref, title: `${t.label} has little behind it`, line: `The room spoke to ${t.label.toLowerCase()}, and the data behind it is thin.`, ask: signalAsks.thin, room: rows.slice(0, 6).map(r => r.ref), also: [] });
   }
@@ -250,7 +250,8 @@ export function scripted(call: AiCall): string {
     return JSON.stringify({ groups });
   }
   if (job === "merge_reasons") {
-    // The same rule as folding questions: two shared words and the same numbers.
+    // Stand-in for merge-reasons@2: reasons merge only when they say the same thing, which here means two shared
+    // words and the same numbers. A shared topic alone ("Staff burned out", "We ran out of volunteers") never merges.
     const list = (input.reasons ?? []) as { ref: string; text: string; placed: number }[], used = new Set<string>(), groups: { survivor: string; members: string[] }[] = [];
     for (const q of [...list].sort((a, b) => (b.placed ?? 0) - (a.placed ?? 0))) {
       if (used.has(q.ref)) continue;

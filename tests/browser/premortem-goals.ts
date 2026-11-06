@@ -159,8 +159,8 @@ async function main() {
       assert.ok(total <= 31 && total >= accepted);
       await until(async () => JSON.stringify(await letters()) === JSON.stringify((await serverLetters()).slice(0, 6)) || (await layer().locator(".gl-goal").count()) > 0, "the TV shows goals", 8000);
       await until(async () => {
-        const shown = await layer().locator(".gl-goal").count(), more = await layer().locator(".gl-more").innerText();
-        return shown > 0 && (more.trim() === "" || more.includes(String(total - shown)));
+        const shown = await layer().locator(".gl-goal:not([aria-hidden])").count(), more = await layer().locator(".gl-more").innerText();
+        return shown > 0 && (total - shown === 0 ? more.trim() === "" : more.includes(`+ ${total - shown} more`));
       }, "what does not fit leaves a line", 8000);
       const flagged = (await goals()).filter(g => !g.met).length;
       assert.ok(flagged > 0, "goals missing a letter stay flagged");
@@ -174,6 +174,32 @@ async function main() {
       await until(async () => (await layer().locator(".gl-vision .nm").innerText()).includes("Next generation"), "the TV shows the second outcome", 8000);
       assert.equal((await control("goals", { action: "outcome", to: "prev" })).status, "ok");
       await until(async () => (await layer().locator(".gl-vision .nm").innerText()).includes("Reaching new people"), "and back", 8000);
+    });
+    await step("Goals at Medium and the default size: six goals show at least three cards in two columns (one column by default), the rest counted", async () => {
+      const form = await (await phones[1].call(`/api/live/${room}/goal?session=${gs}`)).json() as { people: { id: string }[]; season_ends: { date: string }[] };
+      const titles = ["Launch the online newcomer path", "Train twelve table hosts", "Start three new small groups", "Pair every newcomer with a guide", "Run a neighbour dinner each season", "Open a Sunday greeting team"];
+      for (const [i, title] of titles.entries()) assert.equal(await post(phones[i + 1], `/api/live/${room}/goal`, { id: randomUUID(), session: gs, fields: { title, ...(i % 2 ? {} : { result: "Every online guest gets a call within two days" }), ...(i === 2 ? {} : { owner: { attendee: form.people[i % form.people.length].id } }), ...(i === 3 ? {} : { end_date: form.season_ends[0].date }) } }), "accepted");
+      await press(fac, sql, room, "room_size", { size: "medium" });
+      await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === "medium", "Medium", 8000);
+      const seen = () => layer().locator(".gl-goal").evaluateAll(els => els.filter(e => !e.hasAttribute("aria-hidden") && Number(getComputedStyle(e).opacity) > 0.5)
+        .map(e => { const r = e.getBoundingClientRect(), list = e.parentElement!.getBoundingClientRect(); return { x: Math.round(r.left), top: r.top, bottom: r.bottom, inside: r.bottom <= list.bottom + 1 && r.top >= list.top - 1, flagged: e.classList.contains("is-flagged") }; }));
+      await until(async () => (await seen()).length >= 3, "three goal cards or more at Medium", 8000);
+      await delay(1500);
+      const cards = await seen();
+      assert.ok(cards.length >= 3, `at least three goal cards show at Medium with six goals (${cards.length})`);
+      assert.ok(new Set(cards.map(c => c.x)).size === 2, "in two columns");
+      assert.ok(cards.every(c => c.inside), "every shown card sits whole inside the list");
+      assert.ok(cards.some(c => c.flagged), "a card that misses a letter keeps its Sunrise outline");
+      const hidden = await layer().locator(".gl-goal[aria-hidden]").count(), more = (await layer().locator(".gl-more").innerText()).trim();
+      assert.equal(hidden === 0 ? more : more.includes(String(hidden)) && more.includes("on your phones"), hidden === 0 ? "" : true, "what does not fit is counted");
+      assert.equal(await layer().locator(".gl-letter").first().isVisible(), true, "the CORE letters show");
+      await shot(tv, "goals-core-medium");
+      await press(fac, sql, room, "room_size", { size: "very_small" });
+      await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === "very_small", "the default size", 8000);
+      await delay(1500);
+      const one = await seen();
+      assert.ok(one.length >= 2 && new Set(one.map(c => c.x)).size === 1 && one.every(c => c.inside), `the default size keeps one column and shows ${one.length} goals whole`);
+      await shot(tv, "goals-core-default");
     });
     await press(fac, sql, room, "nothing_live");
     console.log(`Pre-mortem and goals kit: ${passed.length} checks passed.\n${passed.join("\n")}`);

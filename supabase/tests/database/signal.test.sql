@@ -100,7 +100,27 @@ select is(tests.c('first')->>'job','alignment_signal','and it is the signal job'
 select is(jsonb_array_length(tests.c('first')->'inputs'->'themes'),3,'It reads the three accepted themes and not the draft');
 select is(jsonb_array_length(tests.c('first')->'inputs'->'room'),8,'and the room''s eight answers');
 select ok(tests.c('first')::text not like '%Priya%' and tests.c('first')::text not like '%Ben Ortiz%' and tests.c('first')::text not like '%'||tests.id(504)::text||'%','No name or attendee id reaches the model');
-select is(tests.claim('second',902)->>'status','busy','One run at a time for a session');
+select ok((select lease_id is null and lease_run is null and signal_lease_id=tests.id(901) and signal_lease_until>now() from private.ai_sessions where session_id=tests.id(310)),'The signal holds its own lease and the live jobs'' lease stays free');
+-- Another signal run waits for the first, even with new input and the 10 second floor past.
+create temp table mark as select signal_at,signal_seen_at,signal_seen_ids,signal_phones_seen from private.ai_sessions where session_id=tests.id(310);
+update private.ai_sessions set signal_at=now()-interval '1 hour',signal_seen_at=null where session_id=tests.id(310);
+select is(private.signal_claim(tests.id(310),tests.id(902),'claude-test-model','{"alignment_signal":"alignment-signal@1"}'::jsonb)->>'status','busy','One signal run at a time for a session');
+update private.ai_sessions a set signal_at=m.signal_at,signal_seen_at=m.signal_seen_at,signal_seen_ids=m.signal_seen_ids,signal_phones_seen=m.signal_phones_seen from mark m where a.session_id=tests.id(310);
+-- A live job is claimed while the signal's lease is held: the live jobs' own claim is not made busy by it.
+select isnt(private.ai_claim_pre_signal(tests.id(310),tests.id(903),'claude-test-model','{"alignment_signal":"alignment-signal@1","combine_words":"combine-words@1","group_wall":"group-wall@1","summarize_wall":"summarize-wall@1","fold_questions":"fold-questions@1"}'::jsonb)->>'status','busy','A live job is not made busy by the signal''s lease');
+select ok((select signal_lease_id=tests.id(901) from private.ai_sessions where session_id=tests.id(310)),'and the signal keeps its lease');
+update private.ai_sessions set lease_id=null,lease_run=null,lease_until=null where session_id=tests.id(310);
+-- A signal lease that has run out lets the next claim through (the first run is put back afterwards for the rest of the file).
+create temp table lease_mark as select signal_lease_id,signal_lease_run,signal_lease_until from private.ai_sessions where session_id=tests.id(310);
+update private.ai_sessions set signal_lease_until=now()-interval '1 second',signal_at=now()-interval '1 hour',signal_seen_at=null where session_id=tests.id(310);
+select is(private.signal_claim(tests.id(310),tests.id(904),'claude-test-model','{"alignment_signal":"alignment-signal@1"}'::jsonb)->>'status','claimed','An expired signal lease lets the next claim through');
+select is((select status from private.ai_runs where id=(select signal_lease_run from lease_mark)),'stale','and the run that lost its lease is marked stale');
+delete from private.ai_runs where id=(select signal_lease_run from private.ai_sessions where session_id=tests.id(310));
+update private.ai_runs set status='running',finished_at=null where id=(select signal_lease_run from lease_mark);
+update private.ai_sessions a set signal_lease_id=m.signal_lease_id,signal_lease_run=m.signal_lease_run,signal_lease_until=now()+interval '75 seconds',signal_at=n.signal_at,signal_seen_at=n.signal_seen_at,signal_seen_ids=n.signal_seen_ids,signal_phones_seen=n.signal_phones_seen from lease_mark m,mark n where a.session_id=tests.id(310);
+-- A practice reset and Clear test answers both drop the signal's lease, so the panel does not read "Reading the room" afterwards.
+select ok(pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','The practice reset clears the signal''s lease');
+select ok(pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','and so does Clear test answers');
 
 -- A card that cannot stand is refused by code: a quote, a tone of correction, silent while phones are up, aligned on a thin theme.
 select is(tests.apply('first',901,jsonb_build_object('complete',true,'cards',jsonb_build_array(
@@ -187,8 +207,13 @@ select is(tests.act(1,10,tests.card('divergent','Welcoming culture'),'ask','{"te
 select is(tests.act(1,11,tests.card('divergent','Welcoming culture'),'ask','{"text":"Do 60% of us agree?"}')->>'status','names_signal','and one with a figure');
 select is(tests.act(1,12,tests.card('divergent','Welcoming culture'),'ask','{"text":"The signal says we diverge. Why?"}')->>'status','names_signal','and one that names the signal');
 select is(tests.act(1,13,tests.card('divergent','Welcoming culture'),'ask','{"text":"This is shit?"}')->>'status','filtered','Words the filter refuses stay off the TV');
+reset role;
+update room_states set spotlight_key='sample' where engagement_id=tests.id(100);
+set local role authenticated;
+select tests.login(1);
 select is(tests.act(1,14,tests.card('divergent','Welcoming culture'),'ask','{"text":"What would adding a service change for us?"}')->>'status','ok','A neutral question goes up');
 reset role;
+select is((select spotlight_key from room_states where engagement_id=tests.id(100)),null,'A spotlight put up before the question comes down with it');
 select is((select neutral_question from room_states where engagement_id=tests.id(100)),'What would adding a service change for us?','The room holds only its text');
 select ok((select (private.live_public_state(tests.id(100))->'state'->>'neutral_question')='What would adding a service change for us?'),'The TV payload carries it');
 select ok(private.live_public_state(tests.id(100))::text !~* '(welcoming culture|aligned|divergent|silent|thin data|signal|evidence|ask_sent)','and no theme, signal kind or evidence');
@@ -212,6 +237,7 @@ select is(tests.act(1,22,tests.card('divergent','Welcoming culture'),'ask','{"te
 reset role;
 update room_states set tv_content='holding' where engagement_id=tests.id(100);
 select is((select neutral_question from room_states where engagement_id=tests.id(100)),null,'It leaves with the step: the layer is over a live step only');
+select ok(not (select on_tv from private.signals where id=tests.card('divergent','Welcoming culture')),'and its card is no longer marked on the TV');
 update room_states set tv_content='session' where engagement_id=tests.id(100);
 set local role authenticated;
 select tests.login(1);
@@ -219,6 +245,7 @@ select is(tests.act(1,23,tests.card('divergent','Welcoming culture'),'ask','{"te
 reset role;
 update room_states set live_session_id=tests.id(311) where engagement_id=tests.id(100);
 select is((select neutral_question from room_states where engagement_id=tests.id(100)),null,'A change of step takes it down too');
+select ok(not (select on_tv from private.signals where id=tests.card('divergent','Welcoming culture')),'and its card is no longer marked on the TV there either');
 update room_states set live_session_id=tests.id(310) where engagement_id=tests.id(100);
 set local role authenticated;
 select tests.login(1);
@@ -266,8 +293,21 @@ select is(tests.apply('fifth',905,jsonb_build_object('complete',true,'cards',jso
  jsonb_build_object('kind','silent','theme',tests.tref('fifth','Young families'),'title','Families are quiet','line','Nobody has mentioned families.','room','[]'::jsonb)
 )))->>'status','ok','Applied');
 select is(tests.cards('silent'),1,'A silent card on a strong theme stands; one on a thin theme is refused');
+create temp table kept(id uuid);
+insert into kept select tests.card('silent','Prayer and care');
+-- Two more runs with phones down and nothing said about prayer: the silent card stays, and it is the same card.
+select tests.age();
+select tests.say(510,'the coffee is good',interval '90 seconds');
+select is(tests.claim('fifth_b',911)->>'status','claimed','A run with phones still down');
+select is(tests.apply('fifth_b',911,'{"complete":true,"cards":[]}'::jsonb)->>'status','ok','says nothing about prayer');
+select tests.age();
+select tests.say(510,'parking is tight',interval '90 seconds');
+select is(tests.claim('fifth_c',912)->>'status','claimed','and another');
+select is(tests.apply('fifth_c',912,'{"complete":true,"cards":[]}'::jsonb)->>'status','ok','also says nothing about prayer');
+select is(tests.cards('silent'),1,'The silent card is still there after two runs with no mention');
+select is(tests.card('silent','Prayer and care'),(select id from kept),'and it is the same card');
 select is(tests.state()->>'held','0','and nothing is held back now');
--- The room raises it: the next full run no longer returns the silent card, and it goes.
+-- The room raises it: a run that raises an aligned card on the theme retires the silent one.
 select tests.age();
 select tests.say(504,'we pray for each other and care in hard seasons',interval '90 seconds');
 select is(tests.claim('sixth',906)->>'status','claimed','The room raises prayer');
@@ -282,7 +322,7 @@ select tests.age();
 select tests.say(510,'one more answer',interval '90 seconds');
 select is(tests.claim('seventh',907)->>'status','claimed','A run');
 select is(public.ai_fail((tests.c('seventh')->>'run')::uuid,tests.id(907),'timeout','{"ms":25000}'::jsonb)->>'status','ok','fails');
-select ok((select signal_failed_at is not null and signal_seen_at is null and lease_id is null and last_failed_at is null from private.ai_sessions where session_id=tests.id(310)),'Its watermark goes back and the live jobs'' failure marker is untouched');
+select ok((select signal_failed_at is not null and signal_seen_at is null and signal_lease_id is null and last_failed_at is null from private.ai_sessions where session_id=tests.id(310)),'Its watermark goes back and the live jobs'' failure marker is untouched');
 select is((select status from private.ai_runs where id=(tests.c('seventh')->>'run')::uuid),'failed','The run is logged as failed');
 select tests.age();
 select is(private.signal_claim(tests.id(310),tests.id(908),'claude-test-model','{"alignment_signal":"alignment-signal@1"}'::jsonb)->>'status','cooling','It waits 30 seconds before trying again');

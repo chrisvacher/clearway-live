@@ -174,10 +174,13 @@ async function main() {
     await step("Dismiss: the card fades, the list closes up after it, and it stays dismissed", async () => {
       await panelCards().filter({ hasText: "Thin data" }).first().click();
       const detail = control.locator("[data-signal-detail=\"thin\"]");
-      await detail.getByRole("button", { name: "Dismiss" }).click();
       const id = (await sql.query("select id from private.signals where session_id=$1 and kind='thin' and not deleted", [wall])).rows[0].id as string;
-      const sawFade = await until(async () => await control.locator(`[data-signal-id="${id}"].is-leaving`).count() > 0 || (await panelCards().count()) === 3, "the card leaves", 3000);
-      assert.ok(sawFade);
+      // Sampled from the press on: the card must be seen leaving (the is-leaving class, or an opacity below 1), not only gone.
+      let sawFade = false;
+      const sampler = (async () => { for (let i = 0; i < 120 && !sawFade; i++) { sawFade = await control.locator(`[data-signal-id="${id}"]`).first().evaluate(el => el.classList.contains("is-leaving") || Number(getComputedStyle(el).opacity) < 1).catch(() => false); await delay(15); } })();
+      await detail.getByRole("button", { name: "Dismiss" }).click();
+      await sampler;
+      assert.ok(sawFade, "the card faded before the list closed up");
       await until(async () => (await control.locator(`[data-signal-id="${id}"]`).count()) === 0 && (await panelCards().count()) === 3, "the list has closed up", 3000);
       assert.equal((await cards()).find(c => c.kind === "thin")?.dismissed_at != null, true, "dismissed in the database");
       await until(async () => (await listCards().count()) === 3, "and gone from the remote too", 8000);
@@ -242,8 +245,12 @@ async function main() {
       assert.equal(kinds.filter(k => k === "aligned").length, 3, "an aligned card for the volunteers joined the list");
       const item = remote.locator("[data-signal-list] [data-signal=\"divergent\"]");
       await item.getByRole("button").first().click();
+      const rbox = item.getByRole("textbox"); await rbox.waitFor({ timeout: 5000 });
+      assert.match(await rbox.inputValue(), /\?$/, "the remote shows the question it will send");
+      const edited = "What do you notice about how we serve on Sundays?";
+      await rbox.fill(edited);
       await item.getByRole("button", { name: "Put the question up" }).click();
-      await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")).endsWith("?"), "the question on the TV", 8000);
+      await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")) === edited, "the edited question on the TV", 8000);
       await until(async () => (await remote.locator("[data-signal-ask]").count()) === 1, "the remote shows it", 8000);
       await remote.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
       await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "back to the step", 8000);

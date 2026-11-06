@@ -6,7 +6,7 @@ import { signalMessages, type SignalAction, type SignalState } from "@/lib/inter
 
 // One reader of the alignment signal per engagement and step, shared by the panel and the remote's list, polled as a
 // backstop, read again on each room version and the moment a private signal notice arrives. If the read is not there (the
-// migration has not run, or this person is not the lead or a co-facilitator) the status stays empty and nothing renders.
+// migration has not run, answered as a 404, or this person is not the lead or a co-facilitator) the status stays empty and nothing renders.
 type Store = { status: SignalState | null; listeners: Set<(s: SignalState | null) => void>; timer?: ReturnType<typeof setInterval>; running: boolean; again: boolean };
 const stores = new Map<string, Store>();
 async function read(key: string, url: string) {
@@ -16,7 +16,7 @@ async function read(key: string, url: string) {
   try {
     const response = await fetch(url, { cache: "no-store" });
     if (response.ok) { const data = await response.json() as SignalState; if (data.status === "ok") { store.status = data; store.listeners.forEach(l => l(store.status)); } }
-    else if (response.status === 403 || response.status === 503) { store.status = null; store.listeners.forEach(l => l(null)); }
+    else if (response.status === 403 || response.status === 404) { store.status = null; store.listeners.forEach(l => l(null)); }
   } catch { /* Keep the last status. */ } finally {
     store.running = false;
     if (store.again) { store.again = false; void read(key, url); }

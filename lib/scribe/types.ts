@@ -11,7 +11,9 @@ export type ScribeFileRow = { id: string; session_id: string; kind: FileKind; na
 export type ScribeSession = { id: string; title: string; part: string; team_led: boolean };
 export type ScribeLive = { id: string; title: string; part: string; state: string; team_led: boolean };
 export type ScribeState = { status: "ok"; role: "scribe" | "facilitator"; server_time: string; version: number; live: ScribeLive | null;
-  sessions: ScribeSession[]; cards: ScribeCardRow[]; files: ScribeFileRow[] };
+  sessions: ScribeSession[]; cards: ScribeCardRow[]; files: ScribeFileRow[];
+  // Facilitators only: the quote card on the TV now.
+  promoted?: string | null };
 
 // One thing waiting on the scribe's laptop or phone, in the order it was made.
 export type CaptureItem = { type: "capture"; id: string; session: string; kind: CardKind; text: string; detail: CardDetail; speaker: string; capturedAt: string; queuedAt?: string };

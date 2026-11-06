@@ -20,7 +20,7 @@ function Status({ status }: { status: OwnShown["status"] }) {
 //  * The lens wall (D1-05): several sentences per person, a gentle present-tense reminder.
 export function LensInput({ step, mine, open, send, change, withdraw }: PhoneInputProps) {
   const options = lensOptions(step.options), [draft, setDraft] = useState(""), [pick, setPick] = useState<LensNumber>(options.lens ?? 1), [editing, setEditing] = useState<string | null>(null);
-  const standing = mine.filter(a => !a.withdrawn), check = checkSentence(draft, step.max_characters), used = mine.length, atLimit = !editing && used >= step.max_sends;
+  const standing = mine.filter(a => !a.withdrawn), check = checkSentence(draft, step.max_characters, options.seed), used = mine.length, atLimit = !editing && used >= step.max_sends;
   const nudge = futureTense(draft), counts = seededByLens(standing);
   function submit(event: FormEvent) {
     event.preventDefault();

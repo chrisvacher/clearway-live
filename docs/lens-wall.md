@@ -6,6 +6,8 @@ Milestone 4, step 2. One interaction kind, `lens` (INT-12), with two shapes. Mig
 
 **Seeding (PRE-10, PRE-11).** A self-paced step, `{ "seed": true, "recording": "https://..." }`. It opens in the pre-call and stays open until Day 1. People pick one of the five lenses and write present-tense sentences about the 10-year Future. Someone who missed the call sees the recording link and writes on their own phone. Close Pre-call does not close this step: a trigger on `sessions` (`private.lens_keep_seeding`), with `room_control` marking the part being closed, leaves it open.
 
+A seeded sentence may run to 400 characters (November 5), whatever the step's `max_characters` says; `private.parse_lens` checks 400 for a seeding step and the phone counter matches (`sentenceCap`). The live lens wall keeps the step's own limit, at most 280.
+
 **The lens wall (D1-05, D1-06).** A live step, `{ "lens": 1..5, "ai": true }`. Several sentences per person. When the step goes on air the lens opens: the seeded sentences arrive on the TV first, then new sentences land live. Live AI clusters them.
 
 ## Seeds stay hidden, for everyone

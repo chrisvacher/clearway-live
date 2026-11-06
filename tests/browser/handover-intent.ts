@@ -249,8 +249,34 @@ async function main() {
           assert.ok(c.bottom <= c.prog + 0.5, `${size}: the intent stops above its progress bar (${JSON.stringify(c)})`);
           assert.ok(c.progBottom <= c.cardBottom + 0.5, `${size}: the bar keeps its space inside the card`);
           assert.ok(c.whole && c.lines >= 1 && c.lines <= 3, `${size}: whole lines, one to three (${JSON.stringify(c)})`);
+          if (size === "medium") assert.equal(c.lines, 3, `Medium: a long intent wraps to three lines, clear of its bar (${JSON.stringify(c)})`);
         }
+        const text = await layer().locator(".int-card").first().locator(".int-line").innerText();
+        assert.ok(text.length > 40, "the intent runs past one line");
         await shot(tv, `int-16-six-cards-${size}`);
+      }
+    });
+    await step("INT-16 Affirm together lists the confirmed outcome titles above the signatures at Medium and Very small, signatures still on screen", async () => {
+      await press(fac, sql, room.id, "go_live", { session: intent });
+      const pressed = await postJson(`${app.origin}/api/control/${room.id}/intent`, { headers: origin, data: { kind: "press", id: randomUUID(), action: "intent_affirm_text", p: { from: intent, session: sign } } });
+      assert.equal(pressed.status(), 200, `Fill: ${await pressed.text()}`);
+      await press(fac, sql, room.id, "go_live", { session: sign });
+      const six = ["Every neighbour knows our name", "Leaders grow leaders", "Generous with our building", "Families find a home here", "New faith stories", "Every generation serves"];
+      await until(async () => await layer().locator(".gfs-outcomes li").count() === 6, "six outcome titles on the TV", 10000);
+      for (const size of ["medium", "very_small"]) {
+        await press(fac, sql, room.id, "room_size", { size });
+        await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+        await delay(1000);
+        const shown = await layer().locator(".gfs-outcomes").innerText();
+        for (const title of six) assert.ok(shown.includes(title), `${size}: ${title}`);
+        const box = await layer().evaluate(el => {
+          const list = el.querySelector(".gfs-outcomes")!.getBoundingClientRect(), names = el.querySelector(".gfs-names-box")!.getBoundingClientRect();
+          return { listBottom: list.bottom, namesTop: names.top, namesBottom: names.bottom, namesHeight: names.height, how: el.querySelector(".gfs-how")!.getBoundingClientRect().bottom, bigTop: el.querySelector(".gfs-big")!.getBoundingClientRect().top, view: window.innerHeight };
+        });
+        assert.ok(box.listBottom <= box.namesTop + 1, `${size}: the outcomes sit above the signatures (${JSON.stringify(box)})`);
+        assert.ok(box.namesHeight >= 120 && box.namesBottom <= box.view, `${size}: the signatures keep room on screen (${JSON.stringify(box)})`);
+        assert.ok(box.how <= box.view && box.bigTop >= box.listBottom - 1, `${size}: the count and its line stay on screen, clear of the outcomes (${JSON.stringify(box)})`);
+        await shot(tv, `affirm-together-outcomes-${size}`);
       }
     });
 

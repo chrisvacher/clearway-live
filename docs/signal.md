@@ -4,7 +4,7 @@ FAC-02 and the FAC-03 signal list. While a Wayfinding or general input step is l
 
 The cards are suggestions. They notice and describe; they never correct. (Chris: "not striking out bad ideas, but noticing the discussion going a different direction.")
 
-Migration: `supabase/migrations/20261106050000_signal.sql`. Prompt: `alignment-signal@1` in `lib/ai/prompts.ts`. Kit: `npm run test:signal`. Database tests: `supabase/tests/database/signal.test.sql`.
+Migration: `supabase/migrations/20261106050100_signal.sql`. Prompt: `alignment-signal@1` in `lib/ai/prompts.ts`. Kit: `npm run test:signal`. Database tests: `supabase/tests/database/signal.test.sql`.
 
 ## Who sees it
 
@@ -18,10 +18,10 @@ One job, `alignment_signal`, on the deeper model, through the worker's own contr
 
 - Only for a step that is the room's live step, in state live or phones down, with AI on, and of kind word cloud, wall, lens or Q&A. At least one theme must be accepted. Four Helpful Lists is excluded because its cards are already themes (circular); the pre-mortem is excluded as it is not a read of the church today.
 - Due after 8 new inputs, or 45 seconds after the first new input, whichever comes first. Also once when phones first go down, so silent themes get their turn. An input is an answer or a scribe card; hidden, withdrawn and deleted answers are not input. Rehearsal answers are (they are test rows).
-- One run at a time per session (the session's one lease, now 75 seconds for this job), never closer than 10 seconds apart. A failed run waits 30 seconds and then reads all the input again.
+- One signal run at a time per session, on the signal's own lease (`signal_lease_id`, `signal_lease_run`, `signal_lease_until` on `private.ai_sessions`, 75 seconds), apart from the live jobs' lease, so live grouping and folding are never made to wait by it. The worker runs the signal's model call beside its loop for the same reason. A reset or Clear test answers clears the lease, never closer than 10 seconds apart. A failed run waits 30 seconds and then reads all the input again.
 - Fairness: a signal that has waited 30 seconds goes before the live jobs, so a steady stream of answers (wall grouping) cannot starve it. Otherwise the live jobs go first and the signal takes the idle moment after them.
 - The control surface's 3 second poll asks `ai_due` as before, which is how the 45 second rule is kept with nobody answering.
-- The run never reads as AI being slow or failing and never becomes "Undo last AI change": `changed` is always false, `last_ok_at`, `last_ms` and `last_failed_at` are not touched, and `ai_status` masks a running signal job.
+- The run never reads as AI being slow or failing and never becomes "Undo last AI change": `changed` is always false, `last_ok_at`, `last_ms` and `last_failed_at` are not touched, and the signal never takes the live jobs' lease, so `ai_status` is not touched. The panel's own `state.running` reads the signal's lease.
 
 ## What the model reads
 
@@ -33,7 +33,7 @@ Themes from `private.discover_accepted_themes` (up to 40, strong first, each wit
 
 Counts, strengths and sources are worked out by the database from the run's own inputs and the themes as they stand; the model writes none. An invalid suggested question becomes none rather than refusing the card.
 
-A card is replaced in place when the same kind and theme fire again, so there is never a duplicate, and a saved citation stays saved. A dismissed card stays dismissed for the session. A silent card the room has since answered is retired when a complete run with phones down does not raise it again. A divergent card is keyed on the theme it departs from, so the existing unique index (session, kind, theme) holds.
+A card is replaced in place when the same kind and theme fire again, so there is never a duplicate, and a saved citation stays saved. A dismissed card stays dismissed for the session. A silent card stands, as the same card, until a complete run raises an aligned, divergent or thin card on its theme; a run that says nothing about the theme leaves it. A card already up is raised again, with the same kind and theme, when new input (marked new) changes what it rests on, and its evidence is refreshed in place. A divergent card is keyed on the theme it departs from, so the existing unique index (session, kind, theme) holds.
 
 ## Records
 
@@ -53,8 +53,8 @@ A neutral question is 1 to 200 characters, passes the word filter, and is refuse
 | Object | Extends |
 | --- | --- |
 | `ai_runs_job_check` | step 3's list (20261106030000) plus `alignment_signal`. If step 4 adds a job, whichever merges second must rebase the list. |
-| `live_public_state` | the Q&A version (20261103070000) plus `state.neutral_question`, only while one is up |
-| `ai_claim`, `ai_apply`, `ai_fail`, `ai_status` | step 2's wrappers (20261106020000), renamed `*_pre_signal`, dispatch on job |
+| `live_public_state` | the promoted quote wrapper (20261106050000), renamed `live_public_state_pre_signal`, plus `state.neutral_question`, only while one is up |
+| `ai_claim`, `ai_apply`, `ai_fail` | step 2's wrappers (20261106020000), renamed `*_pre_signal`, dispatch on job (`ai_status` is not wrapped) |
 | `reset_practice_room` | step 2's wrapper (20261106020000), replaced in place with the signal's lines added (an earlier test reads the base chain) |
 | `rehearsal_control` | step 2's wrapper, renamed `rehearsal_control_pre_signal`; Clear test answers also puts test signals away and resets the step's watermarks |
 

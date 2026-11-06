@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { prompts, type LensInputs } from "../../lib/ai/prompts";
-import { checkSentence, clusterGrowth, futureTense, heldText, lensOf, lensOptions, seedCounts, seedLine, seededByLens } from "../../lib/interactions/lens";
+import { checkSentence, sentenceCap, clusterGrowth, futureTense, heldText, lensOf, lensOptions, seedCounts, seedLine, seededByLens } from "../../lib/interactions/lens";
 import { interactionKinds, reservedKinds, screenIds } from "../../lib/interactions/kinds";
 import { isAiKind } from "../../lib/interactions/ai";
 
@@ -45,6 +45,15 @@ test("Sentences: a present-tense nudge, a cap, and the held text is never a sent
   assert.equal(checkSentence("", 200).ok, false);
   assert.equal(checkSentence("x".repeat(281), 400).ok, false);
   assert.equal(checkSentence("We welcome everyone", 200).ok, true);
+  // Seeding allows 400 (the Default and the database's limit); the live wall keeps 280.
+  assert.equal(checkSentence("x".repeat(400), 400, true).ok, true);
+  assert.equal(checkSentence("x".repeat(400), 400, true).count, "400 / 400");
+  assert.equal(checkSentence("x".repeat(401), 400, true).ok, false);
+  assert.equal(checkSentence("x".repeat(300), 400, false).ok, false);
+  assert.equal(sentenceCap(0, true), 400);
+  assert.equal(sentenceCap(280, true), 400);
+  assert.equal(sentenceCap(900, true), 400);
+  assert.equal(sentenceCap(400, false), 280);
   assert.equal(checkSentence(heldText, 200).ok, false);
 });
 test("Seeding counts and the facilitator's lines carry numbers only", () => {
