@@ -114,7 +114,8 @@ function scriptedThemes(call: AiCall): string {
     const cards = (input.cards ?? []).filter(c => re.test(c.text)).sort((a, b) => (b.people_agree ?? 0) - (a.people_agree ?? 0));
     if (cards.length && out.themes.filter(t => t.source === "four_lists").length < 8) out.themes.push({ source: "four_lists", label, detail, sources: cards.slice(0, 12).map(c => c.ref), quote: { text: cards[0].text, source: cards[0].ref } });
   }
-  return JSON.stringify({ conversations: out.themes.filter(t => t.source === "conversations").map(({ source: _s, ...t }) => t), four_lists: out.themes.filter(t => t.source === "four_lists").map(({ source: _s, ...t }) => t) });
+  const kind = (source: "conversations" | "four_lists") => out.themes.filter(t => t.source === source).map(t => ({ label: t.label, detail: t.detail, sources: t.sources, quote: t.quote }));
+  return JSON.stringify({ conversations: kind("conversations"), four_lists: kind("four_lists") });
 }
 
 // The lens summary's stand-in. The draft makes one line per cluster, in the room's own words (the cluster's

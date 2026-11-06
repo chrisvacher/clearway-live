@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Clipboard, Columns4, Merge, MessageSquareText, Pencil, Undo2, X } from "lucide-react";
 import { restsOnLabel } from "@/lib/discover/thin";
 import { strength } from "@/lib/discover/strength";
@@ -25,6 +25,13 @@ function Sources({ sources }: { sources: ThemeSourceRow[] }) {
       const text = s.kind === "card" ? `${s.column ? columnLabel[s.column] : "Card"}: ${s.text ?? ""}` : s.title ?? "Note";
       return <li key={`${s.kind}-${s.id}-${i}`} title={text}><Icon aria-hidden="true" /><span>{text}</span></li>;
     })}{more > 0 ? <li className="more">and {more} more</li> : null}</ul></div>;
+}
+
+// The bar grows from its old length to its new one (cwl-dur-bar-grow). The width is set on the element, so no inline style is written.
+function Fill({ pct }: { pct: number }) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => { ref.current?.style.setProperty("width", `${pct.toFixed(2)}%`); }, [pct]);
+  return <i ref={ref} />;
 }
 
 // DiscoverTheme (design pass 6): the label, what it rests on ("4 of 5"), a bar for shares, its source, the AI icon on a drafted theme, thin or
@@ -56,7 +63,7 @@ export function DiscoverTheme({ theme: t, themes, send, closed }: { theme: Theme
         {t.members.length ? <span className="was"><Merge aria-hidden="true" />Merged from {t.members.length} {t.members.length === 1 ? "theme" : "themes"}</span> : null}</div>
       <div className="rest"><b className="cnt">{rolled}</b><span>{rest}</span></div></div>
     {t.detail ? <span className="detail">{t.detail}</span> : null}
-    {t.source !== "conversations" && t.out_of ? <div className="tr" aria-hidden="true"><i style={{ width: `${pct.toFixed(2)}%` }} /></div> : null}
+    {t.source !== "conversations" && t.out_of ? <div className="tr" aria-hidden="true"><Fill pct={pct} /></div> : null}
     <div className="marks"><span className="dsc-chip"><Icon aria-hidden="true" />{sourceLabel[t.source]}</span>
       <span className="dsc-chip">{survey ? "From a finding" : accepted ? "Accepted" : "Draft"}</span>
       {t.by_hand ? <span className="dsc-chip">Written by hand</span> : null}

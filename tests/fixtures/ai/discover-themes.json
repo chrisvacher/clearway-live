@@ -1,0 +1,115 @@
+{
+  "about": "Fixture set for the Discover themes prompt (themes-draft@1), from the fictional Riverside engagement. Each case has the inputs discover_theme_claim hands the worker, the reply recorded for the fake client, and what the themes may and may not contain. The recorded reply is checked against the expectations always.",
+  "names": [
+    "Priya",
+    "Ben",
+    "Ruth",
+    "Sam",
+    "Daniel",
+    "Grace Ortiz",
+    "Tasha"
+  ],
+  "cases": [
+    {
+      "name": "Riverside: five conversations and five cards",
+      "inputs": {
+        "total_notes": 5,
+        "left_out": 0,
+        "notes": [
+          {
+            "ref": "n1",
+            "id": "22222222-2222-4222-8222-000000000001",
+            "kind": "interview",
+            "text": "We are warm on Sunday. Newcomers cannot find a small group to join. The groups are full and nobody tells them the next step."
+          },
+          {
+            "ref": "n2",
+            "id": "22222222-2222-4222-8222-000000000002",
+            "kind": "interview",
+            "text": "Our music and worship are a real strength. People stay for the singing. A few volunteers carry everything and they are burning out."
+          },
+          {
+            "ref": "n3",
+            "id": "22222222-2222-4222-8222-000000000003",
+            "kind": "input",
+            "text": "Visitors come once and we lose them. There is no clear first step. Volunteers are stretched thin, the same five people every week."
+          },
+          {
+            "ref": "n4",
+            "id": "22222222-2222-4222-8222-000000000004",
+            "kind": "input",
+            "text": "I feel alone as a leader. Nobody checks on the leaders. Small groups are hard to find for new families too."
+          },
+          {
+            "ref": "n5",
+            "id": "22222222-2222-4222-8222-000000000005",
+            "kind": "interview",
+            "text": "Giving is steady and generous. The worship band is the heart of Sunday."
+          }
+        ],
+        "cards": [
+          {
+            "ref": "f1",
+            "id": "33333333-3333-4333-8333-000000000001",
+            "column": "right",
+            "text": "The music and worship are strong",
+            "agree": 6
+          },
+          {
+            "ref": "f2",
+            "id": "33333333-3333-4333-8333-000000000002",
+            "column": "wrong",
+            "text": "Hard to find a small group as a newcomer",
+            "agree": 5
+          },
+          {
+            "ref": "f3",
+            "id": "33333333-3333-4333-8333-000000000003",
+            "column": "wrong",
+            "text": "The same few volunteers do everything",
+            "agree": 4
+          },
+          {
+            "ref": "f4",
+            "id": "33333333-3333-4333-8333-000000000004",
+            "column": "missing",
+            "text": "A clear next step for visitors",
+            "agree": 3
+          },
+          {
+            "ref": "f5",
+            "id": "33333333-3333-4333-8333-000000000005",
+            "column": "confused",
+            "text": "Who decides what happens next",
+            "agree": 1
+          }
+        ],
+        "already": [],
+        "rejected": []
+      },
+      "reply": "{\"conversations\": [{\"label\": \"Small groups are hard to find\", \"detail\": \"Newcomers and new families cannot find a way into a small group.\", \"sources\": [\"n1\", \"n4\"], \"quote\": {\"text\": \"Newcomers cannot find a small group to join.\", \"source\": \"n1\"}}, {\"label\": \"Volunteers are stretched\", \"detail\": \"The same few people carry the work and are tiring.\", \"sources\": [\"n2\", \"n3\"], \"quote\": {\"text\": \"Volunteers are stretched thin, the same five people every week.\", \"source\": \"n3\"}}, {\"label\": \"Worship and music are strengths\", \"detail\": \"People stay for the singing.\", \"sources\": [\"n2\", \"n5\"], \"quote\": {\"text\": \"Our music and worship are a real strength.\", \"source\": \"n2\"}}, {\"label\": \"The next step is unclear\", \"detail\": \"Visitors are welcomed and then find no clear first step.\", \"sources\": [\"n1\", \"n3\"], \"quote\": {\"text\": \"There is no clear first step.\", \"source\": \"n3\"}}], \"four_lists\": [{\"label\": \"Music and worship are strong\", \"detail\": \"The room agrees the music and worship are strong.\", \"sources\": [\"f1\"], \"quote\": {\"text\": \"The music and worship are strong\", \"source\": \"f1\"}}, {\"label\": \"A way into small groups is missing\", \"detail\": \"Newcomers find it hard to get into a group.\", \"sources\": [\"f2\", \"f4\"], \"quote\": {\"text\": \"Hard to find a small group as a newcomer\", \"source\": \"f2\"}}]}",
+      "expect": {
+        "conversations": 4,
+        "four_lists": 2,
+        "restsOn": {
+          "Small groups are hard to find": [
+            2,
+            5
+          ],
+          "Volunteers are stretched": [
+            2,
+            5
+          ],
+          "The next step is unclear": [
+            2,
+            5
+          ],
+          "Worship and music are strengths": [
+            2,
+            5
+          ]
+        }
+      }
+    }
+  ]
+}
