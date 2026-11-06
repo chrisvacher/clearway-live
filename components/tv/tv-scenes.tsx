@@ -114,9 +114,9 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
       <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1></section>
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
-    {paired && !ask && <Spotlight frame={frame} />}
-    {paired && !ask && <QaSpotlight frame={frame} />}
-    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && !ask && <QaWaiting frame={frame} />}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
+    {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}
+    {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaSpotlight frame={frame} /></span>}
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
 }

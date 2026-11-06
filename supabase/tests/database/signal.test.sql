@@ -106,6 +106,21 @@ create temp table mark as select signal_at,signal_seen_at,signal_seen_ids,signal
 update private.ai_sessions set signal_at=now()-interval '1 hour',signal_seen_at=null where session_id=tests.id(310);
 select is(private.signal_claim(tests.id(310),tests.id(902),'claude-test-model','{"alignment_signal":"alignment-signal@1"}'::jsonb)->>'status','busy','One signal run at a time for a session');
 update private.ai_sessions a set signal_at=m.signal_at,signal_seen_at=m.signal_seen_at,signal_seen_ids=m.signal_seen_ids,signal_phones_seen=m.signal_phones_seen from mark m where a.session_id=tests.id(310);
+-- A live job is claimed while the signal's lease is held: the live jobs' own claim is not made busy by it.
+select isnt(private.ai_claim_pre_signal(tests.id(310),tests.id(903),'claude-test-model','{"alignment_signal":"alignment-signal@1","combine_words":"combine-words@1","group_wall":"group-wall@1","summarize_wall":"summarize-wall@1","fold_questions":"fold-questions@1"}'::jsonb)->>'status','busy','A live job is not made busy by the signal''s lease');
+select ok((select signal_lease_id=tests.id(901) from private.ai_sessions where session_id=tests.id(310)),'and the signal keeps its lease');
+update private.ai_sessions set lease_id=null,lease_run=null,lease_until=null where session_id=tests.id(310);
+-- A signal lease that has run out lets the next claim through (the first run is put back afterwards for the rest of the file).
+create temp table lease_mark as select signal_lease_id,signal_lease_run,signal_lease_until from private.ai_sessions where session_id=tests.id(310);
+update private.ai_sessions set signal_lease_until=now()-interval '1 second',signal_at=now()-interval '1 hour',signal_seen_at=null where session_id=tests.id(310);
+select is(private.signal_claim(tests.id(310),tests.id(904),'claude-test-model','{"alignment_signal":"alignment-signal@1"}'::jsonb)->>'status','claimed','An expired signal lease lets the next claim through');
+select is((select status from private.ai_runs where id=(select signal_lease_run from lease_mark)),'stale','and the run that lost its lease is marked stale');
+delete from private.ai_runs where id=(select signal_lease_run from private.ai_sessions where session_id=tests.id(310));
+update private.ai_runs set status='running',finished_at=null where id=(select signal_lease_run from lease_mark);
+update private.ai_sessions a set signal_lease_id=m.signal_lease_id,signal_lease_run=m.signal_lease_run,signal_lease_until=now()+interval '75 seconds',signal_at=n.signal_at,signal_seen_at=n.signal_seen_at,signal_seen_ids=n.signal_seen_ids,signal_phones_seen=n.signal_phones_seen from lease_mark m,mark n where a.session_id=tests.id(310);
+-- A practice reset and Clear test answers both drop the signal's lease, so the panel does not read "Reading the room" afterwards.
+select ok(pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','The practice reset clears the signal''s lease');
+select ok(pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','and so does Clear test answers');
 
 -- A card that cannot stand is refused by code: a quote, a tone of correction, silent while phones are up, aligned on a thin theme.
 select is(tests.apply('first',901,jsonb_build_object('complete',true,'cards',jsonb_build_array(

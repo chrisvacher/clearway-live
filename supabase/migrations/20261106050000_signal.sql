@@ -7,8 +7,11 @@
 -- Back to the session. The signal is never on the TV, a phone, the scribe console or a team facilitator's remote.
 --
 -- The job is a session job in the worker's own contract: ai_claim hands it out when nothing else is due (and ahead of the others
--- when it has waited 30 seconds), ai_apply applies it under limits in code, ai_fail sends its watermark back. One lease per
--- session, so one run at a time. Every run is in private.ai_runs.
+-- when it has waited 30 seconds), ai_apply applies it under limits in code, ai_fail sends its watermark back. The signal has its
+-- own lease on private.ai_sessions (signal_lease_*), so one signal run at a time per session and it never holds the live jobs' lease:
+-- live grouping and folding are claimed while the deeper model thinks, and ai_status needs no wrapper (it is not touched). A silent card
+-- stands until a run raises an aligned, divergent or thin card on its theme; a card already up is raised again to refresh it in place.
+-- Every run is in private.ai_runs.
 --
 -- New:
 --   private.signals          (step 1's table) gains title, line, ask, ask_sent and on_tv
@@ -435,7 +438,7 @@ begin
  ok:=private.reset_practice_room_base5();
  if ok then
   update private.signals set deleted=true,on_tv=false where engagement_id=eng and not deleted;
-  update private.ai_sessions set phones_down_at=null,signal_at=null,signal_seen_at=null,signal_seen_ids=array[]::uuid[],signal_phones_seen=false,signal_failed_at=null where engagement_id=eng;
+  update private.ai_sessions set phones_down_at=null,signal_at=null,signal_seen_at=null,signal_seen_ids=array[]::uuid[],signal_phones_seen=false,signal_failed_at=null,signal_lease_id=null,signal_lease_run=null,signal_lease_until=null where engagement_id=eng;
   update public.room_states set neutral_question=null where engagement_id=eng and neutral_question is not null;
  end if;
  return ok;
@@ -455,7 +458,7 @@ begin
  out:=private.rehearsal_control_pre_signal(p_engagement,p_id,p_action);
  if p_action='clear' and out->>'status'='ok' then
   update private.signals set deleted=true,on_tv=false where engagement_id=p_engagement and test and not deleted;
-  update private.ai_sessions set phones_down_at=null,signal_at=null,signal_seen_at=null,signal_seen_ids=array[]::uuid[],signal_phones_seen=false,signal_failed_at=null
+  update private.ai_sessions set phones_down_at=null,signal_at=null,signal_seen_at=null,signal_seen_ids=array[]::uuid[],signal_phones_seen=false,signal_failed_at=null,signal_lease_id=null,signal_lease_run=null,signal_lease_until=null
    where engagement_id=p_engagement and session_id=any(touched);
   update public.room_states set neutral_question=null where engagement_id=p_engagement and neutral_question is not null;
  end if;
