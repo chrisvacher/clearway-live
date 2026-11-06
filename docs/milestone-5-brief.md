@@ -81,7 +81,7 @@ One branch and one pull request per step. Migrations are approved and applied on
 1. **The scribe console** (SCR-01, SCR-02, the scribe feed, FAIL-03). This brief; tagged capture, photos and files in Storage, offline capture that syncs in order with no duplicates, the scribe feed on the control surface, the team-led flag. Mitigation cards, so the scribe can tag them in the pre-mortem.
 2. **Overnight drafts and review** (OVN-01 to OVN-03). The overnight job, source links, the thin-outcome flags, voices and tensions kept separate, the two-facilitator review with section locks, one-action restore of the room's words, version history, "Drafts ready" on the review screen and remote, and Publish.
 3. **The Day 2 short confirm and the read-back** (D2-03, D2-04, INT-14). The published draft one item at a time with the tally, "What's missing?", "It needs a change" with the scribe's correction composer, the correction queue, tracked changes folding in, and promoting a quote to the TV.
-4. **Acceptance kit.** Every milestone 5 surface through the live-screen rules, the failure kit extended with FAIL-03, and milestone 5 practice-room rows added to `docs/practice-room-script.md`.
+4. **Acceptance kit.** Every milestone 5 surface through the live-screen rules, the failure kit extended with FAIL-03, and milestone 5 practice-room rows added to `docs/practice-room-script.md`. **Built.** `npm run test:acceptance-m5`, `tests/browser/failures-m5.ts` (FAIL-03, FAIL-02 and FAIL-09 on the read-back and the overnight drafts) and practice-room sections 31 to 38 (after milestone 6's 22 to 30). See `docs/acceptance-kit.md`.
 
 ## In parallel
 
