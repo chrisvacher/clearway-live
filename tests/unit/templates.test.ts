@@ -15,7 +15,7 @@ test("SET-07: the palette offers every interaction the server runs and every con
   const p = palette(kinds);
   assert.deepEqual(p.interactions.map(e => e.kind), interactionKinds.filter(k => k !== "content"));
   assert.deepEqual(p.screens.map(e => e.screen), paletteScreens);
-  assert.equal(p.interactions.length, 18, "the ten general interactions, statements, the lens wall, the lens summary, the two outcome kinds, commander's intent, the CORE goal builder and the candidate priorities");
+  assert.equal(p.interactions.length, 19, "the ten general interactions, statements, the lens wall, the lens summary, the two outcome kinds, commander's intent, the CORE goal builder, the candidate priorities and the Four Helpful Lists");
   for (const e of [...p.interactions, ...p.screens]) { assert.ok(e.blurb, `${e.label} has a line`); assert.ok(e.minutes >= 5); }
   assert.equal(palette(kinds.filter(k => k.kind !== "content")).screens.length, 0, "no content screens before the server runs them");
 });
@@ -68,9 +68,10 @@ test("SET-07: times recalculate from the durations, from the part's first start"
 test("SET-07: the keyboard reaches every place a drag can, and an open editor follows a move", () => {
   const run = [row(0), row(1), row(2, { part: "Day 2" })];
   const all = slots(run);
-  assert.equal(all.length, 1 + 3 + 2 + 1, "each part's gaps, empty parts included");
+  assert.equal(all.length, 1 + 1 + 3 + 2 + 1, "each part's gaps, empty parts included (Discover too)");
   assert.deepEqual(stepSlot(all, { part: "Day 1", index: 2 }, 1), { part: "Day 2", index: 0 });
-  assert.deepEqual(stepSlot(all, { part: "Pre-call", index: 0 }, -1), { part: "Pre-call", index: 0 }, "stops at the top");
+  assert.deepEqual(stepSlot(all, { part: "Pre-call", index: 0 }, -1), { part: "Discover", index: 0 }, "the Pre-call sits just below Discover");
+  assert.deepEqual(stepSlot(all, { part: "Discover", index: 0 }, -1), { part: "Discover", index: 0 }, "stops at the top");
   assert.equal(slots(run, id(0)).filter(s => s.part === "Day 1").length, 2, "a moving row leaves its own place");
   const before = row(1);
   assert.equal(onlyMoved(before, { ...before, position: 7, revision: 4, planned_start: "2026-11-19T14:05:00.000Z" }), true);

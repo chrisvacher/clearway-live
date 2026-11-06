@@ -1,5 +1,5 @@
 import type { InteractionKind, KindInfo } from "../interactions/kinds";
-export const parts = ["Pre-call", "Day 1", "Day 2", "Follow-up"] as const;
+export const parts = ["Discover", "Pre-call", "Day 1", "Day 2", "Follow-up"] as const;
 export type Part = typeof parts[number];
 export type SessionSettings = { anonymous: boolean; burst_minutes: number; join_strip: boolean };
 export type ShowSession = {

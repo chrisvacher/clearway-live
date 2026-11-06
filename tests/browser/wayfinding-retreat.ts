@@ -50,11 +50,11 @@ async function main() {
 
     // ---------- Start from the template ----------
     const start = new Date(Date.now() - 3600000).toISOString();
-    await step("Start from the Wayfinding template: 40 sessions, the seeding step open, no Publish to CORE", async () => {
+    await step("Start from the Wayfinding template: 41 sessions, the seeding step open, no Publish to CORE", async () => {
       const { data, error } = await fac.client.rpc("template_write", { p_action: "apply", p_input: { template: wayfinding, engagement: room.id, start } });
-      assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data)); assert.equal(data.count, 40);
+      assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data)); assert.equal(data.count, 41);
       const rows = (await sql.query("select title from public.sessions where engagement_id=$1 and not deleted", [room.id])).rows;
-      assert.equal(rows.length, 40); assert.ok(rows.every(r => !/publish to core/i.test(r.title)));
+      assert.equal(rows.length, 41); assert.ok(rows.every(r => !/publish to core/i.test(r.title)));
       // The pre-call seeding step is open while the kit runs, whatever the clock says.
       await sql.query("update public.sessions set opens_at=now()-interval '1 hour',closes_at=now()+interval '2 days' where engagement_id=$1 and title='Seeding the Five Lenses'", [room.id]);
     });
@@ -352,7 +352,7 @@ async function main() {
       await leadPage.locator(".ph-app").waitFor({ timeout: 15000 });
       const f2 = await facilitator(env, sql, half.id);
       const { data, error } = await f2.client.rpc("template_write", { p_action: "apply", p_input: { template: halfDay, engagement: half.id, start } });
-      assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data)); assert.equal(data.count, 41);
+      assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data)); assert.equal(data.count, 42);
       const follow = (await sql.query("select id,title,interaction,team_led from public.sessions where engagement_id=$1 and part='Follow-up' and not deleted order by position", [half.id])).rows as { id: string; title: string; interaction: string; team_led: boolean }[];
       assert.ok(follow.length >= 5 && follow.every(s => s.team_led), "the follow-up is team-led");
       const ctx2 = await browser!.newContext({ viewport: { width: 1440, height: 1000 } });

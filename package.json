@@ -41,6 +41,7 @@
     "test:ai": "node --import tsx tests/browser/ai-live.ts",
     "test:team-workshop": "node --import tsx tests/browser/team-workshop.ts",
     "test:lens-wall": "node --import tsx tests/browser/lens-wall.ts",
+    "test:four-lists": "node --import tsx tests/browser/four-lists.ts",
     "test:lens-summary": "node --import tsx tests/browser/lens-summary.ts",
     "test:candidates": "node --import tsx tests/browser/candidates.ts",
     "test:scribe": "node --import tsx tests/browser/scribe.ts",

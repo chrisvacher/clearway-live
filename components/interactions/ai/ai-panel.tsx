@@ -10,11 +10,11 @@ import "./ai.css";
 const stateText = (s: AiStatus) => {
   const session = s.session!;
   if (!s.engagement_ai) return "Off for this engagement";
-  if (!session.ai) return session.interaction === "wall" || session.interaction === "lens" ? "Off: the wall shows arrival order" : "Switched off for this session";
+  if (!session.ai) return session.interaction === "wall" || session.interaction === "lens" ? "Off: the wall shows arrival order" : session.interaction === "four_lists" ? "Off: only cards with the same words combine" : "Switched off for this session";
   if (s.state?.failing) return "Not responding: arrival order for now";
-  if (s.state?.slow) return `Slow: ${seconds(s.state.running_ms ?? s.state.last_ms)} to ${session.interaction === "wall" || session.interaction === "lens" ? "group" : session.interaction === "qa" ? "fold" : "combine"}`;
+  if (s.state?.slow) return `Slow: ${seconds(s.state.running_ms ?? s.state.last_ms)} to ${session.interaction === "wall" || session.interaction === "lens" ? "group" : session.interaction === "qa" || session.interaction === "four_lists" ? "fold" : "combine"}`;
   if (session.interaction === "word_cloud") return (s.different ?? 0) < (s.threshold ?? 30) ? `Combines once there are about ${s.threshold ?? 30} different answers` : "Combines near-duplicates as answers arrive";
-  return session.interaction === "wall" ? "Groups as answers arrive" : session.interaction === "lens" ? "Groups sentences by theme as they arrive" : "Folds near-duplicate questions as they arrive";
+  return session.interaction === "wall" ? "Groups as answers arrive" : session.interaction === "lens" ? "Groups sentences by theme as they arrive" : session.interaction === "four_lists" ? "Folds near-duplicate cards within each list as they arrive" : "Folds near-duplicate questions as they arrive";
 };
 
 // FAIL-09 and the AI controls for the step on the TV (laptop): what AI is doing, its switch,

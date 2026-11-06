@@ -1,0 +1,77 @@
+/* INT-11 The Four Helpful Lists (milestone 6, step 2). Tokens only. Positions and fades run on springs in code (four-board.ts);
+   colors and the more line are transitions on Clearway Live tokens. The four lists are told apart by heading and place, never color. */
+
+/* ---------- The TV ---------- */
+.tv-layer[data-kind="four_lists"] > .tv-note { display: none; }
+/* The four headings are the prompt: the headline steps aside (kept for screen readers) so the lists have the screen. */
+.tv-layer[data-kind="four_lists"] > .tv-headline { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.tv-fl { position: relative; flex: 1; min-height: 0; display: flex; }
+.fl-board { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--cwl-tv-gap); }
+.fl-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-4); box-shadow: inset 0 4px 0 var(--cwl-border-strong); overflow: hidden; }
+.fl-col header { display: flex; flex-direction: row; align-items: flex-start; min-height: 2.3em; gap: var(--space-3); font-size: var(--cwl-fs-tv-floor); }
+.fl-ix { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); color: var(--cwl-text-muted); font-variant-numeric: tabular-nums; line-height: 1; }
+.fl-q { min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); line-height: 1.1; letter-spacing: -0.01em; color: var(--cwl-text); }
+.fl-list { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.fl-slot { position: absolute; left: 0; right: 0; top: 0; padding-bottom: var(--space-3); box-sizing: border-box; will-change: transform, opacity; }
+.fl-card { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-2); padding: 20px 24px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
+  font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.2; box-shadow: var(--cwl-shadow-tv); transition: box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.fl-tx { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fl-ft { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); flex: none; }
+.fl-agree { display: inline-flex; align-items: center; gap: var(--space-1); height: 1.6em; padding: 0 0.55em; border-radius: var(--cwl-radius-pill); box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); color: var(--cwl-text-on-card); font-weight: var(--fw-bold); }
+.fl-agree svg { width: 0.85em; height: 0.85em; flex: none; }
+.fl-agree b { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
+.fl-agree.is-zero { box-shadow: inset 0 0 0 2px var(--cwl-border-strong); }
+.fl-ai { display: inline-flex; align-items: center; gap: var(--space-1); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; color: var(--cwl-text-on-card); }
+.fl-ai .cwl-ai-mark { width: 1em; height: 1em; flex: none; }
+/* A lone arrival's Lime moment: the ring, then it settles. */
+.fl-card.is-newest { box-shadow: 0 0 0 5px var(--cwl-surface), 0 0 0 11px var(--cwl-live); }
+.fl-more { margin: 0; min-height: calc(var(--cwl-fs-tv-floor) * 1.4); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.fl-more:empty { visibility: hidden; }
+.fl-col.is-empty .fl-list::before { content: ""; display: block; height: calc(var(--cwl-fs-tv-floor) * 3.4); border-radius: var(--cwl-radius-tv-card); box-shadow: inset 0 0 0 3px var(--cwl-border); }
+/* The cards sit at the room's type floor (the design's compact card). A column that still overflows tightens its padding, never its type. */
+.fl-board.is-tight .fl-card { padding: var(--space-3) var(--space-4); }
+[data-motion="reduced"] .fl-card { transition-duration: 0ms; }
+
+/* ---------- The phone ---------- */
+.fl-phone { flex: 1; display: flex; flex-direction: column; gap: var(--space-3); }
+.fl-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); border: 0; margin: 0; padding: 0; }
+.fl-pick legend { padding: 0; }
+.fl-pick button { display: flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); padding: var(--space-2); border: 0; border-radius: var(--cwl-radius-button);
+  background: transparent; box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); color: var(--cwl-text); font: inherit; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); text-align: center; cursor: pointer; touch-action: manipulation; }
+.fl-pick button[aria-checked="true"] { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: none; }
+.fl-pick svg { width: 14px; height: 14px; flex: none; }
+.fl-form { display: flex; flex-direction: column; gap: var(--space-2); }
+.fl-section { margin: var(--space-1) 0 0; font-size: var(--cwl-fs-phone-label); color: var(--cwl-text-muted); }
+.fl-agrees { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.fl-arow { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3); border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
+  font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); line-height: 1.35; }
+.fl-arow p { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.fl-arow button { flex: none; display: inline-flex; align-items: center; gap: var(--space-1); min-height: 44px; padding: 0 var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: transparent; box-shadow: inset 0 0 0 1.5px var(--cwl-text-on-card);
+  color: inherit; font: inherit; font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-bold); cursor: pointer; touch-action: manipulation; }
+.fl-arow button svg { width: 14px; height: 14px; }
+.fl-arow.is-on button { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: none; }
+.fl-arow button:disabled { opacity: 0.6; }
+
+/* ---------- The control surface and SET-05 ---------- */
+.fl-ctl-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.fl-rcol { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; margin: 0; padding: 0; list-style: none; }
+.fl-rcol h3, .fl-rcol h4 { margin: 0 0 var(--space-1); display: flex; justify-content: space-between; gap: var(--space-2); padding-bottom: var(--space-2); font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); border-bottom: 2px solid var(--cwl-app-text); }
+.fl-rcard { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); font-size: var(--cwl-fs-app-table); }
+.fl-rcard.is-hidden { opacity: 0.7; }
+.fl-rtop { display: flex; gap: var(--space-2); align-items: flex-start; }
+.fl-rtop b { flex: 1; min-width: 0; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
+.fl-rag { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-bold); color: var(--cwl-app-text); white-space: nowrap; }
+.fl-rag svg { width: 12px; height: 12px; }
+.fl-rmeta { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-2); margin: 0; font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); color: var(--cwl-app-text); }
+.fl-rmeta .cwl-ai-mark { width: 14px; height: 14px; }
+.fl-rmembers { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; font-size: var(--cwl-fs-app-micro); }
+.fl-rmembers li { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.fl-rmembers span { min-width: 0; overflow-wrap: anywhere; }
+.fl-ractions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.fl-review { display: flex; flex-direction: column; gap: var(--space-6); }
+.fl-review-step { display: flex; flex-direction: column; gap: var(--space-3); }
+.fl-review-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+@media (max-width: 900px) { .fl-review-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.fl-meter { display: flex; flex-wrap: wrap; gap: var(--space-4); font-size: var(--cwl-fs-app-label); color: var(--cwl-app-text-muted); }
+.fl-meter b { color: var(--cwl-app-text); font-size: var(--cwl-fs-app-section-title); margin-right: var(--space-1); font-variant-numeric: tabular-nums; }
+.fl-sub { margin: var(--space-2) 0 0; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); color: var(--cwl-app-text-muted); }

@@ -291,6 +291,6 @@ select is(tests.q($q$update public.engagements set settings='{"ai_enabled":true}
 select is(private.ai_on(tests.id(500)),true,'AI switches back on');
 select is(private.ai_on(tests.id(410)),true,'and still serves a lens wall');
 select is(private.ai_on(tests.id(500)),true,'and the candidates');
-select ok(position('candidate_boards' in pg_get_functiondef('private.reset_practice_room()'::regprocedure))>0 and position('lens_summaries' in pg_get_functiondef('private.reset_practice_room()'::regprocedure))>0,'The practice reset clears the candidates and keeps clearing what it did before');
+select ok(position('candidate_boards' in pg_get_functiondef('private.reset_practice_room_base()'::regprocedure))>0 and position('lens_summaries' in pg_get_functiondef('private.reset_practice_room_base()'::regprocedure))>0 and position('reset_practice_room_base' in pg_get_functiondef('private.reset_practice_room()'::regprocedure))>0,'The practice reset clears the candidates and keeps clearing what it did before');
 select * from finish();
 rollback;
