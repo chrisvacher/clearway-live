@@ -17,6 +17,13 @@ export const needs: Record<Letter | "risk", string> = {
   C: "Needs an outcome", O: "Needs an owner", R: "Needs a clear result", E: "Needs an end date", risk: "Needs a risk",
 };
 
+// The TV's one-line version of what a goal needs: "Needs owner, end date". Empty when the goal has all four letters.
+export const needsWord: Record<Letter | "risk", string> = { C: "outcome", O: "owner", R: "result", E: "date", risk: "risk" };
+export function needsLine(miss: Letter[], needsRisk: boolean) {
+  const words = [...letters.map(([l]) => l).filter(l => miss.includes(l)).map(l => needsWord[l]), ...(needsRisk ? [needsWord.risk] : [])];
+  return words.length ? `Needs ${words.join(", ")}` : "";
+}
+
 export type GoalResult = {
   id: string; title: string; result: string; owner: string; end_date: string; season: string; clear: boolean;
   letters: Record<Letter, boolean>; met: boolean; risks: number[]; needs_risk: boolean;
@@ -52,6 +59,27 @@ export function dateLabel(date: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
   const d = new Date(`${date}T12:00:00Z`);
   return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(d);
+}
+// "Dec 31": the day without its year, for the TV's compact cards (the 1-year Outlook's year is on the screen).
+export function dateShort(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return "";
+  const d = new Date(`${date}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone: "UTC" }).format(d);
+}
+// How the goal cards lay out on the TV: one column or two, set by the width each column would get
+// (in floor-size type, so it follows the room size), and which column each card goes in (the shorter one).
+export const goalColumnMin = 11;
+export function goalColumns(width: number, floor: number, gap: number) { return width >= 2 * goalColumnMin * floor + gap ? 2 : 1; }
+export function goalPlaces(heights: number[], cols: number, gap: number, room: number) {
+  const top = Array.from({ length: cols }, () => 0), places: { col: number; y: number; shown: boolean }[] = [];
+  let full = false;
+  for (const h of heights) {
+    let col = 0; for (let c = 1; c < cols; c++) if (top[c] < top[col]) col = c;
+    if (!full && top[col] + h > room + 0.5 && places.some(p => p.shown)) full = true;
+    places.push({ col, y: top[col], shown: !full });
+    if (!full) top[col] += h + gap;
+  }
+  return places;
 }
 // Seasons, never quarters: Sept to Dec, Jan to Apr, May to Aug. The end of the season a day falls in.
 export function seasonEnd(day: Date) {

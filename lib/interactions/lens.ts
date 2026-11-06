@@ -25,8 +25,11 @@ export function lensOf(results: unknown): LensResults {
 const futureWords = /\b(will|would|should|shall|could|might|hope(?:s|d)? to|hoping|want(?:s|ed)? to|wish(?:es)? to|plan(?:s|ned)? to|going to|aim(?:s)? to|need(?:s)? to|someday|one day|by then)\b/i;
 export function futureTense(text: string): boolean { return futureWords.test(text); }
 export const presentTenseNudge = "Say it as if it is already true. Try “We welcome…” instead of “We will welcome…”.";
-export function checkSentence(text: string, max: number): { ok: boolean; message: string; count: string } {
-  const trimmed = text.trim(), length = [...trimmed].length, cap = Math.min(max || 200, 280);
+// A seeded sentence may run to 400 characters (the database's limit); the live lens wall keeps its own, shorter one.
+export const seedSentenceMax = 400, wallSentenceMax = 280;
+export const sentenceCap = (max: number, seed = false) => seed ? seedSentenceMax : Math.min(max || 200, wallSentenceMax);
+export function checkSentence(text: string, max: number, seed = false): { ok: boolean; message: string; count: string } {
+  const trimmed = text.trim(), length = [...trimmed].length, cap = sentenceCap(max, seed);
   if (trimmed === heldText) return { ok: false, message: "Write your own sentence.", count: `${length} / ${cap}` };
   return { ok: length > 0 && length <= cap, count: `${length} / ${cap}`, message: length > cap ? `${length - cap} characters over. Keep it to ${cap}.` : "" };
 }

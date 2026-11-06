@@ -13,8 +13,8 @@
    wall from the card's space, at most three) and ends in an ellipsis. It never shrinks into the bar. */
 .int-line { position: relative; flex: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: var(--int-lines, 3); -webkit-box-orient: vertical; overflow: hidden; max-height: calc(var(--int-lines, 3) * 1.25em); }
 .int-line[data-lines="0"] { display: none; }
-/* A crowded card (no room for one line under a two-line title): one-line title, a smaller number, closer rows. */
-.int-card.is-tight { gap: 8px; padding-top: 14px; padding-bottom: 14px; }
+/* A crowded card (less room than its intent wants, up to three lines): one-line title, a smaller number, closer rows. */
+.int-card.is-tight { gap: 6px; padding-top: 12px; padding-bottom: 12px; }
 .int-card.is-tight .int-title { -webkit-line-clamp: 1; }
 .int-card.is-tight .int-num { min-width: 1.25em; height: 1.25em; }
 .int-card.is-tight .int-prog { line-height: 1; }

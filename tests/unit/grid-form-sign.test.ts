@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   addPoint, clamp01, dotRadius, formAnswer, formAnswersOf, formOf, gridAnswer, gridColor, gridOf, gridResults, inkLength, kindPress, maxFormAnswer, maxInk,
-  fitWall, newKey, nextOpen, placesOf, separate, signaturePath, signersOf, signSpot, signText, strokesOf, wallLayout, wallUnits,
+  fitWall, newKey, nextOpen, placesOf, separate, signaturePath, signersOf, signSections, signSpot, signText, strokesOf, wallLayout, wallUnits,
 } from "../../lib/interactions/grid-form-sign";
 import { applyLiveEvent } from "../../lib/live/protocol";
 import { ownAnswers } from "../../lib/phone/policy";
@@ -214,4 +214,12 @@ test("merge, undo and close signing are checked before they reach the database",
 
 test("new item keys are short and lower case, as the database expects", () => {
   for (let i = 0; i < 50; i++) assert.match(newKey(), /^[a-z0-9]{8}$/);
+});
+
+test("Affirm together: the TV lists the section titles of the text, numbered as the cards are", () => {
+  const text = "## 1. Every neighbour knows our name\nCommander's intent: x\n\n## 2. Leaders grow leaders\nCommander's intent: y\n\n## Plain title\nmore";
+  assert.deepEqual(signSections({ text }), [{ n: 1, title: "Every neighbour knows our name" }, { n: 2, title: "Leaders grow leaders" }, { n: null, title: "Plain title" }]);
+  assert.deepEqual(signSections({ text: "Just some words." }), []);
+  assert.deepEqual(signSections({}), []);
+  assert.equal(signSections({ text: Array.from({ length: 20 }, (_, i) => `## ${i + 1}. Outcome ${i + 1}`).join("\n\n") }).length, 12);
 });

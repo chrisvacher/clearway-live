@@ -160,3 +160,7 @@ Tests from the acceptance criteria; `npm run check`; `supabase db lint --local -
 - The draft Clearway Map fills from the engagement and shows empty fields as empty. This Year's Priorities is empty, left for Annual Planning.
 - Every prompt shows the right years for the base year, and the right lens names.
 - Every Wayfinding interaction passes the live-screen rules with 50 simulated phones.
+
+## November 5 changes
+
+Chris accepted milestone 4 on November 5 (1920 by 1080 TV, room size Medium) with five changes, built as milestone 4 work. (1) CORE goals stand in two columns on the TV where the width allows, so four cards show at Medium with six goals (two in one column at the default size); each card is a compact title, the four letters with the owner's first name and end date, and one line that says what the goal needs or gives its result. (2) Affirm together lists the confirmed Vision Outcome titles above the signatures, up to six, in two columns, with the count stepped down a size so the signatures stay on screen at Medium and the default. (3) Commander's intent cards let the intent wrap to three lines at Medium (then an ellipsis), clear of the progress bar; the default size's larger type shows fewer lines. (4) The pre-mortem merge prompt is `merge-reasons@2`: it merges only reasons that mean the same thing. (5) A seeded lens sentence may run to 400 characters (the phone counter and the database agree); the live lens wall keeps 280. Migration `20261106060000_m4_design_fixes.sql` redefines `private.parse_lens` only.

@@ -10,6 +10,8 @@ Milestone 4, step 6 (D2-11 to D2-14, INT-16). Migration: `supabase/migrations/20
 
 ## Commander's intent (INT-16)
 
+- TV cards (November 5): the intent wraps to up to three lines at Medium, then an ellipsis, always above the progress bar; a crowded card tightens (one-line title, closer rows) to give the intent its lines. The default size's larger type may show fewer lines.
+
 - One card for each confirmed Vision Outcome: commander's intent, the must-do, what we'll stop, and the next 30 days (first steps with an owner and a date).
 - Pairs of up to three work a card, set from the remote or picked on phones (the step's `assign` option). One person types in a line at a time; a lock frees after three idle seconds (`cwl-dur-field-lock`).
 - Every change goes to the TV as it is typed. Typing grows a line in place; a rewrite crossfades over `cwl-dur-line-replace`.
