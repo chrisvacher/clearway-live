@@ -4,7 +4,7 @@ Migration: `supabase/migrations/20261106010000_discover_records.sql`. Page: `/se
 
 ## What it does
 
-The facilitator adds, by hand and in setup: the survey report's key findings (a short title, the number as the report gives it, how many respondents it rests on), the survey's total respondents once per engagement, and notes from leadership interviews and board or staff input conversations (paste, .docx, .pdf or .txt). The app never reads the survey (Decided November 5). Saving a finding makes or updates its own accepted survey theme in the same call. Themes from notes and the Four Helpful Lists are drafted in step 3; the page lists whatever themes exist and says "No themes yet" when there are none.
+The facilitator adds, by hand and in setup: the survey report's key findings (a short title, the number as the report gives it, how many respondents it rests on), the survey's total respondents once per engagement, and notes from leadership interviews and board or staff input conversations (paste, .docx, .pdf or .txt up to 4 MB). The app never reads the survey (Decided November 5). Saving a finding makes or updates its own accepted survey theme in the same call. Themes from notes and the Four Helpful Lists are drafted in step 3; the page lists whatever themes exist and says "No themes yet" when there are none.
 
 Everything is facilitator-only: the lead, a co-facilitator and an admin. A participant, the scribe, a team facilitator, the TV, a facilitator of another engagement and an unsigned browser get `denied` (or a permission error for anon), tested for every function and every table.
 
@@ -12,8 +12,8 @@ Everything is facilitator-only: the lead, a co-facilitator and an admin. A parti
 
 | Table | Holds |
 | --- | --- |
-| `survey_findings` | title, figure (text with a digit), rests_on respondents, test flag |
-| `conversation_notes` | kind (`interview` or `input`), person (record only), title, text up to 60,000 characters, source (`paste`, `docx`, `pdf`, `txt`), char and word counts, test flag |
+| `survey_findings` | title, figure (text with a digit), rests_on respondents |
+| `conversation_notes` | kind (`interview` or `input`), person (record only), title, text up to 60,000 characters, source (`paste`, `docx`, `pdf`, `txt`), char and word counts |
 | `discover_themes` | source (`survey`, `four_lists`, `conversations`), label, detail, rests_on, out_of, up to 3 quotes, status (`draft`, `accepted`, `rejected`), merged_into, ai_run, test flag |
 | `discover_theme_sources` | a theme to one finding, one note or one Four Helpful Lists card (no foreign key, the cards belong to step 2), with a quote. A finding is the source of exactly one theme |
 | `signals` | records only: session, kind (`aligned`, `divergent`, `silent`, `thin`), theme, evidence, dismissed, saved as citation (aligned only), neutral question sent. One card per session, kind and theme. No function reads or writes it yet (step 5) |
@@ -40,10 +40,10 @@ The person on a note leaves the database only through `discover_state` and `disc
 | Object | Extends | Adds |
 | --- | --- | --- |
 | `private.reset_practice_room` | `20261104190000_m4_acceptance_fixes` | the five new tables, and clears `survey_respondents` |
-| `private.rehearsal_control` | `20261105100000_practice_fixes_1` | Clear test answers puts away test findings, notes, themes, theme sources and signals |
+| `private.rehearsal_control` | `20261105100000_practice_fixes_1` | Clear test answers puts away test drafted themes (with their sources) and signals. Findings, notes and survey themes are real setup data and stay |
 | `private.control_status` | `20261105100000_practice_fixes_1` | only the rehearsal `test_answers` count widened |
 
-The `ai_runs` job check, `ai_on`, `ai_claim` and `ai_apply` are not touched. Findings, notes, themes and signals made during a rehearsal carry the test flag (the `mark_test` trigger). A survey theme is made by its finding, so it is not counted a second time.
+The `ai_runs` job check, `ai_on`, `ai_claim` and `ai_apply` are not touched. Only signals and drafted themes (not survey themes) carry the test flag (the `mark_test` trigger). Findings, notes and survey themes carry none, so Clear test answers never wipes them; `reset_practice_room` still clears every Discover row of the practice room.
 
 ## Live surfaces keep working before the migration is applied
 
@@ -57,9 +57,10 @@ The Discover page checks that `discover_state` exists; if not it says "Discover 
 - Strong: 40 percent or more of its source and not thin; with no total there is no share, so not strong.
 - A survey theme carries the finding's figure in `detail`, its respondents in `rests_on` and the survey total in `out_of`. Editing a finding only renames its theme when the title changed, and saving always sets it accepted.
 - One text cap, 60,000 characters, for pasted and extracted notes.
+- **File limit 4 MB, changed from the brief's 10 MB, for Chris to confirm.** Vercel caps a function request body at 4.5 MB, so a larger file would stop at the platform before the route runs. 10 MB would need a short-lived Storage upload read once and deleted.
+- Conversation kinds read "Input conversation" with the church's own governing group word (`churches.governance_body_name`, "board" when empty), per Words in the app.
 
 ## Left open
 
-- Vercel caps a function request body at 4.5 MB, so a file between 4.5 and 10 MB stops at the platform with a plain "too large to upload here, paste the text" message. The code accepts 10 MB. Allowing the full 10 MB would need a short-lived Storage upload read once and deleted.
 - Accept, rename, merge and reject on themes, and drafting themes from notes, are step 3.
 - Granola transcripts stay Open.

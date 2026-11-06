@@ -113,7 +113,7 @@ async function main() {
       const row = page.locator(".dsc-file", { hasText: "staff" }).first();
       await row.getByLabel(/Which conversation: staff/).selectOption("interview");
       await until(async () => (await sql.query("select kind from private.conversation_notes where engagement_id=$1 and title='staff' and not deleted", [room.id])).rows[0]?.kind === "interview", "kind saved");
-      await row.getByRole("button", { name: "Details" }).click();
+      await row.getByRole("button", { name: "Show details" }).click();
       await row.getByLabel("Person (for the record only)").fill("Staff team");
       await row.getByRole("button", { name: "Save details" }).click();
       await until(async () => (await sql.query("select person from private.conversation_notes where engagement_id=$1 and title='staff' and not deleted", [room.id])).rows[0]?.person === "Staff team", "person saved");

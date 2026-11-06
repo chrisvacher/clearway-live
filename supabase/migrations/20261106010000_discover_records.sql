@@ -20,7 +20,7 @@
 --
 -- Shared objects touched, each a superset of its latest definition on main:
 --   private.reset_practice_room   the acceptance fixes version (20261104190000) plus the five new tables and the survey total
---   private.rehearsal_control     the practice fixes version (20261105100000) plus test rows of the five new tables
+--   private.rehearsal_control     the practice fixes version (20261105100000) plus test drafted themes and signals (findings and notes are real setup data and stay)
 --   private.control_status        the practice fixes version (20261105100000), only the rehearsal test_answers count widened
 -- The ai_runs job check, ai_on, ai_claim and ai_apply are not touched. Nothing here touches Team Hub or
 -- CORE, and nothing reaches the TV or phones.
@@ -38,7 +38,6 @@ create table private.survey_findings (
  title text not null check(length(btrim(title)) between 1 and 120),
  figure text not null check(length(btrim(figure)) between 1 and 40 and figure ~ '[0-9]'),
  rests_on integer not null check(rests_on between 1 and 1000000),
- test boolean not null default false,
  seq bigint generated always as identity,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
  deleted boolean not null default false,
@@ -57,7 +56,6 @@ create table private.conversation_notes (
  source_kind text not null check(source_kind in ('paste','docx','pdf','txt')),
  char_count integer generated always as (char_length(body)) stored,
  word_count integer not null check(word_count between 0 and 60000),
- test boolean not null default false,
  seq bigint generated always as identity,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
  deleted boolean not null default false,
@@ -148,21 +146,20 @@ alter table private.survey_findings force row level security;
 revoke all on private.survey_findings from public,anon,authenticated;
 grant select,insert,update,delete on private.survey_findings to service_role;
 create trigger touch_record before update on private.survey_findings for each row execute function private.touch_live_record('id');
-create trigger mark_test before insert on private.survey_findings for each row execute function private.mark_test();
 
 alter table private.conversation_notes enable row level security;
 alter table private.conversation_notes force row level security;
 revoke all on private.conversation_notes from public,anon,authenticated;
 grant select,insert,update,delete on private.conversation_notes to service_role;
 create trigger touch_record before update on private.conversation_notes for each row execute function private.touch_live_record('id');
-create trigger mark_test before insert on private.conversation_notes for each row execute function private.mark_test();
 
 alter table private.discover_themes enable row level security;
 alter table private.discover_themes force row level security;
 revoke all on private.discover_themes from public,anon,authenticated;
 grant select,insert,update,delete on private.discover_themes to service_role;
 create trigger touch_record before update on private.discover_themes for each row execute function private.touch_live_record('id');
-create trigger mark_test before insert on private.discover_themes for each row execute function private.mark_test();
+-- A survey theme is made by its finding, which is real setup data, so only drafted themes are marked as tests.
+create trigger mark_test before insert on private.discover_themes for each row when (new.source<>'survey') execute function private.mark_test();
 
 alter table private.discover_theme_sources enable row level security;
 alter table private.discover_theme_sources force row level security;
@@ -212,7 +209,7 @@ begin
     from private.conversation_notes n where n.engagement_id=p_engagement and not n.deleted),'[]'::jsonb),
   'themes',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'source',t.source,'label',t.label,'detail',t.detail,'rests_on',t.rests_on,'out_of',t.out_of,'quotes',t.quotes,
      'status',t.status,'merged_into',t.merged_into,'ai',t.ai_run is not null,
-     'sources',(select count(*) from private.discover_theme_sources s where s.theme_id=t.id and s.engagement_id=t.engagement_id and not s.deleted)) order by t.seq)
+     'sources',(select count(*) from private.discover_theme_sources s where s.theme_id=t.id and s.engagement_id=t.engagement_id and not s.deleted)) order by (t.source<>'survey'),t.seq)
     from private.discover_themes t where t.engagement_id=p_engagement and not t.deleted),'[]'::jsonb));
 end $$;
 
@@ -372,7 +369,7 @@ grant execute on function private.discover_state(uuid),private.discover_total_se
  to authenticated;
 
 -- ---------- Shared objects, each a superset of its latest definition ----------
--- Clear test answers: the practice fixes version plus the Discover test rows.
+-- Clear test answers: the practice fixes version plus test themes and signals.
 create or replace function private.rehearsal_control(p_engagement uuid,p_id uuid,p_action text) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare r public.room_states; done private.rehearsal_log; since timestamptz; began timestamptz; cleared uuid[]; n_votes integer:=0; n_suggestions integer:=0; n_sessions integer:=0;
@@ -419,15 +416,11 @@ begin
  -- Scribe cards and files a rehearsal made go with it; the app removes the stored bytes (private.rehearsal_scribe_paths, read first).
  update private.scribe_cards set deleted=true where engagement_id=p_engagement and test and not deleted;
  update private.scribe_files set deleted=true where engagement_id=p_engagement and test and not deleted;
- -- Discover records a rehearsal made go with it: survey findings, notes, themes (and what they rest on) and signals.
+ -- Drafted themes and signals a rehearsal made go with it. Survey findings, notes and survey themes are real setup data and stay.
  update private.signals set deleted=true where engagement_id=p_engagement and test and not deleted;
- update private.discover_theme_sources s set deleted=true where s.engagement_id=p_engagement and not s.deleted and (
-   s.theme_id in (select t.id from private.discover_themes t where t.engagement_id=p_engagement and t.test)
-   or s.finding_id in (select f.id from private.survey_findings f where f.engagement_id=p_engagement and f.test)
-   or s.note_id in (select n.id from private.conversation_notes n where n.engagement_id=p_engagement and n.test));
+ update private.discover_theme_sources s set deleted=true where s.engagement_id=p_engagement and not s.deleted
+   and s.theme_id in (select t.id from private.discover_themes t where t.engagement_id=p_engagement and t.test);
  update private.discover_themes set deleted=true,merged_into=null where engagement_id=p_engagement and test and not deleted;
- update private.survey_findings set deleted=true where engagement_id=p_engagement and test and not deleted;
- update private.conversation_notes set deleted=true where engagement_id=p_engagement and test and not deleted;
  -- Step 5: nothing AI made from test answers survives into the real session.
  perform private.ai_clear(p_engagement,cleared);
  -- A real answer that a test answer replaced stands again.
@@ -447,7 +440,7 @@ begin
  return jsonb_build_object('status','ok','answers',cardinality(cleared),'votes',n_votes,'suggestions',n_suggestions,'sessions',n_sessions,'version',r.version);
 end $$;
 
--- The rehearsal count includes every test item Clear test answers removes. A survey theme is made by its finding, so only the other themes add to the count.
+-- The rehearsal count includes every test item Clear test answers removes. Drafted themes and signals count; findings and notes never do.
 create or replace function private.control_status(p_engagement uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
 declare r public.room_states; s public.sessions; at_now timestamptz:=clock_timestamp(); last_clear private.rehearsal_log;
@@ -484,9 +477,7 @@ begin
      +(select count(*) from private.candidate_suggestions y where y.engagement_id=p_engagement and y.test and not y.deleted)
      +(select count(*) from private.scribe_cards y where y.engagement_id=p_engagement and y.test and not y.deleted)
      +(select count(*) from private.scribe_files y where y.engagement_id=p_engagement and y.test and not y.deleted)
-     +(select count(*) from private.survey_findings y where y.engagement_id=p_engagement and y.test and not y.deleted)
-     +(select count(*) from private.conversation_notes y where y.engagement_id=p_engagement and y.test and not y.deleted)
-     +(select count(*) from private.discover_themes y where y.engagement_id=p_engagement and y.test and not y.deleted and y.source<>'survey')
+     +(select count(*) from private.discover_themes y where y.engagement_id=p_engagement and y.test and not y.deleted)
      +(select count(*) from private.signals y where y.engagement_id=p_engagement and y.test and not y.deleted),
    'last_clear',case when last_clear.id is not null then jsonb_build_object('at',last_clear.created_at,'answers',last_clear.answers,'sessions',last_clear.sessions,
      'by',(select split_part(btrim(u.name),' ',1) from public.clearway_users u where u.id=last_clear.actor_id)) end));

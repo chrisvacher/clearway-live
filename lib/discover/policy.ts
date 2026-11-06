@@ -1,6 +1,6 @@
 // Limits and checks for the Discover records. The database enforces the same limits; these give a plain message first.
 export const MAX_NOTE_CHARS = 60000;
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILE_BYTES = 4 * 1024 * 1024; // Vercel caps a request body at 4.5 MB (the brief's 10 MB, changed for Chris to confirm)
 export const MAX_TITLE = 200;
 export const MAX_PERSON = 200;
 export const MAX_FINDING_TITLE = 120;
@@ -10,7 +10,10 @@ export const MAX_RESPONDENTS = 1000000;
 export const noteKinds = ["interview", "input"] as const;
 export type NoteKind = typeof noteKinds[number];
 export const noteKindLabel: Record<NoteKind, string> = { interview: "Leadership interview", input: "Input conversation" };
-export const noteKindHint: Record<NoteKind, string> = { interview: "One-to-one with a leader", input: "Board or staff conversation" };
+// The church's own word for its governing group (Words in the app), "board" when none is set.
+export const governanceWord = (name: unknown) => (typeof name === "string" && name.replace(/\s+/g, " ").trim()) || "board";
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+export const noteKindHint = (governance: string): Record<NoteKind, string> => ({ interview: "One-to-one with a leader", input: `${capital(governance)} or staff conversation` });
 
 export const noteSources = ["paste", "docx", "pdf", "txt"] as const;
 export type NoteSource = typeof noteSources[number];

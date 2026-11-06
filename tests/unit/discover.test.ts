@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { thin, isThin, restsOnLabel } from "../../lib/discover/thin";
 import { strength } from "../../lib/discover/strength";
-import { cleanNoteText, discoverMessage, fileSource, findingInput, titleFromFileName, wordCount, MAX_NOTE_CHARS } from "../../lib/discover/policy";
+import { cleanNoteText, discoverMessage, governanceWord, noteKindHint, fileSource, findingInput, titleFromFileName, wordCount, MAX_NOTE_CHARS } from "../../lib/discover/policy";
 import { extractNoteText, ReadError, unzippedBytes } from "../../lib/discover/extract";
 
 const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../fixtures/discover/${name}`, import.meta.url)));
@@ -123,7 +123,7 @@ test("files that can't be read say why", async () => {
   await assert.rejects(extractNoteText("txt", new Uint8Array(0)), (e: unknown) => e instanceof ReadError && /empty/.test(e.message));
   await assert.rejects(extractNoteText("txt", new TextEncoder().encode("   \n  ")), (e: unknown) => e instanceof ReadError && /no text/.test(e.message));
   await assert.rejects(extractNoteText("txt", new TextEncoder().encode("a".repeat(MAX_NOTE_CHARS + 1))), (e: unknown) => e instanceof ReadError && /60,000/.test(e.message));
-  await assert.rejects(extractNoteText("txt", new Uint8Array(10 * 1024 * 1024 + 1)), (e: unknown) => e instanceof ReadError && /10 MB/.test(e.message));
+  await assert.rejects(extractNoteText("txt", new Uint8Array(4 * 1024 * 1024 + 1)), (e: unknown) => e instanceof ReadError && /4 MB/.test(e.message));
 });
 
 test("a Word file is measured before it is unpacked", () => {
@@ -131,4 +131,12 @@ test("a Word file is measured before it is unpacked", () => {
   const size = unzippedBytes(docx);
   assert.ok(size !== null && size > 300 && size < 5000, `unzipped size ${size}`);
   assert.equal(unzippedBytes(new TextEncoder().encode("plain text, no zip")), null);
+});
+
+test("the church's own word for its governing group is used, with board as the fallback", () => {
+  assert.equal(governanceWord("Elder board"), "Elder board");
+  assert.equal(governanceWord("  "), "board");
+  assert.equal(governanceWord(undefined), "board");
+  assert.equal(noteKindHint("elders").input, "Elders or staff conversation");
+  assert.equal(noteKindHint("board").input, "Board or staff conversation");
 });

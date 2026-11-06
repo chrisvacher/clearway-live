@@ -7,7 +7,7 @@ export class ReadError extends Error {
   constructor(message: string) { super(message); this.name = "ReadError"; }
 }
 
-const TOO_BIG = "That file is larger than 10 MB. Paste the text instead.";
+const TOO_BIG = "That file is larger than 4 MB. Paste the text instead.";
 const MAX_PDF_PAGES = 400;
 const MAX_UNZIPPED = 100 * 1024 * 1024;
 

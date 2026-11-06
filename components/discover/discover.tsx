@@ -9,7 +9,7 @@ import { ThemeList } from "./theme-list";
 import { useDiscover } from "./use-discover";
 
 // The Discover page for one engagement (SET-06 and the survey findings form). Facilitators only.
-export function Discover({ engagement, title, initial, closed }: { engagement: string; title: string; initial: DiscoverState; closed: boolean }) {
+export function Discover({ engagement, title, initial, closed, governance }: { engagement: string; title: string; initial: DiscoverState; closed: boolean; governance: string }) {
   const { state, refresh, send } = useDiscover(engagement, initial);
   return <main id="main" className="dsc">
     <header className="dsc-head"><span className="dsc-private"><Lock aria-hidden="true" />Only you see this</span><h1>Discover</h1><span className="dsc-muted">{title}</span>
@@ -21,8 +21,8 @@ export function Discover({ engagement, title, initial, closed }: { engagement: s
       <Findings findings={state.findings} total={state.survey_respondents} send={send} closed={closed} />
     </section>
     <section className="dsc-part" aria-labelledby="dsc-notes"><h2 id="dsc-notes">Interviews and input conversations</h2>
-      <p>Add notes or transcripts from leadership interviews and from board and staff input conversations. The person is kept for the record only.</p>
-      <NotesUpload engagement={engagement} notes={state.notes} send={send} refresh={refresh} closed={closed} />
+      <p>Add notes or transcripts from leadership interviews and from {governance} and staff input conversations. The person is kept for the record only.</p>
+      <NotesUpload engagement={engagement} notes={state.notes} send={send} refresh={refresh} closed={closed} governance={governance} />
     </section>
     <section className="dsc-part" aria-labelledby="dsc-themes"><h2 id="dsc-themes">Themes</h2>
       <ThemeList themes={state.themes} />

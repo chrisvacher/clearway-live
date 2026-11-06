@@ -37,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const fac = await getFacilitator(); if (!fac) return answer({ status: "denied" }, 401);
   let call: { fn: string; args: Record<string, unknown> };
   try {
-    const body = await limitedJson(request, 131072), action = String(body.action);
+    const body = await limitedJson(request, 262144), action = String(body.action);
     const target = () => { if (!uuid(body.id)) throw new Error("Reload the page and try again."); return body.id as string; };
     if (action === "total") {
       const total = body.total === null || body.total === "" ? null : Number(body.total);
@@ -62,7 +62,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       call = { fn: "discover_note_update", args: { p_id: target(), p_kind: kind, p_person: cleanLine(body.person, MAX_PERSON) || null, p_title: title } };
     } else if (action === "note_delete") call = { fn: "discover_note_delete", args: { p_id: target() } };
     else throw new Error("Choose a Discover action.");
-  } catch (error) { return answer({ status: "invalid_request", message: error instanceof Error ? error.message : "Check the details and try again." }, 422); }
+  } catch (error) {
+    // An oversize body is the only thing the body reader refuses as "Invalid request": say what to do about a long note.
+    const message = error instanceof Error ? (error.message === "Invalid request" ? discoverMessage("too_long") : error.message) : "Check the details and try again.";
+    return answer({ status: "invalid_request", message }, 422);
+  }
   try {
     const { data, error } = await fac.client.rpc(call.fn, { p_engagement: id, ...call.args });
     if (error) throw error;

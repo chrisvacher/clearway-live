@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/policy";
+import { governanceWord } from "@/lib/discover/policy";
 import { readDiscover } from "@/lib/discover/server";
 import { Discover } from "@/components/discover/discover";
 
@@ -11,11 +12,12 @@ import { Discover } from "@/components/discover/discover";
 export default async function DiscoverPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
-  const { data: engagement } = await client.from("engagements").select("id,title,status").eq("id", id).eq("deleted", false).maybeSingle();
+  const { data: engagement } = await client.from("engagements").select("id,title,status,church_id").eq("id", id).eq("deleted", false).maybeSingle();
   if (!engagement) notFound();
+  const { data: church } = await client.from("churches").select("governance_body_name").eq("id", engagement.church_id).maybeSingle();
   const { state, missing } = await readDiscover(client, id);
   if (!state) return <main id="main" className="page-width"><div className="hero"><div className="eyebrow-live">Only you see this</div><h1>Discover</h1>
     <p>{missing ? "Discover isn't ready yet. It turns on when the database update is applied." : "Only the facilitators of this engagement can use Discover."}</p>
     <Link className="text-link" href={`/setup/${id}`}>Back to the engagement</Link></div></main>;
-  return <Discover engagement={id} title={engagement.title} initial={state} closed={engagement.status === "closed"} />;
+  return <Discover engagement={id} title={engagement.title} initial={state} closed={engagement.status === "closed"} governance={governanceWord(church?.governance_body_name)} />;
 }

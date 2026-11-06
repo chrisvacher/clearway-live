@@ -25,7 +25,7 @@ function NoteRow({ note, send, closed }: { note: Note; send: Send; closed: boole
     <div className="t"><b title={note.title}>{note.title}</b>
       <select className="dsc-select is-sm" aria-label={`Which conversation: ${note.title}`} value={kind} disabled={busy || closed} onChange={e => { const k = e.target.value as NoteKind; setKind(k); void update({ kind: k }); }}>
         {noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]}</option>)}</select>
-      <button className="dsc-btn is-ghost is-compact" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Hide details" : "Details"}</button>
+      <button className="dsc-btn is-ghost is-compact" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Hide details" : "Show details"}</button>
     </div>
     <span className="st"><Check aria-hidden="true" />{words(note.word_count)}</span>
     {open ? <div className="more">
@@ -42,7 +42,7 @@ function NoteRow({ note, send, closed }: { note: Note; send: Send; closed: boole
 }
 
 // NotesUpload (SET-06): paste, Word, PDF or text. The text is read on the server and the file is not kept.
-export function NotesUpload({ engagement, notes, send, refresh, closed }: { engagement: string; notes: Note[]; send: Send; refresh: () => Promise<void>; closed: boolean }) {
+export function NotesUpload({ engagement, notes, send, refresh, closed, governance }: { engagement: string; notes: Note[]; send: Send; refresh: () => Promise<void>; closed: boolean; governance: string }) {
   const [kind, setKind] = useState<NoteKind>("interview"), [person, setPerson] = useState(""), [title, setTitle] = useState(""), [text, setText] = useState("");
   const [attempts, setAttempts] = useState<Attempt[]>([]), [over, setOver] = useState(false), [busy, setBusy] = useState(false), [say, setSay] = useState<{ text: string; err: boolean }>({ text: "", err: false });
   const input = useRef<HTMLInputElement>(null);
@@ -54,14 +54,14 @@ export function NotesUpload({ engagement, notes, send, refresh, closed }: { enga
     if (!clean) return setSay({ text: "Paste the notes first.", err: true });
     if (clean.length > MAX_NOTE_CHARS) return setSay({ text: `A note can hold ${MAX_NOTE_CHARS.toLocaleString("en-CA")} characters. Split it into two notes.`, err: true });
     setBusy(true); const reply = await send({ action: "note_add", id: crypto.randomUUID(), kind, person, title, text: clean }); setBusy(false);
-    if (reply.status === "ok" || reply.status === "duplicate") { setText(""); setTitle(""); setSay({ text: "Added.", err: false }); } else setSay({ text: reply.message || "We couldn't save that. Try again.", err: true });
+    if (reply.status === "ok" || reply.status === "duplicate") { setText(""); setTitle(""); setPerson(""); setSay({ text: "Added.", err: false }); } else setSay({ text: reply.message || "We couldn't save that. Try again.", err: true });
   }
 
   async function addFile(file: File) {
     const key = crypto.randomUUID();
     const bad = (reason: string) => setAttempts(a => [{ key, name: file.name, state: "unreadable", reason }, ...a.filter(x => x.key !== key)]);
     if (!fileSource(file.name)) return bad("Use a Word (.docx), PDF or text (.txt) file, or paste the text.");
-    if (file.size > MAX_FILE_BYTES) return bad("That file is larger than 10 MB. Paste the text instead.");
+    if (file.size > MAX_FILE_BYTES) return bad("That file is larger than 4 MB. Paste the text instead.");
     if (file.size === 0) return bad("That file is empty.");
     setAttempts(a => [{ key, name: file.name, state: "reading" }, ...a]);
     try {
@@ -80,12 +80,12 @@ export function NotesUpload({ engagement, notes, send, refresh, closed }: { enga
     <div className="dsc-card">
       <div className="dsc-row">
         <div className="dsc-field is-grow"><label htmlFor="dsc-kind">Which conversation is next</label>
-          <select id="dsc-kind" className="dsc-select" value={kind} onChange={e => setKind(e.target.value as NoteKind)} disabled={closed}>{noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]} ({noteKindHint[k].toLowerCase()})</option>)}</select></div>
+          <select id="dsc-kind" className="dsc-select" value={kind} onChange={e => setKind(e.target.value as NoteKind)} disabled={closed}>{noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]} ({noteKindHint(governance)[k].toLowerCase()})</option>)}</select></div>
         <div className="dsc-field is-grow"><label htmlFor="dsc-person">Person (for the record only)</label>
           <input id="dsc-person" className="dsc-input" maxLength={MAX_PERSON} autoComplete="off" value={person} onChange={e => setPerson(e.target.value)} disabled={closed} /></div>
       </div>
       <div className={`dsc-drop${over ? " is-over" : ""}`} onDragOver={e => { e.preventDefault(); if (!closed) setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
-        <Upload aria-hidden="true" /><div><b>Drop notes or transcripts here</b><span>Word, PDF or text, up to 10 MB. The file is read and not kept.</span></div>
+        <Upload aria-hidden="true" /><div><b>Drop notes or transcripts here</b><span>Word, PDF or text, up to 4 MB. The file is read and not kept.</span></div>
         <button className="dsc-btn" type="button" disabled={closed} onClick={() => input.current?.click()}>Choose files</button>
         <input ref={input} type="file" hidden multiple accept=".docx,.pdf,.txt" aria-label="Choose note files" onChange={e => pick(e.target.files)} />
       </div>

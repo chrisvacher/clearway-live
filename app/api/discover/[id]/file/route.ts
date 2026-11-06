@@ -11,19 +11,19 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 const answer = (data: unknown, status = 200) => privateResponse(NextResponse.json(data, { status }));
 
-// A note from a file: Word, PDF or text, up to 10 MB. The text is read here, on the server, and added as a note.
-// The file itself is not kept anywhere. (Vercel caps a request body at 4.5 MB, so larger files stop before this runs.)
+// A note from a file: Word, PDF or text, up to 4 MB. The text is read here, on the server, and added as a note.
+// The file itself is not kept anywhere. (Vercel caps a request body at 4.5 MB, so the limit is 4 MB.)
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params, config = authConfig();
   if (!uuid(id) || !config || !sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
   const fac = await getFacilitator(); if (!fac) return answer({ status: "denied" }, 401);
-  if (Number(request.headers.get("content-length") || 0) > MAX_FILE_BYTES + 262144) return answer({ status: "unreadable", message: "That file is larger than 10 MB. Paste the text instead." }, 413);
+  if (Number(request.headers.get("content-length") || 0) > MAX_FILE_BYTES + 262144) return answer({ status: "unreadable", message: "That file is larger than 4 MB. Paste the text instead." }, 413);
   try {
     const form = await request.formData(), file = form.get("file"), noteId = form.get("id"), kind = form.get("kind");
     if (!(file instanceof File) || !uuid(noteId) || !noteKinds.includes(kind as NoteKind)) return answer({ status: "invalid_request", message: "Choose which conversation this is, then pick the file again." }, 422);
     const source = fileSource(file.name);
     if (!source) return answer({ status: "unreadable", message: "Use a Word (.docx), PDF or text (.txt) file, or paste the text." }, 422);
-    if (file.size > MAX_FILE_BYTES) return answer({ status: "unreadable", message: "That file is larger than 10 MB. Paste the text instead." }, 413);
+    if (file.size > MAX_FILE_BYTES) return answer({ status: "unreadable", message: "That file is larger than 4 MB. Paste the text instead." }, 413);
     // The facilitator's role is checked before any reading, so a stranger can't spend the server's time.
     const check = await fac.client.rpc("discover_state", { p_engagement: id });
     if (check.error) throw check.error;
