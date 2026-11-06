@@ -39,6 +39,7 @@
     "test:self-paced": "node --import tsx tests/browser/self-paced.ts",
     "test:templates": "node --import tsx tests/browser/templates.ts",
     "test:ai": "node --import tsx tests/browser/ai-live.ts",
+    "test:four-lists": "node --import tsx tests/browser/four-lists.ts",
     "test:team-workshop": "node --import tsx tests/browser/team-workshop.ts",
     "test:lens-wall": "node --import tsx tests/browser/lens-wall.ts",
     "test:lens-summary": "node --import tsx tests/browser/lens-summary.ts",

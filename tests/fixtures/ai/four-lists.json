@@ -1,0 +1,196 @@
+{
+ "about": "Fixture set for the Four Helpful Lists grouping prompt (group_four_lists), from the fictional Riverside engagement. Each case has the inputs ai_claim hands the worker, the reply recorded for the fake client, and the expected behaviour: a group stays inside one list, a pinned group takes nothing, a card is in one group, labels are short and name no one.",
+ "names": [
+  "Priya",
+  "Ben",
+  "Ruth",
+  "Sam",
+  "Daniel",
+  "Grace Ortiz"
+ ],
+ "cases": [
+  {
+   "name": "Riverside: similar cards group inside their own lists",
+   "job": "group_four_lists",
+   "inputs": {
+    "answers": [
+     {
+      "ref": "a1",
+      "id": "75000000-0000-4000-8000-000000000001",
+      "column": "wrong",
+      "text": "Preaching goes too long and loses people"
+     },
+     {
+      "ref": "a2",
+      "id": "75000000-0000-4000-8000-000000000002",
+      "column": "wrong",
+      "text": "Sermons run long and people drift"
+     },
+     {
+      "ref": "a3",
+      "id": "75000000-0000-4000-8000-000000000003",
+      "column": "wrong",
+      "text": "Parking is a mess on Sunday"
+     },
+     {
+      "ref": "a4",
+      "id": "75000000-0000-4000-8000-000000000004",
+      "column": "right",
+      "text": "Volunteers serve with real joy"
+     },
+     {
+      "ref": "a5",
+      "id": "75000000-0000-4000-8000-000000000005",
+      "column": "right",
+      "text": "Our greeters make people feel welcome"
+     },
+     {
+      "ref": "a6",
+      "id": "75000000-0000-4000-8000-000000000006",
+      "column": "right",
+      "text": "The preaching is honest and practical"
+     },
+     {
+      "ref": "a7",
+      "id": "75000000-0000-4000-8000-000000000007",
+      "column": "missing",
+      "text": "A clear way into small groups"
+     },
+     {
+      "ref": "a8",
+      "id": "75000000-0000-4000-8000-000000000008",
+      "column": "missing",
+      "text": "Easy ways to join a group and belong"
+     },
+     {
+      "ref": "a9",
+      "id": "75000000-0000-4000-8000-000000000009",
+      "column": "missing",
+      "text": "A plan for young adults"
+     },
+     {
+      "ref": "a10",
+      "id": "75000000-0000-4000-8000-000000000010",
+      "column": "confused",
+      "text": "Who decides the budget?"
+     },
+     {
+      "ref": "a11",
+      "id": "75000000-0000-4000-8000-000000000011",
+      "column": "confused",
+      "text": "Who approves spending and decides roles?"
+     },
+     {
+      "ref": "a12",
+      "id": "75000000-0000-4000-8000-000000000012",
+      "column": "confused",
+      "text": "What happened to the youth group?"
+     }
+    ],
+    "groups": []
+   },
+   "reply": "{\"groups\": [{\"group\": \"n1\", \"label\": \"Sermons run long\", \"answers\": [\"a1\", \"a2\"]}, {\"group\": \"n2\", \"label\": \"A way into groups\", \"answers\": [\"a7\", \"a8\"]}, {\"group\": \"n3\", \"label\": \"Who decides\", \"answers\": [\"a10\", \"a11\"]}]}",
+   "expect": {
+    "together": [
+     [
+      "a1",
+      "a2"
+     ],
+     [
+      "a7",
+      "a8"
+     ],
+     [
+      "a10",
+      "a11"
+     ]
+    ],
+    "apart": [
+     [
+      "a1",
+      "a6"
+     ],
+     [
+      "a3",
+      "a1"
+     ],
+     [
+      "a9",
+      "a12"
+     ]
+    ],
+    "labelWords": 4
+   }
+  },
+  {
+   "name": "Riverside: a card joins its list's group, never a pinned one",
+   "job": "group_four_lists",
+   "inputs": {
+    "answers": [
+     {
+      "ref": "a1",
+      "id": "75000000-0000-4000-8000-000000000021",
+      "column": "wrong",
+      "text": "Preaching feels rushed on some weeks"
+     },
+     {
+      "ref": "a2",
+      "id": "75000000-0000-4000-8000-000000000022",
+      "column": "right",
+      "text": "Preaching is clear"
+     },
+     {
+      "ref": "a3",
+      "id": "75000000-0000-4000-8000-000000000023",
+      "column": "missing",
+      "text": "Mentoring for new leaders"
+     }
+    ],
+    "groups": [
+     {
+      "ref": "g1",
+      "id": "75000000-0000-4000-8000-000000000031",
+      "column": "wrong",
+      "label": "Sermons run long",
+      "pinned": false,
+      "renamed": false,
+      "count": 2,
+      "examples": [
+       "Preaching goes too long and loses people",
+       "Sermons run long and people drift"
+      ]
+     },
+     {
+      "ref": "g2",
+      "id": "75000000-0000-4000-8000-000000000032",
+      "column": "right",
+      "label": "Preaching",
+      "pinned": true,
+      "renamed": true,
+      "count": 2,
+      "examples": [
+       "The preaching is honest and practical",
+       "Sermons that help on Monday"
+      ]
+     }
+    ]
+   },
+   "reply": "{\"groups\": [{\"group\": \"g1\", \"answers\": [\"a1\"]}]}",
+   "expect": {
+    "joins": [
+     [
+      "a1",
+      "g1"
+     ]
+    ],
+    "neverJoins": [
+     [
+      "a2",
+      "g2"
+     ]
+    ],
+    "labelWords": 4
+   }
+  }
+ ]
+}

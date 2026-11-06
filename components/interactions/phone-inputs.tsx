@@ -12,6 +12,7 @@ import { BulletsInput, ConfirmInput } from "@/components/interactions/outcomes/o
 import { IntentInput } from "@/components/interactions/intent/intent-phone";
 import { QaPhoneInput } from "@/components/interactions/qa/qa-phone";
 import { CandidatesInput } from "@/components/interactions/candidates/candidates-input";
+import { FourListsComposer } from "@/components/interactions/four-lists/four-lists-composer";
 import { LensInput } from "@/components/interactions/lens/lens-input";
 import { LensSummaryInput } from "@/components/interactions/lens-summary/summary-phone";
 
@@ -34,6 +35,7 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   lens: LensInput,
   lens_summary: LensSummaryInput,
   candidates: CandidatesInput,
+  four_lists: FourListsComposer,
   bullets: BulletsInput,
   confirm: ConfirmInput,
   choice: ChoiceInput,

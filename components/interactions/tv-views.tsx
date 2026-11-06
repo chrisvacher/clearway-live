@@ -13,6 +13,7 @@ import { BulletsTv, ConfirmTv } from "@/components/interactions/outcomes/outcome
 import { GoalsView } from "@/components/interactions/goals/goals-view";
 import { WallView } from "@/components/interactions/ai/wall-view";
 import { CandidatesView } from "@/components/interactions/candidates/candidates-view";
+import { FourListsView } from "@/components/interactions/four-lists/four-lists-view";
 import { LensView } from "@/components/interactions/lens/lens-view";
 import { LensSummaryView } from "@/components/interactions/lens-summary/summary-tv";
 
@@ -28,6 +29,7 @@ export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>
   lens: LensView,
   lens_summary: LensSummaryView,
   candidates: CandidatesView,
+  four_lists: FourListsView,
   choice: props => <LiveBars kind="choice" {...props} />,
   scale: props => <LiveScale {...props} />,
   ranking: props => <LiveBars kind="ranking" {...props} />,

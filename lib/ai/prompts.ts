@@ -2,8 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates" | "group_four_lists";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates", "group_four_lists"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
@@ -12,6 +12,9 @@ export type GroupInputs = { answers: { ref: string; id: string; text: string }[]
 // The lens wall (INT-12): the wall's inputs plus the lens, its name from the engagement, the base year
 // and the question with its years filled. Seeded sentences are in answers only once their lens opened.
 export type LensInputs = GroupInputs & { lens: number; lens_name: string; lens_names?: string[]; base_year: number; question: string };
+// The Four Helpful Lists (INT-11): the wall's inputs with the list each card is on. A group stays inside one list.
+export type FourListsInputs = { answers: { ref: string; id: string; column: "right" | "wrong" | "missing" | "confused"; text: string }[];
+  groups: { ref: string; id: string; column: string | null; label: string; pinned: boolean; renamed: boolean; count: number; examples: string[] }[] };
 export type SummaryInputs = { question: string; count: number; cut_at: string; answers: string[]; groups: { label: string; count: number }[] };
 export type FoldInputs = { questions: { ref: string; id: string; text: string; asked: number }[] };
 // The pre-mortem's reasons (it is 2029 and the plan failed): text and how many people placed each.
@@ -28,7 +31,7 @@ export type LensFoldInputs = Omit<LensDraftInputs, "job"> & { job: "fold"; versi
 export type CandidateInputs = { lens_names?: string[]; base_year?: number; min: number; max: number;
   sentences: { ref: string; id: string; lens: number; text: string; cluster: string | null }[];
   clusters: { ref: string; lens: number; label: string; count: number }[] };
-export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs;
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs | FourListsInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
@@ -210,6 +213,27 @@ export const prompts: Record<AiJob, Prompt> = {
       groups: i.groups.map(g => ({ ref: g.ref, label: g.label, pinned: g.pinned, sentences: g.examples })),
       sentences: i.answers.map(a => ({ ref: a.ref, text: a.text })) }); },
     parse: (text, inputs) => wallGroups(text, { answers: (inputs as LensInputs).answers ?? [], groups: (inputs as LensInputs).groups ?? [] }),
+  },
+  // The Four Helpful Lists. Cards sit in four lists; the model groups similar cards inside one list only, and the database
+  // refuses anything else. A label names what the cards share in the room's own words.
+  group_four_lists: {
+    job: "group_four_lists", version: "group-four-lists@1", maxTokens: 1200,
+    system: [
+      "You group cards on the Four Helpful Lists during a live discovery session with a church's leaders, run by Clearway Church Solutions.",
+      "The four lists are What's right?, What's wrong?, What's missing? and What's confused?. Each card is one short thing a person wrote on their phone, in one list.",
+      "Put cards in the same list that say the same thing, or nearly the same thing, in different words, into a group with a short label: one to four plain words, sentence case, no quotes, never a person's name.",
+      "Never put cards from two lists in one group, even when the words are alike. A card in What's wrong? and a card in What's missing? stay apart.",
+      "Use the room's own words in a label where you can. Never invent anything nobody wrote. Never reword, merge or add a card.",
+      "You see the existing groups (g1, g2...) with a few of their cards and their list, and the cards not yet in a group (a1, a2...) with their list.",
+      "Add a card to an existing group of the same list by its ref, or start a new group with ref n1, n2... holding at least two cards of one list.",
+      "Every group in your reply has a \"group\" ref: g1, g2... for an existing group, n1, n2... for a new one, and a new group also has a \"label\". Name cards by their refs (a1, a2...), never by their text.",
+      "Never add to a pinned group. Leave out a card that fits no group; it stays on the board as it is. Most cards group with nothing; that is normal.",
+      `Reply as {"groups":[{"group":"g1","answers":["a3"]},{"group":"n1","label":"A way into groups","answers":["a1","a2"]}]}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as FourListsInputs; return JSON.stringify({
+      groups: i.groups.map(g => ({ ref: g.ref, list: g.column, label: g.label, pinned: g.pinned, cards: g.examples })),
+      cards: i.answers.map(a => ({ ref: a.ref, list: a.column, text: a.text })) }); },
+    parse: (text, inputs) => wallGroups(text, { answers: (inputs as FourListsInputs).answers ?? [], groups: (inputs as FourListsInputs).groups ?? [] }),
   },
   summarize_wall: {
     job: "summarize_wall", version: "summarize-wall@2", maxTokens: 200,

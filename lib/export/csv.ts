@@ -3,6 +3,7 @@
 // as names, never strokes. This only lays the rows out, one column per option, statement,
 // item or question so a spreadsheet can sort and total them.
 import type { InteractionKind } from "../interactions/kinds";
+import { columnOf, listNames } from "../interactions/four-lists";
 
 export type ExportRow = { id: string; at: string; name?: string | null; text: string; value?: Record<string, unknown> | null; hidden: boolean; test: boolean;
   votes?: number | null; answered?: boolean | null; folded_into?: string | null };
@@ -70,6 +71,7 @@ function kindColumns(data: SessionExport): { header: string[]; cells: (row: Expo
       const list = items(o, "questions");
       return { header: list.map(i => i.text), cells: r => { const answers = record(record(r.value).answers); return list.map(i => answers[i.key] ?? ""); } };
     }
+    case "four_lists": return { header: ["List", "Card"], cells: r => { const col = columnOf(r.value); return [col ? listNames[col] : "", r.text]; } };
     case "sign": return { header: [], cells: () => [] };
     default: return { header: ["Answer"], cells: r => [r.text] };
   }

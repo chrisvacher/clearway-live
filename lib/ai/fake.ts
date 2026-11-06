@@ -51,6 +51,25 @@ const lensThemes: [string, RegExp][] = [
   ["Leaders raised here", /lead|apprentic|mentor/i], ["Shared work", /\bserv|volunteer|share the work|share the load/i], ["Known neighbours", /neighbo/i],
   ["Always learning", /learn|disciple|grow|teach/i],
 ];
+// The Four Helpful Lists' stand-in themes. Groups stay inside one list, as the prompt asks.
+const listThemes: [string, RegExp][] = [
+  ["Preaching", /preach|sermon/i], ["Praying together", /pray/i], ["People who serve", /volunteer|serv|greeter/i], ["A way into groups", /group|join|belong|connect/i],
+  ["Young adults", /young adult|youth|teen|student/i], ["Who decides", /budget|approve|decid|elders|roles/i], ["Staff capacity", /staff|stretch|capacity|tired|burn/i],
+];
+function scriptedFourLists(input: Record<string, unknown>) {
+  const cards = (input.cards ?? []) as { ref: string; list: string; text: string }[], existing = (input.groups ?? []) as { ref: string; list: string | null; label: string; pinned: boolean }[];
+  const out = new Map<string, { group: string; label?: string; answers: string[] }>(); let n = 0;
+  for (const c of cards) {
+    const theme = listThemes.find(([, re]) => re.test(c.text)); if (!theme) continue;
+    const group = existing.find(g => g.list === c.list && (g.label.toLowerCase() === theme[0].toLowerCase() || theme[1].test(g.label)));
+    if (group?.pinned) continue;
+    const k = group ? group.ref : `${c.list}|${theme[0]}`;
+    if (!out.has(k)) out.set(k, group ? { group: group.ref, answers: [] } : { group: `n${++n}`, label: theme[0], answers: [] });
+    out.get(k)!.answers.push(c.ref);
+  }
+  // A new group needs two cards of one list; a lone card stays as it is.
+  return JSON.stringify({ groups: [...out.values()].filter(g => g.label === undefined || g.answers.length >= 2) });
+}
 function scriptedGroups(input: Record<string, unknown>, themes: [string, RegExp][], key: "answers" | "sentences") {
   const answers = (input[key] ?? []) as { ref: string; text: string }[], existing = (input.groups ?? []) as { ref: string; label: string; pinned: boolean }[];
   const out = new Map<string, { group: string; label?: string; answers: string[] }>(); let n = 0;
@@ -143,6 +162,7 @@ export function scripted(call: AiCall): string {
   }
   if (job === "group_wall") return scriptedGroups(input, themes, "answers");
   if (job === "group_lens") return scriptedGroups(input, lensThemes, "sentences");
+  if (job === "group_four_lists") return scriptedFourLists(input);
   if (job === "summarize_wall") {
     const groups = (input.groups ?? []) as { label: string; count: number }[], answers = (input.answers ?? []) as string[];
     const top = groups.slice(0, 2).map(g => g.label.toLowerCase());

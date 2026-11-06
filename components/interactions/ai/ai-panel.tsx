@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Check, EyeOff, Info, Pencil, Pin, PinOff, Redo2, TriangleAlert, Undo2, X } from "lucide-react";
 import { GeneralItems, type Room } from "@/components/control/live-controls";
+import { listNames, isList } from "@/lib/interactions/four-lists";
 import { ago, aiNotice, dollars, isAiKind, seconds, type AiGroupRow, type AiStatus } from "@/lib/interactions/ai";
 import { AiIcon, AiMark, useAiSweep } from "./ai-icon";
 import { useAiStatus } from "./use-ai-status";
@@ -10,11 +11,11 @@ import "./ai.css";
 const stateText = (s: AiStatus) => {
   const session = s.session!;
   if (!s.engagement_ai) return "Off for this engagement";
-  if (!session.ai) return session.interaction === "wall" || session.interaction === "lens" ? "Off: the wall shows arrival order" : "Switched off for this session";
+  if (!session.ai) return session.interaction === "wall" || session.interaction === "lens" ? "Off: the wall shows arrival order" : session.interaction === "four_lists" ? "Off: cards stand on their own" : "Switched off for this session";
   if (s.state?.failing) return "Not responding: arrival order for now";
-  if (s.state?.slow) return `Slow: ${seconds(s.state.running_ms ?? s.state.last_ms)} to ${session.interaction === "wall" || session.interaction === "lens" ? "group" : session.interaction === "qa" ? "fold" : "combine"}`;
+  if (s.state?.slow) return `Slow: ${seconds(s.state.running_ms ?? s.state.last_ms)} to ${session.interaction === "wall" || session.interaction === "lens" || session.interaction === "four_lists" ? "group" : session.interaction === "qa" ? "fold" : "combine"}`;
   if (session.interaction === "word_cloud") return (s.different ?? 0) < (s.threshold ?? 30) ? `Combines once there are about ${s.threshold ?? 30} different answers` : "Combines near-duplicates as answers arrive";
-  return session.interaction === "wall" ? "Groups as answers arrive" : session.interaction === "lens" ? "Groups sentences by theme as they arrive" : "Folds near-duplicate questions as they arrive";
+  return session.interaction === "four_lists" ? "Groups similar cards inside each list as they arrive" : session.interaction === "wall" ? "Groups as answers arrive" : session.interaction === "lens" ? "Groups sentences by theme as they arrive" : "Folds near-duplicate questions as they arrive";
 };
 
 // FAIL-09 and the AI controls for the step on the TV (laptop): what AI is doing, its switch,
@@ -25,10 +26,10 @@ export function AiPanel({ room }: { room: Room }) {
   // Each new AI run that changed the room sweeps the panel's AI icon once. Undo goes back to a run already seen.
   const sweep = useAiSweep<HTMLDivElement>(status?.last_change ? [status.last_change.run] : [], s?.id ?? null);
   if (!status || !s || !isAiKind(s.interaction)) return null;
-  const notice = aiNotice(status), wall = s.interaction === "wall", grouping = wall || s.interaction === "lens";
+  const notice = aiNotice(status), wall = s.interaction === "wall", grouping = wall || s.interaction === "lens" || s.interaction === "four_lists";
   const live = status.combines?.filter(c => !c.undone).length ?? 0, folds = status.folds?.filter(f => !f.undone).length ?? 0;
   const meter: [string, string][] = s.interaction === "word_cloud" ? [[String(status.different ?? 0), "Different answers"], [s.ai ? String(live) : "Off", "AI combines"], [seconds(status.state?.last_ms), "AI response"]]
-    : grouping ? [[String(status.answers ?? 0), s.interaction === "lens" ? "Sentences" : "Answers"], [s.ai ? `${status.grouped ?? 0} of ${status.answers ?? 0}` : "Off", "Grouped by AI"], [seconds(status.state?.running_ms ?? status.state?.last_ms), "AI response"]]
+    : grouping ? [[String(status.answers ?? 0), s.interaction === "lens" ? "Sentences" : s.interaction === "four_lists" ? "Cards" : "Answers"], [s.ai ? `${status.grouped ?? 0} of ${status.answers ?? 0}` : "Off", "Grouped by AI"], [seconds(status.state?.running_ms ?? status.state?.last_ms), "AI response"]]
     : [[s.ai ? String(folds) : "Off", "Folded by AI"], [String(status.cost.runs), "AI calls"], [seconds(status.state?.last_ms), "AI response"]];
   return <section className="ctl-private" aria-label="AI, only you see this" data-ai-panel>
     <div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>AI for this session</span></div>
@@ -82,7 +83,7 @@ function GroupRow({ g, busy, press }: { g: AiGroupRow; busy: boolean; press: Ret
       <button className="show-button is-small is-primary" disabled={busy || !editing.trim()}><Check size={16} aria-hidden="true" />Save</button>
       <button type="button" className="show-button is-small is-icon" aria-label="Cancel rename" onClick={() => setEditing(null)}><X size={16} aria-hidden="true" /></button>
     </form> : <span className="ai-row-text"><span className="ai-row-title">{g.label}</span>
-      <span className="ai-row-sub">{g.undone ? "Undone · its answers are back in arrival order" : <><AiMark />Grouped{g.pinned ? " · Pinned" : ""}{g.renamed ? " · Renamed by you" : ""}</>}</span></span>}
+      <span className="ai-row-sub">{g.undone ? "Undone · its answers are back in arrival order" : <><AiMark />Grouped{isList(g.column) ? ` · ${listNames[g.column]}` : ""}{g.pinned ? " · Pinned" : ""}{g.renamed ? " · Renamed by you" : ""}</>}</span></span>}
     {editing === null && <span className="ai-row-actions">{g.undone
       ? <button className="show-button is-small" disabled={busy} onClick={() => void press("redo_group", { group: g.id })}><Redo2 size={16} aria-hidden="true" />Redo</button>
       : <>
@@ -94,6 +95,15 @@ function GroupRow({ g, busy, press }: { g: AiGroupRow; busy: boolean; press: Ret
 }
 
 // INT-02's list: the AI groups with Rename, Pin and Undo (or Redo), then the answers.
+export function AiGroupsList({ room }: { room: Room }) {
+  const { status, busy, message, press } = useAiStatus(room);
+  const groups = status?.groups ?? [], on = Boolean(status?.session?.ai);
+  return <section className="ctl-items" aria-labelledby="ai-groups-title" data-ai-groups>
+    <div className="ctl-row is-between"><h2 id="ai-groups-title">{on ? "AI groups" : "Cards on their own"}</h2><span className="ai-note">{on ? "A group stays inside one list. Pin keeps it. Undo dissolves it." : "Groups come back when AI is on"}</span></div>
+    {on && (groups.length ? <ul className="ai-rows">{groups.map(g => <GroupRow key={g.id} g={g} busy={busy} press={press} />)}</ul> : <p className="show-empty">Grouping as cards arrive.</p>)}
+    {message && <p className="show-message is-error" role="alert">{message}</p>}
+  </section>;
+}
 export function AiWallPanel({ room, onClose }: { room: Room; onClose?: () => void }) {
   const { status, busy, message, press } = useAiStatus(room);
   const groups = status?.groups ?? [], on = Boolean(status?.session?.ai);
@@ -112,7 +122,7 @@ export function AiRemote({ room }: { room: Room }) {
   const { status, busy, message, press } = useAiStatus(room);
   const s = status?.session;
   if (!status || !s || !isAiKind(s.interaction) || !s.live) return null;
-  const notice = aiNotice(status), wall = s.interaction === "wall", grouping = wall || s.interaction === "lens";
+  const notice = aiNotice(status), wall = s.interaction === "wall", grouping = wall || s.interaction === "lens" || s.interaction === "four_lists";
   const pinAll = async () => { for (const g of (status.groups ?? []).filter(x => !x.undone && !x.pinned)) await press("pin_group", { group: g.id }); };
   return <section className="ai-remote" aria-label="AI for this session" data-ai-remote>
     <p className="ctl-eyebrow">AI for this session</p>

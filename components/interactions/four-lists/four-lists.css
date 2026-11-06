@@ -1,0 +1,93 @@
+/* The Four Helpful Lists (INT-11, SET-05). Tokens only. On the TV the four lists are told apart by heading and position, never by colour. */
+
+/* ---------- The TV ---------- */
+.tv-layer[data-kind="four_lists"] > .tv-note { display: none; }
+.fl-tv { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; }
+.tv-board.fl-board { min-height: 0; }
+.fl-board { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--cwl-tv-gap); font-size: var(--cwl-fs-tv-floor); --fl-size: var(--cwl-fs-tv-body); }
+.fl-board[data-size="floor"] { --fl-size: var(--cwl-fs-tv-floor); }
+.fl-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding-top: 16px; box-shadow: inset 0 4px 0 var(--cwl-border-strong); }
+.fl-col > header { display: flex; flex-direction: column; gap: 4px; flex: none; }
+.fl-ix { font-size: var(--cwl-fs-tv-floor); font-weight: 700; color: var(--cwl-text-muted); font-variant-numeric: tabular-nums; line-height: 1; }
+.fl-name { min-width: 0; margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; color: var(--cwl-text); }
+.fl-list { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.fl-col.is-empty .fl-list::before { content: ""; display: block; flex: none; height: calc(var(--cwl-fs-tv-floor) * 2.6); border-radius: var(--cwl-radius-tv-card); box-shadow: inset 0 0 0 3px var(--cwl-border); }
+.fl-more { flex: none; min-height: 1.3em; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: 600; line-height: 1.3; color: var(--cwl-text-muted); }
+.fl-card { flex: none; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 14px 18px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);
+  font-size: var(--fl-size); font-weight: 600; line-height: 1.2; will-change: transform; }
+/* Held back by the fit step (set from code, so a re-render never shows it again). */
+.fl-card[data-over] { display: none; }
+.fl-card.is-newest { background: var(--cwl-live); color: var(--cwl-on-live); }
+.fl-card.is-settling { transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature), color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
+.fl-card .fl-tx { min-width: 0; overflow-wrap: anywhere; }
+.fl-card .fl-ft { flex: none; align-self: flex-end; display: inline-flex; align-items: center; gap: 12px; }
+.fl-agree { display: inline-flex; align-items: center; gap: 6px; height: 1.6em; padding: 0 0.55em; border-radius: var(--cwl-radius-pill); box-shadow: inset 0 0 0 3px currentColor; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fl-agree b { display: inline-block; min-width: 1ch; text-align: right; }
+.fl-agree b[data-digits="2"] { min-width: 2ch; }
+.fl-agree b[data-digits="3"] { min-width: 3ch; }
+.fl-agree b[data-digits="4"] { min-width: 4ch; }
+.fl-agree svg { width: 0.85em; height: 0.85em; flex: none; }
+.fl-agree.is-zero { box-shadow: inset 0 0 0 2px var(--cwl-border-strong); }
+.fl-ai { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.fl-ghost { position: absolute; margin: 0; pointer-events: none; z-index: 1; }
+.fl-foot { flex: none; min-height: 1.3em; margin: 0; display: flex; align-items: center; gap: 12px; font-size: var(--cwl-fs-tv-floor); font-weight: 600; color: var(--cwl-text-muted); }
+.fl-foot:empty { display: none; }
+.fl-note { margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: 300; color: var(--cwl-text-muted); }
+[data-motion="reduced"] .fl-card { will-change: auto; }
+
+/* ---------- Phones ---------- */
+.fl-ph { display: flex; flex-direction: column; gap: 16px; }
+.fl-pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.fl-pick legend { padding: 0; margin-bottom: 8px; font-size: var(--cwl-fs-phone-label); font-weight: 700; }
+.fl-pick label { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--cwl-phone-touch); padding: 6px 8px; border-radius: var(--cwl-radius-button); box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong);
+  color: var(--cwl-text); font-size: var(--cwl-fs-phone-label); font-weight: 600; text-align: center; cursor: pointer; }
+.fl-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.fl-pick label:has(input:checked) { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: none; }
+.fl-pick label:has(input:focus-visible) { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.fl-hint { margin: 0; color: var(--cwl-text-muted); font-size: var(--cwl-fs-phone-label); }
+.fl-others { display: flex; flex-direction: column; gap: 6px; list-style: none; margin: 0; padding: 0; }
+.fl-others-head { margin: 0; color: var(--cwl-text-muted); font-size: var(--cwl-fs-phone-label); font-weight: 600; }
+.fl-row { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font-size: var(--cwl-fs-phone-label); font-weight: 600; line-height: 1.35; }
+.fl-row .fl-rt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.fl-row small { display: block; margin-top: 2px; font-size: var(--cwl-fs-phone-micro); font-weight: 600; opacity: 0.8; }
+.fl-agree-btn { flex: none; display: inline-flex; align-items: center; gap: 4px; min-width: var(--cwl-phone-touch); min-height: var(--cwl-phone-touch); padding: 0 12px; border-radius: var(--cwl-radius-button); border: 0; background: transparent;
+  color: inherit; box-shadow: inset 0 0 0 1.5px currentColor; font: inherit; font-size: var(--cwl-fs-phone-micro); font-weight: 700; cursor: pointer; justify-content: center; }
+.fl-agree-btn svg { width: 14px; height: 14px; flex: none; }
+.fl-agree-btn[aria-pressed="true"] { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: none; }
+.fl-agree-btn:disabled { opacity: 0.5; cursor: default; }
+.fl-agree-btn:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.fl-mine { display: inline-flex; align-items: center; gap: 4px; flex: none; font-size: var(--cwl-fs-phone-micro); font-weight: 700; }
+
+/* ---------- The control surface ---------- */
+.fl-ctl-counts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.fl-ctl-counts li { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: var(--cwl-radius-card); border: 1px solid var(--cwl-border); min-width: 0; }
+.fl-ctl-counts b { font-size: var(--cwl-fs-app-label); font-variant-numeric: tabular-nums; }
+.fl-ctl-counts span { color: var(--cwl-text-muted); font-size: var(--cwl-fs-app-micro); }
+.fl-ctl-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+
+/* ---------- The review (SET-05) ---------- */
+.fl-review { display: flex; flex-direction: column; gap: 16px; padding: 24px; max-width: 1480px; margin: 0 auto; color: var(--cwl-app-text); }
+.fl-review h1 { margin: 0; font-size: var(--cwl-fs-app-label); }
+.fl-review-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.fl-review-meta { margin: 0; color: var(--cwl-text-muted); font-size: var(--cwl-fs-app-table); }
+.fl-review-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; min-height: 0; align-items: start; }
+.fl-review-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.fl-rlist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.fl-rcol { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.fl-rcol h2 { margin: 0 0 2px; font-size: var(--cwl-fs-app-label); font-weight: 700; display: flex; justify-content: space-between; gap: 6px; padding-bottom: 6px; border-bottom: 2px solid var(--cwl-app-text); }
+.fl-rcard { background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-size: var(--cwl-fs-app-table); }
+.fl-rcard.is-selected { box-shadow: 0 0 0 2px var(--cwl-app-focus); }
+.fl-rcard.is-aside { opacity: 0.65; }
+.fl-rcard .top { display: flex; gap: 8px; align-items: flex-start; }
+.fl-rcard .top b { flex: 1; font-weight: 600; overflow-wrap: anywhere; }
+.fl-rcard .ag { display: inline-flex; align-items: center; gap: 3px; font-size: var(--cwl-fs-app-micro); font-weight: 700; white-space: nowrap; }
+.fl-rcard .ag svg { width: 12px; height: 12px; }
+.fl-rcard .to { display: flex; flex-wrap: wrap; gap: 6px; }
+.fl-rcard .sub { margin: 0; color: var(--cwl-text-muted); font-size: var(--cwl-fs-app-micro); }
+.fl-rcard form { display: flex; flex-direction: column; gap: 6px; }
+.fl-rcard textarea { width: 100%; min-height: 4.5em; resize: vertical; font: inherit; }
+.fl-rcard .merged { margin: 0; padding: 0 0 0 10px; list-style: none; border-left: 2px solid var(--cwl-app-border); display: flex; flex-direction: column; gap: 4px; color: var(--cwl-text-muted); font-size: var(--cwl-fs-app-micro); }
+.fl-mark { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 600; cursor: pointer; }
+.fl-mark input { width: 18px; height: 18px; }
+@media (max-width: 1100px) { .fl-review-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .fl-review-grid { grid-template-columns: minmax(0, 1fr); } .fl-ctl-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

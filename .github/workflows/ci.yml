@@ -201,6 +201,19 @@ jobs:
           path: candidates-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the Four Helpful Lists (INT-11) with AI grouping, agreement, the review and 50 simulated phones in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p four-lists-shots && npm run test:four-lists
+        env:
+          KIT_SHOTS: four-lists-shots
+      - name: Upload the Four Helpful Lists screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: four-lists-screens
+          path: four-lists-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test milestone 4 acceptance (every Wayfinding kind, 50 simulated phones, frame sampling)
         if: ${{ !cancelled() }}
         run: mkdir -p acceptance-m4-shots && npm run test:acceptance-m4
