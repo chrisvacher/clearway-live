@@ -34,7 +34,7 @@ create function tests.step1_state(p_engagement uuid) returns jsonb language sql 
  where r.engagement_id=p_engagement and not r.deleted
 $$;
 create function tests.same_state() returns boolean language sql stable security definer set search_path='' as $$
- select private.live_public_state(tests.id(100))-'qa' = tests.step1_state(tests.id(100)) and private.live_public_state(tests.id(100)) ? 'qa' $$;
+ select private.live_public_state(tests.id(100))-'qa'-'promoted_quote' = tests.step1_state(tests.id(100)) and private.live_public_state(tests.id(100)) ? 'qa' $$;
 grant execute on all functions in schema tests to authenticated,anon,service_role;
 
 insert into churches(id,name,timezone) values(tests.id(200),'Riverside Church','America/Toronto');

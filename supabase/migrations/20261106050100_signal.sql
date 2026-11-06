@@ -22,7 +22,7 @@
 --
 -- Shared objects touched, each a superset of its latest definition:
 --   private.ai_runs ai_runs_job_check   step 4's list (20261106040000, which holds step 3's) plus alignment_signal; ai_runs_session_check is not touched (the signal has a session)
---   private.live_public_state           the qa version (20261103070000) plus state.neutral_question, only while one is up
+--   private.live_public_state           the promoted quote's wrapper (20261106050000), renamed live_public_state_pre_signal, plus state.neutral_question, only while one is up
 --   private.ai_claim                    step 2's wrapper (20261106020000), renamed ai_claim_pre_signal, plus the signal's claim
 --   private.ai_apply                    step 2's wrapper, renamed ai_apply_pre_signal, plus the signal's apply
 --   private.ai_fail                     step 2's wrapper, renamed ai_fail_pre_signal, plus the signal's failure
@@ -99,19 +99,17 @@ create trigger signal_ask_cleared after update on public.room_states for each ro
  when (old.neutral_question is not null and new.neutral_question is null) execute function private.signal_ask_cleared();
 
 -- ---------- The TV's payload ----------
--- The qa version (20261103070000) with every field and rule kept. The only addition is state.neutral_question, present only while a
+-- The promoted quote version (20261106050000, over the qa version) with every field and rule kept. The only addition is state.neutral_question, present only while a
 -- question is up. It is the question's text: no theme, count, signal kind or AI line is in the payload because none is stored with it.
-create or replace function private.live_public_state(p_engagement uuid) returns jsonb
+alter function private.live_public_state(uuid) rename to live_public_state_pre_signal;
+revoke all on function private.live_public_state_pre_signal(uuid) from public,anon,authenticated;
+create function private.live_public_state(p_engagement uuid) returns jsonb
 language sql stable security definer set search_path='' as $$
- select jsonb_build_object('state',jsonb_build_object('engagement_id',r.engagement_id,'live_session_id',r.live_session_id,'tv_content',r.tv_content,'phones_down',r.phones_down,'burst_ends_at',r.burst_ends_at,'spotlight_id',r.spotlight_id,'spotlight_key',r.spotlight_key,'hidden_ids',r.hidden_ids,'hidden_keys',r.hidden_keys,'remote_holder_id',r.remote_holder_id,'team_led_block_id',r.team_led_block_id,'show_tv_on_phones',r.show_tv_on_phones,'phone_refresh_version',r.phone_refresh_version,'results',r.results,'version',r.version)
-  ||case when r.neutral_question is not null then jsonb_build_object('neutral_question',r.neutral_question) else '{}'::jsonb end,'session',case when s.id is not null then jsonb_build_object(
- 'id',s.id,'title',s.title,'interaction',s.interaction,'prompt',private.fill_years(s.prompt,e.base_year),'state',s.state,'revision',s.revision,'base_year',e.base_year,
- 'max_sends',s.max_sends,'max_characters',s.max_characters,'max_words',s.max_words,'options',private.public_options(s,e.settings),'kind',private.kind_public(s.interaction),
- 'settings',jsonb_build_object('anonymous',s.settings->'anonymous','burst_minutes',s.settings->'burst_minutes','join_strip',s.settings->'join_strip')) end,
- 'qa',private.qa_public(p_engagement))||private.tv_room_info(p_engagement)
- from public.room_states r join public.engagements e on e.id=r.engagement_id left join public.sessions s on s.id=r.live_session_id and not s.deleted
- where r.engagement_id=p_engagement and not r.deleted
+ select case when r.neutral_question is not null and b is not null then jsonb_set(b,'{state,neutral_question}',to_jsonb(r.neutral_question)) else b end
+  from (select private.live_public_state_pre_signal(p_engagement) b) x left join public.room_states r on r.engagement_id=p_engagement and not r.deleted
 $$;
+revoke all on function private.live_public_state(uuid) from public,anon,authenticated;
+
 
 -- ---------- What the model reads ----------
 -- The room's input to one step, in the words it was written: answers and scribe cards, never who wrote them. Hidden, withdrawn

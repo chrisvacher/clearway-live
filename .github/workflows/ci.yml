@@ -214,6 +214,19 @@ jobs:
           path: acceptance-m4-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test promoting a scribe quote to the TV (anonymous, over a live word cloud, no blank frame, replace, take down, long quotes) in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p promoted-quote-shots && npm run test:promoted-quote
+        env:
+          KIT_SHOTS: promoted-quote-shots
+      - name: Upload the promoted quote screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: promoted-quote-screens
+          path: promoted-quote-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the Riverside Wayfinding retreat end to end in real browsers
         if: ${{ !cancelled() }}
         run: mkdir -p wayfinding-shots && npm run test:wayfinding

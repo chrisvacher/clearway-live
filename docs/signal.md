@@ -4,7 +4,7 @@ FAC-02 and the FAC-03 signal list. While a Wayfinding or general input step is l
 
 The cards are suggestions. They notice and describe; they never correct. (Chris: "not striking out bad ideas, but noticing the discussion going a different direction.")
 
-Migration: `supabase/migrations/20261106050000_signal.sql`. Prompt: `alignment-signal@1` in `lib/ai/prompts.ts`. Kit: `npm run test:signal`. Database tests: `supabase/tests/database/signal.test.sql`.
+Migration: `supabase/migrations/20261106050100_signal.sql`. Prompt: `alignment-signal@1` in `lib/ai/prompts.ts`. Kit: `npm run test:signal`. Database tests: `supabase/tests/database/signal.test.sql`.
 
 ## Who sees it
 
@@ -53,7 +53,7 @@ A neutral question is 1 to 200 characters, passes the word filter, and is refuse
 | Object | Extends |
 | --- | --- |
 | `ai_runs_job_check` | step 3's list (20261106030000) plus `alignment_signal`. If step 4 adds a job, whichever merges second must rebase the list. |
-| `live_public_state` | the Q&A version (20261103070000) plus `state.neutral_question`, only while one is up |
+| `live_public_state` | the promoted quote wrapper (20261106050000), renamed `live_public_state_pre_signal`, plus `state.neutral_question`, only while one is up |
 | `ai_claim`, `ai_apply`, `ai_fail` | step 2's wrappers (20261106020000), renamed `*_pre_signal`, dispatch on job (`ai_status` is not wrapped) |
 | `reset_practice_room` | step 2's wrapper (20261106020000), replaced in place with the signal's lines added (an earlier test reads the base chain) |
 | `rehearsal_control` | step 2's wrapper, renamed `rehearsal_control_pre_signal`; Clear test answers also puts test signals away and resets the step's watermarks |
