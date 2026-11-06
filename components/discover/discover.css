@@ -81,3 +81,43 @@
 
 .dsc-btn.is-compact { min-height: 26px; padding: 0 8px; font-size: var(--cwl-fs-app-micro); }
 .dsc-status.is-wide { grid-column: 2 / -1; }
+
+/* Themes panel, drafted themes and their states (milestone 6, step 3) */
+.dsc { --cwl-ai-start: var(--cw-royal-blue); --cwl-ai-end: var(--cwl-bright-chartreuse); --cwl-ai-glint: var(--cw-sky-blue); }
+.dsc .cwl-ai-mark { width: 16px; height: 16px; }
+.dsc-themes-panel { display: flex; flex-direction: column; gap: 12px; }
+.dsc-draftbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dsc-draftnote { flex: 1 1 280px; display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--cwl-fs-app-label); font-weight: 600; color: var(--cwl-app-text-muted); }
+.dsc-draftnote svg { width: 16px; height: 16px; flex: none; }
+.dsc-draftnote.is-warn { color: var(--cwl-app-text); box-shadow: inset 3px 0 0 var(--cwl-app-warning); padding-left: 8px; }
+.dsc-spin { animation: dsc-spin 1s linear infinite; }
+@keyframes dsc-spin { to { transform: rotate(360deg); } }
+.dsc-themes { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.dsc-theme { position: relative; }
+.dsc-theme .lb { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dsc-theme .was { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 600; color: var(--cwl-app-text-muted); }
+.dsc-theme .was svg { width: 12px; height: 12px; }
+.dsc-theme .detail { font-size: var(--cwl-fs-app-table); color: var(--cwl-app-text-muted); }
+.dsc-theme .tr { height: 6px; border-radius: var(--cwl-radius-button); background: var(--cwl-app-sunken); overflow: hidden; }
+.dsc-theme .tr i { display: block; height: 100%; background: var(--cwl-app-primary); transition: width var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+.dsc-theme.is-thin { border-style: dashed; }
+.dsc-theme.is-receiving { box-shadow: 0 0 0 2px var(--cwl-app-primary); }
+.dsc-ai { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 600; color: var(--cwl-app-text); }
+.dsc-theme .qs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--cwl-fs-app-table); font-style: italic; }
+.dsc-theme .srcs { display: flex; gap: 8px; align-items: flex-start; font-size: var(--cwl-fs-app-micro); margin: 0; }
+.dsc-theme .srcs .lead { font-weight: 700; padding-top: 2px; white-space: nowrap; }
+.dsc-theme .srcs ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.dsc-theme .srcs li { display: inline-flex; align-items: center; gap: 4px; max-width: 28ch; padding: 1px 6px; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-button); }
+.dsc-theme .srcs li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dsc-theme .srcs li svg { width: 12px; height: 12px; flex: none; }
+.dsc-theme .acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dsc-theme .members ul, .dsc-rejected ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.dsc-theme .members li, .dsc-rejected li { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dsc-theme .members summary, .dsc-rejected summary { cursor: pointer; font-size: var(--cwl-fs-app-micro); font-weight: 700; }
+.dsc-add { display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.dsc-add label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cwl-fs-app-label); font-weight: 700; }
+.dsc-add fieldset { border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); max-height: 220px; overflow: auto; }
+.dsc-add fieldset ul { list-style: none; margin: 0; padding: 0; }
+.dsc-add fieldset label { flex-direction: row; align-items: center; font-weight: 500; }
+.dsc-add .acts { display: flex; gap: 8px; }
+@media (prefers-reduced-motion: reduce) { .dsc-spin { animation: none; } .dsc-theme .tr i { transition: none; } }

@@ -5,6 +5,7 @@ import { aiConfig } from "./config";
 import { aiClient } from "./client";
 import { workSessions } from "./worker";
 import { workOvernight } from "./overnight";
+import { workThemes } from "./themes";
 
 // Schedules AI work to run after the response has been sent (Vercel keeps the function
 // alive for it with waitUntil), so it can never delay an answer reaching the TV. With no
@@ -57,6 +58,29 @@ export function kickOvernight(engagement: string, force = false) {
         await workOvernight(db, ai, engagement, aiConfig());
       } catch (error) {
         console.error("Overnight draft unavailable", { code: error instanceof Error ? error.name : "failed" });
+      }
+    });
+  } catch { /* Outside a request (tests): nothing to schedule. */ }
+}
+
+// Discover themes: a press on Draft themes makes a pending round; this runs it after the response, and the page's own poll asks
+// again, so a first try that failed is retried after its pause with nobody pressing anything.
+const lastThemes = new Map<string, number>();
+export function kickThemes(engagement: string, force = false) {
+  const ai = aiClient();
+  if (!ai) return;
+  const now = Date.now();
+  if (!force && now - (lastThemes.get(engagement) ?? 0) < 4000) return;
+  lastThemes.set(engagement, now);
+  try {
+    after(async () => {
+      try {
+        const db = serviceClient();
+        const { data, error } = await db.rpc("discover_theme_due", { p_engagement: engagement });
+        if (error || data !== true) return;
+        await workThemes(db, ai, engagement, aiConfig());
+      } catch (error) {
+        console.error("Discover themes unavailable", { code: error instanceof Error ? error.name : "failed" });
       }
     });
   } catch { /* Outside a request (tests): nothing to schedule. */ }

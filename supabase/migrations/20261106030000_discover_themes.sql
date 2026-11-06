@@ -178,7 +178,7 @@ begin
  select jsonb_build_object('status','ok','server_time',clock_timestamp(),'ai',coalesce(ai,false),
   'inputs',jsonb_build_object('notes',n_notes,'cards',n_cards),
   'round',case when r.id is not null and (n_notes>0 or n_cards>0) then jsonb_build_object('status',r.status,'redraft',r.redraft,'requested_at',r.requested_at,'attempts',r.attempts,
-     'error',r.last_error,'ok_at',r.last_ok_at,'offered',r.last_offered,'refused',r.last_refused,
+     'error',r.last_error,'ok_at',r.last_ok_at,'offered',r.last_offered,'refused',r.last_refused,'left_out',coalesce((r.inputs->>'left_out')::integer,0),
      'stale_notes',case when r.last_ok_at is null then 0 else (select count(*) from private.conversation_notes c where c.engagement_id=p_engagement and not c.deleted and c.created_at>r.last_ok_at) end) end,
   'themes',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'source',t.source,'label',t.label,'detail',t.detail,'rests_on',t.rests_on,'out_of',t.out_of,'quotes',t.quotes,'status',t.status,
      'ai',t.ai_run is not null,'by_hand',t.ai_run is null and t.source<>'survey','renamed_from',case when t.original_label is distinct from t.label then t.original_label end,

@@ -4,6 +4,7 @@ import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/policy";
 import { governanceWord } from "@/lib/discover/policy";
 import { readDiscover } from "@/lib/discover/server";
+import type { ThemesState } from "@/lib/discover/themes";
 import { Discover } from "@/components/discover/discover";
 
 // Discover for one engagement: the survey report's findings, interview and input-conversation notes, and themes.
@@ -19,5 +20,7 @@ export default async function DiscoverPage({ params }: { params: Promise<{ id: s
   if (!state) return <main id="main" className="page-width"><div className="hero"><div className="eyebrow-live">Only you see this</div><h1>Discover</h1>
     <p>{missing ? "Discover isn't ready yet. It turns on when the database update is applied." : "Only the facilitators of this engagement can use Discover."}</p>
     <Link className="text-link" href={`/setup/${id}`}>Back to the engagement</Link></div></main>;
-  return <Discover engagement={id} title={engagement.title} initial={state} closed={engagement.status === "closed"} governance={governanceWord(church?.governance_body_name)} />;
+  const { data: themes, error: themesError } = await client.rpc("discover_themes_state", { p_engagement: id });
+  const initialThemes = !themesError && themes?.status === "ok" ? ({ ...themes, slow_after_ms: undefined } as ThemesState) : null;
+  return <Discover engagement={id} title={engagement.title} initial={state} closed={engagement.status === "closed"} governance={governanceWord(church?.governance_body_name)} initialThemes={initialThemes} />;
 }
