@@ -309,6 +309,17 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .tv-layer.is-input .tv-headline { margin-bottom: var(--space-4); }
 .tv-layer.is-entering, .tv-layer.is-leaving { opacity: 0; }
 .tv-layer.is-leaving { pointer-events: none; }
+/* Ask the room: the neutral question is a layer over the live step. The step fades out and the question fades in on the session-change
+   fade, and back again on Back to the session. The count and the AI line are hidden while it is up, and come back with the step. */
+.tv-layers.is-asking .tv-layer { opacity: 0; pointer-events: none; }
+.tv-ask { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: safe center; gap: var(--space-6); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-ask.is-on { opacity: 1; }
+.tv-ask .tv-headline-xl { max-width: 1560px; margin: 0; font-weight: var(--fw-light); line-height: 1.12; }
+.tv-ask-hide:empty { display: none; }
+.tv-ask-hide { transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), visibility 0s linear 0s; }
+.tv-ask-hide.is-hidden { opacity: 0; visibility: hidden; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), visibility 0s linear var(--cwl-dur-make-room); }
+[data-motion="reduced"] .tv-ask, [data-motion="reduced"] .tv-ask-hide { transition-duration: var(--cwl-dur-reduced); }
+[data-motion="reduced"] .tv-ask-hide.is-hidden { transition-delay: 0s, var(--cwl-dur-reduced); }
 .tv-content-text { white-space: pre-line; }
 .tv-board { position: relative; flex: 1; min-height: 360px; display: flex; flex-direction: column; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.3; overflow: hidden; }
 .tv-note { position: absolute; left: 0; bottom: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }

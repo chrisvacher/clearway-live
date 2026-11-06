@@ -29,6 +29,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const [ackTick, setAckTick] = useState(0);
   const [scribeTick, setScribeTick] = useState(0);
   const [overnightTick, setOvernightTick] = useState(0);
+  const [signalTick, setSignalTick] = useState(0);
   const [lastOk, setLastOk] = useState<number | null>(null);
   const [connection, setConnection] = useState<LiveTransport | null>(null);
   const started = useRef(Date.now()), history = useRef(new Map<number, LiveSnapshot>()), appliedAt = useRef(new Map<number, number>());
@@ -111,6 +112,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
     return subscribeFacilitator(connection, topic, (notice: ControlNotice) => {
       if (notice.kind === "scribe") { setScribeTick(t => t + 1); return; }
       if (notice.kind === "overnight") { setOvernightTick(t => t + 1); return; }
+      if (notice.kind === "signal") { setSignalTick(t => t + 1); return; }
       if (notice.kind === "ack") {
         if ((acks.current.get(notice.screen) ?? 0) < notice.version) { acks.current.set(notice.screen, notice.version); setAckTick(t => t + 1); }
         return;
@@ -178,5 +180,5 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const next = upNext(sessions, shownId, anchor);
   const current = sessions.find(s => s.id === shownId) ?? null;
   const refresh = useCallback(() => { refreshStatus.current(); refreshShow.current(); }, []);
-  return { scribeTick, overnightTick, frame, mirror, mode, status, show, now, toasts, pending, waiting, message, syncing, reload, confirmed, press, steps, upNext: next, current, clockOffset: clock.current.offsetMs, setMessage, refresh };
+  return { scribeTick, overnightTick, signalTick, frame, mirror, mode, status, show, now, toasts, pending, waiting, message, syncing, reload, confirmed, press, steps, upNext: next, current, clockOffset: clock.current.offsetMs, setMessage, refresh };
 }

@@ -81,6 +81,7 @@ export function aiNotice(status: AiStatus | null): { kind: "warning" | "info"; t
 export const aiPressNames: Record<string, string> = {
   turn_ai_on: "turned AI on", turn_ai_off: "turned AI off", undo_ai_combine: "undid an AI combine", undo_ai_group: "undid an AI group", redo_ai_group: "redid an AI group",
   pin_group: "pinned a group", unpin_group: "unpinned a group", rename_group: "renamed a group", undo_last_ai_change: "undid the last AI change", show_summary: "showed the AI summary", hide_summary: "hid the AI summary",
+  dismiss_signal: "dismissed a signal card", save_signal_citation: "saved a signal as a citation", ask_the_room: "asked the room a question", back_to_session: "went back to the session",
 };
 export const seconds = (ms: number | null | undefined) => ms == null ? "·" : `${(ms / 1000).toFixed(1)}s`;
 export const dollars = (usd: number) => usd < 0.01 ? (usd > 0 ? "under $0.01" : "$0.00") : `$${usd.toFixed(2)}`;
