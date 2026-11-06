@@ -14,6 +14,7 @@ import { CandidatesOptions } from "@/components/interactions/candidates/candidat
 import { LensOptions } from "@/components/interactions/lens/lens-options";
 import { LensSummaryOptions } from "@/components/interactions/lens-summary/summary-options";
 import { FourListsOptions } from "@/components/interactions/four-lists/four-options";
+import { ReadBackOptions } from "@/components/interactions/read-back/read-back-options";
 
 // Per-interaction settings in the run of show (SET-07). Each kind's editor writes only
 // session.options; the database's options_<kind> normalizes and checks it on Save.
@@ -39,6 +40,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
   lens: LensOptions,
   lens_summary: LensSummaryOptions,
   four_lists: FourListsOptions,
+  read_back: ReadBackOptions,
   candidates: CandidatesOptions,
 };
 // Each kind's starting options and limits when it is chosen.
@@ -63,5 +65,6 @@ export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
   lens: { max_sends: 8, max_characters: 200, max_words: 50, options: { lens: 1 } },
   lens_summary: { max_sends: 1, max_characters: 140, max_words: 50, options: { lens: 1 } },
   four_lists: { max_sends: 12, max_characters: 140, max_words: 30, options: {} },
+  read_back: { max_sends: 60, max_characters: 280, max_words: 50, options: { ai: true } },
   candidates: { max_sends: 1, max_characters: 200, max_words: 50, options: { ai: true, cut: 5 } },
 };

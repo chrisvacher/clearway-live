@@ -15,6 +15,7 @@ const blurbs: Partial<Record<InteractionKind, string>> = {
   bullets: "What is true, one outcome at a time", confirm: "Confirm, rename or challenge each outcome",
   intent: "One card per outcome, written in pairs", lens_summary: "Each lens's 10-year Future, approved or changed live", candidates: "Name the priorities, then weigh them against each other",
   four_lists: "Right, wrong, missing, confused, with agreement",
+  read_back: "Confirm each lens and outcome, with a correction that folds in",
 };
 const screenBlurbs: Record<ContentScreen, string> = {
   scripture: "Passage, reference, translation", headline: "One line on the TV, depth on phones", prayer: "A still screen or a single line",
@@ -22,7 +23,7 @@ const screenBlurbs: Record<ContentScreen, string> = {
 };
 // Starting lengths in minutes (the pass 3 builder's), editable per session.
 export const kindMinutes: Partial<Record<InteractionKind, number>> = {
-  word_cloud: 10, wall: 15, qa: 10, choice: 5, scale: 5, ranking: 10, points: 15, grid: 15, form: 10, sign: 5, statements: 5, goals: 20, lens: 15, content: 5, bullets: 15, confirm: 15, intent: 30, candidates: 25, lens_summary: 25, four_lists: 30,
+  word_cloud: 10, wall: 15, qa: 10, choice: 5, scale: 5, ranking: 10, points: 15, grid: 15, form: 10, sign: 5, statements: 5, goals: 20, lens: 15, content: 5, bullets: 15, confirm: 15, intent: 30, candidates: 25, lens_summary: 25, four_lists: 30, read_back: 30,
 };
 export const paletteScreens: ContentScreen[] = ["scripture", "headline", "prayer", "image", "holding", "screen_check"];
 

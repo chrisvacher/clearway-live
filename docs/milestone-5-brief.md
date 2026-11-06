@@ -124,3 +124,24 @@ None open for step 1. The Defaults above are flagged for confirmation.
 ## Step 3b: promoting a scribe quote to the TV
 
 Built apart from the read-back (step 3a) on its own branch. A facilitator promotes a quote card from the scribe feed on FAC-01 and the TV shows its words anonymously (PromotedQuote: pass 3's spotlight with the Scripture screen's light and bold treatment) over the live step, which keeps running and taking answers underneath. Take down returns the TV to the step exactly as it is. The state lives on the card, so Reset practice room clears it without a change to that function, and it rides the room state and version like every other screen. The Defaults chosen (phones stay on the live step, the words go as written, the remote can take it down, the quote comes down when the live step changes) and the behaviour are in `scribe-console.md` ("Promoting a quote to the TV"). This settles the step 1 Default "Promote a quote to the TV: not in step 1".
+
+## Step 3a: the Day 2 short confirm and read-back (built)
+
+Built on its own branch, `docs/read-back.md` describes it. One interaction kind, `read_back` (D2-03, D2-04, INT-14), migration `20261106060000_read_back.sql`. The Day 2 confirm reads the five signed-off lens summaries in lens order and then each reviewed outcome with its 3-year Vision bullets, from the latest overnight publication. The TV, phones, the scribe's correction composer and the control surface's correction queue are built, and a lens item settled with a change becomes a new signed-off lens summary version that the draft Map reads.
+
+Defaults chosen in step 3a (flagged for Chris):
+
+| Default | Chosen |
+| --- | --- |
+| When the items are read | At go-live, with a Reload items action on the control surface. An untouched item is rewritten from the sources on reload, a touched one is kept |
+| A lens that was never signed off | It has no item. The control surface lists it as "Not signed off" |
+| Nothing published yet | Only the five lens items load, and the control surface says the overnight drafts are not published yet. Reload picks up a later publication |
+| What a phone sees behind an outcome line | Only the phone input the overnight draft cites. Never scribe cards, photos or speakers |
+| The template step | "Confirm the 10-year Future and outcomes", 30 minutes, AI on, in both Wayfinding templates. Existing engagements are unchanged |
+| The tally's bars | Each bar is its share of everyone signed in to the room. Neither bar is a leader colour |
+| "What's missing?" on the TV | Up to 6 anonymous answers, as many as fit whole, each clamped to two lines, and "+ n more on phones" for the rest |
+| Underlines | Inserted words stay underlined, against the first wording, until the item is settled |
+| A decision with no words | Defaults to "Confirmed", or "Confirmed with changes" when a correction folded in |
+| Folding by AI | A correction naming no line goes to the fast live model (`fold-read-back@1`) as soon as the facilitator accepts it; every other line stays word for word, numbers only from the item's sources, present tense for lens items, at most 8 lines and 420 characters |
+| The scribe's composer | Polls the read-back only while a read-back step is live |
+

@@ -15,6 +15,7 @@ import { CandidatesInput } from "@/components/interactions/candidates/candidates
 import { LensInput } from "@/components/interactions/lens/lens-input";
 import { LensSummaryInput } from "@/components/interactions/lens-summary/summary-phone";
 import { FourListsComposer } from "@/components/interactions/four-lists/four-input";
+import { ReadBackInput } from "@/components/interactions/read-back/read-back-phone";
 
 // The phone input for each structured kind. Word cloud and open text use the phone's
 // text form. An input sends through the phone's outbox (offline queueing, order, ids and
@@ -36,6 +37,7 @@ export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInp
   lens_summary: LensSummaryInput,
   candidates: CandidatesInput,
   four_lists: FourListsComposer,
+  read_back: ReadBackInput,
   bullets: BulletsInput,
   confirm: ConfirmInput,
   choice: ChoiceInput,

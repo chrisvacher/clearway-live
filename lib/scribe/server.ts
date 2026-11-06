@@ -15,7 +15,8 @@ const statusCode = (status: string) => ["accepted", "duplicate", "ok", "unchange
   : ["conflict", "team_led", "missing"].includes(status) ? 409 : 422;
 
 // A scribe's call, under the scribe's own room sign-in; the control surface's feed reads under the facilitator's.
-export async function scribeRoute(request: NextRequest, engagement: string, run: (client: SupabaseClient, surface: "scribe" | "control", body: ScribeBody | null) => Promise<{ data: unknown; status: number } | null>) {
+// With `raw` set, the body is handed to the route as it came (the read-back correction checks its own shape).
+export async function scribeRoute(request: NextRequest, engagement: string, run: (client: SupabaseClient, surface: "scribe" | "control", body: ScribeBody | null, raw?: Record<string, unknown>) => Promise<{ data: unknown; status: number } | null>, raw = false) {
   const config = authConfig();
   const response = privateResponse(NextResponse.json({ status: "unavailable" }, { status: 503 }));
   const answer = (data: unknown, status = 200) => { const out = privateResponse(NextResponse.json(data, { status })); for (const c of response.cookies.getAll()) out.cookies.set(c); return out; };
@@ -31,13 +32,14 @@ export async function scribeRoute(request: NextRequest, engagement: string, run:
     if (!client) return answer({ status: "denied" }, 403);
     const { data: { session } } = await client.auth.getSession();
     if (!session) return answer({ status: "denied" }, 403);
-    let body: ScribeBody | null = null;
+    let body: ScribeBody | null = null, given: Record<string, unknown> | undefined;
     if (request.method === "POST") {
-      let raw: Record<string, unknown>;
-      try { raw = await limitedJson(request, 16384); } catch { return answer({ status: "invalid_request" }, 422); }
-      body = scribeBody(raw); if (!body) return answer({ status: "invalid_request" }, 422);
+      let parsed: Record<string, unknown>;
+      try { parsed = await limitedJson(request, 16384); } catch { return answer({ status: "invalid_request" }, 422); }
+      if (raw) given = parsed;
+      else { body = scribeBody(parsed); if (!body) return answer({ status: "invalid_request" }, 422); }
     }
-    const out = await run(client, surface, body);
+    const out = await run(client, surface, body, given);
     return out ? answer(out.data, out.status) : response;
   } catch (error) {
     console.error("Scribe request unavailable", { code: typeof error === "object" && error && "code" in error ? error.code : "request_failed" });

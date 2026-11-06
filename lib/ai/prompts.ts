@@ -2,8 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates" | "fold_four_lists" | "alignment_signal";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates", "fold_four_lists", "alignment_signal"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates" | "fold_four_lists" | "alignment_signal" | "fold_read_back";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates", "fold_four_lists", "alignment_signal", "fold_read_back"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
@@ -37,7 +37,11 @@ export type SignalInputs = { session: { title: string; prompt: string; kind: str
   room: { ref: string; id: string; kind: "answer" | "card"; text: string; new: boolean }[];
   raised: { kind: SignalKind; theme: string | null; dismissed: boolean }[] };
 export type SignalKind = "aligned" | "divergent" | "silent" | "thin";
-export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs | FourListsInputs | SignalInputs;
+// The Day 2 read-back (D2-03): one item on the TV (a signed-off lens summary or a reviewed outcome), its lines (l1..) with the
+// sentences behind each, and a correction the room agreed that names no line. The model changes one line or adds one.
+export type ReadBackFoldInputs = { job: "fold"; kind: "lens" | "outcome"; heading: string; lens_name?: string | null; horizon: string; base_year: number; year: number; max_chars: number; max_lines: number;
+  lines: { ref: string; text: string; sources: string[] }[]; wording: string; reason: string; item?: string; correction?: string; version?: string; ids?: unknown };
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs | FourListsInputs | SignalInputs | ReadBackFoldInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
@@ -48,7 +52,8 @@ export type LensFoldOutput = { sentences: ({ keep: string } | { edit: string; te
 export type CandidateOutput = { candidates: { name: string; sources: string[] }[] };
 // complete is true when the reply was a whole answer: only then may a silent card the room has since answered be retired.
 export type SignalOutput = { cards: { kind: SignalKind; theme: string; title: string; line: string; ask?: string; room: string[]; also: string[] }[]; complete: boolean };
-export type AiOutput = MergeOutput | GroupOutput | SummaryOutput | LensDraftOutput | LensFoldOutput | CandidateOutput | SignalOutput;
+export type ReadBackFoldOutput = { line: string; text: string; note?: string };
+export type AiOutput = MergeOutput | GroupOutput | SummaryOutput | LensDraftOutput | LensFoldOutput | CandidateOutput | SignalOutput | ReadBackFoldOutput;
 
 export type Prompt = { job: AiJob; version: string; system: string; maxTokens: number; user: (inputs: AiInputs) => string; parse: (text: string, inputs: AiInputs) => AiOutput };
 
@@ -404,6 +409,29 @@ export const prompts: Record<AiJob, Prompt> = {
       });
       // A reply that is not a whole answer cannot retire anything.
       return { cards, complete: Array.isArray(raw) && body.complete !== false };
+    },
+  },
+  // The read-back fold. The room agreed new wording; the model puts it in the right place. One line changes, or one is added;
+  // every other line is kept word for word by the database. The scribe's reason is context for the model and never shown.
+  fold_read_back: {
+    job: "fold_read_back", version: "fold-read-back@1", maxTokens: 400,
+    system: [
+      "You fold one correction into one item of a Wayfinding retreat's Day 2 read-back, for a church team, run by Clearway Church Solutions. The item is on the TV now. It is either a lens of the 10-year Future or a Vision Outcome with its 3-year Vision bullets.",
+      "You see the item's lines (l1, l2...) with the room's own sentences behind each, and one correction: the wording the room agreed, and the reason the scribe heard. The correction names no line, so you choose where it belongs.",
+      "Change exactly one line, or add exactly one new line. Reply with the line's ref and its new full text, or \"new\" and the text for an added line. Every other line stays exactly as it is, so do not repeat them.",
+      "Keep the agreed wording's meaning. Use the room's own words. Never add a fact, number, date or name that is not in the line, its sentences or the agreed wording. No quotation marks. Never name a person.",
+      "For a lens of the 10-year Future, write in the present tense, as if it is already true today. Never use will, would, shall, going to, hope to, plan to, aim to or intend to. For a Vision Outcome's bullets, write one plain statement of what is true in the year given.",
+      "One plain sentence, 400 characters at most. The whole item stays within 8 lines and, unless it was longer already, 420 characters.",
+      `Reply as {"line":"l2","text":"...","note":"optional, one short line for the facilitator"} or {"line":"new","text":"..."}. ${rules}`,
+    ].join("\n"),
+    user: inputs => { const i = inputs as ReadBackFoldInputs; return JSON.stringify({
+      item: i.heading, kind: i.kind === "lens" ? "lens of the 10-year Future" : "Vision Outcome", horizon: i.horizon, year: i.year, max_lines: i.max_lines, max_characters: i.max_chars,
+      lines: i.lines.map(l => ({ ref: l.ref, text: l.text, from: l.sources })), correction: { wording: i.wording, reason: i.reason } }); },
+    parse: (text, inputs) => {
+      const i = inputs as ReadBackFoldInputs, refs = new Set((i.lines ?? []).map(l => l.ref));
+      const body = replyJson(text), given = refOf(body.line), ref = /^\d{1,2}$/.test(given) ? `l${Number(given)}` : given, t = lineText(body.text), note = noteOf(body.note);
+      const out: ReadBackFoldOutput = { line: ref === "new" || refs.has(ref) ? ref : "", text: t };
+      return note ? { ...out, note } : out;
     },
   },
 };

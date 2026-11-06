@@ -733,7 +733,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | Time | Session | Interaction | TV | Phones | Scribe | AI | Lands in | Screens |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 8:30 | Prayer and listening | Prayer, then open text | Scripture, then dark. Then "What are we sensing?" | Phones away, then one prompt | What the team shares | None | The Process | D2-01, D2-02 |
-| 9:00 | Confirm the 10-year Future (short, after prayer) | Short confirm of the signed-off lens summaries (a placeholder in the template until milestone 5 builds it) | Each signed-off lens in turn | Read along, and say if anything has changed overnight | Any change and its reason | None | The 10-year Future | D2-03, D2-04 |
+| 9:00 | Confirm the 10-year Future (short, after prayer) | Short confirm of the five signed-off lens summaries, then the reviewed outcomes with their 3-year Vision bullets (built in milestone 5, step 3a) | Each lens, then each outcome, in turn | Read along, and say if anything has changed overnight | Any change and its reason | None | The 10-year Future | D2-03, D2-04 |
 | 9:30 | Confirm the Vision Outcomes | Outcome confirm | The provisional list with confirm, rename and challenge counts | Confirm, rename or challenge each, with a reason | The consensus decision and why | None | The 3-year Vision, Decisions | D2-05, D2-06 |
 | 10:00 | Pre-mortem | 2x2 grid (INT-08) | "It's 2029 and this plan failed. Why?" Reasons as dots on likelihood and impact | Name a reason, then place it | Mitigations the team names, which the facilitator records from the control surface until the scribe console exists | Merges duplicate reasons | Risks and Roadblocks | D2-07, D2-08 |
 | 10:30 | Break | Nothing live |  |  |  |  |  |  |
@@ -889,18 +889,19 @@ Milestone 5. Nothing reaches the room until Chris and the co-facilitator have re
 1. When Day 1 closes, AI tidies the provisional Vision Outcomes and the first-pass 3-year Vision from phone input, scribe cards and easel photos, every sentence linked to its sources, and flags any thin outcome (OVN-01). The 10-year Future is no longer drafted overnight: the room signed off the lens summaries live on Day 1 (Decided November 3). Like Synrg's "morning mirror", it keeps the voices not to lose (a strong line from one person) and the tensions the room named separate, so they aren't smoothed away.
 2. Chris and the co-facilitator review the provisional Vision Outcomes and the 3-year Vision first pass, not lens drafts, and edit side by side. A section one person is editing is locked for the other. Sources show beside each sentence (OVN-02).
 3. Chris publishes the review for the morning (OVN-03).
-4. On Day 2 at 9:00, after prayer, the room does a short confirm of the signed-off 10-year Future (INT-14). The final 10-year Future is the signed-off summaries with any change the room names.
+4. On Day 2 at 9:00, after prayer, the room does a short confirm of the five signed-off lens summaries and then the reviewed outcomes (INT-14). The final 10-year Future is the signed-off summaries with any change the room names, and the 3-year Vision is the published bullets with any change the room names.
 
 - Drafts are ready within 30 minutes of Day 1 closing (Default).
 - Design pass 5's five Defaults are approved (Decided November 3), and apply wherever the confirm and the review remain: "What's missing?" answers appear under the paragraph as they arrive, anonymous. "It needs a change" sends a short box, the scribe records the agreed wording and reason, and the facilitator accepts. "Drafts ready" shows on the review screen and the remote. Review is laptop only. Phones see the current lens and settled lenses during the confirm.
 - Review takes about 45 minutes.
 - Every version of every draft is kept.
 
-**INT-14 Read-back** (milestone 5)
+**INT-14 Read-back** (milestone 5, built in step 3a, see `docs/read-back.md`)
 
-- TV: one lens of the published draft at a time, "Community, 2036" and the paragraph, with a live tally.
-- Phones: the full draft with the team's source sentences underneath, then "Yes, that's us" or "It needs a change", and "What's missing?"
-- Corrections the room agrees fold into the draft as tracked changes once the facilitator accepts them, with the scribe's reason.
+- TV: one item at a time, in lens order and then the reviewed outcomes: "Community, 2036" or the outcome's title, with its text (one screen, 420 characters, "+ n more on phones" past that), "Did we hear you right?", a live tally of "Yes, that's us" and "It needs a change" that names no leader, and the room's anonymous "What's missing?" answers. A progress strip marks the settled items.
+- Phones: the full text with the source sentences underneath (an outcome shows only the phone input the overnight draft cites, never scribe words, photos or speakers), then "Yes, that's us" or "It needs a change" (140 characters), and "What's missing?" (280 characters, several allowed). One answer per person per item version, changeable. Settled items stay to look back at.
+- Corrections the room agrees fold into the text as tracked changes once the facilitator accepts them. The scribe writes the agreed wording and the reason on the scribe console; the reason stays on the control surface. A correction that names a line folds in code; one that names none is placed by AI (hand edit if AI is off).
+- Mark a decision settles an item. A lens item settled with a change becomes a new signed-off lens summary version, and an outcome item settled with a change updates the Map's 3-year Vision.
 - Like Synrg's mirror, it closes by asking "Did we hear you right?" and "What's missing?"
 
 ## Discover
@@ -1322,7 +1323,7 @@ Acceptance criteria
 - The draft Map's 10-year Future comes from the signed-off summaries.
 - A team facilitator for the video follow-up takes the remote without a Clearway sign-in, through a link and code issued for that block only, and sees none of the alignment signal, presenter notes, Discover data or other blocks.
 - Outcome bullets appear on the TV letter by letter as people type, with field locks and batching.
-- The read-back is in the Wayfinding template as a placeholder. There is no Publish to CORE session (November 4).
+- The read-back is in the Wayfinding template as a 30 minute `read_back` step (milestone 5, step 3a). There is no Publish to CORE session (November 4).
 - Every prompt shows the right years for the base year, and the right lens names.
 
 Screens: PRE-06 to PRE-11, D1-04 to D1-13, D2-01, D2-02, D2-05 to D2-15, INT-12, INT-13, INT-15, INT-16, SET-08 (Wayfinding templates), and the lens summary screens. Not in this milestone: the overnight review and the Day 2 short confirm (5), Discover data in What We Heard (6, entered by hand as headlines until then), the alignment signal (6).

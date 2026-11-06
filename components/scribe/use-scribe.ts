@@ -4,6 +4,7 @@ import { browserBlobs, ScribeOutbox, type BlobStore } from "@/lib/scribe/outbox"
 import { fitPhoto } from "@/lib/scribe/image";
 import { checkFile, consoleMode, shownCards, shownFiles } from "@/lib/scribe/policy";
 import type { OutboxEntry, OutboxItem, ScribeState } from "@/lib/scribe/types";
+import { scribeReadOf, type ScribeRead } from "@/lib/interactions/read-back";
 import type { CaptureInput } from "./capture-composer";
 import type { ShownCard } from "@/lib/scribe/policy";
 
@@ -19,6 +20,8 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
   const [online, setOnline] = useState(true);
   const [entries, setEntries] = useState<OutboxEntry[]>([]);
   const [fileError, setFileError] = useState("");
+  // The Day 2 read-back (D2-03): the item on the TV and its lines, so a correction can name one. Read only while a step is live.
+  const [readBack, setReadBack] = useState<ScribeRead | null>(null);
   const [now, setNow] = useState(() => new Date().toISOString());
   const outbox = useRef<ScribeOutbox | null>(null);
   const store = useRef<BlobStore | null>(null);
@@ -38,7 +41,9 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
       const response = await fetch(`/api/scribe/${engagement}`, { cache: "no-store" });
       if (response.status === 403) { setSignedOut(true); setOnline(true); return; }
       const data = await response.json() as ScribeState;
-      if (data.status === "ok") { setState(data); live.current = data.live; setSignedOut(false); setOnline(true); if (!wasOnline.current) outbox.current?.kick(); wasOnline.current = true; const left = sentRef.current.filter(s => s.since >= started); if (left.length !== sentRef.current.length) { sentRef.current = left; setSent(left.map(s => s.entry)); } }
+      if (data.status === "ok") {
+        if (data.live) { try { const rb = await fetch(`/api/scribe/${engagement}/read-back`, { cache: "no-store" }); setReadBack(rb.ok ? scribeReadOf(await rb.json()) : null); } catch { /* keep the last read */ } } else setReadBack(null);
+        setState(data); live.current = data.live; setSignedOut(false); setOnline(true); if (!wasOnline.current) outbox.current?.kick(); wasOnline.current = true; const left = sentRef.current.filter(s => s.since >= started); if (left.length !== sentRef.current.length) { sentRef.current = left; setSent(left.map(s => s.entry)); } }
     } catch { setOnline(false); wasOnline.current = false; } finally { loading.current = false; }
   }, [engagement]);
 
@@ -50,6 +55,11 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
       return { ...data, status: typeof data.status === "string" ? (response.status >= 500 ? "unavailable" : data.status) : "unavailable" };
     };
     const send = async (item: OutboxItem): Promise<{ status: string }> => {
+      if (item.type === "correction") {
+        const response = await fetch(`/api/scribe/${engagement}/read-back`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: item.id, item: item.item, line: item.line, wording: item.wording, reason: item.reason }), cache: "no-store" });
+        const data = await response.json().catch(() => ({})) as { status?: string };
+        return { status: typeof data.status === "string" ? (response.status >= 500 ? "unavailable" : data.status) : "unavailable" };
+      }
       if (item.type === "capture") return post({ action: "capture", id: item.id, session: item.session, kind: item.kind, text: item.text, detail: item.detail, speaker: item.speaker, capturedAt: item.capturedAt, queuedAt: item.queuedAt ?? null });
       if (item.type === "edit") return post({ action: "edit", id: item.id, text: item.text, detail: item.detail, speaker: item.speaker, revision: item.revision });
       if (item.type === "refile") return post({ action: "refile", id: item.id, session: item.session });
@@ -94,6 +104,9 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
   const edit = useCallback((card: ShownCard, next: { text: string; detail: CaptureInput["detail"]; speaker: string }) => {
     outbox.current?.add({ type: "edit", id: card.id, text: next.text, detail: next.detail, speaker: next.speaker, revision: card.revision });
   }, []);
+  const correct = useCallback((input: { item: string; line: string | null; wording: string; reason: string }) => {
+    outbox.current?.add({ type: "correction", id: newId(), item: input.item, line: input.line, wording: input.wording, reason: input.reason });
+  }, []);
   const refile = useCallback((id: string, session: string) => { outbox.current?.add({ type: "refile", id, session }); }, []);
   const dismiss = useCallback((id: string) => { outbox.current?.dismiss(id); }, []);
   const addFiles = useCallback(async (list: File[], asPhoto = false) => {
@@ -115,5 +128,5 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
   }, []);
 
   const waiting = entries.filter(e => e.state !== "failed").length;
-  return { state, mode, online, cards, files, entries, waiting, fileError, capture, edit, refile, dismiss, addFiles, reload: load };
+  return { state, mode, online, cards, files, entries, waiting, fileError, readBack, correct, capture, edit, refile, dismiss, addFiles, reload: load };
 }

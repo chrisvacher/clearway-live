@@ -20,6 +20,8 @@ export type CaptureItem = { type: "capture"; id: string; session: string; kind: 
 export type EditItem = { type: "edit"; id: string; text: string; detail: CardDetail; speaker: string; revision: number };
 export type RefileItem = { type: "refile"; id: string; session: string };
 export type FileItem = { type: "file"; id: string; session: string; fileKind: FileKind; name: string; contentType: string; bytes: number; capturedAt: string; queuedAt?: string };
-export type OutboxItem = CaptureItem | EditItem | RefileItem | FileItem;
+// A correction to the read-back item on the TV: the agreed wording and why. line is a line id, "new" or null (no line named).
+export type CorrectionItem = { type: "correction"; id: string; item: string; line: string | null; wording: string; reason: string };
+export type OutboxItem = CaptureItem | EditItem | RefileItem | FileItem | CorrectionItem;
 export type OutboxEntry = { item: OutboxItem; state: "saved" | "sending" | "failed" | "sent"; reason?: string };
 // "sent" is only ever on the screen's overlay: the server has settled the item, but the state read that shows it has not come back yet.
