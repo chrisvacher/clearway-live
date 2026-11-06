@@ -119,8 +119,8 @@ delete from private.ai_runs where id=(select signal_lease_run from private.ai_se
 update private.ai_runs set status='running',finished_at=null where id=(select signal_lease_run from lease_mark);
 update private.ai_sessions a set signal_lease_id=m.signal_lease_id,signal_lease_run=m.signal_lease_run,signal_lease_until=now()+interval '75 seconds',signal_at=n.signal_at,signal_seen_at=n.signal_seen_at,signal_seen_ids=n.signal_seen_ids,signal_phones_seen=n.signal_phones_seen from lease_mark m,mark n where a.session_id=tests.id(310);
 -- A practice reset and Clear test answers both drop the signal's lease, so the panel does not read "Reading the room" afterwards.
-select ok(pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','The practice reset clears the signal''s lease');
-select ok(pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','and so does Clear test answers');
+select ok(pg_get_functiondef('private.reset_practice_room_pre_read_back()'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','The practice reset clears the signal''s lease');
+select ok(pg_get_functiondef('private.rehearsal_control_pre_read_back(uuid,uuid,text)'::regprocedure) like '%signal_lease_id=null,signal_lease_run=null,signal_lease_until=null%','and so does Clear test answers');
 
 -- A card that cannot stand is refused by code: a quote, a tone of correction, silent while phones are up, aligned on a thin theme.
 select is(tests.apply('first',901,jsonb_build_object('complete',true,'cards',jsonb_build_array(

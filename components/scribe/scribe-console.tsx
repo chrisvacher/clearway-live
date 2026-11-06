@@ -2,6 +2,7 @@
 import { Radio, Users, WifiOff } from "lucide-react";
 import { ScribeCard } from "./scribe-card";
 import { CaptureComposer } from "./capture-composer";
+import { CorrectionComposer } from "./correction-composer";
 import { useArrivals } from "./use-arrivals";
 import type { useScribe } from "./use-scribe";
 import "./scribe.css";
@@ -11,7 +12,7 @@ type Scribe = ReturnType<typeof useScribe>;
 // SCR-01: the scribe console on a laptop. The header follows the run of show; cards attach to the
 // step that is live. A team-led step turns the console off, and nothing live says so.
 export function ScribeConsole({ engagement, church, scribe }: { engagement: string; church: string; scribe: Scribe }) {
-  const { state, mode, cards, files, online, waiting, capture, edit, refile, addFiles, fileError } = scribe;
+  const { state, mode, cards, files, online, waiting, capture, edit, refile, addFiles, fileError, readBack, correct } = scribe;
   const live = state?.live ?? null;
   const sessions = state?.sessions ?? [];
   const title = (id: string) => sessions.find(s => s.id === id)?.title;
@@ -38,6 +39,7 @@ export function ScribeConsole({ engagement, church, scribe }: { engagement: stri
     <div className="scr-body">
       <section className="scr-col" aria-label="Capture">
         <CaptureComposer sessionTitle={live && !live.team_led ? live.title : null} off={off} onCapture={capture} onFiles={files => void addFiles(files)} fileError={fileError} />
+        {readBack?.session && !off ? <CorrectionComposer read={readBack} onSend={correct} /> : null}
       </section>
       <section className="scr-col is-cards" aria-label="Cards for this step">
         <div className="scr-colhead"><span className="scr-label">Cards{live ? ` · ${live.title}` : ""}</span><span className="scr-muted">{shownCards.length} {shownCards.length === 1 ? "card" : "cards"}</span></div>

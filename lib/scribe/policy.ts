@@ -102,6 +102,9 @@ export function settledReason(status: string): string | null {
     case "team_led": return "The team had the room, so this didn’t go in.";
     case "invalid_request": case "invalid_session": case "not_found": return "This couldn’t be saved.";
     case "conflict": return "This card changed somewhere else, so this edit didn’t go in.";
+    case "stale": case "invalid_state": return "The room had moved on, so this correction didn’t go in.";
+    case "filtered": return "The room’s word filter stopped this correction.";
+    case "limit": return "This correction was too long, so it didn’t go in.";
     case "missing": return null;
     default: return null;
   }

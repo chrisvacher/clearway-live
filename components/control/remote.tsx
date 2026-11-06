@@ -12,6 +12,7 @@ import { AiRemote } from "@/components/interactions/ai/ai-panel";
 import { SignalList } from "@/components/interactions/signal/signal-panel";
 import { OvernightCard } from "@/components/overnight/overnight-card";
 import { QuoteOnTv } from "./quote-on-tv";
+import { ReadBackRemote } from "@/components/interactions/read-back/read-back-panel";
 
 // FAC-03: the live controls in the facilitator's hand. It holds its own
 // connection and needs nothing from the laptop.
@@ -38,6 +39,7 @@ export function Remote({ initial }: { initial: RunOfShow }) {
       <LiveControls room={room} variant="remote" onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
       <AiRemote room={room} />
       <SignalList room={room} />
+      <ReadBackRemote room={room} />
       <section className="ctl-private" aria-label="Overnight review, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Overnight review</span></div>
         <div className="ctl-private-body"><OvernightCard engagement={initial.context.id} tick={room.overnightTick} link={false} /></div></section>
       <HandoverPanel room={room} />

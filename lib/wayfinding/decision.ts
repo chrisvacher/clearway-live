@@ -2,7 +2,7 @@ import { uuid } from "../room/identity";
 
 // Mark a decision: the room's consensus decision and its reasons, written by the facilitator.
 // Counts and votes show where the room is; only this records the decision.
-export const decisionSubjects = ["step", "lens_summary", "outcome", "candidate", "cut_line", "goal", "intent", "other"] as const;
+export const decisionSubjects = ["step", "lens_summary", "outcome", "candidate", "cut_line", "goal", "intent", "read_back", "other"] as const;
 export type DecisionSubject = typeof decisionSubjects[number];
 export type DecisionMark = { id: string; decision: string; reasons: string; label: string; subject: DecisionSubject; subject_id?: string };
 export type Decision = { id: string; session_id: string | null; session_title: string | null; subject: DecisionSubject; subject_id: string | null; label: string; decision: string; reasons: string; by: string; marked_at: string };

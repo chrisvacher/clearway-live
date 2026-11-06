@@ -16,6 +16,7 @@ import { CandidatesView } from "@/components/interactions/candidates/candidates-
 import { LensView } from "@/components/interactions/lens/lens-view";
 import { LensSummaryView } from "@/components/interactions/lens-summary/summary-tv";
 import { FourListsView } from "@/components/interactions/four-lists/four-tv";
+import { ReadBackView } from "@/components/interactions/read-back/read-back-tv";
 
 // The TV view for each kind that takes input. A view draws from the server's results and
 // animates from what is on screen to what arrives: it never redraws, never resets a bar to
@@ -30,6 +31,7 @@ export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>
   lens_summary: LensSummaryView,
   candidates: CandidatesView,
   four_lists: FourListsView,
+  read_back: ReadBackView,
   choice: props => <LiveBars kind="choice" {...props} />,
   scale: props => <LiveScale {...props} />,
   ranking: props => <LiveBars kind="ranking" {...props} />,

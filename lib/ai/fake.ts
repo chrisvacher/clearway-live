@@ -161,6 +161,15 @@ function scriptedLensDraft(input: Record<string, unknown>) {
   for (const a of sentences) if (!used.has(a.ref)) { used.add(a.ref); if (!futureTense.test(a.text)) put(a.text, [a.ref]); }
   return JSON.stringify({ sentences: out });
 }
+// The read-back fold: put the agreed wording on the line it shares the most words with, or add it as a new line.
+function scriptedReadBackFold(input: Record<string, unknown>) {
+  const lines = (input.lines ?? []) as { ref: string; text: string }[], correction = (input.correction ?? {}) as { wording?: string };
+  const wording = tidyLine(String(correction.wording ?? "")), mine = words(wording);
+  let best: { ref: string; n: number } | null = null;
+  for (const l of lines) { const n = shared(mine, words(l.text)); if (n > (best?.n ?? 0)) best = { ref: l.ref, n }; }
+  if (!wording || futureTense.test(wording)) return JSON.stringify({});
+  return JSON.stringify(best && best.n >= 3 ? { line: best.ref, text: wording } : { line: "new", text: wording });
+}
 function scriptedLensFold(input: Record<string, unknown>) {
   const summary = (input.summary ?? []) as { ref: string; text: string }[], suggestions = (input.suggestions ?? []) as { ref: string; text: string }[];
   const edits = new Map<string, { text: string; suggestions: string[] }>(), removed = new Map<string, string[]>(), added: { text: string; suggestions: string[] }[] = [];
@@ -264,6 +273,7 @@ export function scripted(call: AiCall): string {
   if (job === "alignment_signal") return scriptedSignal(input);
   if (job === "draft_lens_summary") return scriptedLensDraft(input);
   if (job === "fold_lens_summary") return scriptedLensFold(input);
+  if (job === "fold_read_back") return scriptedReadBackFold(input);
   if (job === "propose_candidates") {
     // One candidate for each theme that at least two sentences share; the sentences are its sources.
     const list = (input.sentences ?? []) as { ref: string; text: string }[], candidates: { name: string; sources: string[] }[] = [];

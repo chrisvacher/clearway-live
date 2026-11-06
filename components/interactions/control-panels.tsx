@@ -8,6 +8,7 @@ import { RankingPanel, StatementsPanel } from "@/components/interactions/bars/co
 import { CandidatesPanel } from "@/components/interactions/candidates/candidates-control";
 import { GoalsPanel, PremortemPanel } from "@/components/interactions/goals/goals-control";
 import { LensSummaryPanel } from "@/components/interactions/lens-summary/summary-panel";
+import { ReadBackPanel } from "@/components/interactions/read-back/read-back-panel";
 
 // A kind's own private panel on the control surface, under the items list (for example
 // Add an option's suggestions). It reads the room and calls its kind's own control route.
@@ -17,6 +18,7 @@ export const controlPanels: Partial<Record<InteractionKind, ComponentType<Contro
   grid: PremortemPanel,
   goals: GoalsPanel,
   lens_summary: LensSummaryPanel,
+  read_back: ReadBackPanel,
   candidates: CandidatesPanel,
   ranking: RankingPanel,
   statements: StatementsPanel,
