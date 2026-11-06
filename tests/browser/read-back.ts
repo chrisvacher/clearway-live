@@ -357,6 +357,63 @@ async function main() {
         await shot(tv, "tv-outcome");
       });
 
+      // The practice-room run of November 6 found the read-back text at 40 px at every room size, and only 2 of the "What's missing?" answers
+      // on the TV with "+ 6 more on phones" where the Default is up to six that fit whole. Item 4 (Operations) has three short lines and
+      // no answers yet, so the text is free to follow the room size and the missing cards are short enough for six to fit.
+      await step("The read-back text follows the room size, and What's missing shows up to six answers that fit whole, at 1920 by 1080", async () => {
+        await tv.evaluate("window.__name = f => f"); // the test runner's transpiler names inner functions
+        const i = await info();
+        assert.equal((await ctl("show", { to: i.items[3].id })).status, "ok");
+        await until(async () => (await layer().locator("[data-read-back]").getAttribute("data-item")) === i.items[3].id, "Operations on the TV", 8000);
+        const version = (await info()).item!.version_id;
+        const answers = ["Open the doors early", "Child care Sundays", "A quiet prayer room", "Names on a board", "More parking", "Coffee first", "Rides for elders", "A way to give"];
+        const sent = await Promise.all(answers.map((a, n) => phones[n].sendValue(room, rb, { version, response: "missing" }, a)));
+        assert.ok(sent.every(a => a === "accepted"), `every missing answer accepted: ${[...new Set(sent)].join(",")}`);
+        const sizeBefore = (await sql.query("select settings->>'room_size' as s from public.engagements where id=$1", [room])).rows[0].s as string | null;
+        const px: Record<string, number> = {}, shownAt: Record<string, number> = {};
+        for (const size of ["very_small", "medium", "very_large"]) {
+          await press(fac, sql, room, "room_size", { size });
+          await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+          let miss: unknown;
+          await until(async () => {
+            try {
+              const g = await layer().evaluate(el => {
+                const stage = el.closest(".tv-stage")!.getBoundingClientRect(), box = (e: Element) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; };
+                const lines = [...el.querySelectorAll<HTMLElement>(".lsm-line:not(.is-gone)")].map(l => parseFloat(getComputedStyle(l).fontSize));
+                const cards = [...el.querySelectorAll<HTMLElement>("[data-missing]:not(.is-out)")].map(c => ({ ...box(c), text: (c.textContent ?? "").trim(), clipped: c.querySelector<HTMLElement>(".rbk-clip")!.scrollHeight > c.querySelector<HTMLElement>(".rbk-clip")!.clientHeight + 1 }));
+                const more = el.querySelector("[data-more-missing]");
+                return { stage: { top: Math.max(0, stage.top), bottom: Math.min(innerHeight, stage.bottom) }, lines, cards, more: more ? { ...box(more), text: (more.textContent ?? "").trim() } : null, side: box(el.querySelector(".rbk-side")!), list: box(el.querySelector(".rbk-missing")!) };
+              });
+              assert.ok(g.lines.length === 3, `Operations has three lines on the TV: ${g.lines.length}`);
+              px[size] = g.lines[0]; shownAt[size] = g.cards.length;
+              for (const c of g.cards) { assert.ok(!c.clipped, `a missing answer is never clipped: ${c.text}`); assert.ok(c.top >= g.list.top - 0.5 && c.bottom <= g.list.bottom + 0.5, `a missing answer sits inside its list: ${JSON.stringify(c)}`); assert.ok(c.bottom <= g.stage.bottom + 0.5, "a missing answer is on the screen"); }
+              if (g.more) assert.ok(g.more.bottom <= g.stage.bottom + 0.5 && g.more.top >= g.cards[g.cards.length - 1].bottom - 0.5, `the "+ n more" line sits under the cards and on the screen: ${JSON.stringify(g.more)}`);
+              assert.equal(g.cards.length + Number(g.more?.text.match(/\d+/)?.[0] ?? 0), answers.length, `shown plus "+ n more on phones" is all ${answers.length}: ${g.more?.text}`);
+              return true;
+            } catch (error) { miss = error; return false; }
+          }, `the read-back fits at ${size}`, 6000).catch(() => { throw miss; });
+          await shot(tv, `tv-missing-${size}`);
+        }
+        console.log(`Read-back line size by room size: ${JSON.stringify(px)}; missing answers shown: ${JSON.stringify(shownAt)}`);
+        // The longest item (8 lines) gives way only as far as it must to stay on one screen; it still never gets smaller than the shorter ones' floor.
+        assert.equal((await ctl("show", { to: i.items[4].id })).status, "ok");
+        await until(async () => (await layer().locator("[data-read-back]").getAttribute("data-item")) === i.items[4].id, "Learning on the TV", 8000);
+        const longest: Record<string, number> = {};
+        for (const size of ["very_small", "medium", "very_large"]) {
+          await press(fac, sql, room, "room_size", { size });
+          await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+          await delay(800);
+          longest[size] = await layer().evaluate(el => parseFloat(getComputedStyle(el.querySelector(".lsm-line:not(.is-gone)")!).fontSize));
+        }
+        console.log(`Read-back longest item line size by room size: ${JSON.stringify(longest)}`);
+        assert.ok(longest.very_small >= longest.medium && longest.medium >= longest.very_large && longest.very_large >= 36, `the longest item never grows as the room size shrinks the type: ${JSON.stringify(longest)}`);
+        assert.ok(px.very_small > px.medium && px.medium > px.very_large, `the line text follows the room size (very small ${px.very_small}px, medium ${px.medium}px, very large ${px.very_large}px)`);
+        assert.equal(shownAt.very_large, 6, `up to six answers show at Very large when they fit: ${shownAt.very_large}`);
+        assert.ok(shownAt.medium >= 4 && shownAt.very_small >= 3, `more than two show at Medium and Very small: ${JSON.stringify(shownAt)}`);
+        await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [room, sizeBefore]);
+        assert.equal((await ctl("show", { to: i.items[3].id })).status, "ok"); // the next step moves to the longest item itself
+      });
+
       await step("The longest item (8 lines, 416 characters) fits whole on the screen at the default size and at Medium", async () => {
         const i = await info();
         assert.equal((await ctl("show", { to: i.items[4].id })).status, "ok");

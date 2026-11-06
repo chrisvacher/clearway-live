@@ -41,6 +41,8 @@ export function markOf(bullet: DraftBullet): { kind: "room" | "count" | "none"; 
   return { kind: bullet.room_text !== null && bullet.text === bullet.room_text ? "room" : "count", n: bullet.sources.length };
 }
 
+// "1 bullet", "2 bullets": a count with its noun, singular for exactly one.
+export const counted = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 export const minutesBetween = (from: string, to: string | number) => Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 60000));
 export const clock = (iso: string | null, zone: string) => iso ? new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: zone }).format(new Date(iso)).toLowerCase().replace(/\s/g, " ") : "";
 
