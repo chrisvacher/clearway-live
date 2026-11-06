@@ -9,6 +9,7 @@ D2-07 to D2-10 and INT-15. Migration `20261104130000_premortem_goals.sql`; brows
 - The facilitator records mitigations from the control surface (`reasons_control`). Each row stores `recorded_by` (`facilitator` or `scribe`) so a scribe can tag them later. They show under the reason on the TV.
 
 ## CORE goal builder (`goals` kind)
+- TV cards (November 5): two columns where the list is wide enough (`goalColumns`), one at the default size; each card goes in the shorter column (`goalPlaces`) and glides across and down. A card shows its title, the letters, the owner's first name and end date, and one line: `needsLine` (for example "Needs owner, date") or the result. Four cards show at Medium with six goals.
 - One outcome at a time: 3-year Vision bullets left, 1-year goals right. A goal has a title, a result, one owner, an end date and the risk it answers.
 - The owner is an attendee, or a name and email. The end date defaults to the next season end (Sept 1 to Dec 31, Jan 1 to Apr 30, May 1 to Aug 31).
 - Connected, Owned, Result and End date are checked in the database (`private.goal_core`). A goal stays flagged until all four are met.

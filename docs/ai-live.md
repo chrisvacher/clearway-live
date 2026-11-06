@@ -107,3 +107,5 @@ Chris approved the wording on November 3 (PRD, "AI"). The words live in one file
 ## Lens summaries (milestone 4, step 2b)
 
 Two more jobs run through the same claim, apply and fail: `draft_lens_summary` and `fold_lens_summary`. The claim can also answer `{status: "wait", ms}` when a fold is nearly due (3 quiet seconds); the worker sleeps and asks again within its budget. See `docs/lens-summary.md`.
+
+- Merge reasons is `merge-reasons@2` (November 5): only reasons that mean the same thing merge; different causes of one failure stay apart. Fixtures cover both.

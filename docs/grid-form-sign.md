@@ -31,6 +31,7 @@ Pass 3 changes 12 and 16 replace the PRD's name-or-pick and place-it screens.
 - **Privacy, in the database.** The kind does not share answers, so the engine keeps them out of every snapshot and event (text and value are stripped; only the count travels). The facilitator reads them by person on the control surface (`items_form`, through `control_status`, facilitators only). Private answers are not run through the TV word filter: they never reach a screen.
 
 ## INT-10 Sign together
+- Affirm together (November 5): the TV lists the titles of the text's `## n. Title` sections above the signatures (`signSections`, up to 12, two columns), and the count steps down a size so five or six outcomes and the signatures fit at Medium and the default.
 
 Pass 3 change 13 replaces the name tap with a signature field.
 
