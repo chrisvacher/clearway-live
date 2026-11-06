@@ -131,9 +131,9 @@ async function main() {
       await until(async () => (await tvCards("missing"))[0]?.agree === 1, "the count ticks to 1 on the TV", 5000);
       const ms = Date.now() - start;
       assert.ok(ms < 1500, `agree tap to TV in ${ms} ms (page polling included)`);
-      assert.equal((await row.getByRole("button", { name: "Agreed" }).getAttribute("aria-pressed")), "true");
+      assert.equal((await row.getByRole("button", { name: "Take back" }).getAttribute("aria-pressed")), "true");
       assert.equal(await layer().locator(".fl-col[data-col=\"missing\"] .fl-agree.is-zero").count(), 0);
-      await row.getByRole("button", { name: "Agreed" }).click();
+      await row.getByRole("button", { name: "Take back" }).click();
       await until(async () => (await tvCards("missing"))[0]?.agree === 0, "the count goes back to 0", 5000);
       assert.equal(await row.getByRole("button", { name: "Agree" }).getAttribute("aria-pressed"), "false");
       const rows = (await sql.query("select count(*)::integer as n, count(*) filter (where agreed)::integer as on from private.four_list_agrees where engagement_id=$1 and not deleted", [room.id])).rows[0];
@@ -148,7 +148,7 @@ async function main() {
       const [only] = await tvCards("missing");
       assert.equal(only.ai, false, "words are not AI");
       await until(async () => await panelCard("A clear way to join a group").locator("[aria-label=\"Folded into this card\"]").isVisible(), "the fold in the control panel", 8000);
-      assert.ok((await panelCard("A clear way to join a group").innerText()).includes("Matched words"), "the panel says it was matched words");
+      assert.ok((await panelCard("A clear way to join a group").innerText()).includes("Matching words"), "the panel says it was matched words");
       await panelCard("A clear way to join a group").getByRole("button", { name: "Undo fold" }).click();
       await until(async () => (await tvCards("missing")).length === 2, "Undo fold puts both cards back on the TV", 6000);
       assert.equal((await results()).total, 2);
@@ -347,9 +347,25 @@ async function main() {
       const w = await watch(".tv-layer:not(.is-leaving) .fl-slot");
       assert.deepEqual(w.jumps, [], `nothing jumped while cards traded places (largest step ${Math.round(w.worst)} px on ${w.worstKey})`);
       assert.equal(w.blank, 0); assert.equal(w.dim, 0);
-      // Same person twice: the second agree from the same phone on the same card is a toggle, never a second count.
-      const again = await (await phones[1].call(`/api/live/${practiceRoom}/agree`, { method: "POST", body: JSON.stringify({ id: randomUUID(), card: cards[0].id, revision: 0, on: true, ...stamp(phones[1]) }) })).json() as { status: string; reason?: string };
-      assert.ok(["duplicate", "conflict", "invalid_answer", "accepted"].includes(again.status));
+      // A writer can never agree with their own card: the card's text ends with its writer's number, so the writer's phone is known.
+      const writerOf = (c: Card) => phones[Number(/\((\d+)\)$/.exec(c.text)?.[1]) - 1];
+      const mine = cards.find(c => writerOf(c));
+      assert.ok(mine, "a standing card whose writer is known");
+      const own = await agree(writerOf(mine!), mine!.id);
+      assert.equal(own.reason, "own", `a writer's agree on their own card is refused (${own.status}/${own.reason})`);
+      // Same person twice: a second agree from the same phone on the same card, with a new id, lands on the one row and never counts twice.
+      const target = cards.find(c => writerOf(c) !== phones[1])!;
+      const first = await agree(phones[1], target.id), second = await agree(phones[1], target.id);
+      assert.equal(first.status, "accepted", `phone 2 agrees (${first.status}/${first.reason})`);
+      assert.equal(second.status, "accepted", `and again from a new press (${second.status}/${second.reason})`);
+      const who = (await sql.query("select attendee_id from private.four_list_agrees where id=$1", [(first as unknown as { id: string }).id])).rows[0]?.attendee_id as string;
+      const person = (await sql.query("select count(*)::integer as n, bool_and(agreed) as on from private.four_list_agrees where card_id=$1 and attendee_id=$2 and not deleted", [target.id, who])).rows[0];
+      assert.equal(person.n, 1, "one agree row for the person and the card"); assert.equal(person.on, true);
+      // Every standing card, not the TV's top few, is on a phone to agree with.
+      const feed = await (await phones[3].call(`/api/live/${practiceRoom}/agree?session=${big}`)).json() as { cards: { id: string }[] };
+      const standing = (await sql.query("select jsonb_array_length(private.four_lists_board($1,false))::integer as n", [big])).rows[0].n as number;
+      assert.ok(standing > server.cards.length, `more cards stand (${standing}) than the TV holds (${server.cards.length})`);
+      assert.equal(feed.cards.length, standing, "the phone is offered every standing card");
       const dup = (await sql.query("select card_id,attendee_id,count(*)::integer as n from private.four_list_agrees where engagement_id=$1 and not deleted group by 1,2 having count(*)>1", [practiceRoom])).rowCount;
       assert.equal(dup, 0, "one agree per person per card");
       const final = await bigResults();

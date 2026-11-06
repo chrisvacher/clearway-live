@@ -51,7 +51,7 @@ export const fourMax = 280;
 export function checkCard(text: string, max = 140, words = 30): { ok: boolean; message: string; count: string } {
   const trimmed = text.trim(), length = [...trimmed].length, limit = Math.min(max, fourMax), count = trimmed ? trimmed.split(/\s+/).length : 0;
   return { ok: length > 0 && length <= limit && count <= words, count: `${length} / ${limit}`,
-    message: length > limit ? `${length - limit} characters over. Keep it to ${limit}.` : count > words ? `${count - words} words over. Keep it to ${words}.` : "" };
+    message: length > limit ? `${length - limit} ${length - limit === 1 ? "character" : "characters"} over. Keep it to ${limit}.` : count > words ? `${count - words} ${count - words === 1 ? "word" : "words"} over. Keep it to ${words}.` : "" };
 }
 
 // ---------- The phone: agreeing with others' cards ----------
@@ -77,11 +77,10 @@ export function agreeState(server: FourAgree[], outbox: OutboxEntry[]) {
 export function nextAgree(current: (FourAgree & { pending?: boolean }) | undefined, makeId: () => string) {
   return current && current.revision >= 0 ? { id: current.id, revision: current.revision + 1, on: !current.agreed } : { id: makeId(), revision: 0, on: true };
 }
-// Other people's cards in one column for this phone to agree with: the person's own cards and folded duplicates of
-// them are left out (the database refuses them too), the strongest first, and only a few at a time.
-export const agreeRows = 3;
-export function agreeOptions(cards: FourCard[], column: FourColumn, own: Set<string>, limit = agreeRows) {
-  return cards.filter(c => c.column === column && !c.hidden && !c.ids.some(id => own.has(id))).sort((a, b) => a.rank - b.rank).slice(0, limit);
+// Every standing card in one column for this phone to agree with, the strongest first, down to the newest: the person's own
+// cards and folded duplicates of them are left out (the database refuses them too). The phone scrolls; nothing is capped.
+export function agreeOptions(cards: FourCard[], column: FourColumn, own: Set<string>) {
+  return cards.filter(c => c.column === column && !c.hidden && !c.ids.some(id => own.has(id))).sort((a, b) => a.rank - b.rank);
 }
 
 // ---------- Request bodies, checked again by the database ----------

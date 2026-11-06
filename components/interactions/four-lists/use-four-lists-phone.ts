@@ -8,8 +8,8 @@ import { agreeState, isAgree, nextAgree, type AgreeRequest, type FourAgree, type
 type Snapshot = { entries: OutboxEntry[]; agrees: FourAgree[]; cards: FourCard[] | null; notice: string };
 
 // One Four Helpful Lists agree outbox per engagement on this phone: agrees kept on the phone until the server settles them,
-// sent one at a time in the order made, with the same id, revision and times on every retry. A phone outside the live frame
-// (a self-paced step) also reads the step's top cards here, because it has no live results to follow.
+// sent one at a time in the order made, with the same id, revision and times on every retry. Every phone reads the step's whole
+// board here (every standing card, not the TV's top few), so it can agree with any of them; the live frame says when to read again.
 class FourPhone {
   snap: Snapshot = { entries: [], agrees: [], cards: null, notice: "" };
   private listeners = new Set<() => void>();
@@ -76,12 +76,13 @@ class FourPhone {
     this.outbox.add({ id: next.id, session, revision: next.revision, action: next.revision ? "change" : "submit", text: "", value: { four: "agree", card, on: next.on }, ...this.stamp() });
   }
   kick() { this.outbox.kick(); void this.load(); }
+  private soon?: ReturnType<typeof setTimeout>;
+  refresh() { clearTimeout(this.soon); this.soon = setTimeout(() => void this.load(), 1500); }
 }
 
 const phones = new Map<string, FourPhone>();
 const idle: Snapshot = { entries: [], agrees: [], cards: null, notice: "" }, never = () => () => {};
-// Until the room's first frame names the engagement there is nothing to send or show. `poll` is the self-paced step to read
-// the top cards of (a live step gets them from the room's frame instead).
+// Until the room's first frame names the engagement there is nothing to send or show. `poll` is the step to read the whole board of.
 export function useFourListsPhone(engagement: string | null, poll: string | null = null) {
   const four = useMemo(() => { if (!engagement) return null; let p = phones.get(engagement); if (!p) { p = new FourPhone(engagement); phones.set(engagement, p); } return p; }, [engagement]);
   useEffect(() => {
@@ -89,10 +90,10 @@ export function useFourListsPhone(engagement: string | null, poll: string | null
     four.session = poll; if (poll) void four.load();
     const resume = () => { if (document.visibilityState === "visible") four.kick(); };
     window.addEventListener("online", resume); document.addEventListener("visibilitychange", resume);
-    const timer = poll ? setInterval(() => void four.load(), 5000) : undefined;
+    const timer = poll ? setInterval(() => void four.load(), 8000) : undefined;
     return () => { window.removeEventListener("online", resume); document.removeEventListener("visibilitychange", resume); clearInterval(timer); if (four.session === poll) four.session = null; };
   }, [four, poll]);
   const snap = useSyncExternalStore(four ? four.subscribe : never, () => four?.snap ?? idle, () => four?.snap ?? idle);
   const agrees = useMemo(() => agreeState(snap.agrees, snap.entries), [snap.agrees, snap.entries]);
-  return { ...snap, agrees, agree: (card: string, session: string) => four?.agree(card, session), reload: () => void four?.load() };
+  return { ...snap, agrees, agree: (card: string, session: string) => four?.agree(card, session), reload: () => void four?.load(), refresh: () => four?.refresh() };
 }

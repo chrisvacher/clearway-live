@@ -1,6 +1,6 @@
 "use client";
 import "./four-lists.css";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ArrowUp, Check, RefreshCw, Send, WifiOff } from "lucide-react";
 import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { agreeOptions, cardsOf, checkCard, columnLabels, fourColumns, isFourColumn, type FourCard, type FourColumn } from "@/lib/interactions/four-lists";
@@ -16,14 +16,15 @@ const columnOf = (value: unknown): FourColumn | null => { const c = value && typ
 
 // INT-11 on the phone: pick a list, write a card in a few words, send; then agree with others' cards with one tap.
 // Several cards per person. Agreeing is its own write (one tap on, one tap off, never on your own card). Cards ride the phone's
-// outbox like every answer; agrees ride their own outbox. In the live room the cards to agree with come from the room's frame;
-// on a self-paced step the phone reads them from the server.
+// outbox like every answer; agrees ride their own outbox. The cards to agree with are every standing card of the step, read from
+// the server (the TV shows only the top few); in the live room a new frame from the room has the phone read them again.
 export function FourListsComposer({ step, mine, open, send, change, withdraw, engagement, frame }: PhoneInputProps) {
   const live = frame?.session?.id === step.id, room = engagement ?? frame?.state.engagement_id ?? null;
-  const four = useFourListsPhone(room, live ? null : step.id);
+  const four = useFourListsPhone(room, step.id), version = frame?.state.version, refresh = four.refresh;
+  useEffect(() => { if (live) refresh(); }, [live, version, refresh]);
   const [column, setColumn] = useState<FourColumn>("right"), [draft, setDraft] = useState(""), [editing, setEditing] = useState<string | null>(null);
   const standing = mine.filter(a => !a.withdrawn), check = checkCard(draft, step.max_characters, step.max_words), used = mine.length, atLimit = !editing && used >= step.max_sends;
-  const cards: FourCard[] = live ? cardsOf(frame!.state.results) : four.cards ?? [];
+  const cards: FourCard[] = four.cards ?? (live ? cardsOf(frame!.state.results) : []);
   // The phone's own cards (and any folded under another card) are never offered back to agree with.
   const own = new Set(standing.map(a => a.id)), others = agreeOptions(cards, column, own);
   function submit(event: FormEvent) {
@@ -62,7 +63,7 @@ export function FourListsComposer({ step, mine, open, send, change, withdraw, en
         {others.map(c => { const a = four.agrees.get(c.id), on = Boolean(a?.agreed);
           return <li key={c.id} className={`fl-arow${on ? " is-on" : ""}`}><p>{c.text}</p>
             <button type="button" aria-pressed={on} disabled={!open || Boolean(a?.pending)} onClick={() => four.agree(c.id, step.id)}>
-              {on ? <Check aria-hidden="true" /> : <ArrowUp aria-hidden="true" />}{on ? "Agreed" : "Agree"}</button></li>; })}
+              {on ? <Check aria-hidden="true" /> : <ArrowUp aria-hidden="true" />}{on ? "Take back" : "Agree"}</button></li>; })}
       </ul></>}
   </div>;
 }

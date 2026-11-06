@@ -54,7 +54,7 @@ test("Cards offered to agree with exclude the person's own and anything folded u
   const cards = [card(1, "right", "Mine", 5), card(2, "right", "Folded with mine", 3, { ids: [id(2), id(9)] }), card(3, "right", "Theirs", 2), card(4, "wrong", "Other list", 9),
     card(5, "right", "Also theirs", 1), card(6, "right", "More", 1), card(7, "right", "Even more", 1)];
   const offered = agreeOptions(cards, "right", new Set([id(1), id(9)]));
-  assert.deepEqual(offered.map(c => c.id), [id(3), id(5), id(6)], "three at a time, the strongest first");
+  assert.deepEqual(offered.map(c => c.id), [id(3), id(5), id(6), id(7)], "every standing card, the strongest first, none left out");
 });
 
 test("An agree is one row per card: the same id and the next revision, on then off, the newest revision winning", () => {
@@ -91,7 +91,7 @@ test("The phone holds Send for a card the database would refuse, and says why", 
   const over = checkCard("x".repeat(150), 140);
   assert.equal(over.ok, false); assert.match(over.message, /10 characters over/);
   const words = checkCard(Array.from({ length: 31 }, () => "a").join(" "), 140, 30);
-  assert.equal(words.ok, false); assert.match(words.message, /1 words over/);
+  assert.equal(words.ok, false); assert.match(words.message, /1 word over/);
   assert.equal(checkCard("y".repeat(300), 500).ok, false, "never past 280 characters");
 });
 

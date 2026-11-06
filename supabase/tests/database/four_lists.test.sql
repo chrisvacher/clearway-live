@@ -149,6 +149,17 @@ select is((tests.g(907)->>'agree')::integer,0,'the count ticks down');
 select is(tests.agree(950,907,3,true)->>'status','accepted','and on again');
 select is(tests.agree(950,907,9,true)->>'status','conflict','A press that skips a revision is refused');
 select is(tests.agree(952,999,0,true)->>'status','missing','An agree with no card is refused');
+select tests.login(7);
+select is(tests.agree(950,907,1,true)->>'status','conflict','Another person reusing an agree id is refused');
+select is((tests.g(907)->>'agree')::integer,1,'and changes nothing');
+select tests.login(6);
+reset role;
+insert into attendees(id,engagement_id,auth_user_id,name,email,verified_at,room_role) values(tests.id(520),tests.id(101),tests.id(9),'Other Person','person9@example.org',now(),'participant');
+insert into sessions(id,engagement_id,title,interaction) values(tests.id(330),tests.id(101),'Other engagement step','four_lists');
+insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at,value) values(tests.id(331),tests.id(101),tests.id(330),tests.id(520),'A card elsewhere','[]'::jsonb,now(),'{"column":"right"}');
+set local role authenticated;
+select tests.login(6);
+select is(tests.agree(952,331,0,true)->>'status','missing','An agree with another engagement''s card is refused');
 select tests.login(3);
 select is(tests.agree(953,907,0,true)->>'status','own','You cannot agree with your own card');
 select is(tests.agree(953,901,0,true)->>'status','own','nor with a card folded with yours');
@@ -240,7 +251,7 @@ select is(tests.cl('first')->>'job','fold_four_lists','The job folds four lists'
 select is(jsonb_array_length(tests.cl('first')->'inputs'->'columns'),2,'It sees the columns that have two cards or more');
 select ok((tests.cl('first')->'inputs')::text not like '%Priya%' and (tests.cl('first')->'inputs')::text not like '%'||tests.id(503)::text||'%' and (tests.cl('first')->'inputs')::text not like '%example.org%',
  'Inputs never carry names, emails or attendee ids');
-select ok((tests.cl('first')->'inputs')::text not like '%'||tests.id(920)::text||'%' or true,'Cards go by ref');
+select ok(tests.cl('first')->'inputs'->'columns'->0->'cards'->0 ? 'ref' and not (tests.cl('first')->'inputs'->'columns'->0->'cards'->0 ? 'attendee_id') and not (tests.cl('first')->'inputs'->'columns'->0->'cards'->0 ? 'attendee'),'Cards go by ref, with no person on them');
 select is(tests.version(),(select v from v0),'Claiming changes nothing on screen');
 set local role service_role;
 select is(tests.claim('busy',310,902)->>'status','busy','A second trigger while it runs is busy, so nothing runs twice');
@@ -300,6 +311,11 @@ select is(jsonb_array_length(public.ai_status(tests.id(100))->'folds')>=3,true,'
 select is((public.ai_status(tests.id(100))->'session'->>'ai')::boolean,true,'AI is on');
 select is(tests.ai(987,'ai_off',jsonb_build_object('session',tests.id(310)))->>'status','ok','Turn AI off for the step');
 select is(tests.results()->>'ai','false','The room knows');
+select ok(not (tests.g(920) ? 'ai') and (tests.g(920)->>'folded')::integer=0,'With AI off, no AI fold shows: no AI mark and no cards beneath');
+select is(tests.g(921)->>'id',tests.id(921)::text,'and the cards AI folded stand alone on the TV');
+select is(tests.g(923)->>'id',tests.id(923)::text,'in every column');
+select ok(not exists(select 1 from jsonb_array_elements(tests.results()->'cards') e where e ? 'ai'),'The TV has no AI mark anywhere');
+select ok(not exists(select 1 from jsonb_array_elements(public.four_lists_status(tests.id(100))->'cards') e where e ? 'ai'),'nor the panel''s cards');
 select tests.login(7);
 select tests.card(932,310,'wrong','Too many meetings in 2026');
 select is(tests.g(932)->>'id',tests.id(920)::text,'With AI off, the same words still fold');
@@ -307,6 +323,8 @@ select tests.card(933,310,'wrong','Meetings are everywhere');
 select is(tests.g(933)->>'id',tests.id(933)::text,'and similar words do not');
 select tests.login(1);
 select is(tests.ai(988,'ai_on',jsonb_build_object('session',tests.id(310)))->>'status','ok','Turn AI back on');
+select is(tests.g(921)->>'id',tests.id(920)::text,'The AI folds come back with it');
+select is(tests.g(920)->>'ai','true','marked AI again');
 select is(tests.ai(989,'ai_on',jsonb_build_object('session',tests.id(310)))->>'status','unchanged','Turning it on twice changes nothing');
 select tests.login(3);
 select is(tests.ai(990,'ai_off',jsonb_build_object('session',tests.id(310)))->>'status','denied','A phone cannot turn AI off');
@@ -338,7 +356,7 @@ select is((select folded_ids from private.four_lists_cards_for_themes(tests.id(1
 select is((select "column" from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(907)),'missing','the column');
 select is((select agree from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(907)),1,'and the agreement count in people');
 select ok(not exists(select 1 from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(921)),'A folded card is not a row of its own');
-select ok(not exists(select 1 from private.four_lists_cards_for_themes(tests.id(101))),'Another engagement has none');
+select is((select array_agg(card_id) from private.four_lists_cards_for_themes(tests.id(101))),array[tests.id(331)],'Another engagement gets only its own cards');
 select is((select count(*) from private.four_lists_cards_for_themes(tests.id(100)) where session_id=tests.id(311)),0::bigint,'A step with no cards has none');
 
 -- ---------- Withdrawing and changing ----------
@@ -357,9 +375,20 @@ select is(tests.ctl(997,'go_live',jsonb_build_object('session',tests.id(310)))->
 select tests.login(7);
 select is(tests.card(940,310,'missing','A test card')->>'status','accepted','A rehearsal card');
 select is(tests.agree(941,907,0,true)->>'status','accepted','and a rehearsal agree on a real card');
+select tests.login(8);
+select is(tests.agree(942,907,0,true)->>'status','accepted','The scribe''s rehearsal agree on the same card');
+select tests.login(6);
+select is(tests.agree(950,907,4,false)->>'status','accepted','Ruth takes back her real agree during the rehearsal');
 reset role;
 select is((select test from private.four_list_agrees where id=tests.id(941)),true,'The agree is marked test');
+select is((select agreed from private.four_list_agrees where id=tests.id(950)),true,'Her real agree is left as it was: the rehearsal wrote a test row beside it');
+select is((select count(*) from private.four_list_agrees where card_id=tests.id(907) and attendee_id=tests.id(506) and test and not agreed and not deleted),1::bigint,'The taking back is a test row');
+select ok(not exists(select 1 from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(940)),'A rehearsal card is not in the cards contract');
 set local role authenticated;
+select tests.login(1);
+select is(public.rehearsal_control(tests.id(100),tests.id(1002),'end')->>'status','ok','End the rehearsal');
+select tests.login(8);
+select is(tests.agree(942,907,1,true)->>'status','accepted','The scribe presses the agree again, for real');
 select tests.login(1);
 select is(tests.ctl(998,'nothing_live')->>'status','ok','Nothing live');
 select is(public.rehearsal_control(tests.id(100),tests.id(999),'clear')->>'status','ok','Clear test answers');
@@ -367,11 +396,66 @@ reset role;
 select ok((select deleted from private.four_list_agrees where id=tests.id(941)),'clears the agree');
 select ok((select deleted from private.four_list_cards where submission_id=tests.id(940)),'and the card');
 select ok(not (select deleted from private.four_list_agrees where id=tests.id(950)),'but leaves the real agree');
+select is((select agreed from private.four_list_agrees where id=tests.id(950)),true,'as Ruth had it: her rehearsal taking back is gone, so it stands again');
+select ok(not (select deleted or test from private.four_list_agrees where id=tests.id(942)),'An agree pressed again for real after the rehearsal is not cleared');
+select is((select count(*) from private.four_list_agrees where card_id=tests.id(907) and attendee_id=tests.id(506) and not deleted),1::bigint,'Ruth has one agree on the card again');
 set local role authenticated;
 select tests.login(1);
 select is(tests.ctl(1001,'go_live',jsonb_build_object('session',tests.id(310)))->>'status','ok','Back on the step');
 select is(tests.g(940),null,'The test card is gone from the room');
-select is((tests.g(907)->>'agree')::integer,1,'and so is its agree');
+select is((tests.g(907)->>'agree')::integer,2,'and its rehearsal agrees: Ruth and the scribe still count, Sam''s test agree is gone');
+reset role;
+
+-- ---------- The limits in code: four to a fold at most, 60 percent standing, and what a person separated stays apart ----------
+set local role authenticated;
+select tests.login(1);
+select is(tests.save(315,'four_lists','{}')->>'status','ok','A step for the limits');
+select is(tests.ctl(1010,'go_live',jsonb_build_object('session',tests.id(315)))->>'status','ok','Go live on it');
+select tests.login(3);
+select tests.card(1011,315,'confused','Roles are unclear for staff');
+select tests.card(1012,315,'confused','Nobody knows who decides');
+select tests.login(5);
+select tests.card(1013,315,'confused','Decisions are slow to reach us');
+select tests.login(6);
+select tests.card(1014,315,'confused','Unsure who owns volunteers');
+select tests.login(7);
+select tests.card(1015,315,'confused','Confusing talk between teams');
+reset role;
+set local role service_role;
+select is(tests.claim('limits',315,910)->>'status','claimed','A claim on five cards');
+reset role;
+select is((tests.apply('limits',910,jsonb_build_object('groups',jsonb_build_array(
+  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides'),tests.ref('limits','Decisions are slow to reach us'),tests.ref('limits','Unsure who owns volunteers'),tests.ref('limits','Confusing talk between teams'))),
+  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides'),tests.ref('limits','Decisions are slow to reach us'),tests.ref('limits','Unsure who owns volunteers'))),
+  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides'),tests.ref('limits','Decisions are slow to reach us')))
+ )))->>'status'),'ok','The worker applies what the limits allow');
+select is((select string_agg(r->>'reason',',' order by ord) from private.ai_runs x cross join lateral jsonb_array_elements(x.output->'refused') with ordinality t(r,ord) where x.id=(tests.cl('limits')->>'run')::uuid),'too_many,standing','Refused: five cards to a fold, then a fold that would leave under 60 percent standing');
+select is((select jsonb_array_length(output->'applied') from private.ai_runs where id=(tests.cl('limits')->>'run')::uuid),1,'One fold applied: three cards, two of five folded, 60 percent still standing');
+select is((select count(*) from private.four_list_folds where session_id=tests.id(315) and made_by='ai')::integer,2,'Two cards folded beneath the survivor');
+set local role authenticated;
+select tests.login(1);
+select is(tests.fl(1016,'undo_fold',jsonb_build_object('merge',tests.fold_id(1012)))->>'status','ok','The facilitator undoes one of the folds');
+select is(tests.fl(1019,'undo_fold',jsonb_build_object('merge',tests.fold_id(1013)))->>'status','ok','and the other');
+select tests.login(3);
+select tests.card(1017,315,'confused','Who leads our small groups?');
+reset role;
+set local role service_role;
+select is(tests.claim('limits2',315,911)->>'status','claimed','A later claim');
+reset role;
+select is((tests.apply('limits2',911,jsonb_build_object('groups',jsonb_build_array(
+  jsonb_build_object('survivor',tests.ref('limits2','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits2','Nobody knows who decides'))),
+  jsonb_build_object('survivor',tests.ref('limits2','Nobody knows who decides'),'members',jsonb_build_array(tests.ref('limits2','Roles are unclear for staff')))
+ )))->>'status'),'ok','The worker tries to fold them again, in both directions');
+select is((select string_agg(r->>'reason',',' order by ord) from private.ai_runs x cross join lateral jsonb_array_elements(x.output->'refused') with ordinality t(r,ord) where x.id=(tests.cl('limits2')->>'run')::uuid),'kept_apart,kept_apart','Both are refused: the undo sticks whichever card is the survivor');
+set local role authenticated;
+select tests.login(1);
+select is(tests.ctl(1018,'nothing_live')->>'status','ok','Nothing live');
+reset role;
+insert into sessions(id,engagement_id,title,interaction,mode,state,opens_at,closes_at) values(tests.id(316),tests.id(100),'Self-paced lists','four_lists','self_paced','ready',now()-interval '1 hour',now()+interval '1 hour');
+select ok(private.ai_due(tests.id(100)) ? tests.id(316)::text,'AI looks at an open self-paced Four Helpful Lists step');
+select ok(not (private.ai_due(tests.id(100)) ? tests.id(311)::text),'but not a step that is not open');
+set local role service_role;
+select is(tests.claim('selfpaced',316,912)->>'status','idle','and a claim on it is not refused as off');
 reset role;
 
 -- ---------- Discover in the shipped templates ----------
@@ -382,6 +466,7 @@ select is((select count(*) from private.templates t cross join lateral jsonb_arr
 -- ---------- Existing behaviour holds ----------
 select ok(pg_get_functiondef('private.show_write(uuid,text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','The run of show accepts the Discover part');
 select ok(pg_get_functiondef('private.template_write(text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','Templates start steps in the Discover part');
+select ok(pg_get_functiondef('private.template_write(text,jsonb)'::regprocedure) like '%mode=''live'' and part=''Pre-call''%','A saved template starts at its Pre-call, so Discover saves as days before it');
 select ok(pg_get_functiondef('private.room_control(uuid,uuid,text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','Close part accepts the Discover part');
 select ok(tests.broadcasts()>0,'Every change is broadcast');
 set local role anon;

@@ -21,7 +21,7 @@ export function FourListsReview({ review, engagement }: { review: FourReview; en
           <ul className="fl-rcol" aria-label={columnLabels[col.column]}>{col.cards.map(c => <li key={c.id} className="fl-rcard">
             <div className="fl-rtop"><b>{c.text}</b><span className="fl-rag" aria-label={agreeLabel(c.agree)}><ArrowUp aria-hidden="true" />{c.agree}</span></div>
             {(c.folded > 0 || c.pinned) && <p className="fl-rmeta">{c.pinned ? <span>Pinned</span> : null}{c.folded > 0 && <span>{c.ai ? <AiMark label="Combined by AI" /> : null} {c.folded + 1} cards</span>}</p>}
-            {c.members.length > 0 && <ul className="fl-rmembers" aria-label="Folded into this card">{c.members.map(m => <li key={m.id}><span>{m.by === "ai" ? "Combined by AI" : "Matched words"}: {m.text}</span></li>)}</ul>}
+            {c.members.length > 0 && <ul className="fl-rmembers" aria-label="Folded into this card">{c.members.map(m => <li key={m.id}><span>{m.by === "ai" ? "Combined by AI" : "Matching words"}: {m.text}</span></li>)}</ul>}
           </li>)}</ul>
           {col.hidden.length > 0 && <p className="fl-rmeta">{col.hidden.length} hidden from the TV</p>}
         </div>)}</div>

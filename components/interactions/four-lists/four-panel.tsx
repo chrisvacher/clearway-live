@@ -8,7 +8,7 @@ import { pressId } from "@/lib/control/own-presses";
 import { AiMark } from "@/components/interactions/ai/ai-icon";
 
 type Status = { status: string; version: number; session: { id: string; title: string; state: string; live: boolean } | null; cards: FourCard[]; counts?: { cards: number; folded: number; hidden: number } };
-const foldLabel = { words: "Matched words", ai: "Combined by AI" } as const;
+const foldLabel = { words: "Matching words", ai: "Combined by AI" } as const;
 
 // The control surface's Four Helpful Lists panel (private): every list with its cards by rank, the folds with Undo fold, Pin
 // to keep a card as it is, Hide for a card that should not be on the screen. It follows the room; if the server can't answer

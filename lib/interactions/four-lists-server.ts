@@ -21,3 +21,11 @@ export async function myAgrees(client: SupabaseClient, engagement: string, sessi
   if (error) throw error;
   return { data, status: data.status === "ok" ? 200 : 403 };
 }
+
+// Whether this database has the Four Helpful Lists yet (its migration applied). Until then the run of show hides the Discover part and
+// the review link, and the review says so quietly. A missing function is the only error that means "not yet".
+export const fourListsMissing = (error: { code?: string; message?: string } | null) => Boolean(error && (error.code === "PGRST202" || error.code === "42883" || /could not find the function|does not exist/i.test(error.message ?? "")));
+export async function fourListsAvailable(client: SupabaseClient, engagement: string) {
+  const { error } = await client.rpc("four_lists_review", { p_engagement: engagement });
+  return !fourListsMissing(error);
+}

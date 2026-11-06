@@ -13,7 +13,7 @@ import { AiChanges, aiMarkEl, sweepAi } from "@/components/interactions/ai/ai-do
 
 const svg = '<svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>';
 type Spring = { x: number; v: number };
-type Slot = { id: string; column: FourColumn; el: HTMLElement; card: HTMLElement; y: Spring; o: Spring; ty: number; to: number; h: number; placed: boolean; going: boolean; fade: "cwl-dur-arrive" | "cwl-dur-make-room"; rest: boolean; text: string; sign: string };
+type Slot = { id: string; column: FourColumn; el: HTMLElement; card: HTMLElement; y: Spring; o: Spring; ty: number; to: number; h: number; placed: boolean; going: boolean; fade: "cwl-dur-arrive" | "cwl-dur-make-room" | "cwl-dur-regroup"; rest: boolean; text: string; sign: string };
 const make = (tag: string, className: string) => { const el = document.createElement(tag); el.className = className; return el; };
 const slideIn = 40; // px: where an arrival starts below its place
 
@@ -76,7 +76,7 @@ export class FourBoard {
       if (keep.has(id) || slot.going) return;
       slot.going = true; slot.to = 0; slot.rest = false; slot.fade = "cwl-dur-make-room";
       const into = foldedInto(id, cards), target = into ? this.slots.get(into) : undefined, listH = this.lists.get(slot.column)!.clientHeight;
-      if (target && keep.has(into!)) slot.ty = target.ty;
+      if (target && keep.has(into!)) { slot.ty = target.ty; slot.fade = "cwl-dur-regroup"; } // a fold drifts into its survivor at the regrouping pace
       else if (cards.some(c => c.id === id)) { // pushed out of the top: it slides a short way down as it fades
         let end = 0; this.slots.forEach((o, oid) => { if (oid !== id && keep.has(oid) && o.column === slot.column) end = Math.max(end, o.ty + (o.h || 0)); });
         slot.ty = Math.min(listH, end) || slot.ty;
@@ -198,7 +198,7 @@ export class FourBoard {
         s.el.style.transform = `translateY(${s.ty}px)`; return;
       }
       if (dt > 0) {
-        [s.y.x, s.y.v] = springStep(s.y.x, s.y.v, s.ty, wy, dt);
+        [s.y.x, s.y.v] = springStep(s.y.x, s.y.v, s.ty, s.going && s.fade === "cwl-dur-regroup" ? springRate(tokenMs(this.root, "cwl-dur-regroup") || 1200) : wy, dt);
         const [x, v] = springStep(s.o.x, s.o.v, s.to, springRate(tokenMs(this.root, s.fade) || 600), dt); s.o.x = Math.max(0, Math.min(1, x)); s.o.v = v;
       }
       if (s.going && s.o.x < 0.02) { s.el.remove(); this.slots.delete(id); return; }

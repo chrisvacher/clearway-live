@@ -64,7 +64,7 @@ function useGlide(root: RefObject<HTMLElement | null>, key: string) {
   return measure;
 }
 
-export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notice?: string }) {
+export function ShowEditor({ initial, notice = "", fourLists = true }: { initial: RunOfShow; notice?: string; fourLists?: boolean }) {
   const [show, setShow] = useState(initial), [pending, setPending] = useState<Op[]>([]);
   const [message, setMessage] = useState(notice), [error, setError] = useState(false), [reloadNeeded, setReloadNeeded] = useState(false), [announce, setAnnounce] = useState("");
   const [openId, setOpenId] = useState<string | null>(null), [closingId, setClosingId] = useState<string | null>(null);
@@ -332,7 +332,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
       <Link href={`/control/${ctx.id}`}><Radio aria-hidden="true" size={18} />Live room</Link>
       <Link href={`${base}/tv`}><Monitor aria-hidden="true" size={18} />Pair a TV</Link>
       <Link href={`${base}/door`}><DoorOpen aria-hidden="true" size={18} />Door list</Link>
-      <Link href={`${base}/four-lists`}><Columns4 aria-hidden="true" size={18} />Four Helpful Lists</Link>
+      {fourLists && <Link href={`${base}/four-lists`}><Columns4 aria-hidden="true" size={18} />Four Helpful Lists</Link>}
       <Link href={`${base}/run-of-show/print`}><Printer aria-hidden="true" size={18} />Printouts</Link>
       <Link href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate aria-hidden="true" size={18} />Templates</Link>
       <Link href="/setup">View engagements</Link>
@@ -351,7 +351,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
       <p className="sr-only" id="rb-move-help">Press Space or Enter to pick it up, then the up and down arrows to move it.</p>
       <div className="rb-body">
         <div className="rb-run" ref={runRef} onTransitionEnd={e => { if ((e.target as HTMLElement).classList.contains("rb-opts")) remeasure(false); }}>
-          {parts.map(part => {
+          {parts.filter(part => part !== "Discover" || fourLists || partOf(sessions, part).length > 0).map(part => {
             const group = partOf(sessions, part), times = partTimes(group), timed = group.some(s => s.mode === "live" && s.planned_start);
             const firstLive = group.find(s => s.mode === "live")?.id, target = drag?.gap?.part === part;
             let shown = 0;

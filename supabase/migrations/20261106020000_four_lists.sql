@@ -15,6 +15,7 @@
 --   private.ai_status, ai_control        lens_wall versions, renamed to _base; four_lists sessions are handled here
 --   private.reset_practice_room          m4 acceptance fixes (20261104190000), renamed to _base; also clears the new tables
 --   private.rehearsal_control            practice fixes 1 (20261105100000), renamed to _base; Clear test answers also clears the new tables
+--   private.ai_due                       ai_live (20261103110000) plus every open self-paced four_lists step
 --   private.part_order                   gains the Discover part, ahead of the Pre-call
 --   private.show_write, template_write   templates (20261103100000) and map templates (20261104180000), their text patched so
 --                                        every part list gains Discover (nothing else in either function changes)
@@ -88,7 +89,8 @@ create table private.four_list_agrees (
  foreign key(session_id,engagement_id) references public.sessions(id,engagement_id),
  foreign key(attendee_id,engagement_id) references public.attendees(id,engagement_id)
 );
-create unique index four_list_agrees_person_idx on private.four_list_agrees(card_id,attendee_id) where not deleted;
+-- A rehearsal's toggle is its own test row beside the person's real one, so Clear test answers puts the real agree back.
+create unique index four_list_agrees_person_idx on private.four_list_agrees(card_id,attendee_id,test) where not deleted;
 create index four_list_agrees_session_idx on private.four_list_agrees(session_id,engagement_id);
 create index four_list_agrees_attendee_idx on private.four_list_agrees(attendee_id,engagement_id);
 create index four_list_agrees_engagement_idx on private.four_list_agrees(engagement_id);
@@ -126,7 +128,7 @@ create trigger four_list_fold_check before insert on private.four_list_folds for
 create function private.four_lists_root(p_card uuid) returns uuid
 language sql stable security definer set search_path='' as $$
  select coalesce((select m.survivor_id from private.four_list_folds m join public.submissions s on s.id=m.survivor_id
-   where m.member_id=p_card and m.undone_at is null and not m.deleted and not s.deleted and not s.withdrawn and not s.hidden),p_card)
+   where m.member_id=p_card and m.undone_at is null and not m.deleted and (m.made_by<>'ai' or private.ai_on(m.session_id)) and not s.deleted and not s.withdrawn and not s.hidden),p_card)
 $$;
 
 -- With AI off (and on), a card with exactly the same words as a standing card in its column folds beneath
@@ -179,7 +181,7 @@ language sql stable security definer set search_path='' as $$
  with c as (
   select x.id,x.attendee_id,x.text,x.hidden,coalesce(x.server_received_at,x.created_at) as at,k.col,k.pinned,m.id as merge_id,m.survivor_id,m.made_by
   from public.submissions x join private.four_list_cards k on k.submission_id=x.id and not k.deleted
-  left join private.four_list_folds m on m.member_id=x.id and m.undone_at is null and not m.deleted
+  left join private.four_list_folds m on m.member_id=x.id and m.undone_at is null and not m.deleted and (m.made_by<>'ai' or private.ai_on(p_session))
   where x.session_id=p_session and not x.deleted and not x.withdrawn
  ), standing as (select * from c where not hidden
  ), rooted as (
@@ -190,7 +192,8 @@ language sql stable security definer set search_path='' as $$
    jsonb_agg(jsonb_build_object('id',r.id,'text',r.text,'merge',r.merge_id,'by',r.made_by) order by r.at,r.id) filter (where r.id<>r.root) as members
   from rooted r group by r.root
  ), people as (
-  select r.root,v.attendee_id from private.four_list_agrees v join rooted r on r.id=v.card_id where v.agreed and not v.deleted
+  select r.root,v.attendee_id from (select distinct on (a.card_id,a.attendee_id) a.* from private.four_list_agrees a where a.session_id=p_session and not a.deleted order by a.card_id,a.attendee_id,a.server_received_at desc,a.id) v
+   join rooted r on r.id=v.card_id where v.agreed
   union select r.root,r.attendee_id from rooted r where r.id<>r.root
  ), counted as (
   select p.root,count(distinct p.attendee_id)::integer as agree from people p join standing rt on rt.id=p.root where p.attendee_id is distinct from rt.attendee_id group by p.root
@@ -254,7 +257,7 @@ $$;
 -- before it closed and arriving within 2 minutes.
 create function private.four_lists_agree(p_engagement uuid,p_id uuid,p_card uuid,p_revision integer,p_on boolean,p_sent timestamptz,p_queued timestamptz,p_uncertainty double precision) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r public.room_states; s public.sessions; q public.submissions; v private.four_list_agrees; who uuid; root uuid; received timestamptz:=clock_timestamp(); accepting boolean; vid uuid; rev integer;
+declare r public.room_states; s public.sessions; q public.submissions; v private.four_list_agrees; w private.four_list_agrees; is_test boolean; who uuid; root uuid; received timestamptz:=clock_timestamp(); accepting boolean; vid uuid; rev integer;
 begin
  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
  select * into r from public.room_states where engagement_id=p_engagement and not deleted for update;
@@ -276,33 +279,37 @@ begin
    and received<=s.closed_at+interval '2 minutes') then return jsonb_build_object('status','closed'); end if;
  root:=private.four_lists_root(p_card);
  if exists(select 1 from public.submissions x where x.attendee_id=who and not x.deleted and not x.withdrawn and not x.hidden and (x.id=root or x.id=p_card or x.id in(
-   select m.member_id from private.four_list_folds m where m.survivor_id=root and m.undone_at is null and not m.deleted))) then return jsonb_build_object('status','own'); end if;
+   select m.member_id from private.four_list_folds m where m.survivor_id=root and m.undone_at is null and not m.deleted and (m.made_by<>'ai' or private.ai_on(m.session_id))))) then return jsonb_build_object('status','own'); end if;
+ is_test:=private.rehearsing(p_engagement) is not null;
  select * into v from private.four_list_agrees where id=p_id;
  if found then
   if v.attendee_id<>who or v.card_id<>p_card or v.engagement_id<>p_engagement or v.deleted then return jsonb_build_object('status','conflict'); end if;
   if p_revision<=v.revision then return jsonb_build_object('status','duplicate','id',p_id,'revision',v.revision,'agreed',v.agreed,'version',r.version); end if;
   if p_revision<>v.revision+1 then return jsonb_build_object('status','conflict'); end if;
-  update private.four_list_agrees set agreed=p_on,revision=p_revision,phone_sent_at=p_sent,queued_at=p_queued,server_received_at=received where id=p_id;
-  vid:=p_id; rev:=p_revision;
- else
-  select * into v from private.four_list_agrees where card_id=p_card and attendee_id=who and not deleted;
-  if found then
-   -- The same person on another phone: their latest press wins, on their one agree.
-   update private.four_list_agrees set agreed=p_on,revision=v.revision+1,phone_sent_at=p_sent,queued_at=p_queued,server_received_at=received where id=v.id;
-   vid:=v.id; rev:=v.revision+1;
-  elsif p_revision<>0 then return jsonb_build_object('status','conflict');
-  else
-   insert into private.four_list_agrees(id,engagement_id,session_id,card_id,attendee_id,agreed,revision,phone_sent_at,queued_at,server_received_at)
-    values(p_id,p_engagement,s.id,p_card,who,p_on,0,p_sent,p_queued,received);
-   vid:=p_id; rev:=0;
-  end if;
+ elsif p_revision<>0 and not exists(select 1 from private.four_list_agrees where card_id=p_card and attendee_id=who and not deleted) then return jsonb_build_object('status','conflict');
  end if;
+ -- Which row the press lands on. In a rehearsal it is the person's test row (made if there is none), never their real one;
+ -- outside a rehearsal it is their real row, or a test row they now press for real, which then stands as a real agree.
+ select * into w from private.four_list_agrees where card_id=p_card and attendee_id=who and not deleted and test=is_test order by server_received_at desc,id limit 1;
+ if w.id is null and not is_test then
+  select * into w from private.four_list_agrees where card_id=p_card and attendee_id=who and not deleted and test order by server_received_at desc,id limit 1;
+  if w.id is not null then update private.four_list_agrees set test=false where id=w.id; end if;
+ end if;
+ if w.id is null then
+  insert into private.four_list_agrees(id,engagement_id,session_id,card_id,attendee_id,agreed,revision,phone_sent_at,queued_at,server_received_at)
+   values(case when v.id is null then p_id else gen_random_uuid() end,p_engagement,s.id,p_card,who,p_on,0,p_sent,p_queued,received) returning * into w;
+ else
+  update private.four_list_agrees set agreed=p_on,revision=w.revision+1,phone_sent_at=p_sent,queued_at=p_queued,server_received_at=received where id=w.id returning * into w;
+ end if;
+ -- The phone's own row keeps counting its presses, so its next press is not taken for a stale one.
+ if v.id is not null and w.id<>v.id then update private.four_list_agrees set revision=p_revision where id=v.id; end if;
+ vid:=case when v.id is not null then v.id else w.id end; rev:=case when v.id is not null then p_revision else w.revision end;
  update public.room_states set results=private.live_results(p_engagement) where engagement_id=p_engagement returning * into r;
  return jsonb_build_object('status','accepted','id',vid,'revision',rev,'agreed',p_on,'version',r.version);
 end $$;
 
 -- A phone's own agrees, so it can show and toggle them after a reload or on a new phone. With a session, also the
--- cards a self-paced phone agrees with (the same top twelve per column the TV gets), because that phone has no live frame.
+-- standing card of the step, every one and not just the TV's top twelve, so a phone can agree with any of them and a self-paced phone has no live frame.
 create function private.four_lists_my_agrees(p_engagement uuid,p_session uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
 declare who uuid; s public.sessions;
@@ -313,10 +320,10 @@ begin
  if p_session is not null then select * into s from public.sessions where id=p_session and engagement_id=p_engagement and not deleted and interaction='four_lists' and state<>'draft'; end if;
  return jsonb_build_object('status','ok','server_time',clock_timestamp(),
   'agrees',coalesce((select jsonb_agg(jsonb_build_object('id',v.id,'card_id',v.card_id,'agreed',v.agreed,'revision',v.revision) order by v.created_at,v.id)
-   from (select * from private.four_list_agrees where engagement_id=p_engagement and attendee_id=who and not deleted order by created_at,id limit 2000) v),'[]'::jsonb),
+   from (select * from (select distinct on (a.card_id) a.* from private.four_list_agrees a where a.engagement_id=p_engagement and a.attendee_id=who and not a.deleted order by a.card_id,a.server_received_at desc,a.id) z order by created_at,id limit 2000) v),'[]'::jsonb),
   'mine',coalesce((select jsonb_agg(x.id order by x.id) from public.submissions x where x.engagement_id=p_engagement and x.attendee_id=who and not x.deleted and not x.withdrawn and x.session_id in
    (select y.id from public.sessions y where y.engagement_id=p_engagement and y.interaction='four_lists' and not y.deleted)),'[]'::jsonb),
-  'cards',case when s.id is not null then (select coalesce(jsonb_agg(e),'[]'::jsonb) from jsonb_array_elements(private.four_lists_board(s.id,false)) e where (e->>'rank')::integer<=12) end);
+  'cards',case when s.id is not null then (select coalesce(jsonb_agg(e),'[]'::jsonb) from jsonb_array_elements(private.four_lists_board(s.id,false)) e) end);
 end $$;
 
 -- ---------- The facilitator's controls ----------
@@ -377,7 +384,7 @@ begin
   else
    -- A group hides and comes back as a whole, so its folded cards never pop out alone.
    update public.submissions x set hidden=(p_action='hide') where x.hidden is distinct from (p_action='hide') and (x.id=q.id or x.id in(
-    select mm.member_id from private.four_list_folds mm where mm.survivor_id=q.id and mm.undone_at is null and not mm.deleted));
+    select mm.member_id from private.four_list_folds mm where mm.survivor_id=q.id and mm.undone_at is null and not mm.deleted and (mm.made_by<>'ai' or private.ai_on(q.session_id))));
    if not found then return jsonb_build_object('status','unchanged','version',r.version); end if;
    if r.live_session_id=q.session_id then
     v_ids:=coalesce((select array_agg(x.id order by x.id) from public.submissions x where x.session_id=q.session_id and x.hidden and not x.deleted),array[]::uuid[]);
@@ -429,14 +436,15 @@ end $$;
 
 -- ---------- The cards contract (steps 2 and 3) ----------
 -- One row per visible card that has not been folded away: its id, its step, its column, its text, how many people agree,
--- and the ids of the cards folded into it. Hidden, withdrawn and deleted cards are not rows. Service role only: Discover
+-- and the ids of the cards folded into it. Hidden, withdrawn, deleted and rehearsal (test) cards are not rows. Service role only: Discover
 -- themes read it on the server and never hand a person to a screen.
-create function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
 language sql stable security definer set search_path='' as $$
  select (e->>'id')::uuid,s.id,e->>'column',e->>'text',(e->>'agree')::integer,
   coalesce((select array_agg(i::uuid order by i) from jsonb_array_elements_text(e->'ids') i where i<>e->>'id'),array[]::uuid[])
  from public.sessions s cross join lateral jsonb_array_elements(private.four_lists_board(s.id,false)) e
  where s.engagement_id=p_engagement and s.interaction='four_lists' and not s.deleted
+  and not exists(select 1 from public.submissions t where t.id=(e->>'id')::uuid and t.test)
  order by s.id,array_position(array['right','wrong','missing','confused'],e->>'column'),(e->>'rank')::integer
 $$;
 
@@ -466,7 +474,7 @@ begin
  select * into s from public.sessions where id=p_session and not deleted;
  if s.id is null or s.interaction<>'four_lists' then return private.ai_claim_base4(p_session,p_lease,p_model,p_versions); end if;
  if p_lease is null or p_model is null or length(p_model) not between 1 and 100 or jsonb_typeof(p_versions) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
- if not private.ai_on(s.id) or s.state not in ('live','phones_down','open') then return jsonb_build_object('status','off'); end if;
+ if not private.ai_on(s.id) or not (s.state in ('live','phones_down','open') or (s.mode='self_paced' and s.state<>'draft' and private.session_state(s,t)='open')) then return jsonb_build_object('status','off'); end if;
  insert into private.ai_sessions(session_id,engagement_id) values(s.id,s.engagement_id) on conflict(session_id) do nothing;
  select * into a from private.ai_sessions where session_id=s.id for update;
  if a.lease_id is not null and a.lease_until>t then return jsonb_build_object('status','busy'); end if;
@@ -551,7 +559,8 @@ begin
     if not cur ? (member->>'id') or (cur->(member->>'id')->>'folded')::integer>0 then reason:='gone';
     elsif cur->(member->>'id')->>'column' is distinct from cur->(survivor->>'id')->>'column' then reason:='column';
     elsif coalesce((cur->(member->>'id')->>'pinned')::boolean,false) then reason:='pinned';
-    elsif exists(select 1 from private.four_list_folds m where m.member_id=(member->>'id')::uuid and not m.deleted) then reason:='kept_apart';
+    elsif exists(select 1 from private.four_list_folds m where not m.deleted and (m.member_id=(member->>'id')::uuid
+      or (m.member_id=(survivor->>'id')::uuid and m.survivor_id=(member->>'id')::uuid))) then reason:='kept_apart';
     elsif private.ai_quoted(cur->(member->>'id')->>'text') then reason:='quote';
     elsif not private.ai_numbers(cur->(member->>'id')->>'text')<@private.ai_numbers(cur->(survivor->>'id')->>'text') then reason:='number';
     end if;
@@ -577,6 +586,16 @@ begin
  end if;
  return jsonb_build_object('status','ok','changed',v_changed,'applied',jsonb_array_length(applied),'refused',jsonb_array_length(refused));
 end $$;
+
+-- The AI worker's list of steps to look at: the live step and the Q&A pool, plus every open self-paced Four Helpful Lists step.
+create or replace function private.ai_due(p_engagement uuid) returns jsonb
+language sql stable security definer set search_path='' as $$
+ select coalesce(jsonb_agg(distinct x),'[]'::jsonb) from (
+  select r.live_session_id as x from public.room_states r where r.engagement_id=p_engagement and not r.deleted and r.live_session_id is not null and private.ai_on(r.live_session_id)
+  union all select p.id from private.qa_pool(p_engagement) p where p.id is not null and private.ai_on(p.id)
+  union all select s.id from public.sessions s where s.engagement_id=p_engagement and not s.deleted and s.interaction='four_lists' and s.mode='self_paced' and s.state<>'draft'
+   and private.session_state(s,clock_timestamp())='open' and private.ai_on(s.id)) z where x is not null
+$$;
 
 -- A failed fold sends its watermark back, so the work is tried again after the cool-down.
 create function private.ai_fail(p_run uuid,p_lease uuid,p_error text,p_usage jsonb) returns jsonb
@@ -697,6 +716,14 @@ begin
   def:=pg_get_functiondef(f::regprocedure);
   patched:=replace(def,'''Pre-call'',''Day 1'',''Day 2'',''Follow-up''','''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''');
   if patched=def then raise exception 'The part list in % did not patch cleanly',f; end if;
+ if f like 'private.template_write%' then
+   -- A saved template's start is its Pre-call (its first live session there), so Discover, set before it, saves as days
+   -- before the Pre-call and Start an engagement, which asks for the Pre-call, puts every part back in the right place.
+   def:=patched;
+   patched:=replace(def,'select coalesce((select min(planned_start) from public.sessions where engagement_id=eng and not deleted and mode=''live''),',
+    'select coalesce((select min(planned_start) from public.sessions where engagement_id=eng and not deleted and mode=''live'' and part=''Pre-call''),(select min(planned_start) from public.sessions where engagement_id=eng and not deleted and mode=''live''),');
+   if patched=def then raise exception 'The template start in % did not patch cleanly',f; end if;
+  end if;
   execute patched;
  end loop;
 end $patch$;
@@ -705,7 +732,7 @@ end $patch$;
 -- before the pre-call. The facilitator can switch it to self-paced in the run of show. An engagement already started from a
 -- template keeps its sessions; only new engagements start with the step.
 update private.templates set sessions=$tpl$[
- {"title":"Four Helpful Lists","part":"Discover","position":0,"mode":"live","interaction":"four_lists","day":-7,"clock":"19:00","planned_minutes":30,"state":"ready","prompt":"Think about our church today. Add a card to any of the four lists, then agree with the cards that ring true for you.","phone_depth":"Pick a list, add what comes to mind in a few words, then agree with other people's cards. Cards are anonymous.","segment":"Four Helpful Lists","lands_in":"What We Heard","options":{},"settings":{"anonymous":true,"burst_minutes":5,"join_strip":false},"max_sends":12,"max_characters":140,"max_words":30,"team_led":false,"notes":"Run this with the board or team a week before the pre-call. It is live: everyone adds cards on their phones and agrees with the cards they share. Similar cards fold together, marked with the AI icon, and you can undo any fold. Switch it to self-paced in the run of show if the team can't be together. The cards feed Discover themes and the Four Helpful Lists page of What We Heard."}
+ {"title":"Four Helpful Lists","part":"Discover","position":0,"mode":"live","interaction":"four_lists","day":-7,"clock":"19:00","planned_minutes":30,"state":"ready","prompt":"Think about our church today. Add a card to any of the four lists, then agree with the cards that ring true for you.","phone_depth":"Pick a list, add what comes to mind in a few words, then agree with other people's cards. Cards are anonymous.","segment":"Four Helpful Lists","lands_in":"What We Heard and Strategic Tensions","options":{},"settings":{"anonymous":true,"burst_minutes":5,"join_strip":false},"max_sends":12,"max_characters":140,"max_words":30,"team_led":false,"notes":"Run this with the board or team a week before the pre-call. It is live: everyone adds cards on their phones and agrees with the cards they share. Similar cards fold together, marked with the AI icon, and you can undo any fold. Switch it to self-paced in the run of show if the team can't be together. The cards feed Discover themes and the Four Helpful Lists page of What We Heard."}
 ]$tpl$::jsonb||sessions
  where id in ('c1ea0000-0000-4000-8000-000000000002','c1ea0000-0000-4000-8000-000000000003')
   and not exists(select 1 from jsonb_array_elements(sessions) e where e->>'part'='Discover');
