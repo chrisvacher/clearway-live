@@ -15,6 +15,7 @@ export function ThemesPanel({ state, now, send, closed }: { state: ThemesState; 
   const view = draftView(state, now, state.slow_after_ms);
   const hasDrafted = state.themes.some(t => t.ai && t.source !== "survey");
   const working = view.kind === "working";
+  const verb = hasDrafted || view.kind === "done" ? "Redraft themes" : "Draft themes";
   async function draft() {
     setBusy(true); setSay("");
     const reply = await send({ action: "draft", id: crypto.randomUUID() });
@@ -26,15 +27,15 @@ export function ThemesPanel({ state, now, send, closed }: { state: ThemesState; 
   return <div className="dsc-themes-panel">
     <div className="dsc-draftbar">
       <button type="button" className="dsc-btn is-primary" disabled={!canDraft || busy} onClick={() => void draft()}>
-        {working || busy ? <Loader2 className="dsc-spin" aria-hidden="true" /> : <AiIcon size={16} />}{hasDrafted || view.kind === "done" ? "Redraft themes" : "Draft themes"}</button>
+        {working || busy ? <Loader2 className="dsc-spin" aria-hidden="true" /> : <AiIcon size={16} />}{verb}</button>
       {!closed ? <button type="button" className="dsc-btn" onClick={() => setAdding(a => !a)} aria-expanded={adding}><Plus aria-hidden="true" />Add a theme by hand</button> : null}
       <p className={`dsc-draftnote${view.kind === "failed" || (view.kind === "working" && view.slow) ? " is-warn" : ""}`} role="status" aria-live="polite" data-draft={view.kind}>
         {view.kind === "off" ? "AI is off for this engagement. You can still add themes by hand."
           : view.kind === "nothing" ? "Add conversation notes, or run the Four Helpful Lists, and AI can draft themes from them."
           : view.kind === "ready" ? "AI reads your conversation notes and the Four Helpful Lists cards and offers themes. You decide which count."
           : view.kind === "working" ? (view.slow ? <><TriangleAlert aria-hidden="true" />This is taking longer than usual. You can keep working, or add a theme by hand.</> : <>{view.redraft ? "Looking for new themes beside the ones you accepted." : "Reading your notes and cards."} New themes appear here as they arrive.</>)
-          : view.kind === "failed" ? <><TriangleAlert aria-hidden="true" />AI couldn&apos;t draft themes this time. Press Redraft themes to try again, or add a theme by hand.</>
-          : `AI offered ${view.offered} ${view.offered === 1 ? "theme" : "themes"}${view.refused ? `, and ${view.refused} didn't hold up against your sources` : ""}.${view.stale ? ` ${view.stale} ${view.stale === 1 ? "note was" : "notes were"} added since, so Redraft themes will read ${view.stale === 1 ? "it" : "them"}.` : ""}${view.leftOut ? ` ${view.leftOut} long ${view.leftOut === 1 ? "note was" : "notes were"} cut short to fit.` : ""}`}
+          : view.kind === "failed" ? <><TriangleAlert aria-hidden="true" />AI couldn&apos;t draft themes this time. Press {verb} to try again, or add a theme by hand.</>
+          : `AI offered ${view.offered} ${view.offered === 1 ? "theme" : "themes"}${view.refused ? `, and ${view.refused} didn't hold up against your sources` : ""}.${view.stale ? ` ${view.stale} ${view.stale === 1 ? "note was" : "notes were"} added since, so Redraft themes will read ${view.stale === 1 ? "it" : "them"}.` : ""}${view.leftOut ? ` ${view.leftOut} ${view.leftOut === 1 ? "note was" : "notes were"} cut short or left out to fit.` : ""}${view.cardsLeftOut ? ` ${view.cardsLeftOut} ${view.cardsLeftOut === 1 ? "card was" : "cards were"} left out to fit.` : ""}`}
       </p>
     </div>
     <p className={`dsc-status${say ? " is-err" : ""}`} role="status" aria-live="polite">{say}</p>

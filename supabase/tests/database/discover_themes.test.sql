@@ -56,7 +56,7 @@ select is((select count(*) from information_schema.role_table_grants where grant
 select is((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in('discover_themes_state','discover_theme_act','discover_theme_add','discover_draft_start','discover_theme_due','discover_theme_claim','discover_theme_apply','discover_theme_fail') and p.prosecdef),0::bigint,'Every public themes function is a security invoker wrapper');
 select is((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname in('discover_themes_state','discover_theme_act','discover_theme_add','discover_draft_start','discover_theme_due','discover_theme_claim','discover_theme_apply','discover_theme_fail','discover_accepted_themes','discover_recount') and p.prosecdef),10::bigint,'and every private one is a security definer');
 select is((select count(*) from pg_proc p where p.proname='four_lists_cards_for_themes' and p.pronamespace='private'::regnamespace),1::bigint,'The cards contract function exists (the stub, or step 2''s own)');
-select is((select pg_get_function_result(p.oid) from pg_proc p where p.proname='four_lists_cards_for_themes' and p.pronamespace='private'::regnamespace),'TABLE(card_id uuid, session_id uuid, "column" text, text text, agree integer, folded_ids uuid[])','with the signature step 2 gives it');
+select is((select pg_get_function_result(p.oid) from pg_proc p where p.proname='four_lists_cards_for_themes' and p.pronamespace='private'::regnamespace),'TABLE(card_id uuid, session_id uuid, "column" text, text text, agree integer, folded_ids uuid[], people uuid[])','with the signature step 2 gives it, people included');
 select throws_ok($$insert into private.ai_runs(engagement_id,session_id,job,model,prompt_version,inputs) values(tests.id(100),null,'combine_words','m','v','{}')$$,'23514',null,'A live job still needs a session');
 select lives_ok($$insert into private.ai_runs(engagement_id,session_id,job,model,prompt_version,inputs,status,finished_at) values(tests.id(100),null,'draft_discover_themes','m','v','{}','failed',now())$$,'The theme job is engagement-level and has none');
 select lives_ok($$insert into private.ai_runs(engagement_id,session_id,job,model,prompt_version,inputs,status,finished_at) values(tests.id(100),null,'overnight_draft','m','v','{}','failed',now())$$,'The overnight draft still has none either');
@@ -129,14 +129,14 @@ insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,pho
  (tests.id(901),tests.id(100),tests.id(310),tests.id(504),'Easy to join a group','[]','2026-11-06 10:00:00+00'),
  (tests.id(902),tests.id(100),tests.id(310),tests.id(510),'A way into groups for newcomers','[]','2026-11-06 10:00:01+00');
 -- A test-only replacement for step 2's function, inside this transaction only: the cards step 3 reads through the contract.
-create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
 language sql stable security definer set search_path='' as $$
- select v.a,v.b,v.c,v.d,v.e,v.f from (values
-  (tests.id(901),tests.id(310),'right','Easy to join a group',0,array[]::uuid[]),
-  (tests.id(902),tests.id(310),'missing','A way into groups for newcomers',1,array[tests.id(903)]),
-  (tests.id(904),tests.id(310),'wrong','Volunteers are burning out',4,array[]::uuid[]),
-  (tests.id(905),tests.id(310),'confused','Who decides what we do next?',2,array[]::uuid[]))
-  v(a,b,c,d,e,f) where p_engagement=tests.id(100)
+ select v.a,v.b,v.c,v.d,v.e,v.f,v.g from (values
+  (tests.id(901),tests.id(310),'right','Easy to join a group',0,array[]::uuid[],array[tests.id(601)]),
+  (tests.id(902),tests.id(310),'missing','A way into groups for newcomers',1,array[tests.id(903)],array[tests.id(602),tests.id(603)]),
+  (tests.id(904),tests.id(310),'wrong','Volunteers are burning out',4,array[]::uuid[],array[tests.id(601),tests.id(602),tests.id(603),tests.id(604),tests.id(605)]),
+  (tests.id(905),tests.id(310),'confused','Who decides what we do next?',2,array[]::uuid[],array[tests.id(603),tests.id(604),tests.id(606)]))
+  v(a,b,c,d,e,f,g) where p_engagement=tests.id(100)
 $$;
 set local role authenticated;
 select tests.login(1);
@@ -161,6 +161,7 @@ select is((select (inputs->'notes'->0)->>'ref' from private.ai_runs where job='d
 select ok((select not (inputs::text ~* 'Tasha|Brown|Sam Lee|Ruth|Gomez|Senior leaders|Associate pastor|Board conversation|Staff team|Worship pastor') from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),'The run holds no person and no note title: only text and kind');
 select ok((select (inputs->'notes'->0) ?& array['ref','id','kind','text'] and not ((inputs->'notes'->0) ? 'person') from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),'A note is its ref, id, kind and text and nothing more');
 select is((select inputs->'left_out' from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),'0'::jsonb,'None was left out for length');
+select is((select inputs->'cards_left_out' from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),'0'::jsonb,'and no card');
 select is((select status from private.discover_theme_rounds where engagement_id=tests.id(100)),'drafting','The round is drafting');
 
 -- ---------- Apply: what is kept is code ----------
@@ -199,8 +200,8 @@ select is(tests.field('Small groups are hard to find','quotes'),'["Newcomers tel
 select is(tests.field('A warm welcome','quotes'),'[]','A quote that carries a name is dropped, and the theme kept');
 select is(tests.field('Proud of the music','quotes'),'[]','A quote that is not in its source is dropped');
 select is(tests.field('Newcomers need a way into groups','quotes'),'["A way into groups for newcomers"]','A Four Helpful Lists theme with no verbatim quote takes its most agreed card''s own words');
-select is(tests.field('Newcomers need a way into groups','rests_on')||' of '||tests.field('Newcomers need a way into groups','out_of'),'2 of 5','and rests on the people behind its cards: the most behind one card (an agreement count of 1 and its writer), never fewer than its two writers; out of the most people any card shows');
-select is(tests.field('Volunteers burn out','rests_on')||' of '||tests.field('Volunteers burn out','out_of'),'5 of 5','A card five people stand behind rests on 5');
+select is(tests.field('Newcomers need a way into groups','rests_on')||' of '||tests.field('Newcomers need a way into groups','out_of'),'3 of 6','and rests on the distinct people behind its two cards (601, 602 and 603), out of the six people the cards show');
+select is(tests.field('Volunteers burn out','rests_on')||' of '||tests.field('Volunteers burn out','out_of'),'5 of 6','A card five people stand behind rests on 5');
 select is((select count(*)::integer from private.discover_theme_sources where engagement_id=tests.id(100) and theme_id=tests.themeid('Small groups are hard to find') and note_id is not null and not deleted),3,'Its sources are the three notes');
 select is((select count(*)::integer from private.discover_theme_sources where engagement_id=tests.id(100) and card_id is not null and not deleted),3,'and the cards behind the two card themes');
 select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and source='survey'),0,'No survey theme is drafted by AI');
@@ -251,7 +252,7 @@ select is(tests.field('Small groups are hard to find','quotes'),'["Newcomers tel
 select is(tests.field('Small groups are hard to find','status'),'accepted','A survivor keeps its own status');
 select is(jsonb_array_length(tests.tstate()->'themes'),5,'The merged theme leaves the list');
 select is((select jsonb_array_length(t->'members') from jsonb_array_elements(tests.tstate()->'themes') t where t->>'label'='Small groups are hard to find'),1,'and sits beneath its survivor');
-select is((select jsonb_array_length(t->'sources') from jsonb_array_elements(tests.tstate()->'themes') t where t->>'label'='Small groups are hard to find'),5,'whose sources are both themes'' (five, with the note both name)');
+select is((select jsonb_array_length(t->'sources') from jsonb_array_elements(tests.tstate()->'themes') t where t->>'label'='Small groups are hard to find'),4,'whose sources are both themes'' (four: the note both name is listed once)');
 select is(tests.act(tests.themeid('Volunteers are stretched'),'accept')->>'status','merged','A merged theme cannot be accepted on its own');
 select is(tests.act(tests.themeid('Proud of the music'),'merge',jsonb_build_object('into',tests.themeid('Volunteers are stretched')))->>'status','cannot_merge','and nothing merges into it');
 select is(tests.act(tests.themeid('Volunteers are stretched'),'split')->>'status','ok','Splitting it out');
@@ -277,7 +278,7 @@ select is(public.discover_theme_add(tests.id(100),tests.id(701),'survey','A surv
 select is(public.discover_theme_add(tests.id(100),tests.id(701),'conversations','','',null)->>'status','invalid_request','A theme needs a name');
 select is(public.discover_theme_add(tests.id(100),tests.id(701),'conversations','Unknown note','',array[tests.id(404)])->>'status','not_found','and notes that exist');
 select is(public.discover_theme_add(tests.id(100),tests.id(702),'four_lists','Cards by hand','',array[tests.id(905)])->>'status','ok','A theme can rest on Four Helpful Lists cards');
-select is(tests.field('Cards by hand','rests_on')||' of '||tests.field('Cards by hand','out_of'),'3 of 5','counted from the people behind the card');
+select is(tests.field('Cards by hand','rests_on')||' of '||tests.field('Cards by hand','out_of'),'3 of 6','counted from the distinct people behind the card');
 select is(public.discover_theme_add(tests.id(100),tests.id(703),'conversations','No sources yet','Written before the notes',null)->>'status','ok','A theme may rest on nothing yet');
 select is(public.discover_themes_state(tests.id(100))::text ~ 'No sources yet','true'::boolean,'and is listed');
 
@@ -359,10 +360,69 @@ select is((select count(*)::integer from private.discover_themes where engagemen
 select is(tests.field('The next step is unclear','status'),'draft','The new theme is a draft beside them');
 select is(tests.field('Small groups are hard to find','status'),'accepted','and the accepted one is still accepted');
 
+
+-- ---------- People are counted once, and card themes follow the cards ----------
+
+-- ---------- People are counted once, and card themes follow the cards ----------
+set local role authenticated;
+select tests.login(1);
+select is(public.discover_theme_add(tests.id(100),tests.id(704),'four_lists','Overlap by hand','',array[tests.id(901),tests.id(904)])->>'status','ok','A theme can rest on two cards whose people overlap');
+select is(tests.field('Overlap by hand','rests_on')||' of '||tests.field('Overlap by hand','out_of'),'5 of 6','Person 601 stands behind both cards and counts once: 5 distinct people, not 6');
+reset role;
+select is((select rests_on from private.discover_accepted_themes(tests.id(100)) where label='Overlap by hand'),5,'discover_accepted_themes reads the same distinct count');
+update private.discover_themes set status='accepted' where id=tests.themeid('Newcomers need a way into groups');
+select is((select jsonb_array_length(quotes) from private.discover_accepted_themes(tests.id(100)) where label='Newcomers need a way into groups'),1,'An accepted card theme carries its card quote while the card is there');
+-- The room moves on: card 902 folds beneath 904 and 901 and 905 are gone.
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
+language sql stable security definer set search_path='' as $$
+ select tests.id(904),tests.id(310),'wrong','Volunteers are burning out',4,array[tests.id(902)],array[tests.id(601),tests.id(602),tests.id(603),tests.id(604),tests.id(605),tests.id(607)] where p_engagement=tests.id(100)
+$$;
+select is((select rests_on||' of '||out_of from private.discover_accepted_themes(tests.id(100)) where label='Newcomers need a way into groups'),'6 of 6','A card folded beneath another counts through it, and the count is read live');
+select is((select rests_on from private.discover_accepted_themes(tests.id(100)) where label='Cards by hand'),0,'A theme whose card is gone rests on no one');
+select is((select jsonb_array_length(quotes) from private.discover_accepted_themes(tests.id(100)) where label='Newcomers need a way into groups'),1,'its quote stays while its card sits beneath another');
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
+language sql stable security definer set search_path='' as $$
+ select tests.id(904),tests.id(310),'wrong','Volunteers are burning out',4,array[]::uuid[],array[tests.id(601)] where p_engagement=tests.id(100)
+$$;
+select is((select jsonb_array_length(quotes) from private.discover_accepted_themes(tests.id(100)) where label='Newcomers need a way into groups'),0,'A card quote is dropped once its card is gone from the contract');
+select ok((select max(jsonb_array_length(quotes)) from private.discover_accepted_themes(tests.id(100)))<=3,'and no theme has more than three quotes');
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
+language sql stable security definer set search_path='' as $$
+ select v.a,v.b,v.c,v.d,v.e,v.f,v.g from (values
+  (tests.id(901),tests.id(310),'right','Easy to join a group',0,array[]::uuid[],array[tests.id(601)]),
+  (tests.id(902),tests.id(310),'missing','A way into groups for newcomers',1,array[tests.id(903)],array[tests.id(602),tests.id(603)]),
+  (tests.id(904),tests.id(310),'wrong','Volunteers are burning out',4,array[]::uuid[],array[tests.id(601),tests.id(602),tests.id(603),tests.id(604),tests.id(605)]),
+  (tests.id(905),tests.id(310),'confused','Who decides what we do next?',2,array[]::uuid[],array[tests.id(603),tests.id(604),tests.id(606)]))
+  v(a,b,c,d,e,f,g) where p_engagement=tests.id(100)
+$$;
+update private.discover_themes set status='draft' where id=tests.themeid('Newcomers need a way into groups');
+
+-- ---------- Names: any case, and the facilitators too ----------
+select is(private.discover_has_name('priya runs the welcome table',private.discover_names(tests.id(100))),true,'A name is found in any case');
+select is(private.discover_has_name('Ask Vacher about it',private.discover_names(tests.id(100))),true,'and a facilitator''s name counts');
+select is(private.discover_has_name('A warm welcome at the door',private.discover_names(tests.id(100))),false,'a plain sentence is clear');
+set local role authenticated;
+select tests.login(1);
+select is(tests.act(tests.themeid('Cards by hand'),'reject')->>'status','ok','A theme is rejected');
+select is(tests.act(tests.themeid('Cards by hand'),'merge',jsonb_build_object('into',tests.themeid('Overlap by hand')))->>'status','cannot_merge','and a rejected theme cannot be merged into another');
+select is(tests.act(tests.themeid('Overlap by hand'),'merge',jsonb_build_object('into',tests.themeid('Cards by hand')))->>'status','cannot_merge','nor another into it');
+reset role;
+
+-- ---------- The practice reset puts the drafting round away ----------
+insert into engagements(id,church_id,title,type) values('90000000-0000-4000-8000-000000000010',tests.id(200),'Permanent practice','practice');
+insert into engagement_facilitators(engagement_id,clearway_user_id,role) values('90000000-0000-4000-8000-000000000010',tests.id(701),'lead');
+insert into private.discover_theme_rounds(engagement_id,status) values('90000000-0000-4000-8000-000000000010','failed');
+set local role authenticated;
+select tests.login(1);
+select is(public.reset_practice_room(),true,'The practice room resets');
+reset role;
+select is((select count(*)::integer from private.discover_theme_rounds where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'and its drafting round is put away');
+select is((select count(*)::integer from private.discover_theme_rounds where engagement_id=tests.id(100) and not deleted),1,'while another engagement keeps its round');
+
 -- ---------- The page ignores a round once there is nothing to read ----------
 update private.conversation_notes set deleted=true where engagement_id=tests.id(100);
-create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
-language sql stable security definer set search_path='' as $$ select null::uuid,null::uuid,null::text,null::text,null::integer,null::uuid[] where false $$;
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
+language sql stable security definer set search_path='' as $$ select null::uuid,null::uuid,null::text,null::text,null::integer,null::uuid[],null::uuid[] where false $$;
 set local role authenticated;
 select tests.login(1);
 select is(public.discover_themes_state(tests.id(100))->'round','null'::jsonb,'With no notes and no cards the old round is not shown');

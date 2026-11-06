@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Check, Clipboard, Columns4, Merge, MessageSquareText, Pencil, Undo2, X } from "lucide-react";
 import { restsOnLabel } from "@/lib/discover/thin";
 import { strength } from "@/lib/discover/strength";
@@ -30,7 +30,7 @@ function Sources({ sources }: { sources: ThemeSourceRow[] }) {
 // The bar grows from its old length to its new one (cwl-dur-bar-grow). The width is set on the element, so no inline style is written.
 function Fill({ pct }: { pct: number }) {
   const ref = useRef<HTMLElement>(null);
-  useEffect(() => { ref.current?.style.setProperty("width", `${pct.toFixed(2)}%`); }, [pct]);
+  useLayoutEffect(() => { ref.current?.style.setProperty("width", `${pct.toFixed(2)}%`); }, [pct]);
   return <i ref={ref} />;
 }
 

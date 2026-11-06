@@ -121,3 +121,4 @@
 .dsc-add fieldset label { flex-direction: row; align-items: center; font-weight: 500; }
 .dsc-add .acts { display: flex; gap: 8px; }
 @media (prefers-reduced-motion: reduce) { .dsc-spin { animation: none; } .dsc-theme .tr i { transition: none; } }
+[data-motion="reduced"] .dsc-theme .tr i, [data-motion="reduced"] .dsc-spin { transition: none; animation: none; }

@@ -10,7 +10,8 @@
 -- New:
 --   private.discover_theme_rounds           one drafting round per engagement: pending, drafting, ready, failed
 --   private.discover_themes.original_label  the label a theme had before the facilitator renamed it
---   private.four_lists_cards_for_themes     a stub that returns no rows, only if step 2 has not made the real one
+--   private.four_lists_cards_for_themes     a stub (seven columns, people included) that returns no rows, only if step 2 has not made the real one
+--   private.discover_card_counts            the distinct people behind a card theme, read live from the contract
 --   private.discover_is_thin, discover_is_strong, discover_recount, discover_names, discover_has_name, discover_notes_recount
 --   private.discover_themes_state, discover_theme_act, discover_theme_add, discover_draft_start       (facilitators)
 --   private.discover_theme_due, discover_theme_claim, discover_theme_apply, discover_theme_fail       (the worker, service role)
@@ -20,22 +21,22 @@
 -- Shared objects touched, each a superset of its latest definition:
 --   private.ai_runs ai_runs_job_check      candidates (20261104170000) plus fold_four_lists (step 2) plus draft_discover_themes
 --   private.ai_runs ai_runs_session_check  overnight_draft plus draft_discover_themes (an engagement-level job has no session)
--- Not touched, on purpose: ai_on, ai_claim, ai_apply (the job has no session), reset_practice_room and rehearsal_control.
--- Step 1 already clears drafted themes (they carry the test flag) and their sources, and step 2 wraps both functions by
--- renaming them to *_base: redefining them here would drop the Four Helpful Lists clearing. This migration adds no row
--- that either needs to clear (the round record holds no room data, and the page ignores it once the notes and cards are gone).
+--   private.reset_practice_room            step 1's (20261106010000) plus the practice room's drafting round; if step 2 has wrapped it
+--                                          as reset_practice_room_base, the base is redefined instead
+-- Not touched, on purpose: ai_on, ai_claim, ai_apply (the job has no session) and rehearsal_control (step 1 already clears drafted
+-- test themes and their sources; the round holds no room data and the page ignores it once the notes and cards are gone).
 begin;
 
 -- ---------- The cards contract with step 2 ----------
--- Step 2's migration (20261106020000) creates the real function, with create or replace. If this migration runs first, this
--- stub (the same signature, no rows) stands in for it. Postgres has no create function if not exists, so the stub is made
+-- Step 2's migration (20261106020000) creates the real function. If this migration runs first, this stub (the same signature and
+-- columns, no rows) stands in for it. `people` is the distinct people who wrote or agreed with the card and the cards folded into it. Postgres has no create function if not exists, so the stub is made
 -- only when the function is missing.
 do $stub$
 begin
  if to_regprocedure('private.four_lists_cards_for_themes(uuid)') is null then
-  create function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
+  create function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
   language sql stable security definer set search_path='' as $f$
-   select null::uuid,null::uuid,null::text,null::text,null::integer,null::uuid[] where false
+   select null::uuid,null::uuid,null::text,null::text,null::integer,null::uuid[],null::uuid[] where false
   $f$;
  end if;
 end $stub$;
@@ -95,14 +96,29 @@ language sql immutable security invoker set search_path='' as $$
  select not private.discover_is_thin(p_source,p_rests,p_out) and coalesce(p_out,0)>0 and coalesce(p_rests,0)::numeric/p_out>=0.4
 $$;
 
+-- The people behind a Four Helpful Lists theme, read from the contract each time: the distinct union of `people` over its cards (a card
+-- folded into another counts through the card it sits beneath), out of the people in the room. It is never stored as the truth: the
+-- cards change while the room works, so a card theme is read live, and recounted when it changes.
+create function private.discover_card_counts(p_engagement uuid,p_theme uuid) returns table(n integer,o integer)
+language sql stable security definer set search_path='' as $$
+ with ids as (select distinct s.card_id from private.discover_theme_sources s
+   where s.engagement_id=p_engagement and not s.deleted and s.card_id is not null
+    and (s.theme_id=p_theme or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=p_theme and m.engagement_id=p_engagement and not m.deleted))),
+ cards as materialized (select c.card_id,c.folded_ids,coalesce(c.people,array[]::uuid[]) as people from private.four_lists_cards_for_themes(p_engagement) c),
+ mine as (select distinct p from cards c cross join lateral unnest(c.people) p where exists(select 1 from ids i where i.card_id=c.card_id or i.card_id=any(coalesce(c.folded_ids,array[]::uuid[])))),
+ everyone as (select distinct p from cards c cross join lateral unnest(c.people) p)
+ select (select count(*) from mine)::integer,
+  greatest((select count(*) from public.attendees a where a.engagement_id=p_engagement and not a.deleted and a.room_role='participant'),(select count(*) from everyone),(select count(*) from mine))::integer
+$$;
+
+
 -- ---------- Counts ----------
 -- What a theme rests on, worked out from its sources and the themes merged beneath it. Conversations: distinct notes, out of
--- all notes. Four Helpful Lists: the people behind its cards. The contract carries counts, not people, so it is the most
--- people behind any one of its cards (the card's agreement count plus its writer), and never fewer than the distinct writers of
--- its cards and the cards folded into them; out of the people in the room. A survey theme is its finding's own and never recounted.
+-- all notes. Four Helpful Lists: the distinct people who wrote or agreed with its cards (the contract's `people`, cards folded into
+-- a card included); out of the people in the room. A survey theme is its finding's own and never recounted.
 create function private.discover_recount(p_engagement uuid,p_theme uuid) returns void
 language plpgsql security definer set search_path='' as $$
-declare t private.discover_themes; n integer:=0; o integer:=0; ids uuid[]; folded uuid[]; w integer:=0; best integer:=0; everyone integer:=0;
+declare t private.discover_themes; n integer:=0; o integer:=0;
 begin
  select * into t from private.discover_themes where id=p_theme and engagement_id=p_engagement and not deleted;
  if not found or t.source='survey' then return; end if;
@@ -113,22 +129,14 @@ begin
     and (s.theme_id=p_theme or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=p_theme and m.engagement_id=p_engagement and not m.deleted));
   select count(*)::integer into o from private.conversation_notes where engagement_id=p_engagement and not deleted;
  else
-  select coalesce(array_agg(distinct s.card_id),array[]::uuid[]) into ids from private.discover_theme_sources s
-   where s.engagement_id=p_engagement and not s.deleted and s.card_id is not null
-    and (s.theme_id=p_theme or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=p_theme and m.engagement_id=p_engagement and not m.deleted));
-  select coalesce(max(c.agree+1),0)::integer,coalesce(array_agg(f),array[]::uuid[]) into best,folded
-   from private.four_lists_cards_for_themes(p_engagement) c left join lateral unnest(c.folded_ids) f on true where c.card_id=any(ids);
-  select count(distinct x.attendee_id)::integer into w from public.submissions x
-   where x.engagement_id=p_engagement and not x.deleted and (x.id=any(ids) or x.id=any(array_remove(folded,null)));
-  n:=greatest(w,best);
-  select coalesce(max(c.agree+1),0)::integer into everyone from private.four_lists_cards_for_themes(p_engagement) c;
-  o:=greatest((select count(*)::integer from public.attendees a where a.engagement_id=p_engagement and not a.deleted and a.room_role='participant'),everyone,n);
+  select c.n,c.o into n,o from private.discover_card_counts(p_engagement,p_theme) c;
  end if;
  update private.discover_themes set rests_on=n,out_of=greatest(o,n),
   quotes=(select coalesce(jsonb_agg(q.quote order by q.rank),'[]'::jsonb) from (
     select s.quote,row_number() over(order by (s.theme_id<>p_theme),s.created_at,s.id) as rank from private.discover_theme_sources s
     where s.engagement_id=p_engagement and not s.deleted and s.quote is not null
      and (s.note_id is null or exists(select 1 from private.conversation_notes c where c.id=s.note_id and c.engagement_id=s.engagement_id and not c.deleted))
+     and (s.card_id is null or exists(select 1 from private.four_lists_cards_for_themes(p_engagement) k where k.card_id=s.card_id or s.card_id=any(coalesce(k.folded_ids,array[]::uuid[]))))
      and (s.theme_id=p_theme or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=p_theme and m.engagement_id=p_engagement and not m.deleted))) q where q.rank<=3)
  where id=p_theme;
 end $$;
@@ -146,20 +154,21 @@ end $$;
 create trigger notes_recount after insert or update of deleted on private.conversation_notes for each row execute function private.discover_notes_recount();
 
 -- ---------- Names the draft must not carry ----------
--- The words of every note's person field and every attendee's name. AI is never sent them; a theme, a detail or a quote that
+-- The words of every note's person field, every attendee's name and the engagement's facilitators. AI is never sent them; a theme, a detail or a quote that
 -- carries one is refused. Titles and roles are not names.
 create function private.discover_names(p_engagement uuid) returns text[]
 language sql stable security definer set search_path='' as $$
  select coalesce(array_agg(distinct w),array[]::text[]) from (
   select unnest(regexp_split_to_array(x.t,'[^[:alpha:]]+')) as w from (
    select n.person as t from private.conversation_notes n where n.engagement_id=p_engagement and not n.deleted and n.person is not null
-   union all select a.name from public.attendees a where a.engagement_id=p_engagement and not a.deleted) x) y
+   union all select a.name from public.attendees a where a.engagement_id=p_engagement and not a.deleted
+   union all select u.name from public.engagement_facilitators f join public.clearway_users u on u.id=f.clearway_user_id where f.engagement_id=p_engagement and not f.deleted) x) y
  where length(w)>=3 and lower(w)<>all(array['the','and','for','with','team','staff','board','elders','elder','pastor','pastors','rev','reverend','senior','lead','associate','executive',
   'director','chair','deacon','deacons','church','youth','children','kids','worship','group','council','committee','leader','leaders','interview','input','conversation','mrs','miss','pastoral'])
 $$;
 create function private.discover_has_name(p_text text,p_names text[]) returns boolean
 language sql immutable security invoker set search_path='' as $$
- select coalesce(exists(select 1 from unnest(p_names) n where p_text ~ ('\m'||n||'\M')),false)
+ select coalesce(exists(select 1 from unnest(p_names) n where p_text ~* ('\m'||n||'\M')),false)
 $$;
 
 -- ---------- The themes page's state ----------
@@ -178,19 +187,23 @@ begin
  select jsonb_build_object('status','ok','server_time',clock_timestamp(),'ai',coalesce(ai,false),
   'inputs',jsonb_build_object('notes',n_notes,'cards',n_cards),
   'round',case when r.id is not null and (n_notes>0 or n_cards>0) then jsonb_build_object('status',r.status,'redraft',r.redraft,'requested_at',r.requested_at,'attempts',r.attempts,
-     'error',r.last_error,'ok_at',r.last_ok_at,'offered',r.last_offered,'refused',r.last_refused,'left_out',coalesce((r.inputs->>'left_out')::integer,0),
+     'error',r.last_error,'ok_at',r.last_ok_at,'offered',r.last_offered,'refused',r.last_refused,'left_out',coalesce((r.inputs->>'left_out')::integer,0),'cards_left_out',coalesce((r.inputs->>'cards_left_out')::integer,0),
      'stale_notes',case when r.last_ok_at is null then 0 else (select count(*) from private.conversation_notes c where c.engagement_id=p_engagement and not c.deleted and c.created_at>r.last_ok_at) end) end,
-  'themes',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'source',t.source,'label',t.label,'detail',t.detail,'rests_on',t.rests_on,'out_of',t.out_of,'quotes',t.quotes,'status',t.status,
+  'themes',coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'source',t.source,'label',t.label,'detail',t.detail,'rests_on',case when t.source='four_lists' then (select k.n from private.discover_card_counts(p_engagement,t.id) k) else t.rests_on end,
+     'out_of',case when t.source='four_lists' then (select k.o from private.discover_card_counts(p_engagement,t.id) k) else t.out_of end,'quotes',t.quotes,'status',t.status,
      'ai',t.ai_run is not null,'by_hand',t.ai_run is null and t.source<>'survey','renamed_from',case when t.original_label is distinct from t.label then t.original_label end,
      'members',coalesce((select jsonb_agg(jsonb_build_object('id',m.id,'label',m.label) order by m.seq) from private.discover_themes m where m.merged_into=t.id and m.engagement_id=t.engagement_id and not m.deleted),'[]'::jsonb),
-     'sources',coalesce((select jsonb_agg(jsonb_build_object('kind',case when s.finding_id is not null then 'finding' when s.note_id is not null then 'note' else 'card' end,
-         'id',coalesce(s.finding_id,s.note_id,s.card_id),'title',coalesce(f.title,n.title),'note_kind',n.kind,'text',cc."text",'column',cc."column",'agree',cc.agree,'quote',s.quote) order by s.created_at,s.id)
-       from private.discover_theme_sources s
-       left join private.survey_findings f on f.id=s.finding_id and f.engagement_id=s.engagement_id and not f.deleted
-       left join private.conversation_notes n on n.id=s.note_id and n.engagement_id=s.engagement_id and not n.deleted
-       left join cards cc on cc.card_id=s.card_id
-       where s.engagement_id=t.engagement_id and not s.deleted and (s.theme_id=t.id or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=t.id and m.engagement_id=t.engagement_id and not m.deleted))
-        and (f.id is not null or n.id is not null or cc.card_id is not null)),'[]'::jsonb))
+     'sources',coalesce((select jsonb_agg(x.j order by x.created_at,x.sid) from (
+        select distinct on (coalesce(s.finding_id,s.note_id,s.card_id)) s.created_at,s.id as sid,
+         jsonb_build_object('kind',case when s.finding_id is not null then 'finding' when s.note_id is not null then 'note' else 'card' end,
+          'id',coalesce(s.finding_id,s.note_id,s.card_id),'title',coalesce(f.title,n.title),'note_kind',n.kind,'text',cc."text",'column',cc."column",'agree',cc.agree,'quote',s.quote) as j
+         from private.discover_theme_sources s
+         left join private.survey_findings f on f.id=s.finding_id and f.engagement_id=s.engagement_id and not f.deleted
+         left join private.conversation_notes n on n.id=s.note_id and n.engagement_id=s.engagement_id and not n.deleted
+         left join cards cc on cc.card_id=s.card_id
+         where s.engagement_id=t.engagement_id and not s.deleted and (s.theme_id=t.id or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=t.id and m.engagement_id=t.engagement_id and not m.deleted))
+          and (f.id is not null or n.id is not null or cc.card_id is not null)
+         order by coalesce(s.finding_id,s.note_id,s.card_id),(s.theme_id<>t.id),s.created_at,s.id) x),'[]'::jsonb))
      order by (t.status='rejected'),(t.source<>'survey'),t.seq) from top t),'[]'::jsonb),
   'notes',coalesce((select jsonb_agg(jsonb_build_object('id',n.id,'title',n.title,'kind',n.kind) order by n.seq) from private.conversation_notes n where n.engagement_id=p_engagement and not n.deleted),'[]'::jsonb),
   'cards',coalesce((select jsonb_agg(jsonb_build_object('id',c.card_id,'column',c."column",'text',left(c."text",200),'agree',c.agree) order by c.agree desc,c.card_id) from (select * from cards order by agree desc,card_id limit 200) c),'[]'::jsonb))
@@ -241,7 +254,7 @@ begin
   if p is null or p->>'into' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then return jsonb_build_object('status','invalid_request'); end if;
   select * into u from private.discover_themes where id=(p->>'into')::uuid and engagement_id=p_engagement and not deleted for update;
   if not found or u.id=t.id then return jsonb_build_object('status','not_found'); end if;
-  if u.source<>t.source or u.merged_into is not null or u.status='rejected' then return jsonb_build_object('status','cannot_merge'); end if;
+  if u.source<>t.source or u.merged_into is not null or u.status='rejected' or t.status='rejected' then return jsonb_build_object('status','cannot_merge'); end if;
   -- Themes already merged beneath this one go with it, so a survivor never sits beneath another.
   update private.discover_themes set merged_into=u.id where merged_into=t.id and engagement_id=p_engagement and not deleted;
   update private.discover_themes set merged_into=u.id where id=t.id;
@@ -326,7 +339,7 @@ $$;
 -- is counted, and the page says so.
 create function private.discover_theme_claim(p_engagement uuid,p_lease uuid,p_model text,p_versions jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare r private.discover_theme_rounds; t timestamptz:=clock_timestamp(); v_inputs jsonb; v_run uuid; total integer; used integer; nc integer;
+declare r private.discover_theme_rounds; t timestamptz:=clock_timestamp(); v_inputs jsonb; v_run uuid; total integer; used integer; nc integer; names text[]; cut integer; ncards integer;
 begin
  if p_engagement is null or p_lease is null or p_model is null or length(p_model) not between 1 and 100 or jsonb_typeof(p_versions) is distinct from 'object'
   or coalesce(p_versions->>'draft_discover_themes','') !~ '^[a-z0-9_.@-]{1,60}$' then return jsonb_build_object('status','invalid_request'); end if;
@@ -341,6 +354,8 @@ begin
  end if;
  if r.lease_run is not null then update private.ai_runs set status='stale',finished_at=t where id=r.lease_run and status='running'; end if;
  select count(*)::integer into total from private.conversation_notes where engagement_id=p_engagement and not deleted;
+ select count(*)::integer into ncards from private.four_lists_cards_for_themes(p_engagement);
+ names:=private.discover_names(p_engagement);
  v_inputs:=jsonb_build_object('total_notes',total,
   'notes',coalesce((select jsonb_agg(jsonb_build_object('ref','n'||z.ord,'id',z.id,'kind',z.kind,'text',z.body) order by z.ord)
     from (select y.*,sum(char_length(y.body)) over(order by y.ord) as run from (select n.id,n.kind,left(n.body,30000) as body,row_number() over(order by n.seq) as ord
@@ -348,19 +363,24 @@ begin
   'cards',coalesce((select jsonb_agg(jsonb_build_object('ref','f'||z.ord,'id',z.card_id,'column',z."column",'text',left(z."text",300),'agree',z.agree) order by z.ord)
     from (select c.*,row_number() over(order by c.agree desc,c.session_id,c.card_id) as ord from private.four_lists_cards_for_themes(p_engagement) c limit 300) z),'[]'::jsonb),
   'already',coalesce((select jsonb_agg(jsonb_build_object('ref','t'||z.ord,'source',z.source,'label',z.label) order by z.ord)
-    from (select x.source,x.label,row_number() over(order by x.seq) as ord from private.discover_themes x where x.engagement_id=p_engagement and not x.deleted
-      and x.merged_into is null and x.source in ('conversations','four_lists') and x.status in ('accepted','draft') limit 80) z),'[]'::jsonb),
+    from (select y.source,y.label,row_number() over(order by y.seq,y.o) as ord from (
+      select x.source,x.label,x.seq,0 as o from private.discover_themes x where x.engagement_id=p_engagement and not x.deleted
+       and x.merged_into is null and x.source in ('conversations','four_lists') and x.status in ('accepted','draft')
+      union all select x.source,x.original_label,x.seq,1 from private.discover_themes x where x.engagement_id=p_engagement and not x.deleted
+       and x.merged_into is null and x.source in ('conversations','four_lists') and x.status in ('accepted','draft') and x.original_label is not null and x.original_label<>x.label) y
+      where not private.discover_has_name(y.label,names) limit 80) z),'[]'::jsonb),
   'rejected',coalesce((select jsonb_agg(z.label order by z.seq) from (select x.label,x.seq from private.discover_themes x where x.engagement_id=p_engagement and not x.deleted
-      and x.source in ('conversations','four_lists') and x.status='rejected' limit 80) z),'[]'::jsonb));
+      and x.source in ('conversations','four_lists') and x.status='rejected' and not private.discover_has_name(x.label,names) limit 80) z),'[]'::jsonb));
  used:=jsonb_array_length(v_inputs->'notes'); nc:=jsonb_array_length(v_inputs->'cards');
- v_inputs:=v_inputs||jsonb_build_object('left_out',total-used);
+ select count(*)::integer into cut from (select n.id,char_length(n.body) as len,row_number() over(order by n.seq) as ord from private.conversation_notes n where n.engagement_id=p_engagement and not n.deleted) y where y.ord<=used and y.len>30000;
+ v_inputs:=v_inputs||jsonb_build_object('left_out',total-used+cut,'cards_left_out',greatest(ncards-nc,0));
  if used=0 and nc=0 then
   update private.discover_theme_rounds set status='idle',lease_id=null,lease_run=null,lease_until=null where id=r.id;
   return jsonb_build_object('status','idle');
  end if;
  insert into private.ai_runs(engagement_id,session_id,job,model,prompt_version,inputs,created_at) values(p_engagement,null,'draft_discover_themes',p_model,p_versions->>'draft_discover_themes',v_inputs,t) returning id into v_run;
  update private.discover_theme_rounds set status='drafting',lease_id=p_lease,lease_run=v_run,lease_until=t+interval '6 minutes',
-  inputs=jsonb_build_object('notes',used,'cards',nc,'left_out',total-used) where id=r.id;
+  inputs=jsonb_build_object('notes',used,'cards',nc,'left_out',total-used+cut,'cards_left_out',greatest(ncards-nc,0)) where id=r.id;
  return jsonb_build_object('status','claimed','run',v_run,'job','draft_discover_themes','prompt_version',p_versions->>'draft_discover_themes','inputs',v_inputs);
 end $$;
 
@@ -378,6 +398,7 @@ begin
  select * into run from private.ai_runs where id=p_run and job='draft_discover_themes';
  if not found then return jsonb_build_object('status','missing'); end if;
  in_:=run.inputs; v_ms:=private.ai_usage(p_usage,'ms',600000)::integer;
+ perform private.discover_lock(run.engagement_id);
  select * into r from private.discover_theme_rounds where engagement_id=run.engagement_id and not deleted for update;
  if not found or run.status<>'running' or r.lease_id is distinct from p_lease or r.lease_run is distinct from p_run or r.lease_until<t then return jsonb_build_object('status','stale'); end if;
  if coalesce((select e.settings->>'ai_enabled' from public.engagements e where e.id=run.engagement_id),'false')<>'true' then
@@ -385,9 +406,8 @@ begin
   update private.discover_theme_rounds set status='idle',lease_id=null,lease_run=null,lease_until=null where id=r.id;
   return jsonb_build_object('status','discarded');
  end if;
- perform private.discover_lock(run.engagement_id);
  names:=private.discover_names(run.engagement_id);
- select coalesce(array_agg(private.ov_norm(x.label)),array[]::text[]) into seen from private.discover_themes x where x.engagement_id=run.engagement_id and not x.deleted;
+ select coalesce(array_agg(private.ov_norm(l)),array[]::text[]) into seen from private.discover_themes x cross join lateral unnest(array[x.label,x.original_label]) l where x.engagement_id=run.engagement_id and not x.deleted and l is not null;
  for th in select value from jsonb_array_elements(case when jsonb_typeof(p_output->'themes')='array' then p_output->'themes' else '[]'::jsonb end) loop
   exit when offered>=16;
   if jsonb_typeof(th)<>'object' then continue; end if;
@@ -458,13 +478,19 @@ end $$;
 create function private.discover_accepted_themes(p_engagement uuid)
 returns table(theme_id uuid,source text,label text,detail text,rests_on integer,out_of integer,thin boolean,strong boolean,quotes jsonb)
 language sql stable security definer set search_path='' as $$
- select t.id,t.source,t.label,t.detail,t.rests_on,t.out_of,private.discover_is_thin(t.source,t.rests_on,t.out_of),private.discover_is_strong(t.source,t.rests_on,t.out_of),
-  coalesce((select jsonb_agg(jsonb_build_object('kind',case when s.finding_id is not null then 'finding' when s.note_id is not null then 'note' else 'card' end,
-     'id',coalesce(s.finding_id,s.note_id,s.card_id),'quote',s.quote) order by (s.theme_id<>t.id),s.created_at,s.id)
+ with cards as materialized (select k.card_id,coalesce(k.folded_ids,array[]::uuid[]) as folded_ids from private.four_lists_cards_for_themes(p_engagement) k),
+ th as (select t.*,case when t.source='four_lists' then (select c.n from private.discover_card_counts(p_engagement,t.id) c) else t.rests_on end as n,
+   case when t.source='four_lists' then (select c.o from private.discover_card_counts(p_engagement,t.id) c) else t.out_of end as o
+  from private.discover_themes t where t.engagement_id=p_engagement and not t.deleted and t.status='accepted' and t.merged_into is null)
+ select t.id,t.source,t.label,t.detail,t.n,t.o,private.discover_is_thin(t.source,t.n,t.o),private.discover_is_strong(t.source,t.n,t.o),
+  coalesce((select jsonb_agg(q.j order by q.rank) from (
+    select jsonb_build_object('kind',case when s.finding_id is not null then 'finding' when s.note_id is not null then 'note' else 'card' end,'id',coalesce(s.finding_id,s.note_id,s.card_id),'quote',s.quote) as j,
+     row_number() over(order by (s.theme_id<>t.id),s.created_at,s.id) as rank
     from private.discover_theme_sources s where s.engagement_id=t.engagement_id and not s.deleted and s.quote is not null
-     and (s.theme_id=t.id or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=t.id and m.engagement_id=t.engagement_id and not m.deleted))),'[]'::jsonb)
- from private.discover_themes t
- where t.engagement_id=p_engagement and not t.deleted and t.status='accepted' and t.merged_into is null
+     and (s.theme_id=t.id or s.theme_id in (select m.id from private.discover_themes m where m.merged_into=t.id and m.engagement_id=t.engagement_id and not m.deleted))
+     and (s.note_id is null or exists(select 1 from private.conversation_notes c where c.id=s.note_id and c.engagement_id=s.engagement_id and not c.deleted))
+     and (s.card_id is null or exists(select 1 from cards k where k.card_id=s.card_id or s.card_id=any(k.folded_ids)))) q where q.rank<=3),'[]'::jsonb)
+ from th t
  order by (t.source<>'survey'),t.seq
 $$;
 
@@ -487,7 +513,7 @@ create function public.discover_theme_fail(p_run uuid,p_lease uuid,p_error text,
 language sql security invoker set search_path='' as $$ select private.discover_theme_fail(p_run,p_lease,p_error,p_usage) $$;
 
 revoke all on function private.discover_is_thin(text,integer,integer),private.discover_is_strong(text,integer,integer),private.discover_recount(uuid,uuid),private.discover_notes_recount(),
- private.discover_names(uuid),private.discover_has_name(text,text[]),
+ private.discover_names(uuid),private.discover_has_name(text,text[]),private.discover_card_counts(uuid,uuid),
  private.discover_themes_state(uuid),private.discover_theme_act(uuid,uuid,text,jsonb),private.discover_theme_add(uuid,uuid,text,text,text,uuid[]),private.discover_draft_start(uuid,uuid),
  private.discover_theme_due(uuid),private.discover_theme_claim(uuid,uuid,text,jsonb),private.discover_theme_apply(uuid,uuid,jsonb,jsonb),private.discover_theme_fail(uuid,uuid,text,jsonb),
  private.discover_accepted_themes(uuid),
@@ -499,5 +525,79 @@ grant execute on function private.discover_themes_state(uuid),private.discover_t
 grant execute on function private.discover_theme_due(uuid),private.discover_theme_claim(uuid,uuid,text,jsonb),private.discover_theme_apply(uuid,uuid,jsonb,jsonb),private.discover_theme_fail(uuid,uuid,text,jsonb),
  private.discover_accepted_themes(uuid),
  public.discover_theme_due(uuid),public.discover_theme_claim(uuid,uuid,text,jsonb),public.discover_theme_apply(uuid,uuid,jsonb,jsonb),public.discover_theme_fail(uuid,uuid,text,jsonb) to service_role;
+
+-- ---------- The practice reset clears the drafting round too ----------
+-- A superset of the newest definition on main (step 1, 20261106010000): the same text plus the practice room's drafting round.
+-- If step 2 has already wrapped it (renamed to reset_practice_room_base and a wrapper that calls it), the base is the one that is
+-- redefined, so the wrapper and its Four Helpful Lists clearing stay in place whichever of the two steps merges first.
+do $reset$
+declare target text:=case when to_regprocedure('private.reset_practice_room_base()') is not null then 'reset_practice_room_base' else 'reset_practice_room' end;
+begin
+ execute format('create or replace function private.%I() returns boolean language plpgsql security definer set search_path=%L as %L',target,'',$body$
+declare eng uuid:='90000000-0000-4000-8000-000000000010'::uuid; target_sessions uuid[];
+begin
+ if not ((select private.is_admin()) or private.can_facilitate(eng)) then return false; end if;
+ perform pg_advisory_xact_lock(hashtextextended(eng::text,7));
+ if not exists(select 1 from public.engagements where id=eng and type='practice' and not deleted) then return false; end if;
+ perform 1 from public.room_states where engagement_id=eng for update;
+ update public.submissions set deleted=true where engagement_id=eng and not deleted;
+ update private.latency_logs set deleted=true where engagement_id=eng and not deleted;
+ delete from private.lens_summary_locks where engagement_id=eng;
+ update private.scribe_cards set deleted=true where engagement_id=eng and not deleted;
+ update private.scribe_files set deleted=true where engagement_id=eng and not deleted;
+ update private.signals set deleted=true where engagement_id=eng and not deleted;
+ update private.discover_theme_sources set deleted=true where engagement_id=eng and not deleted;
+ update private.discover_themes set deleted=true,merged_into=null where engagement_id=eng and not deleted;
+ update private.discover_theme_rounds set deleted=true where engagement_id=eng and not deleted;
+ update private.survey_findings set deleted=true where engagement_id=eng and not deleted;
+ update private.conversation_notes set deleted=true where engagement_id=eng and not deleted;
+ update private.candidate_suggestions set deleted=true where engagement_id=eng and not deleted;
+ update private.candidate_sources set deleted=true where engagement_id=eng and not deleted;
+ update private.candidates set deleted=true,outcome_id=null where engagement_id=eng and not deleted;
+ update private.candidate_boards set deleted=true,decision_id=null where engagement_id=eng and not deleted;
+ update private.lens_summary_responses set deleted=true where engagement_id=eng and not deleted;
+ update private.lens_summary_sources set deleted=true where engagement_id=eng and not deleted;
+ update private.lens_summary_sentences set deleted=true where engagement_id=eng and not deleted;
+ update private.lens_summaries set deleted=true,current_version_id=null,signed_off_version_id=null,decision_id=null where engagement_id=eng and not deleted;
+ update private.lens_summary_versions set deleted=true where engagement_id=eng and not deleted;
+ update private.lens_sentences set deleted=true where engagement_id=eng and not deleted;
+ update private.lens_openings set deleted=true where engagement_id=eng and not deleted;
+ update private.overnight_publications set withdrawn_at=coalesce(withdrawn_at,clock_timestamp()) where engagement_id=eng and withdrawn_at is null;
+ delete from private.review_presence where engagement_id=eng;
+ update private.draft_photo_texts set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_notes set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_sources set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_bullets set deleted=true where engagement_id=eng and not deleted;
+ update private.draft_outcomes set deleted=true where engagement_id=eng and not deleted;
+ update private.overnight_rounds set deleted=true where engagement_id=eng and not deleted;
+ update private.first_steps set deleted=true where engagement_id=eng and not deleted;
+ update private.intent_card_people set deleted=true where engagement_id=eng and not deleted;
+ update private.intent_cards set deleted=true where engagement_id=eng and not deleted;
+ update private.goal_risks set deleted=true where engagement_id=eng and not deleted;
+ update private.goals set deleted=true where engagement_id=eng and not deleted;
+ update private.risk_mitigations set deleted=true where engagement_id=eng and not deleted;
+ update private.risks set deleted=true where engagement_id=eng and not deleted;
+ update private.outcome_indicators set deleted=true where engagement_id=eng and not deleted;
+ update private.vision_outcomes set deleted=true,decision_id=null where engagement_id=eng and not deleted;
+ update private.decisions set deleted=true where engagement_id=eng and not deleted;
+ update private.key_metrics set deleted=true where engagement_id=eng and not deleted;
+ update private.celebrations set deleted=true where engagement_id=eng and not deleted;
+ update private.map_drafts set deleted=true where engagement_id=eng and not deleted;
+ update public.sessions set state='ready',closed_at=null where engagement_id=eng and not deleted and state in ('live','phones_down','closed','open');
+ select array_agg(distinct auth_session_id) into target_sessions from public.device_sessions where engagement_id=eng;
+ update public.device_sessions set revoked_at=coalesce(revoked_at,now()) where engagement_id=eng;
+ update private.room_auth_devices set revoked_at=coalesce(revoked_at,now()),granted_at=null,claim_id=null,claim_started_at=null,deleted=true where engagement_id=eng;
+ update private.room_auth_challenges set consumed_at=coalesce(consumed_at,now()),deleted=true where engagement_id=eng;
+ update public.join_requests set deleted=true where engagement_id=eng;
+ update public.attendees set deleted=true where engagement_id=eng;
+ -- Preserve device audit rows, while invalidating JWT access and refresh immediately.
+ delete from auth.sessions where id=any(coalesce(target_sessions,array[]::uuid[]));
+ update public.engagements set status='setup',survey_respondents=null where id=eng;
+ update public.room_states set live_session_id=null,tv_content='holding',phones_down=false,burst_ends_at=null,spotlight_id=null,
+   hidden_ids=array[]::uuid[],remote_holder_id=null,team_led_block_id=null,show_tv_on_phones=false,
+   results='{"total":0,"people":0,"words":[]}' where engagement_id=eng;
+ return true;
+end $body$);
+end $reset$;
 
 commit;

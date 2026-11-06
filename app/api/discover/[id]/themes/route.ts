@@ -6,6 +6,7 @@ import { limitedJson } from "@/lib/server/request";
 import { uuid } from "@/lib/room/identity";
 import { SLOW_AFTER_MS, themeBody, themeMessage } from "@/lib/discover/themes";
 import { kickThemes } from "@/lib/ai/trigger";
+import { aiClient } from "@/lib/ai/client";
 
 export const dynamic = "force-dynamic";
 // Drafting runs after the response that starts it and may take a while.
@@ -39,6 +40,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try { body = themeBody(await limitedJson(request, 16384)); } catch { body = null; }
   if (!body) return answer({ status: "invalid_request", message: themeMessage("invalid_request") }, 422);
   if ("error" in body) return answer({ status: "invalid_request", message: body.error }, 422);
+  // Without a model to ask, a draft would sit pending: say so instead.
+  if (body.action === "draft" && !aiClient()) return reply({ status: "ai_unavailable" });
   const e = { p_engagement: id };
   try {
     const call = async () => {

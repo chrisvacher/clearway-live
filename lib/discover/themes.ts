@@ -15,7 +15,7 @@ export type ThemeRow = {
   ai: boolean; by_hand: boolean; renamed_from: string | null; members: { id: string; label: string }[]; sources: ThemeSourceRow[];
 };
 export type RoundStatus = "pending" | "drafting" | "ready" | "failed" | "idle";
-export type Round = { status: RoundStatus; redraft: boolean; requested_at: string; attempts: number; error: string | null; ok_at: string | null; offered: number | null; refused: number | null; stale_notes: number; left_out: number };
+export type Round = { status: RoundStatus; redraft: boolean; requested_at: string; attempts: number; error: string | null; ok_at: string | null; offered: number | null; refused: number | null; stale_notes: number; left_out: number; cards_left_out: number };
 export type ThemesState = {
   status: "ok"; server_time: string; ai: boolean; slow_after_ms?: number; inputs: { notes: number; cards: number }; round: Round | null; themes: ThemeRow[];
   notes: { id: string; title: string; kind: "interview" | "input" }[]; cards: { id: string; column: ColumnKey; text: string; agree: number }[];
@@ -30,14 +30,14 @@ export const themeStrength = (t: Pick<ThemeRow, "source" | "rests_on" | "out_of"
 // The state of the drafting round, as the page words it. `now` is the server's clock, so a laptop with a wrong clock still reads right.
 export type DraftView =
   | { kind: "off" } | { kind: "nothing" } | { kind: "ready" }
-  | { kind: "working"; slow: boolean; redraft: boolean } | { kind: "failed" } | { kind: "done"; offered: number; refused: number; stale: number; leftOut: number };
+  | { kind: "working"; slow: boolean; redraft: boolean } | { kind: "failed" } | { kind: "done"; offered: number; refused: number; stale: number; leftOut: number; cardsLeftOut: number };
 export function draftView(state: Pick<ThemesState, "ai" | "inputs" | "round">, now: number, slowAfter = SLOW_AFTER_MS): DraftView {
   const r = state.round;
   if (r && (r.status === "pending" || r.status === "drafting")) return { kind: "working", slow: now - Date.parse(r.requested_at) > slowAfter, redraft: r.redraft };
   if (!state.ai) return { kind: "off" };
   if (!state.inputs.notes && !state.inputs.cards) return { kind: "nothing" };
   if (r?.status === "failed") return { kind: "failed" };
-  if (r?.status === "ready" && r.offered !== null) return { kind: "done", offered: r.offered, refused: r.refused ?? 0, stale: r.stale_notes, leftOut: r.left_out };
+  if (r?.status === "ready" && r.offered !== null) return { kind: "done", offered: r.offered, refused: r.refused ?? 0, stale: r.stale_notes, leftOut: r.left_out, cardsLeftOut: r.cards_left_out ?? 0 };
   return { kind: "ready" };
 }
 
@@ -50,6 +50,7 @@ export function themeMessage(status: string): string {
     case "denied": return "Only the facilitators of this engagement can use Discover.";
     case "closed": return "This engagement is closed, so themes can't change.";
     case "ai_off": return "AI is off for this engagement. Add themes by hand, or turn AI on in the engagement settings.";
+    case "ai_unavailable": return "AI isn't set up on this server yet. Add themes by hand.";
     case "nothing": return "There is nothing to read yet. Add conversation notes, or run the Four Helpful Lists, first.";
     case "busy": return "Themes are already being drafted. Give it a moment.";
     case "not_found": return "That one is gone. Reload the page.";

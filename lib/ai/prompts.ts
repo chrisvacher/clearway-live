@@ -420,7 +420,7 @@ export const overnightVersion = overnightPrompt.version;
 // a quote that is not word for word, and any label, detail or quote that carries a name. Counts come from the sources, never the model.
 // It never reaches the room: the facilitator accepts, renames, merges or rejects each theme.
 export type ThemesInputs = {
-  total_notes: number; left_out: number;
+  total_notes: number; left_out: number; cards_left_out?: number;
   notes: { ref: string; id: string; kind: "interview" | "input"; text: string }[];
   cards: { ref: string; id: string; column: "right" | "wrong" | "missing" | "confused"; text: string; agree: number }[];
   already: { ref: string; source: "conversations" | "four_lists"; label: string }[];

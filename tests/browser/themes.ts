@@ -40,9 +40,11 @@ async function main() {
     // The Four Helpful Lists cards stand in for step 2's function, inside this kit only.
     original = (await sql.query("select pg_get_functiondef('private.four_lists_cards_for_themes(uuid)'::regprocedure) as def")).rows[0].def as string;
     const room = await engagement(sql, ["Priya"]), elsewhere = await engagement(sql, []);
-    const cardRows = cards.map(([column, text, agree]) => ({ card_id: randomUUID(), session_id: randomUUID(), column, text, agree, folded_ids: [] as string[] }));
-    await sql.query(`create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
-      language sql stable security definer set search_path='' as $f$ select c.card_id,c.session_id,c."column",c."text",c.agree,c.folded_ids from jsonb_to_recordset($1::text::jsonb) as c(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[]) where p_engagement='${room.id}'::uuid $f$`.replace("$1::text::jsonb", `'${JSON.stringify(cardRows)}'::jsonb`));
+    const people = Array.from({ length: 8 }, () => randomUUID());
+    // Each card carries the distinct people behind it; they overlap, as people do.
+    const cardRows = cards.map(([column, text, agree]) => ({ card_id: randomUUID(), session_id: randomUUID(), column, text, agree, folded_ids: [] as string[], people: people.slice(0, agree + 1) }));
+    await sql.query(`create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
+      language sql stable security definer set search_path='' as $f$ select c.card_id,c.session_id,c."column",c."text",c.agree,c.folded_ids,c.people from jsonb_to_recordset($1::text::jsonb) as c(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[]) where p_engagement='${room.id}'::uuid $f$`.replace("$1::text::jsonb", `'${JSON.stringify(cardRows)}'::jsonb`));
     replaced = true;
     await sql.query("update public.engagements set settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
     for (const [kind, person, title, body] of notes) await sql.query("insert into private.conversation_notes(id,engagement_id,kind,person,title,body,source_kind,word_count) values($1,$2,$3,$4,$5,$6,'paste',$7)", [randomUUID(), room.id, kind, person, title, body, body.split(/\s+/).length]);
@@ -203,8 +205,21 @@ async function main() {
       assert.equal(cross.status(), 403, "a request from another origin is refused");
       const state = (await sql.query("select to_jsonb(r)::text as t from public.room_states r where engagement_id=$1", [room.id])).rows[0];
       assert.ok(!state || !/Small groups|carry the work/.test(String(state.t)), "themes never reach the room state");
-      const runs = (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_discover_themes' and (coalesce(error,'') ~* 'Priya|Ben Ortiz|Ruth Lee')", [room.id])).rows[0].n;
-      assert.equal(runs, 0, "no person in the run log");
+      const runs = (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_discover_themes' and (coalesce(error,'')||inputs::text||coalesce(output::text,'')) ~* '(Priya|Ben Ortiz|Ruth Lee|Sam Cho|Daniel Park|Tasha Brown|Ana Cruz|Shah)'", [room.id])).rows[0].n;
+      assert.equal(runs, 0, "no person field in what was sent or what came back");
+    });
+
+    await step("Before the themes functions are in the database the page keeps the list it had, and says nothing is wrong", async () => {
+      const reload = () => sql.query("notify pgrst, 'reload schema'");
+      const seen = async (check: () => Promise<boolean>, label: string) => until(async () => { await page.goto(url); return await check(); }, label, 45000);
+      await sql.query("alter function public.discover_themes_state(uuid) rename to discover_themes_state_off"); await reload();
+      try {
+        await seen(async () => (await page.getByRole("heading", { name: "Themes", level: 2 }).count()) > 0 && (await page.getByRole("button", { name: /Draft themes|Redraft themes/ }).count()) === 0, "the page shows the read-only list");
+        const text = await page.locator("main").innerText();
+        assert.ok(!/couldn't|isn't ready|error/i.test(text.split("Themes")[1] ?? ""), "and no complaint");
+        assert.ok(await page.getByRole("heading", { name: "Survey findings" }).count() > 0, "the rest of Discover is unchanged");
+      } finally { await sql.query("alter function public.discover_themes_state_off(uuid) rename to discover_themes_state"); await reload(); }
+      await seen(async () => (await page.getByRole("button", { name: /Draft themes|Redraft themes/ }).count()) > 0, "the drafting controls come back");
     });
 
     console.log(`Themes kit: ${passed.length} checks passed.`);

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiConfig } from "../../lib/ai/config";
-import { fakeClient, isThemes, recordedClient, scripted } from "../../lib/ai/fake";
+import { fakeClient, isThemes, recordedClient } from "../../lib/ai/fake";
 import { prompts, replyJson, themesPrompt, themesVersion, type ThemesInputs } from "../../lib/ai/prompts";
 import { runThemes, themesBudgetMs, themesTimeoutMs } from "../../lib/ai/themes";
 import { draftView, themeBody, themeMessage, themeStrength, type ThemesState } from "../../lib/discover/themes";
@@ -13,6 +13,7 @@ import { strength } from "../../lib/discover/strength";
 type Case = { name: string; inputs: ThemesInputs; reply: string; expect: { conversations: number; four_lists: number; restsOn: Record<string, [number, number]> } };
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/ai/discover-themes.json", import.meta.url), "utf8")) as { names: string[]; cases: Case[] };
 const riverside = fixtures.cases[0];
+const named = (text: string) => fixtures.names.filter(n => new RegExp(`\\b${n}\\b`, "i").test(text));
 const id = (n: number) => `85600000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
 test("The themes prompt is versioned, JSON only, keeps horizons exact and never names people or invents", () => {
@@ -36,7 +37,7 @@ test("The themes prompt is versioned, JSON only, keeps horizons exact and never 
 test("The model sees note text and card words under short refs: no ids, titles, people or attendees", () => {
   const user = themesPrompt.user(riverside.inputs);
   assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-/.test(user), "no ids");
-  assert.ok(!/"id"|"title"|"person"|speaker|attendee|email/.test(user));
+  assert.ok(!/"id"|"title"|"person"|speaker|attendee|email/.test(user), "the person field, titles and ids are never sent");
   const parsed = replyJson(user) as { notes: { ref: string; kind: string }[]; cards: { ref: string; list: string; people_agree: number }[] };
   assert.deepEqual(parsed.notes.map(n => n.ref), ["n1", "n2", "n3", "n4", "n5"]);
   assert.equal(parsed.notes[0].kind, "leadership interview");
@@ -53,11 +54,19 @@ test("The recorded Riverside reply: sourced per kind, quotes word for word, no n
     const prefix = t.source === "conversations" ? "n" : "f";
     assert.ok(t.sources.length > 0 && t.sources.every(s => s.startsWith(prefix) && text.has(s)), `${t.label} rests on its own kind only`);
     if (t.quote) { assert.ok(text.get(t.quote.source)!.includes(t.quote.text), "word for word"); }
-    for (const name of fixtures.names) assert.ok(!new RegExp(`\\b${name}\\b`).test(`${t.label} ${t.detail} ${t.quote?.text ?? ""}`), `no ${name}`);
+    assert.deepEqual(named(`${t.label} ${t.detail} ${t.quote?.text ?? ""}`), [], `no person in ${t.label}`);
     assert.ok(!/\d/.test(t.label + t.detail), "no numbers from the model");
     const [rests, out_of] = riverside.expect.restsOn[t.label] ?? [];
     if (rests) { assert.equal(t.sources.length, rests); assert.equal(riverside.inputs.total_notes, out_of); }
   }
+});
+
+test("The never-names-people check is real: the notes name someone, the reply writes around it, and the check fails if it does not", () => {
+  assert.ok(riverside.inputs.notes.some(n => n.text.includes("Priya runs the welcome table")), "a fixture note names a person");
+  const out = themesPrompt.parse(riverside.reply, riverside.inputs);
+  assert.deepEqual(named(JSON.stringify(out)), [], "the recorded reply writes around the name");
+  const leaky = themesPrompt.parse(JSON.stringify({ conversations: [{ label: "Priya runs the welcome table", detail: "", sources: ["n1"], quote: { text: "Priya runs the welcome table and it is the best part.", source: "n1" } }] }), riverside.inputs);
+  assert.deepEqual(named(JSON.stringify(leaky)), ["Priya"], "and the check does see a name when one is there (the database refuses such a theme)");
 });
 
 test("parse is defensive: unknown refs, wrong kind, junk and fences are dropped, not thrown", () => {
@@ -83,7 +92,6 @@ test("The scripted fake drafts from the notes, skips themes already on the page 
   const again = await client.complete(call({ ...riverside.inputs, already: [{ ref: "t1", source: "conversations", label: "Small groups are hard to find" }], rejected: ["volunteers are stretched"] }), aiConfig({}));
   const labels = themesPrompt.parse(again.text, riverside.inputs).themes.map(t => t.label);
   assert.ok(!labels.includes("Small groups are hard to find") && !labels.includes("Volunteers are stretched"));
-  assert.equal(typeof scripted, "function");
 });
 
 test("Thin and strong follow one rule, the same cases the database test uses", () => {
@@ -126,11 +134,11 @@ test("draftView says what the page should say, on the server's clock", () => {
   assert.deepEqual(draftView({ ...base, round: round("pending", { redraft: true }) }, 1_040_000), { kind: "working", slow: true, redraft: true });
   assert.deepEqual(draftView({ ...base, round: round("drafting") }, 1_005_000, 1000), { kind: "working", slow: true, redraft: false });
   assert.deepEqual(draftView({ ...base, round: round("failed") }, 2_000_000), { kind: "failed" });
-  assert.deepEqual(draftView({ ...base, round: round("ready", { offered: 3, refused: 1, stale_notes: 2, left_out: 0 }) }, 2_000_000), { kind: "done", offered: 3, refused: 1, stale: 2, leftOut: 0 });
+  assert.deepEqual(draftView({ ...base, round: round("ready", { offered: 3, refused: 1, stale_notes: 2, left_out: 0 }) }, 2_000_000), { kind: "done", offered: 3, refused: 1, stale: 2, leftOut: 0, cardsLeftOut: 0 });
 });
 
 test("Messages are plain sentences with no dashes", () => {
-  for (const s of ["denied", "closed", "ai_off", "nothing", "busy", "not_found", "survey_theme", "merged", "cannot_merge", "unchanged", "conflict", "limit", "invalid_request", "other"]) {
+  for (const s of ["denied", "closed", "ai_off", "ai_unavailable", "nothing", "busy", "not_found", "survey_theme", "merged", "cannot_merge", "unchanged", "conflict", "limit", "invalid_request", "other"]) {
     assert.ok(themeMessage(s).length > 5 && !/[–—]/.test(themeMessage(s)), s);
   }
 });
