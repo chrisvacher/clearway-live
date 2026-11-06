@@ -648,7 +648,7 @@ end $$;
 -- ---------- The facilitator's presses ----------
 -- show:     the item the room is on: next, previous or an item id.
 -- reload:   read the signed-off summaries and the latest publication again. An item nobody has touched is refreshed; a touched one is kept.
--- correct:  write a correction into the queue (a line id, "new" or none, the wording, the reason).
+-- correct:  add a correction to the queue (a line id, "new" or none, the wording, the reason).
 -- accept:   fold a correction in, with the line, wording or reason changed if given (this is Edit). Naming a line folds in code; naming none
 --           goes to the AI, and with the AI off it asks for a line.
 -- dismiss:  drop a correction. undo: take the last fold back. decide / undecide: Mark a decision for the item (the facilitator's call, never a count).
@@ -827,7 +827,7 @@ alter function private.ai_apply(uuid,uuid,jsonb,jsonb) rename to ai_apply_pre_re
 alter function private.ai_fail(uuid,uuid,text,jsonb) rename to ai_fail_pre_read_back;
 
 -- A correction that names no line is claimed here for the AI; every other session goes to the function that was there. The room is
--- on the step, the AI is on, and the facilitator accepted a correction into "folding".
+-- on the step, the AI is on, and the facilitator moved an accepted correction to "folding".
 create function private.ai_claim(p_session uuid,p_lease uuid,p_model text,p_versions jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare s public.sessions; a private.ai_sessions; r public.room_states; e public.engagements; t timestamptz:=clock_timestamp(); c private.read_back_corrections; it private.read_back_items; cv private.read_back_versions; v_inputs jsonb; v_run uuid;
@@ -1185,7 +1185,7 @@ update private.templates t set sessions=(
    'lands_in','The 10-year Future',
    'options',jsonb_build_object('ai',true),
    'max_sends',60,'max_characters',280,'max_words',50,
-   'notes','A short confirm after prayer. The TV reads each signed-off lens summary in turn, then each reviewed outcome from the overnight draft. Ask: did we hear you right? Phones answer Yes, that''s us or It needs a change, and can add what is missing. The scribe writes any agreed change and the reason into the correction composer; the facilitator accepts it and it folds in as a tracked change. Mark a decision when the room agrees, then go to the next item. The tally never decides. If the overnight drafts are not published yet, only the lens summaries load; publish them and press Reload items.')
+   'notes','A short confirm after prayer. The TV reads each signed-off lens summary in turn, then each reviewed outcome from the overnight draft. Ask: did we hear you right? Phones answer Yes, that''s us or It needs a change, and can add what is missing. The scribe writes any agreed change and the reason in the correction composer; the facilitator accepts it and it folds in as a tracked change. Mark a decision when the room agrees, then go to the next item. The tally never decides. If the overnight drafts are not published yet, only the lens summaries load; publish them and press Reload items.')
   else x.e end order by x.ord)
  from jsonb_array_elements(t.sessions) with ordinality x(e,ord))
  where t.id in ('c1ea0000-0000-4000-8000-000000000002','c1ea0000-0000-4000-8000-000000000003') and exists(select 1 from jsonb_array_elements(t.sessions) y(e) where y.e->>'title'='Confirm the 10-year Future' and y.e->>'interaction'='content');
