@@ -73,6 +73,7 @@ export const actionNames: Record<string, string> = {
   pin_group: "Pin a group", unpin_group: "Unpin a group", rename_group: "Rename a group", undo_last_ai_change: "Undo last AI change", show_summary: "Show summary", hide_summary: "Hide summary",
   candidates_draft: "Draft candidates", candidates_add: "Add a candidate", candidates_rename: "Rename a candidate", candidates_remove: "Remove a candidate", candidates_merge: "Merge candidates",
   candidates_accept: "Accept a suggestion", candidates_dismiss: "Dismiss a suggestion", candidates_send: "Send candidates to the TV", candidates_hold: "Hold candidates back", candidates_open_points: "Open 100 points",
+  undo_fold: "Undo a fold", pin_card: "Pin a card", unpin_card: "Unpin a card", hide_card: "Hide a card", unhide_card: "Unhide a card",
   candidates_back: "Back to candidates", candidates_cut: "Move the cut line", candidates_mark: "Mark provisional Vision Outcomes",
 };
 // Copy shown after a refused press. Plain, verb-led, no dashes.

@@ -92,7 +92,7 @@ const tools: Record<Exclude<InteractionKind, "content">, string> = {
   scale: "Rating scale", ranking: "Ranking", points: "100-point allocation", grid: "2x2 matrix",
   form: "Private responses", sign: "Group sign-off", statements: "Agree or disagree", lens: "Themed brainstorm",
   lens_summary: "Live draft review", candidates: "Cluster and rename", goals: "Shared goal building",
-  intent: "Shared statement writing", bullets: "Collaborative lists", confirm: "Consensus check",
+  intent: "Shared statement writing", bullets: "Collaborative lists", confirm: "Consensus check", four_lists: "Four lists with agreement",
 };
 export const toolNames = Object.values(tools);
 export function StatsBand() {

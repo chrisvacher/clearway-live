@@ -42,6 +42,11 @@ function kindColumns(data: SessionExport): { header: string[]; cells: (row: Expo
       const texts = new Map(data.rows.map(r => [r.id, r.text]));
       return { header: ["Question", "Votes", "Answered", "Folded into"], cells: r => [r.text, r.votes ?? 0, yes(r.answered), r.folded_into ? texts.get(r.folded_into) ?? "" : ""] };
     }
+    case "four_lists": {
+      // The list (right, wrong, missing or confused) beside the card; SET-05 has the agreement counts and folds.
+      const names: Record<string, string> = { right: "What’s right?", wrong: "What’s wrong?", missing: "What’s missing?", confused: "What’s confused?" };
+      return { header: ["List", "Card"], cells: r => [names[String(record(r.value).column)] ?? "", r.text] };
+    }
     case "choice": {
       const list = items(o);
       return { header: ["Answer", ...list.map(i => i.text)], cells: r => { const picks = Array.isArray(record(r.value).choices) ? record(r.value).choices as string[] : [];

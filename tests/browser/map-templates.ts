@@ -23,9 +23,9 @@ async function main() {
     const kinds = new Set((await sql.query("select kind from private.interaction_kinds")).rows.map(r => r.kind as string));
     const start = "2026-11-02T14:00:00Z";
     const sessions = (id: string) => sql.query<Row>("select title,part,position,interaction,planned_start,planned_minutes,mode,team_led,segment,options,closes_at from public.sessions where engagement_id=$1 and not deleted order by position", [id]).then(r => r.rows);
-    const order = ["Pre-call", "Day 1", "Day 2", "Follow-up"];
+    const order = ["Discover", "Pre-call", "Day 1", "Day 2", "Follow-up"];
 
-    for (const [name, template, count, parts, liveMinutes, goalsLater] of [["Wayfinding", wayfinding, 40, ["Pre-call", "Day 1", "Day 2"], 980, 0], ["Wayfinding, day and a half", halfDay, 41, ["Pre-call", "Day 1", "Day 2", "Follow-up"], 945, 2]] as const) {
+    for (const [name, template, count, parts, liveMinutes, goalsLater] of [["Wayfinding", wayfinding, 41, ["Discover", "Pre-call", "Day 1", "Day 2"], 1010, 0], ["Wayfinding, day and a half", halfDay, 42, ["Discover", "Pre-call", "Day 1", "Day 2", "Follow-up"], 975, 2]] as const) {
       await step(`${name}: starts, and every session has a kind, a place and a time`, async () => {
         const room = await engagement(sql, []);
         const fac = await facilitator(env, sql, room.id);
@@ -59,7 +59,7 @@ async function main() {
         assert.ok(summary > rows.indexOf(lenses[4]) && summary < rows.findIndex(r => r.interaction === "candidates"), "the sign-off comes after Learning and before the Vision Outcomes");
         assert.equal(rows.filter(r => r.interaction === "goals" && r.options.risk_links === "later").length, goalsLater);
         assert.ok(rows.some(r => r.team_led) && rows.some(r => r.interaction === "intent"), "the team-led block is there");
-        for (const kind of ["lens", "lens_summary", "candidates", "bullets", "confirm", "grid", "goals", "intent", "sign"]) assert.ok(rows.some(r => r.interaction === kind), `${name} uses ${kind}`);
+        for (const kind of ["four_lists", "lens", "lens_summary", "candidates", "bullets", "confirm", "grid", "goals", "intent", "sign"]) assert.ok(rows.some(r => r.interaction === kind), `${name} uses ${kind}`);
         void at;
         if (template === halfDay) assert.equal(rows.filter(r => r.part === "Follow-up" && r.team_led).length, rows.filter(r => r.part === "Follow-up").length, "the follow-up is team-led");
       });

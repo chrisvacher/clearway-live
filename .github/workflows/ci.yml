@@ -227,6 +227,19 @@ jobs:
           path: wayfinding-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the Four Helpful Lists with 50 simulated phones in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p four-lists-shots && npm run test:four-lists
+        env:
+          KIT_SHOTS: four-lists-shots
+      - name: Upload the Four Helpful Lists screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: four-lists-screens
+          path: four-lists-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

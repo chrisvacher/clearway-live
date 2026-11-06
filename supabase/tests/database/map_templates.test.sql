@@ -133,16 +133,16 @@ select is((select count(*) from public.room_states r where r.engagement_id=tests
 select is((select count(*) from private.templates where id in('c1ea0000-0000-4000-8000-000000000002','c1ea0000-0000-4000-8000-000000000003')),2::bigint,'Both Wayfinding templates ship');
 select is((select count(*) from private.templates t, jsonb_array_elements(t.sessions) s where t.id in('c1ea0000-0000-4000-8000-000000000002','c1ea0000-0000-4000-8000-000000000003') and not exists(select 1 from private.interaction_kinds k where k.kind=s->>'interaction')),0::bigint,'Every kind in them is registered');
 select is((select count(*) from private.templates t where t.id in('c1ea0000-0000-4000-8000-000000000002','c1ea0000-0000-4000-8000-000000000003') and (t::text ~ '[—–]' or t::text ilike '%publish to core%')),0::bigint,'No dashes and no Publish to CORE session');
-select is((select jsonb_array_length(sessions) from private.templates where id='c1ea0000-0000-4000-8000-000000000002'),40,'The Wayfinding template has 40 sessions');
-select is((select jsonb_array_length(sessions) from private.templates where id='c1ea0000-0000-4000-8000-000000000003'),41,'The day-and-a-half template has 41 sessions');
+select is((select jsonb_array_length(sessions) from private.templates where id='c1ea0000-0000-4000-8000-000000000002'),41,'The Wayfinding template has 41 sessions, with the Discover step');
+select is((select jsonb_array_length(sessions) from private.templates where id='c1ea0000-0000-4000-8000-000000000003'),42,'The day-and-a-half template has 42 sessions, with the Discover step');
 select is((select s->>'planned_minutes' from private.templates t, jsonb_array_elements(t.sessions) s where t.id='c1ea0000-0000-4000-8000-000000000002' and s->>'interaction'='lens_summary' limit 1),'25','The lens summary sign-off takes 25 minutes');
 select is((select count(*) from private.templates t, jsonb_array_elements(t.sessions) s where t.id='c1ea0000-0000-4000-8000-000000000003' and (s->>'team_led')::boolean and s->>'part'='Follow-up'),6::bigint,'The follow-up block is team-led');
 
 -- ---------- Starting from them ----------
 set local role authenticated; select tests.login(1);
-select is(public.template_write('apply',jsonb_build_object('template','c1ea0000-0000-4000-8000-000000000002','engagement',tests.id(100),'start','2026-11-02T14:00:00Z'))->>'count','40','The Wayfinding template starts 40 sessions');
+select is(public.template_write('apply',jsonb_build_object('template','c1ea0000-0000-4000-8000-000000000002','engagement',tests.id(100),'start','2026-11-02T14:00:00Z'))->>'count','41','The Wayfinding template starts 41 sessions');
 reset role;
-select is((select count(*) from public.sessions where engagement_id=tests.id(100) and not deleted),40::bigint,'And they are in the room');
+select is((select count(*) from public.sessions where engagement_id=tests.id(100) and not deleted),41::bigint,'And they are in the room');
 select is((select count(*) from public.sessions where engagement_id=tests.id(100) and not deleted and title like 'Five Lenses: %'),5::bigint,'Five lens steps');
 select is((select planned_start from public.sessions where engagement_id=tests.id(100) and not deleted and part='Day 1' order by position limit 1),'2026-11-16T14:00:00Z'::timestamptz,'Day 1 starts at 9:00 church time, 14 days after the pre-call');
 select is((select planned_start from public.sessions where engagement_id=tests.id(100) and not deleted and part='Day 2' order by position limit 1),'2026-11-17T13:30:00Z'::timestamptz,'Day 2 starts at 8:30 church time the next morning');
@@ -157,7 +157,7 @@ select ok((select position < (select position from public.sessions where engagem
 -- Custom lens names fill in.
 update engagements set lens_names=array['Gathered','Neighbourhood','Leaders','Operations','Learning'] where id=tests.id(101);
 set local role authenticated; select tests.login(7);
-select is(public.template_write('apply',jsonb_build_object('template','c1ea0000-0000-4000-8000-000000000003','engagement',tests.id(101),'start','2026-11-02T14:00:00Z'))->>'count','41','The day-and-a-half template starts 41 sessions');
+select is(public.template_write('apply',jsonb_build_object('template','c1ea0000-0000-4000-8000-000000000003','engagement',tests.id(101),'start','2026-11-02T14:00:00Z'))->>'count','42','The day-and-a-half template starts 42 sessions');
 reset role;
 select is((select count(*) from public.sessions where engagement_id=tests.id(101) and not deleted and title='Five Lenses: Gathered'),1::bigint,'The church''s own lens name is used');
 select is((select count(*) from public.sessions where engagement_id=tests.id(101) and not deleted and interaction='goals' and options->>'risk_links'='later'),2::bigint,'The day-and-a-half goals steps link risks later');
