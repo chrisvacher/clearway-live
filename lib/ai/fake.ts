@@ -6,7 +6,7 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { overnightPrompt, prompts, replyJson, themesPrompt, type AiJob, type OvernightOutput, type ThemesOutput } from "./prompts";
+import { heardPrompt, overnightPrompt, prompts, replyJson, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type OvernightOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
   return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
@@ -15,13 +15,13 @@ const tokens = (text: string) => Math.ceil(text.length / 4);
 const reply = (call: AiCall, text: string): AiReply => ({ text, inputTokens: tokens(call.system + call.user), outputTokens: tokens(text) });
 
 // A recorded reply per job and user message.
-export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
+export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes" | "draft_what_we_heard"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
   const calls: AiCall[] = [];
   return {
     calls, model: () => "recorded-fixture",
     async complete(call) {
       calls.push(call);
-      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
+      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : isHeard(call) ? "draft_what_we_heard" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
       if (!hit) throw new Error(`No recorded reply for ${job}`);
       return reply(call, hit.reply);
     },
@@ -118,6 +118,25 @@ function scriptedThemes(call: AiCall): string {
   return JSON.stringify({ conversations: kind("conversations"), four_lists: kind("four_lists") });
 }
 
+// The What We Heard stand-in: for each source it is given, a headline that leads with the theme the app listed first (the strongest), written in
+// the room's own labels, resting on up to three themes and quoting up to two of their quotes by ref. It writes no number: the app puts the lead
+// theme's own figure beside the line. Its detail repeats only the count and detail it was given.
+export const isHeard = (call: Pick<AiCall, "system">) => call.system === heardPrompt.system;
+const heardVerbs: Record<string, string> = { survey: "of respondents named", four_lists: "people wrote or agreed about", input: "input conversations named", interviews: "interviews named" };
+function scriptedHeard(call: AiCall): string {
+  const input = replyJson(call.user) as { sources?: { source: HeardInputs["sources"][number]["key"]; name: string; themes: { ref: string; label: string; detail: string; count: string; quotes: { ref: string }[] }[] }[] };
+  const lower = (text: string) => text.charAt(0).toLowerCase() + text.slice(1);
+  const out: HeardOutput = { headlines: [] };
+  for (const s of input.sources ?? []) {
+    const rest = s.themes.slice(0, 3), lead = rest[0];
+    if (!lead) continue;
+    const detail = s.source === "survey" ? `${lead.count} named ${lower(lead.label)}.` : `${lead.detail || lead.label} (${lead.count}).`;
+    out.headlines.push({ source: s.source, lead: lead.ref, line: `${heardVerbs[s.source] ?? "named"} **${lower(lead.label)}**`.slice(0, 140), detail: detail.slice(0, 400),
+      themes: rest.map(t => t.ref), quotes: rest.flatMap(t => t.quotes.map(q => q.ref)).slice(0, 2) });
+  }
+  return JSON.stringify(out);
+}
+
 // The lens summary's stand-in. The draft makes one line per cluster, in the room's own words (the cluster's
 // first sentence), then the sentences no cluster holds, within 8 lines and 420 characters. The fold follows the
 // prompt's rules: "Add ..." adds a line, "Remove ..." removes the line it shares most words with, anything else
@@ -165,6 +184,7 @@ function scriptedLensFold(input: Record<string, unknown>) {
 export function scripted(call: AiCall): string {
   if (isOvernight(call)) return scriptedOvernight(call);
   if (isThemes(call)) return scriptedThemes(call);
+  if (isHeard(call)) return scriptedHeard(call);
   const job = jobOf(call), input = replyJson(call.user);
   if (job === "combine_words") {
     const list = (input.words ?? []) as { ref: string; text: string; count: number }[], groups: { survivor: string; members: string[] }[] = [];

@@ -1,0 +1,182 @@
+{
+  "about": "Fixture set for the What We Heard prompt (heard-draft@1), from the fictional Riverside engagement. Each case has the inputs discover_heard_claim hands the worker (accepted themes only, under refs), the reply recorded for the fake client, and what the headlines may and may not contain. The recorded reply is checked against the expectations always.",
+  "names": [
+    "Priya",
+    "Ben",
+    "Ruth",
+    "Sam",
+    "Daniel",
+    "Tasha",
+    "Gomez",
+    "Ortiz"
+  ],
+  "cases": [
+    {
+      "name": "Riverside: four sources with accepted themes",
+      "inputs": {
+        "sources": [
+          {
+            "key": "survey",
+            "name": "Congregational survey",
+            "basis": "87 respondents",
+            "themes": [
+              {
+                "ref": "t1",
+                "id": "33333333-3333-4333-8333-000000000001",
+                "label": "Decision making is unclear",
+                "detail": "33%",
+                "figure": "33%",
+                "count": "33 of 87 respondents",
+                "thin": false,
+                "quotes": []
+              },
+              {
+                "ref": "t2",
+                "id": "33333333-3333-4333-8333-000000000002",
+                "label": "A clear way into groups",
+                "detail": "31%",
+                "figure": "31%",
+                "count": "27 of 87 respondents",
+                "thin": false,
+                "quotes": []
+              },
+              {
+                "ref": "t3",
+                "id": "33333333-3333-4333-8333-000000000003",
+                "label": "Things for young adults",
+                "detail": "6",
+                "figure": "6",
+                "count": "6 of 87 respondents",
+                "thin": true,
+                "quotes": []
+              }
+            ]
+          },
+          {
+            "key": "four_lists",
+            "name": "Four Helpful Lists",
+            "basis": "8 people",
+            "themes": [
+              {
+                "ref": "t4",
+                "id": "33333333-3333-4333-8333-000000000004",
+                "label": "Hard to find a small group",
+                "detail": "Newcomers cannot find a way into a group.",
+                "figure": "5 of 8",
+                "count": "5 of 8 people",
+                "thin": false,
+                "quotes": [
+                  {
+                    "ref": "q1",
+                    "text": "Hard to find a small group as a newcomer",
+                    "label": "Four Helpful Lists card"
+                  }
+                ]
+              },
+              {
+                "ref": "t5",
+                "id": "33333333-3333-4333-8333-000000000005",
+                "label": "The same few volunteers do everything",
+                "detail": "Volunteers carry too much.",
+                "figure": "3 of 8",
+                "count": "3 of 8 people",
+                "thin": false,
+                "quotes": [
+                  {
+                    "ref": "q2",
+                    "text": "The same few volunteers do everything",
+                    "label": "Four Helpful Lists card"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "input",
+            "name": "Board and staff input conversations",
+            "basis": "2 conversations",
+            "themes": [
+              {
+                "ref": "t6",
+                "id": "33333333-3333-4333-8333-000000000006",
+                "label": "Volunteers are stretched",
+                "detail": "The same few people carry the work.",
+                "figure": "2 of 2",
+                "count": "2 of 2 conversations",
+                "thin": false,
+                "quotes": [
+                  {
+                    "ref": "q3",
+                    "text": "The same five people every week.",
+                    "label": "Board or staff conversation"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "interviews",
+            "name": "Leadership interviews",
+            "basis": "3 interviews",
+            "themes": [
+              {
+                "ref": "t7",
+                "id": "33333333-3333-4333-8333-000000000007",
+                "label": "Small groups are hard to find",
+                "detail": "Newcomers cannot find a way in.",
+                "figure": "2 of 3",
+                "count": "2 of 3 interviews",
+                "thin": false,
+                "quotes": [
+                  {
+                    "ref": "q4",
+                    "text": "Newcomers cannot find a small group to join.",
+                    "label": "Leadership interview"
+                  }
+                ]
+              },
+              {
+                "ref": "t8",
+                "id": "33333333-3333-4333-8333-000000000008",
+                "label": "Worship is a strength",
+                "detail": "People are proud of the music.",
+                "figure": "1 of 3",
+                "count": "1 of 3 interviews",
+                "thin": true,
+                "quotes": [
+                  {
+                    "ref": "q5",
+                    "text": "People stay for the singing.",
+                    "label": "Leadership interview"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "reply": "{\"headlines\": [{\"source\": \"survey\", \"lead\": \"t1\", \"line\": \"said **who makes decisions** is unclear\", \"detail\": \"33 of 87 survey answers named decision making as unclear. 27 of 87 asked for a clear way into a group.\", \"themes\": [\"t1\", \"t2\"], \"quotes\": []}, {\"source\": \"four_lists\", \"lead\": \"t4\", \"line\": \"people wrote or agreed that a **small group** is hard to find\", \"detail\": \"Newcomers cannot find a way into a group. The same few volunteers do everything, and 3 of 8 people agreed.\", \"themes\": [\"t4\", \"t5\"], \"quotes\": [\"q1\", \"q2\"]}, {\"source\": \"input\", \"lead\": \"t6\", \"line\": \"input conversations named **stretched volunteers**\", \"detail\": \"Both input conversations said the same few people carry the work.\", \"themes\": [\"t6\"], \"quotes\": [\"q3\"]}, {\"source\": \"interviews\", \"lead\": \"t7\", \"line\": \"interviews named **small groups** as hard to find\", \"detail\": \"Two of three leadership interviews said newcomers cannot find a way in, and the third was proud of the music.\", \"themes\": [\"t7\", \"t8\"], \"quotes\": [\"q4\", \"q5\", \"q99\"]}]}",
+      "expect": {
+        "headlines": 4,
+        "leads": {
+          "survey": "t1",
+          "four_lists": "t4",
+          "input": "t6",
+          "interviews": "t7"
+        },
+        "quotes": {
+          "survey": 0,
+          "four_lists": 2,
+          "input": 1,
+          "interviews": 2
+        },
+        "thinLead": {
+          "survey": false,
+          "four_lists": false,
+          "input": false,
+          "interviews": false
+        }
+      }
+    }
+  ]
+}
