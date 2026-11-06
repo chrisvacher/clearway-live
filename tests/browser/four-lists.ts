@@ -162,7 +162,11 @@ async function main() {
       await until(async () => (await tvCards("confused")).length === 2, "both cards on the TV", 5000);
       const shown = Date.now() - start;
       assert.ok(shown < 1800, `AI is never in the path: both cards were on the TV in ${shown} ms while AI was still working`);
-      await until(async () => (await tvCards("confused")).length === 1 && (await tvCards("confused"))[0].ai, "AI folds the two beneath one card", 15000);
+      // The first card can start a run on its own (the missing list already holds a pair from the step before), and the second card waits for the next, so the fold
+      // takes two calls one after the other: about 6 seconds here. The wait leaves room for a slow runner, and a miss says which runs happened.
+      await until(async () => (await tvCards("confused")).length === 1 && (await tvCards("confused"))[0].ai, "AI folds the two beneath one card", 40000).catch(async error => {
+        const runs = (await sql.query("select status,changed,ms,left(coalesce(error,''),60) as error,to_char(created_at,'HH24:MI:SS.MS') as at from private.ai_runs where session_id=$1 and job='fold_four_lists' order by created_at desc limit 6", [lists1])).rows;
+        console.error("fold runs, newest first:", JSON.stringify(runs), "cards on the TV:", JSON.stringify(await tvCards("confused"))); throw error; });
       const [survivor] = await tvCards("confused");
       assert.equal(survivor.aiCount, "2", "the AI mark carries the number of cards it stands for");
       assert.equal(await layer().locator(".fl-col[data-col=\"confused\"] .fl-ai .cwl-ai-mark").count(), 1);
