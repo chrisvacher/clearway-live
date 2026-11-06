@@ -51,6 +51,7 @@
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
     "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",
     "test:acceptance-m4": "node --import tsx tests/browser/acceptance-m4.ts",
+    "test:acceptance-m5": "node --import tsx tests/browser/acceptance-m5.ts",
     "test:wayfinding": "node --import tsx tests/browser/wayfinding-retreat.ts",
     "test:discover": "node --import tsx tests/browser/discover.ts",
     "test:themes": "node --import tsx tests/browser/themes.ts",

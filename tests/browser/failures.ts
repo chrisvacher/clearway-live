@@ -1,16 +1,19 @@
-// The failure kit (FAIL-01, 02, 04, 05, 06, 08, 10, and realtime blocked), run in
+// The failure kit (FAIL-01, 02, 04, 05, 06, 08, 10, and realtime blocked; FAIL-03 and FAIL-09 on milestone 5 below), run in
 // real browsers against the production build and the local stack. Each check
 // breaks something on purpose and proves the room recovers the way the PRD says.
 // The milestone 2 checks run on the word cloud and wall; then failures-m3.ts runs
-// the same failures on milestone 3's kinds, plus FAIL-09 with the fake AI model.
+// the same failures on milestone 3's kinds, plus FAIL-09 with the fake AI model; failures-m4.ts and
+// failures-m5.ts (FAIL-03, the scribe offline) follow.
 // Local only: no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
+import { rmSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type BrowserContext, type Page, type WebSocketRoute } from "playwright";
 import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
 // Imported first: it points the app's AI worker at the scripted fake model before the app starts.
-import { milestone3Failures } from "./failures-m3";
+import { controlDir, milestone3Failures } from "./failures-m3";
 import { milestone4Failures } from "./failures-m4";
+import { milestone5Failures } from "./failures-m5";
 import { milestone6Failures } from "./failures-m6";
 
 async function main() {
@@ -192,6 +195,8 @@ try {
   await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
   await milestone4Failures({ env, sql, mail, app, browser, step, shot });
   await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
+  await milestone5Failures({ env, sql, mail, app, browser, step, shot });
+  await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
   await milestone6Failures({ env, sql, mail, app, browser, step, shot });
 
   console.log(`Browser failure kit: ${passed.length} checks passed.\n${passed.map(p => `  ${p}`).join("\n")}\nLocal checks on loopback; venue acceptance is the practice-room script.`);
@@ -199,7 +204,7 @@ try {
   console.error(app.output().slice(-4000));
   throw error;
 } finally {
-  await browser?.close(); app.stop(); await mail.close(); await sql.end().catch(() => {});
+  await browser?.close(); app.stop(); await mail.close(); await sql.end().catch(() => {}); rmSync(controlDir, { recursive: true, force: true });
 }
 }
 main().catch(error => { console.error(error); process.exit(1); });

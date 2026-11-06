@@ -327,6 +327,19 @@ jobs:
           path: acceptance-m6-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)
+        if: ${{ !cancelled() }}
+        run: mkdir -p acceptance-m5-shots && npm run test:acceptance-m5
+        env:
+          KIT_SHOTS: acceptance-m5-shots
+      - name: Upload the milestone 5 acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-m5-screens
+          path: acceptance-m5-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

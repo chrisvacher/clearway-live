@@ -350,10 +350,105 @@ The browser kits cover most of these sections with 50 simulated phones on the lo
 | Start a rehearsal, draft themes and run the signal, then choose Clear test answers | Drafted themes and signals from the rehearsal go. The findings, the notes and the survey themes stay | Real setup data is untouched |
 | Press Reset practice room | The findings, notes, themes, drafts and signals are all gone, and the survey total is cleared | Discover is empty and the Four Helpful Lists step has no cards |
 
+## Milestone 5: scribe, overnight and the Day 2 confirm
+
+Sections 31 to 38 are the acceptance run for milestone 5. Run them in the practice room or a Riverside engagement, with eight real phones, a second laptop for the scribe and a second facilitator for the review. Set the engagement to "Use AI in live sessions". Everything stays in the practice room: no emails go to real people. Press Reset practice room first. Section 11 (real devices and the network) is carried forward unchanged and still applies to every screen below. The scribe's phone is one of the eight, and the scribe signs in with an attendee whose room role is scribe.
+
+## 31. The scribe console (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| With nothing live, sign in as the scribe on a laptop (900 px wide or more) | The console says nothing is live and cannot capture | Capture is off |
+| Go live on a Five Lenses step. The scribe captures one card of each kind with the keys 1 to 6: quote (with a speaker), decision (with why), tension (two views), action (owner and date), question and mitigation (linked to a risk) | Each card lands at the top of the console with its kind and details, and the composer says which step it attaches to. Enter captures and Esc clears | Six cards, each with only its own details |
+| Edit one card, then re-file another to a different step | The edit shows at once. The re-filed card moves to the other step | A re-file to a team-led step is not offered |
+| Look for the speaker on the console, the control surface, the TV and every phone | The console says "Speaker kept for the record" and shows no name. The control surface's Scribe panel lists the cards with no speaker | No speaker name or card words are on the TV or any phone |
+| On the control surface, open the Scribe panel while the scribe keeps capturing | The newest cards for the live step arrive in the facilitator's private column | A new card appears within a few seconds |
+| Have every phone answer the live Five Lenses step while the scribe captures | Answers keep arriving on the TV within about a second, and the TV does not move when a card is captured | Nothing jumps |
+
+## 32. Photos, offline capture and the team-led block (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On the scribe's phone, take a photo of an easel page. Then upload a PDF from the laptop | The photo is fitted and sent, and shows on the console and in the control surface's Scribe panel. The PDF opens from its link | Neither file is reachable without signing in |
+| Turn the scribe laptop's wifi off. Capture a quote, a decision, take a photo and tag a tension | Each card says "Saved on this laptop" and is numbered in the order made. The queue count rises. Nothing reaches the control surface | Nothing is lost or reordered |
+| Turn wifi back on | The cards and the photo sync in the order made, each once. The control surface shows them arriving | No duplicate card or photo (FAIL-03) |
+| Switch the scribe's phone to airplane mode, take an easel photo, then switch it back | The photo says "Saved on this phone", then sends when the connection returns | One photo, not two |
+| In the run-of-show editor, tick Team-led on a step and go live on it | The scribe console and the scribe's phone say "The team has the room" and capture is off | Nothing can be captured until the step ends |
+| Go live on the next step | The console comes back | The composer is on again |
+
+## 33. Promote a quote to the TV (15 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| With a lens wall live and phones answering, press Promote to TV on a quote card in the Scribe panel | The TV puts the quote over the step in a spotlight, headed "From the room", with the step's name under it and no speaker. The card says "On the TV" | The words are there and no name is |
+| Keep answering from the phones while the quote is up | Answers keep landing on the step underneath. The phones stay on the live step | The count on the TV still rises |
+| Promote a second quote | It crossfades over the first and the screen is never empty | One quote at a time |
+| Press Take off the TV on the card, then promote again and take it down from the remote | The step is exactly as it was, with every answer. No blank frame, no reload | Nothing was lost |
+| Try to promote during a team-led step, and with nothing live | Promote is off and says why in plain words | The reason shows beside the button |
+| Reload the TV computer's browser while a quote is up | The quote is still up after the reload | It comes back from the snapshot |
+
+## 34. Close Day 1 and the overnight drafts (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Make sure Day 1 has provisional Vision Outcomes with the room's bullets (one with no bullets), scribe cards and an easel photo. Press Close Day 1 | A draft round starts. The review screen shows the clock and "Tidying". "Write it by hand instead" is offered at once | Nothing from the draft is on the TV or any phone |
+| Wait for the draft | The control surface and the remote show "Drafts ready" within 30 minutes of Close Day 1. The remote has no review link | Ready inside 30 minutes |
+| Open the review on a laptop | Each Vision Outcome is listed with its status. The 3-year Vision first pass is drafted. The outcome with no bullets is flagged thin. The 10-year Future is not redrafted | A thin outcome must be acknowledged or written before Publish |
+| Open an outcome and tap a sentence | Its sources show beside it: the phone input, scribe cards and photos it came from. The voices not to lose and the tensions the room named stand apart and are not smoothed | Every sentence has a source |
+| Look for speaker names | Speaker names show on the review screen only | Never on the TV, phones, control surface or read-back |
+| Switch AI off for the draft (or have the draft fail), then press Write it by hand instead | The review says the draft hit a problem, and each outcome opens for the facilitators to write from the sources | Nothing blocks the facilitators |
+
+## 35. The review and Publish (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| The lead opens an outcome and starts editing. The co-facilitator opens the same outcome on a second laptop | The co-facilitator sees "is editing this outcome" and can read but not change it. Another outcome is free to edit | A section being edited is locked for the other |
+| Save an edit, then press Restore the room's words on a bullet | The bullet returns to the room's exact words in one action | One action, no retyping |
+| Open Version history | Every version is listed: the draft, your edit, the restore | Nothing is lost |
+| As the co-facilitator, look for Publish | The co-facilitator can review and edit but cannot publish | Only the lead publishes |
+| As the lead, press Publish for Day 2 before every outcome is reviewed | Publish is blocked and lists what is missing | The blockers are named |
+| Mark each outcome reviewed, acknowledge the thin one, then Publish | The review says published. The TV and phones show nothing new | Publishing is not a TV event |
+| Unpublish, edit a sentence and publish again | A new publication replaces the old one | The Day 2 confirm will read the newest |
+
+## 36. The Day 2 confirm (35 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| After prayer, go live on Confirm the 10-year Future and outcomes with all five lenses signed off | The TV shows the first lens, "Congregation, 2036", one screen of text, headed "Did we hear you right?", with a progress strip of every item | The items are the five lenses in order, then each published outcome |
+| Every phone taps Yes, that's us or It needs a change (and may add a line of why) | The tally on the TV rises under a second. Both bars are one colour | Neither bar leads. No name is on the TV |
+| Every phone adds a "What's missing?" answer | Up to six show anonymously on the TV with "+ n more on phones". The control surface lists them all | The rest are counted, none hidden |
+| Read an item on a phone | The phone shows the full text with its source sentences under each line. For an outcome, only the phone input the draft cited | No scribe card, photo or speaker words on a phone |
+| Change an answer on a phone | The tally updates, one answer per person | One answer each |
+| On the control surface, press Next, Previous and a progress chip, and then use the remote's Next and Previous | The TV lifts the text out and the next item rises in. The new item's tally starts at zero | Phones keep the settled items to look back at |
+| Move to the longest lens on a large room size | The item still fits whole, or says "+ n more on phones" | Nothing is clipped |
+
+## 37. Corrections and Mark a decision (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On the scribe's console, open the correction composer, pick a line, write the agreed wording and a reason, and send | The control surface's queue shows it with the scribe's reason. The reason is on no other screen | The TV does not change yet |
+| Accept the correction | The line changes on the TV as a tracked change: new words underlined, old words struck out and gone. The tally restarts at zero. Every other line is word for word | The tally says 0 and 0 |
+| Write a correction with no line named, then Accept | AI places it. Every other line stays word for word. Nothing about AI is on the TV | The fold is on the TV within a few seconds |
+| Press Undo the last fold | The previous wording returns on the TV and the control surface | The folded version is marked undone |
+| Turn the scribe's wifi off, send a correction, turn it back on | The correction waits on the laptop, then arrives once and in order | One correction in the queue |
+| Turn AI off (or let it fail) and Accept a correction naming no line | The correction waits and says to name the line. Name it and Accept again | It folds in without AI |
+| Dismiss a correction | It leaves the queue and changes nothing | The TV is unchanged |
+| Mark a decision on every item, with the tally showing 40 to 10 or any other split | Each item shows settled on the TV and in the progress strip. The inserted words become plain | The count never decides: only your decision settles an item |
+| Reload a phone after the republish and after every item is settled | The phone shows the current item and the settled ones. A phone on an old version is told to read the new one | Nothing is lost |
+
+## 38. The draft Map and clearing the room (20 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Draft Clearway Map | The 10-year Future shows the changed lens text. The 3-year Vision shows the outcomes as confirmed in the read-back | The Map reads the confirmed wording, not the first draft |
+| Press Clear test answers after a rehearsal that used the scribe console and the read-back | The rehearsal's cards, photos, corrections and settled items are gone. Real ones stay | Nothing from the rehearsal is on any screen |
+| Press Reset practice room | Scribe cards, uploaded files, promoted quotes and the read-back items are gone | The scribe console and Scribe panel are empty |
+| Run the checks in sections 31 to 37 once on real phones, real wifi and the venue's TV | The numbers and motion match the kit's. Real devices carry the network checks in section 11 | The Phone to TV report shows 95 in 100 under one second |
+
 ## Afterward
 
 - Note the Phone to TV numbers you read in section 11 before breaking anything.
 - Note which phones and browsers you used, the venue network, and anything that felt slow or wrong.
-- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. A row that fails becomes the next fix.
+- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. A row that fails becomes the next fix.
 
-The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). This script is the real-device, real-room version of them.
+The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). Milestone 5 has `npm run test:acceptance-m5` (the scribe, promoting a quote, the overnight drafts and the Day 2 read-back with 50 simulated phones) and its failure checks (FAIL-03, in `npm run test:browser`). This script is the real-device, real-room version of them.

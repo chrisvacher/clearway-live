@@ -169,3 +169,48 @@ Step 6. No migration. `npm run test:acceptance-m6` and the extended failure kit 
 
 - A phone named "Discover phone 01" made the signal refuse every card that said "Discover": the database correctly treats an attendee's name as a name. The kit's phones are "Wayfinder NN".
 - A drafted theme is dropped if its label is already on the page, so a card theme the notes also name is not offered twice. The kit's card theme is one the notes never mention.
+
+# Milestone 5: the live-screen kit and the failure kit for the scribe, the overnight drafts and the Day 2 confirm
+
+Step 4. No migration. `npm run test:acceptance-m5` and the extended `npm run test:browser` run in CI after the other kits, with screenshots uploaded as `acceptance-m5-screens` and `kit-screenshots`.
+
+## `npm run test:acceptance-m5`
+
+`tests/browser/acceptance-m5.ts`. One headless TV is paired to the practice room and watched on every animation frame (`tests/browser/frame-watch.ts`). Fifty phones ("Wayfinder NN") use the real phone endpoints, the scribe signs in as a scribe attendee in a laptop browser, and two facilitators (the first leads, the second co-facilitates) use the control surface and the review. AI is the scripted model, never the API. The kit runs in Riverside order:
+
+| Step | What happens | What is checked |
+| --- | --- | --- |
+| Lens wall | 50 sentences with AI 2.5 s per call | Under one second from the latency log, clusters and count equal the server's, nothing jumps |
+| Scribe console | The scribe captures a card of each kind (with a speaker on the quote) and an easel photo through the UI while the lens wall is live | Six cards in the database in order, the speaker stored but on no screen, the photo in the private bucket, the TV undisturbed (no jump, no card words) |
+| Promote a quote | The quote is promoted from the Scribe panel, 50 more phones answer underneath, the quote is taken down | The TV shows the words only, under one second under the quote, count and clusters equal the server's, taking it down leaves the step as it was with no blank frame |
+| Close Day 1 | The overnight round starts | Ready well inside 30 minutes, nothing from it on the TV or a phone, phones refused by the drafts API |
+| Review | Lead and co-facilitator in two browsers | Every drafted bullet has a source, the thin outcome is flagged, voices and tensions stand apart, the speaker shows on review only, one outcome is locked to the editor, Restore the room's words is one action, every version is kept |
+| Publish | The co-facilitator tries, then the lead publishes | The co-facilitator is refused, one publication, publishing is not a TV or phone event |
+| Day 2 read-back | 40 "Yes, that's us", 10 "It needs a change", 50 "What's missing?" | 100 of 100 logged, under one second, one colour for both bars, at most six anonymous answers and "+ n more", the tally equals the server's, nothing jumps, phones see source sentences and no scribe words |
+| A correction | The scribe sends one through the composer, the facilitator accepts it | The scribe's reason is on the control surface only, the line folds in as a tracked change, other lines word for word, the tally restarts at zero |
+| Mark a decision | One decision on each of the eight items | All eight settled, a phone can look back at all eight and sees the one that changed, the changed lens is a new signed-off version, the draft Map shows the changed text |
+| Identity | Every payload the room can read | No speaker or scribe name on the TV, phones, read-back or in any AI input |
+| Reset practice room | | Scribe cards, files and read-back items are cleared |
+
+Latency is read from the server's log (the lens wall and the read-back go through `live_submit`). The practice room takes one room-wide lock, so no control surface, review or scribe console is open while phones are measured, as in the read-back kit. The frame check ignores a lens-wall row that is below the bottom of the screen at both ends of a move (the feed keeps older rows there).
+
+## The failure kit, milestone 5
+
+`tests/browser/failures-m5.ts`, run by `npm run test:browser` after milestone 4's checks.
+
+| Check | What it proves |
+| --- | --- |
+| FAIL-03 the scribe goes offline | A quote, a decision, a read-back correction, an easel photo and a tension are saved on the laptop in the order made, each with its own id (read from the outbox), and nothing reaches the server. When the network returns they arrive in that order, once each, even though the first response is lost on purpose and the card is sent again. A replay of a card and a correction is a duplicate. The control surface shows the cards, the photo and the correction with its reason, and no speaker |
+| FAIL-02 on the read-back | The TV's network is cut while a correction folds in and the room moves to the next item. The TV keeps its item with Reconnecting, then shows the server's item within 3 seconds without reloading |
+| FAIL-09 on `fold_read_back` | AI slow: Accept answers at once, the correction says AI is folding it in, the TV keeps its words, and the fold lands later. AI failing: the correction waits and tells the facilitator to name the line, the TV is unchanged, naming the line folds it in without AI. The TV never mentions AI |
+| FAIL-09 on the overnight drafts, slow | Past 30 minutes the review says so, "Write it by hand instead" is offered, and the late draft still lands |
+| FAIL-09 on the overnight drafts, failing | The review says the draft hit a problem and the facilitators write it by hand |
+
+## CI
+
+One step after the other kits (the database job's timeout is already 60 minutes). The acceptance kit takes about 2 minutes locally and the milestone 5 failure checks about 1 minute.
+
+## Notes from writing the kit
+
+- The scribe feed shows the newest cards, so the kit captures the quote last to find its Promote button.
+- The failure kit's shared fake-model folder is removed once, after the last milestone's checks.
