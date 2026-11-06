@@ -136,27 +136,27 @@ body:has(> .home) { background: var(--cwl-surface); }
 .demo-room.is-scene { width: 100%; margin: 0; }
 .demo-room.is-tv, .scene-tv { padding: 10px; border-radius: calc(var(--cwl-radius-card) + 8px); background: var(--cw-gray-900); box-shadow: 0 30px 60px -24px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
 .demo-room.is-tv .tv-demo, .scene-tv .tv-demo { border-radius: var(--cwl-radius-button); box-shadow: none; }
-.demo-room.is-phone, .demo-room.is-control { display: grid; grid-template-columns: minmax(0, 1fr) 13rem; gap: var(--space-6); align-items: center; }
+.demo-room.is-phone { display: grid; grid-template-columns: minmax(0, 1fr) 13rem; gap: var(--space-6); align-items: center; }
 .scene-phone { padding: 7px; border-radius: 2.1rem; background: var(--cw-gray-900); box-shadow: 0 24px 48px -24px var(--cw-navy), 0 0 0 1px var(--cwl-border-dark-ink); }
 .scene-phone .phone-scale { border-radius: 1.65rem; }
-.ph-send.is-pressed, .how-remote-button.is-pressed { transform: scale(0.94); }
-.ph-send, .how-remote-button { transition: transform 150ms var(--cwl-ease-calm); }
-.how-remote-body { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); }
-.how-remote-live { padding: var(--space-1) var(--space-3); border-radius: var(--cwl-radius-pill); background: var(--cwl-live); color: var(--cwl-on-live); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); }
-.how-remote-eyebrow { margin-top: var(--space-1) !important; font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-text-muted); }
-.how-remote-title { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-bold); color: var(--cwl-text); }
-.how-remote-title span { font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-medium); color: var(--cwl-text-muted); }
-.how-remote-show { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
-.how-remote-show li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border-radius: var(--cwl-radius-button); box-shadow: inset 0 0 0 1px var(--cwl-border); font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); transition: background 300ms var(--cwl-ease-calm), color 300ms var(--cwl-ease-calm); }
-.how-remote-show li > span:last-child { margin-left: auto; font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-medium); }
-.how-remote-show li.is-now { background: var(--cwl-bar-track); color: var(--cwl-text); }
-.how-remote-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--cwl-border-strong); }
-.how-remote-show li.is-now .how-remote-dot { background: var(--cwl-live); box-shadow: none; }
-.how-remote-show li.is-done .how-remote-dot { background: var(--cwl-text-muted); box-shadow: none; }
-.how-remote-private { display: flex; align-items: center; gap: var(--space-2); font-size: var(--cwl-fs-phone-micro); color: var(--cwl-text-muted); }
-.how-remote-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-top: var(--space-2); }
-.how-remote-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--cwl-phone-touch-lg); border-radius: var(--cwl-radius-button); box-shadow: inset 0 0 0 2px var(--cwl-border-strong); font-size: var(--cwl-fs-phone-button); font-weight: var(--fw-bold); color: var(--cwl-text); }
-.how-remote-button.is-next { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: none; }
+.ph-send.is-pressed { transform: scale(0.94); }
+.ph-send { transition: transform 150ms var(--cwl-ease-calm); }
+.scene-offstage { position: absolute; width: 640px; left: -9999px; top: 0; visibility: hidden; }
+.demo-room.is-control { position: relative; display: block; }
+.macbook { width: 100%; padding-inline: 5%; }
+.macbook-lid { position: relative; padding: 1.4% 1.4% 2.2%; border-radius: 18px 18px 6px 6px; background: var(--cw-gray-900); box-shadow: 0 0 0 1px var(--cw-gray-700), 0 30px 60px -28px var(--cw-navy); }
+.macbook-camera { position: absolute; top: 0.55%; left: 50%; width: 6px; height: 6px; margin-left: -3px; border-radius: 50%; background: var(--cw-gray-700); }
+.macbook-base { position: relative; height: 14px; margin-inline: -6%; border-radius: 2px 2px 14px 14px; background: linear-gradient(var(--cw-gray-300), var(--cw-gray-500)); box-shadow: 0 18px 30px -18px var(--cw-navy); }
+.macbook-notch { position: absolute; top: 0; left: 50%; width: 16%; height: 5px; transform: translateX(-50%); border-radius: 0 0 8px 8px; background: var(--cw-gray-500); }
+.laptop-scale { position: relative; width: 100%; aspect-ratio: 1512 / 945; overflow: hidden; border-radius: 4px; }
+.laptop-scale-inner { position: absolute; top: 0; left: 0; width: 1512px; height: 945px; transform: scale(var(--laptop-scale, 0.4)); transform-origin: 0 0; }
+/* The laptop screen is always a laptop: the control surface's narrow-window rules don't apply inside it. */
+.how-live-room.ctl-app { height: 100%; }
+.how-live-room .ctl-cols { grid-template-columns: 300px minmax(0, 1fr) 360px; }
+.how-live-room .ctl-col { overflow: hidden; }
+.how-live-room .ctl-head { flex-wrap: nowrap; }
+.how-next.is-pressed { transform: scale(0.94); }
+.how-next { transition: transform 150ms var(--cwl-ease-calm); }
 .demo-room { margin-top: var(--space-10); }
 .demo-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-6); }
 .demo-tab { min-height: var(--cwl-phone-touch); padding: 0 var(--space-5); border: 0; border-radius: var(--cwl-radius-pill); background: transparent; box-shadow: inset 0 0 0 1.5px var(--cwl-border-strong); color: var(--cwl-text); font: inherit; font-size: var(--fs-small); font-weight: var(--fw-semibold); cursor: pointer; }
@@ -321,7 +321,7 @@ body:has(> .home) { background: var(--cwl-surface); }
 }
 @media (max-width: 640px) {
   .stats-row { grid-template-columns: 1fr; }
-  .demo-room.is-phone, .demo-room.is-control { grid-template-columns: minmax(0, 1fr) 8.5rem; gap: var(--space-3); }
+  .demo-room.is-phone { grid-template-columns: minmax(0, 1fr) 8.5rem; gap: var(--space-3); }
   .home-width { padding-inline: var(--cwl-phone-gutter); }
   .home-section { padding-block: var(--space-16); }
   .home-hero { padding-top: var(--space-10); }
