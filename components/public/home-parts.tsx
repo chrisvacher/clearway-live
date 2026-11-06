@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Image from "next/image";
 import { Globe, Laptop, Monitor, QrCode, Smartphone } from "lucide-react";
 import type { InteractionKind } from "@/lib/interactions/kinds";
+import { DemoRoom } from "@/components/public/demo-room";
 
 // The front page's interactive parts. Every screen shown is a real screenshot of the app
 // from the Riverside Church team workshop run in CI (tests/browser/team-workshop.ts), so
@@ -28,17 +29,19 @@ export function Reveal({ children, className = "", step = 0 }: { children: React
   return <div ref={el} className={`reveal${shown ? " is-in" : ""}${step ? ` is-step-${Math.min(step, 6)}` : ""} ${className}`}>{children}</div>;
 }
 
-// How it works: a stepper that moves on by itself until someone picks a step.
+// How it works: a stepper that moves on by itself until someone picks a step. Each step
+// runs a live scene on the real screen and phone components (see DemoRoom).
+const sceneMs = 15000;
 const screens = [
-  { key: "tv", icon: Monitor, name: "Everyone sees the big screen", line: "The TV", text: "The question and the room's answers, in type you can read from the back. Answers appear the moment they're sent, with no names on them.", shot: { kind: "tv", src: "/home/tv-word-cloud.webp", alt: "The TV: a word cloud where youth has grown largest, with 45 answers" } },
-  { key: "phone", icon: Smartphone, name: "You give input on your phone", line: "Your phone", text: "No app to install. The question, any detail or Scripture behind it, and a box for your answer. You can see and change your own answers while the step is open.", shot: { kind: "phone", src: "/home/phone-word-cloud.webp", alt: "A phone answering the word cloud, with two answers sent" } },
-  { key: "control", icon: Laptop, name: "The facilitator keeps it moving", line: "The facilitator", text: "From a laptop or a phone remote, your facilitator opens each step, gives the room a few minutes to answer, spotlights what matters and moves on. This view stays private.", shot: { kind: "control", src: "/home/control-live-room.webp", alt: "The facilitator's live room: the run of show, the controls, AI combines with undo and private panels" } },
+  { key: "tv", icon: Monitor, name: "Everyone sees the big screen", line: "The TV", text: "The question and the room's answers, in type you can read from the back. Answers appear the moment they're sent, with no names on them.", scene: "tv" },
+  { key: "phone", icon: Smartphone, name: "You give input on your phone", line: "Your phone", text: "No app to install. The question, any detail or Scripture behind it, and a box for your answer. You can see and change your own answers while the step is open.", scene: "phone" },
+  { key: "control", icon: Laptop, name: "The facilitator keeps it moving", line: "The facilitator", text: "From a laptop or a phone remote, your facilitator opens each step, gives the room a few minutes to answer, spotlights what matters and moves on. This view stays private.", scene: "control" },
 ] as const;
 export function ThreeScreens() {
   const [at, setAt] = useState(0), [auto, setAuto] = useState(true), root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!auto || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = setInterval(() => setAt(i => (i + 1) % screens.length), 6500);
+    const timer = setInterval(() => setAt(i => (i + 1) % screens.length), sceneMs);
     return () => clearInterval(timer);
   }, [auto]);
   const pick = (i: number) => { setAuto(false); setAt(i); };
@@ -53,10 +56,8 @@ export function ThreeScreens() {
       </button>; })}
     </div>
     <div className="three-panel" id="three-panel" role="tabpanel" aria-labelledby={`three-tab-${current.key}`}>
-      {screens.map((s, i) => <div key={s.key} className={`three-shot is-${s.shot.kind}${i === at ? " is-on" : ""}`} aria-hidden={i !== at}>
-        {s.shot.kind === "phone" ? <PhoneShot src={s.shot.src} alt={s.shot.alt} /> : s.shot.kind === "tv" ? <TvShot src={s.shot.src} alt={s.shot.alt} />
-          : <div className="shot-laptop"><Image src={s.shot.src} alt={s.shot.alt} width={1440} height={1100} sizes="(max-width: 1024px) 92vw, 720px" /></div>}
-      </div>)}
+      {/* Only the step on show runs, so its scene starts from an empty room each time. */}
+      <div key={current.key} className={`three-shot is-${current.scene} is-on`}><DemoRoom variant={current.scene} /></div>
     </div>
   </div>;
 }

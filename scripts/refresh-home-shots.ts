@@ -2,7 +2,7 @@
 // run in CI. Usage:
 //   npm run home:shots -- <folder>     a folder holding the team-workshop-screens artifact
 //   npm run home:shots -- --latest     download the newest artifact from main with gh first
-// TV shots become 1600 wide WebP, phone and facilitator shots keep their size. The room
+// TV shots become 1600 wide WebP, phone shots keep their size. The room
 // photos in public/home/ are left alone. See docs/front-page.md.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
@@ -14,7 +14,6 @@ import sharp from "sharp";
 // Each front page image and the workshop screenshot it comes from.
 export const homeShots: Record<string, string> = {
   "tv-word-cloud": "team-05-word-cloud-tv", "phone-word-cloud": "team-05-word-cloud-phone",
-  "control-live-room": "team-05-word-cloud-control",
   "tv-wall": "team-06-wall-summary-tv", "phone-wall": "team-06-wall-phone",
   "tv-points": "team-07-points-tv", "phone-points": "team-07-points-phone",
   "tv-grid": "team-08-grid-tv", "phone-grid": "team-08-grid-phone",

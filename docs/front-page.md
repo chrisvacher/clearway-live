@@ -17,7 +17,7 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 | `components/public/home-parts.tsx` | `ThreeScreens` (the stepper), `Gallery` (each interaction on the TV and a phone), `TvShot` and `PhoneShot` frames, `Reveal` |
 | `components/brand/live-wordmark.tsx` | The Clearway Live lockup, ported from the design system's LiveWordmark, with its `cwl-wordmark` tokens appended to `live_tokens.css` |
 | `scripts/refresh-home-shots.ts` | `npm run home:shots`: rebuilds the app screenshots in `public/home/` from the workshop run in CI |
-| `public/home/` | The page's images: real TV, phone and facilitator screens from the Riverside team workshop run in CI (`team-workshop-screens`), and Clearway retreat photos from the clearway.co site |
+| `public/home/` | The page's images: real TV and phone screens from the Riverside team workshop run in CI (`team-workshop-screens`), and Clearway retreat photos from the clearway.co site |
 
 ## How the demo works
 
@@ -36,7 +36,7 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 1. Join first: the code box, beside a real retreat photo with the live TV and a phone over it.
 2. New to Clearway Live? Four things it helps a team do.
 3. A moving strip of retreat photos (paused on hover, still with reduced motion).
-4. How it works: everyone sees the big screen, you give input on your phone, the facilitator keeps it moving. A stepper that moves on by itself, with the real TV, phone and facilitator screens.
+4. How it works: everyone sees the big screen, you give input on your phone, the facilitator keeps it moving. A stepper that moves on by itself. Each step runs a live scene on the real screen and phone components (`DemoRoom` variants `tv`, `phone` and `control`): answers arriving, a phone typing and sending an answer, and the facilitator's remote moving the screen to the next step.
 5. Try it: the live demo.
 6. Numbers.
 7. Ways to answer: pick an interaction, see it on the TV and a phone.
@@ -49,9 +49,9 @@ live.clearway.co's front page, built November 3 at Chris's request and modelled 
 
 The live demos (the hero and Try it) run the production TV scenes and phone inputs, so they change with the app. If an interaction's results gain a field, `lib/public/demo-room.ts` needs it too, since the demo builds its own results.
 
-The gallery and How it works use screenshots. Whenever an interaction's TV or phone screen changes, refresh them in the same pull request:
+The gallery uses screenshots. Whenever an interaction's TV or phone screen changes, refresh them in the same pull request:
 
 - After the change is merged to main and CI has passed: `npm run home:shots -- --latest`.
 - Or from a downloaded `team-workshop-screens` artifact: `npm run home:shots -- <folder>`.
 
-`homeShots` in the script maps each image to its workshop screenshot. TV shots become 1600 wide WebP, phone and facilitator shots keep their size. Look at the gallery afterwards, since a redesigned screen may need new alt text in `app/(public)/page.tsx`.
+`homeShots` in the script maps each image to its workshop screenshot. TV shots become 1600 wide WebP, phone shots keep their size. Look at the gallery afterwards, since a redesigned screen may need new alt text in `app/(public)/page.tsx`.
