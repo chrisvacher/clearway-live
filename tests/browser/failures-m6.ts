@@ -223,8 +223,12 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     await until(async () => (await lineCount()) > before, "a new card reaches the remote with the laptop closed", 45000);
     const divergent = remote.locator("[data-signal-list] [data-signal=\"divergent\"]").first();
     await divergent.getByRole("button").first().click();
+    const rbox = divergent.getByRole("textbox"); await rbox.waitFor({ timeout: 5000 });
+    assert.match(await rbox.inputValue(), /\?$/, "the remote shows the question it will send");
+    const edited = "What do you notice about how we serve on Sundays?";
+    await rbox.fill(edited);
     await divergent.getByRole("button", { name: "Put the question up" }).click();
-    await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")).endsWith("?"), "the neutral question on the TV, from the remote alone", 8000);
+    await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")) === edited, "the edited neutral question on the TV, from the remote alone", 8000);
     await calm("remote question");
     await shot(remote, "fail-05-m6-remote-question");
     await remote.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
