@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { ArrowRight, Check, EyeOff, Send, Star } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Clock, EyeOff, Monitor, Send, Smartphone, Star, Timer } from "lucide-react";
 import { TvScenes } from "@/components/tv/tv-scenes";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { LiveMark } from "@/components/tv/live-mark";
@@ -33,8 +33,8 @@ function useInView(el: React.RefObject<HTMLElement | null>) {
 // page's hero; the phone shows the first Riverside phone's own sent answer). "full": the
 // screen beside a phone the visitor can answer on, with tabs to pick the interaction.
 // How it works has one scene per surface: "tv" the screen alone, cycling; "phone" a phone
-// that types an answer and sends it onto the screen; "control" the facilitator's remote
-// moving the screen from one step to the next.
+// that types an answer and sends it onto the screen; "control" the facilitator's live room
+// on a MacBook Pro, moving the screen from one step to the next.
 type Variant = "full" | "hero" | "tv" | "phone" | "control";
 const typedAnswer = "Worship";
 export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
@@ -158,8 +158,12 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
     <div className="scene-phone" aria-hidden="true" inert><PhoneScale>{phone}</PhoneScale></div>
   </div>;
   if (variant === "control") return <div ref={root} className="demo-room is-scene is-control">
-    <div className="scene-tv">{screen}</div>
-    <div className="scene-phone" aria-hidden="true" inert><PhoneScale><RemoteMock frame={frame} at={pick.kind} count={placed.current.length} pressing={pressing} /></PhoneScale></div>
+    {/* The TV still runs (off screen) so the laptop's mirror follows the same room. */}
+    <div className="scene-offstage" aria-hidden="true">{screen}</div>
+    <div className="macbook" aria-hidden="true" inert>
+      <div className="macbook-lid"><span className="macbook-camera" /><LaptopScale><LiveRoomMock frame={frame} at={pick.kind} count={placed.current.length} pressing={pressing} session={session} /></LaptopScale></div>
+      <div className="macbook-base"><span className="macbook-notch" /></div>
+    </div>
   </div>;
   if (hero) return <div ref={root} className="demo-room is-hero">
     <div className="hero-tv">{screen}<span className="hero-tag"><span className="hero-dot" aria-hidden="true" />Live on the screen</span></div>
@@ -224,25 +228,64 @@ function WordForm({ id, step, mine, onSend, autoType }: { id: string; step: Phon
   </>;
 }
 
-// The facilitator's phone remote in the How it works scene: the run of show, a mirror of the
-// screen and Next. It follows the same demo as the screen beside it.
-function RemoteMock({ frame, at, count, pressing }: { frame: LiveSnapshot | null; at: DemoKind; count: number; pressing: boolean }) {
-  const now = demoKinds.indexOf(at);
-  return <div className="ph-app how-remote">
-    <header className="ph-head"><span className="ph-church">{demoDisplay.church}</span><span className="how-remote-live">Live</span></header>
-    <div className="ph-body how-remote-body">
-      <TvMirror frame={frame} surface="phone" />
-      <p className="how-remote-eyebrow">On the TV now</p>
-      <p className="how-remote-title">{demoScripts[at].label}<span>{count} answers</span></p>
-      <ol className="how-remote-show" aria-label="Run of show">
-        {demoKinds.map((kind, i) => <li key={kind} className={i === now ? "is-now" : i < now ? "is-done" : ""}>
-          <span className="how-remote-dot" />{demoScripts[kind].title}<span>{demoScripts[kind].label}</span></li>)}
-      </ol>
-      <p className="how-remote-private"><EyeOff size={14} aria-hidden="true" />Only you see this</p>
-      <div className="how-remote-actions">
-        <span className="how-remote-button"><Star size={16} aria-hidden="true" />Spotlight</span>
-        <span className={`how-remote-button is-next${pressing ? " is-pressed" : ""}`}>Next<ArrowRight size={16} aria-hidden="true" /></span>
-      </div>
+// A screen drawn at a MacBook Pro's 1512 by 945 and scaled to its lid.
+function LaptopScale({ children }: { children: React.ReactNode }) {
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current; if (!el) return;
+    const fit = () => el.style.setProperty("--laptop-scale", String(el.clientWidth / 1512));
+    const observer = new ResizeObserver(fit); observer.observe(el); fit(); return () => observer.disconnect();
+  }, []);
+  return <div ref={box} className="laptop-scale"><div className="laptop-scale-inner">{children}</div></div>;
+}
+
+// The facilitator's live room in the How it works scene, laid out with the control surface's
+// own classes: the run of show, the TV mirror and the controls, and the private panels.
+// It follows the demo beside it: Next is pressed and the screen moves to the next step.
+const startTimes = ["9:00", "9:20", "9:45", "10:10"];
+function LiveRoomMock({ frame, at, count, pressing, session }: { frame: LiveSnapshot | null; at: DemoKind; count: number; pressing: boolean; session: string }) {
+  const now = demoKinds.indexOf(at), upNext = demoKinds[now + 1];
+  const [left, setLeft] = useState(240);
+  useEffect(() => {
+    setLeft(240);
+    const timer = setInterval(() => setLeft(s => Math.max(0, s - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [session]);
+  const label = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  return <div className="ctl-app how-live-room" data-surface="control" data-theme="light">
+    <header className="ctl-head">
+      <div><p className="ctl-eyebrow">{demoDisplay.church} · Wayfinding</p><h1>Live room</h1></div>
+      <div className="ctl-row"><span className="ctl-sync"><Monitor size={14} aria-hidden="true" />TV confirmed</span><span className="show-button"><Smartphone size={18} aria-hidden="true" />Open the remote</span></div>
+    </header>
+    <div className="ctl-cols">
+      <nav className="ctl-col ctl-run">
+        <div className="ctl-row is-between"><h2>Run of show</h2><span className="ctl-chip is-success"><Clock size={14} aria-hidden="true" />On time</span></div>
+        <section className="ctl-part"><div className="ctl-row is-between"><h3>Pre-call and Day 1</h3></div>
+          <ol className="ctl-run-list">{demoKinds.map((kind, i) => <li key={kind} className={`${i === now ? "is-current" : ""}${i === now + 1 ? " is-next" : ""}`}>
+            <span className="ctl-time">{startTimes[i]}</span>
+            <span className="ctl-run-title"><strong>{demoScripts[kind].title}</strong><small>{demoScripts[kind].label}</small></span>
+            <span className="ctl-run-meta"><span className={`show-state is-${i < now ? "closed" : i === now ? "live" : "ready"}`}>{i < now ? "Closed" : i === now ? "Live" : "Ready"}</span><span className="show-button is-small">Preview</span></span>
+          </li>)}</ol></section>
+        <section className="ctl-private"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Up next</span></div>
+          <div className="ctl-private-body">{upNext ? <><p className="ctl-label">{demoScripts[upNext].title}</p><p className="ctl-notes">{demoScripts[upNext].prompt}</p></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
+      </nav>
+      <main className="ctl-col ctl-centre">
+        <div className="ctl-row is-between"><span className="ctl-eyebrow">On the TV now</span><span className="ctl-sync"><Monitor size={14} aria-hidden="true" />TV confirmed</span></div>
+        <TvMirror frame={frame} />
+        <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On phones now</p><p className="ctl-label">Input open · burst {label} left</p></div></div>
+        <div className="ctl-controls is-laptop">
+          <div className="ctl-countdown"><Timer size={20} aria-hidden="true" /><b>{label}</b><progress className="ctl-progress" max={240} value={left} /></div>
+          <div className="ctl-grid"><span className="show-button"><ChevronLeft size={20} aria-hidden="true" />Back</span>
+            <span className={`show-button is-primary how-next${pressing ? " is-pressed" : ""}`}>Next<ChevronRight size={20} aria-hidden="true" /></span></div>
+          <div className="ctl-grid"><span className="show-button"><Smartphone size={18} aria-hidden="true" />Phones down</span><span className="show-button"><Star size={18} aria-hidden="true" />Spotlight</span></div>
+        </div>
+      </main>
+      <aside className="ctl-col ctl-side">
+        <section className="ctl-private"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>The room</span></div>
+          <div className="ctl-private-body"><p className="ctl-label">{count} answers so far</p><p className="ctl-notes">8 of 8 phones joined. Answers reach the screen without names.</p></div></section>
+        <section className="ctl-private"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Presenter notes</span></div>
+          <div className="ctl-private-body"><p className="ctl-notes">{demoScripts[at].prompt} Give the room a few minutes, then spotlight what stands out before moving on.</p></div></section>
+      </aside>
     </div>
   </div>;
 }
