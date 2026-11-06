@@ -14,6 +14,7 @@ import { tvViews } from "@/components/interactions/tv-views";
 import { contentOf, kindOf } from "@/lib/interactions/kinds";
 import { QaWaiting } from "@/components/interactions/qa/qa-tv";
 import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
+import { PromotedQuoteSpot } from "./promoted-quote";
 import { AiFoot } from "@/components/interactions/ai/ai-foot";
 
 function Qr({ code }: { code: string }) {
@@ -101,6 +102,7 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
     {paired && <Spotlight frame={frame} />}
     {paired && <QaSpotlight frame={frame} />}
+    {paired && <PromotedQuoteSpot frame={frame} />}
     <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <QaWaiting frame={frame} />}{paired && <AiFoot frame={frame} />}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
