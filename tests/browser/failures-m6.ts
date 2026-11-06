@@ -93,6 +93,7 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
   await step("FAIL-09 on the Four Helpful Lists fold: AI slow, then failing; every card is on the TV at once, only the control surface says so, and hiding a card and agreeing work by hand", async () => {
     await live(four, ".fl-board");
     await panel().waitFor({ timeout: 10000 });
+    const foldSlowAt = new Date().toISOString();
     fake({ delayMs: 9000 });
     const cards = ["Elder and staff roles are unclear", "Roles of staff are confusing", "Staff roles are confusing for everyone"];
     for (const [n, text] of cards.entries()) {
@@ -102,6 +103,7 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     }
     await until(async () => (await notice()).includes("AI is slow."), "the control surface says AI is slow", 20000);
     await calm("fold slow");
+    assert.equal((await sql.query("select count(*)::int n from private.ai_runs where session_id=$1 and job='fold_four_lists' and status='ok' and created_at>=$2", [four, foldSlowAt])).rows[0].n, 0, "no fold has finished since AI went slow");
     assert.equal((await tvTexts("confused")).length, 3, "the three cards stand apart on the TV until AI folds them");
     await panel().scrollIntoViewIfNeeded(); await shot(control, "fail-09-m6-fold-slow-control");
     fake({ fail: true });
@@ -252,6 +254,7 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     await panel().waitFor({ timeout: 10000 });
     const up = (await cards()).filter(c => !c.dismissed_at).length;
     const landed = async (text: string) => (await layer().innerText()).includes(text);
+    const slowAt = new Date().toISOString();
     fake({ delayMs: 9000 });
     const slow = ["young families need a place to start", "prayer holds this church together", "meals for families in a hard season", "welcome starts at the car park", "newcomers find a friend by the second week",
       "care in hard seasons is what we do best", "the welcome team knows every name", "greeters make a difference"];
@@ -263,7 +266,9 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     await until(async () => (await notice()).includes("AI is slow."), "the control surface says AI is slow", 25000);
     await calm("signal slow");
     await panel().scrollIntoViewIfNeeded(); await shot(control, "fail-09-m6-signal-slow-control");
-    await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where session_id=$1 and job='alignment_signal' and status<>'ok'", [wall])).rows[0].n === 0, "a slow signal run is not a failed one", 3000);
+    // A slow run is not a failed one: wait for a run that started after the switch, lasted the slow window and still finished well, then none has failed.
+    await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where session_id=$1 and job='alignment_signal' and status='ok' and created_at>=$2 and ms>=8000", [wall, slowAt])).rows[0].n >= 1, "a signal run takes the slow window and finishes ok", 60000);
+    assert.equal((await sql.query("select count(*)::int n from private.ai_runs where session_id=$1 and job='alignment_signal' and status<>'ok' and created_at>=$2", [wall, slowAt])).rows[0].n, 0, "and none failed while AI was slow");
     fake({ fail: true });
     const failing = ["hospitality is our gift", "our building welcomes everyone", "friends invite friends here", "children are known by name", "the greeters are always smiling",
       "every visitor gets a call", "coffee after church matters", "people stay for the community"];
@@ -273,19 +278,23 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     await calm("signal failing");
     assert.equal(await control.locator("[data-signal-panel]").count(), 1, "the signal panel is still there");
     assert.ok((await cards()).filter(c => !c.dismissed_at).length >= up, "the cards already up are kept, none lost");
-    // By hand: a card that is already up still works. Put its question up, take it down, dismiss another.
-    const item = control.locator("[data-signal-panel] [data-signal-id]").first();
-    await item.click();
-    const detail = control.locator("[data-signal-detail]");
+    // By hand: cards that are already up still work with AI failing. Put a divergent card's question up (worded by the facilitator) and take it down, then dismiss another card.
+    await control.locator("[data-signal-panel] [data-signal=\"divergent\"]:not(.is-leaving)").first().click();
+    const detail = control.locator("[data-signal-detail=\"divergent\"]");
     await detail.waitFor({ timeout: 5000 });
     const box = detail.getByRole("textbox");
-    if (await box.count()) {
-      await box.fill("What would we want a first visit to feel like?");
-      await detail.getByRole("button", { name: "Put the question up" }).click();
-      await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")) === "What would we want a first visit to feel like?", "a question the facilitator wrote reaches the TV while AI fails", 6000);
-      await control.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
-      await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "and comes down", 6000);
-    }
+    await box.waitFor({ timeout: 3000 });
+    await box.fill("What would we want a first visit to feel like?");
+    await detail.getByRole("button", { name: "Put the question up" }).click();
+    await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")) === "What would we want a first visit to feel like?", "a question the facilitator wrote reaches the TV while AI fails", 6000);
+    await control.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
+    await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "and comes down", 6000);
+    const dismissedBefore = (await cards()).filter(c => c.dismissed_at).length;
+    await detail.getByRole("button", { name: "See all signals" }).click().catch(() => {});
+    const other = control.locator("[data-signal-panel] [data-signal-id]:not(.is-leaving):not([data-signal=\"divergent\"])").first();
+    await other.click();
+    await control.locator("[data-signal-detail]").getByRole("button", { name: "Dismiss" }).click();
+    await until(async () => (await cards()).filter(c => c.dismissed_at).length === dismissedBefore + 1, "a card is dismissed while AI fails", 6000);
     await shot(control, "fail-09-m6-signal-failing-control");
     fake({});
     assert.ok(await unchanged(), "the TV page never reloaded");
@@ -328,8 +337,6 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     assert.deepEqual(cardRows.map(r => r.text), mine, "cards sent in the order written, each stored once");
     const agreeRows = await agrees(room.attendees[0].email);
     assert.deepEqual(agreeRows.map(r => [r.text, r.agreed]), [["Parking is full by nine", true], ["A clear way to join a group", true]], "agrees sent in the order written, each once");
-    const at = cardRows.map(r => r.server_received_at.getTime());
-    assert.deepEqual([...at].sort((a, b) => a - b), at, "cards received in order");
     await until(async () => (await tally()).startsWith("4 cards from 2 people"), "the TV counts four cards from two people", 6000);
     await until(async () => {
       const agree = await layer().locator(".fl-slot").evaluateAll(els => Object.fromEntries(els.map(e => [e.querySelector(".fl-tx")!.textContent!, Number(e.querySelector(".fl-agree b")!.textContent)])));

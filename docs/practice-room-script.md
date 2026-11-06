@@ -249,7 +249,7 @@ Sections 12 to 21 are the acceptance run for milestone 4. Run them in a Riversid
 
 Sections 22 to 30 are the acceptance run for milestone 6. Run them in the practice room on live.clearway.co, with the TV paired, at least eight real phones and "Use AI in live sessions" on. Press Reset practice room first. Everything in sections 22, 24, 25 and 26 is for the facilitator only: the TV and the phones must never show a finding, a note, a theme, a draft or a signal card. Keep an eye on the TV and one phone through every section. Section 11 above is carried forward unchanged, and it still applies to every Discover and signal surface.
 
-Claude runs the kit for these sections with 50 simulated phones (`npm run test:acceptance-m6`) while you watch the practice room, as in section 11.
+The browser kits cover most of these sections with 50 simulated phones on the local stack and in CI (`npm run test:acceptance-m6`, and the failure checks in `npm run test:browser`). They do not run against live.clearway.co. The one row here that uses simulated phones on the live site is the load test in section 23, run with `npm run load` as in section 11. Rows that need AI made slow or failing (marked "kit only") use the scripted fake model, which is off on production: the failure kit covers them in CI, and they can be run by hand on a preview deployment with the fake model on.
 
 ## 22. Set up Discover: survey findings and notes (25 minutes)
 
@@ -259,8 +259,8 @@ Claude runs the kit for these sections with 50 simulated phones (`npm run test:a
 | Under the survey, type 100 in People who answered and choose Save total. Add three findings: "Small groups are easy to find", 52%, rests on 52; "Giving is generous", 45%, rests on 45; "Young families", 5%, rests on 5 | Each finding becomes its own theme in the Themes list, already accepted, with "52 of 100 respondents". The third says "5 of 100 respondents, fewer than 10" and carries the Thin mark. The first is marked Strong | Only the third is thin. Fifty-two percent is Strong; forty-five percent is Strong too |
 | Add a fourth finding that rests on 200 respondents | A plain sentence says it can't rest on more people than the survey's total of 100 | Nothing is saved |
 | Change the first finding's respondents to 40 and choose Save finding | Its theme follows it. There is still one theme for the finding | No duplicate theme appears |
-| Pick Interview, type a person's name in Person (for the record only), a title and some notes, then choose Add pasted notes. Add four more notes: two more interviews and two board or staff input conversations | Each note is listed by title with its word count. The person is kept for the record | The person's name appears nowhere except beside the note you typed it on |
-| Pick Input conversation and add a Word file, a PDF and a text file together | Each is read on the server and added as a note. The files are not kept | A file that can't be read (a scan, a password PDF) says why and what to do |
+| Under "Which conversation is next" pick Leadership interview, type a person's name in Person (for the record only), a title and some notes, then choose Add pasted notes. Add four more notes: two more interviews and two board or staff input conversations | Each note is listed by title with its word count. The person is kept for the record | The person's name appears nowhere except beside the note you typed it on |
+| Under "Which conversation is next" pick Input conversation and add a Word file, a PDF and a text file together | Each is read on the server and added as a note. The files are not kept | A file that can't be read (a scan, a password PDF) says why and what to do |
 
 ## 23. The Four Helpful Lists, live with phones (35 minutes)
 
@@ -273,7 +273,7 @@ Claude runs the kit for these sections with 50 simulated phones (`npm run test:a
 | Send several near-duplicate cards in one list ("Roles of staff are confusing", "Elder and staff roles are unclear") and wait | AI slides the similar cards together beneath one card marked AI, with how many it stands for. The cards were on the TV first | No card waited for AI |
 | On the control surface, press Undo last AI change, then Pin a card, Hide another and Unhide it | Each shows on the TV within a second. Undo puts the folded cards back | Hidden cards leave the TV and come back |
 | Turn AI off for the step | AI folds disappear. Those cards stand alone on the TV | Nothing on the TV says AI is off |
-| Claude runs 50 phones against the step | Cards and agrees keep landing | Phone to TV report: at least 95 in 100 under one second |
+| Claude runs `npm run load -- --origin https://live.clearway.co` with the Four Helpful Lists step live: 50 simulated phones each send cards in bursts and then each tap Agree | Cards and agrees keep landing; own and repeat agrees are refused by design | Phone to TV report: at least 95 in 100 under one second |
 | Open the review of the Four Helpful Lists in setup and choose Download CSV | Every card by list, with agreement counts and its fold, read only. The file names no one | No person is named anywhere |
 
 ## 24. Draft and accept themes (30 minutes)
@@ -286,8 +286,8 @@ Claude runs the kit for these sections with 50 simulated phones (`npm run test:a
 | Merge one theme into another of the same kind. Open Merged themes and choose Split out | The merged theme glides beneath the survivor and the survivor's count recounts once. Split out reverses it | The count never counts one conversation twice |
 | Reject a theme, open Rejected themes and choose Bring back | The theme fades off the page, then returns as a draft | It is a draft again, not accepted |
 | Add a note, then choose Redraft themes | Accepted themes stay. Only new themes are offered beside them, and a rejected theme is not offered again | No theme appears twice |
-| Claude makes AI slow, then choose Redraft themes. While it works, choose Add a theme by hand and write one resting on a note | The page says "This is taking longer than usual". The theme you wrote is accepted at once, with no AI icon | You can keep working while it runs |
-| Claude makes AI fail, then choose Redraft themes | "AI couldn't draft themes this time", with Redraft themes and Add a theme by hand still working | Nothing else on the page changes |
+| (Kit only) Claude makes AI slow, then choose Redraft themes. While it works, choose Add a theme by hand and write one resting on a note | The page says "This is taking longer than usual". The theme you wrote is accepted at once, with no AI icon | You can keep working while it runs |
+| (Kit only) Claude makes AI fail, then choose Redraft themes | "AI couldn't draft themes this time", with Redraft themes and Add a theme by hand still working | Nothing else on the page changes |
 
 ## 25. What We Heard (25 minutes)
 
@@ -298,8 +298,8 @@ Claude runs the kit for these sections with 50 simulated phones (`npm run test:a
 | Edit the survey headline and choose Save draft, then Redraft What We Heard | Your edit is kept | The edited line is still there |
 | Choose Apply on a draft | "Applied to the step". In the run of show the step has the headline, the number, the source and the phone depth, and nothing else changed | The step is not live and the TV has not changed |
 | Mark the step Ready and go live on it | The TV shows the number and the headline, with the marked phrase in bold. Phones show the depth | The change reaches phones in a second and the TV never flashes white |
-| Go live on another step, then try Apply on the step that is on the TV | Apply is off, with "That step is on the TV right now. Apply after it's off." | The live step is untouched |
-| Claude makes AI slow, then fail, and you choose Redraft What We Heard | "This is taking longer than usual", then "AI couldn't draft the headlines this time". Type it by hand and Apply work in both | A hand-typed headline reaches the step |
+| Go live on the Four Helpful Lists What We Heard step (or any What We Heard step that has a draft), then choose Apply on that step's draft | Apply is off, with "That step is on the TV right now. Apply after it's off." | The live step is untouched |
+| (Kit only) Claude makes AI slow, then fail, and you choose Redraft What We Heard | "This is taking longer than usual", then "AI couldn't draft the headlines this time". Type it by hand and Apply work in both | A hand-typed headline reaches the step |
 
 ## 26. The alignment signal (35 minutes)
 
@@ -322,9 +322,9 @@ Claude runs the kit for these sections with 50 simulated phones (`npm run test:a
 | --- | --- | --- |
 | Close the laptop and keep the wall session going from the remote. Send more answers | The remote lists the cards it had and adds a new one when it comes (FAIL-05) | A new card reaches the remote alone |
 | From the remote put a question up, take it down, and dismiss a card. Press Phones down, then Open phones | Each works from the remote and reaches the TV. A silent card shows on the remote after Phones down | Nothing needs the laptop |
-| Reopen the laptop. Claude makes AI slow (FAIL-09) and phones keep sending | Every answer is still on the TV in a second. The control surface says "AI is slow." and the cards already up stay | The TV never says anything about AI |
-| Claude makes AI fail | The control surface says "AI isn't responding." No new cards arrive, the cards already up stay, and you can still put a question up and take it down | The room keeps working throughout |
-| Go live on the Four Helpful Lists with AI failing. Send cards, hide one and agree on a phone | Cards land at once, folds stop, Hide and Agree work | The TV never mentions AI |
+| (Kit only) Reopen the laptop. Claude makes AI slow (FAIL-09) and phones keep sending | Every answer is still on the TV in a second. The control surface says "AI is slow." and the cards already up stay | The TV never says anything about AI |
+| (Kit only) Claude makes AI fail | The control surface says "AI isn't responding." No new cards arrive, the cards already up stay, and you can still put a question up and take it down | The room keeps working throughout |
+| (Kit only) Go live on the Four Helpful Lists with AI failing. Send cards, hide one and agree on a phone | Cards land at once, folds stop, Hide and Agree work | The TV never mentions AI |
 
 ## 28. Offline and the TV on the new surfaces (15 minutes)
 

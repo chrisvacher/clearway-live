@@ -186,12 +186,17 @@ async function main() {
       assert.ok(times.length >= 12, `most timed agrees counted (${times.length} of 20)`);
       const sp = spread(times);
       assert.ok(sp.share >= 95, `95 in 100 agrees under one second: 95th ${sp.p95} ms, slowest ${sp.max} ms`);
+      const agreeRows = async () => (await sql.query("select count(*) filter (where agreed)::integer as n from private.four_list_agrees where engagement_id=$1 and session_id=$2 and not deleted", [room, fourId])).rows[0].n as number;
+      const rowsBefore = await agreeRows();
       const statuses = await Promise.all(phones.map(async (p, i) => { await delay(Math.floor(rnd() * 4000)); const reply = await agree(p, cards[(i * 5) % cards.length].id); return reply.reason ?? reply.status; }));
       assert.ok(statuses.every(s => ["accepted", "duplicate", "own", "conflict"].includes(s)), `every agree counted or refused for a reason: ${[...new Set(statuses)]}`);
       await delay(2000);
+      const took = statuses.filter(x => x === "accepted").length;
+      assert.ok(took >= 25, `most of the 50 burst agrees were accepted (${took}); the rest were refused for a reason: ${JSON.stringify(statuses.filter(x => x !== "accepted"))}`);
+      assert.equal(await agreeRows() - rowsBefore, took, "the stored agree rows rose by exactly the number accepted");
       const w = await watch(".tv-layer:not(.is-leaving) .fl-slot");
       // A jump is 150 px in one display frame. A frame the machine took twice as long over (33 ms, with 50 phones hitting a 2 CPU box) is two display frames of the same glide.
-      assert.deepEqual(w.jumps.filter(j => Number(j[1]) / Math.max(1, Math.round(Number(j[2]) / 16.7)) >= 150), [], `nothing jumped while cards traded places (largest step ${Math.round(w.worst)} px on ${w.worstKey})`);
+      assert.deepEqual(w.jumps.filter(j => Number(j[1]) / Math.min(2, Math.max(1, Math.round(Number(j[2]) / 16.7))) >= 150), [], `nothing jumped while cards traded places (largest step ${Math.round(w.worst)} px on ${w.worstKey})`);
       assert.equal(w.blank, 0); assert.equal(w.dim, 0);
       const dup = (await sql.query("select card_id,attendee_id,count(*)::integer as n from private.four_list_agrees where engagement_id=$1 and not deleted group by 1,2 having count(*)>1", [room])).rowCount;
       assert.equal(dup, 0, "one agree per person per card");
@@ -289,6 +294,8 @@ async function main() {
       assert.equal((await stepRow("survey")).prompt, "", "nothing is written to a step until Apply");
       // Thin follows the lead theme: the page marks "(thin data)" on a line exactly when the database says its lead is thin, and the survey's lead (52 percent) is not.
       assert.equal(drafts.find(d => d.source_key === "survey")!.thin, false, "the survey headline leads with a strong finding");
+      // The interview and input sources each rest on one conversation for the one accepted conversation theme, so their lead is thin and their line says so.
+      assert.ok(drafts.some(d => d.thin), "at least one headline leads with a thin theme");
       for (const d of drafts) assert.equal(/\(thin data\)/i.test(await source(d.source_key).innerText()), d.thin, `${d.source_key}: "(thin data)" is on the line exactly when its lead is thin`);
       await shot(page, "what-we-heard-drafted");
     });
@@ -305,7 +312,7 @@ async function main() {
       assert.equal(after.options.number, "52%"); assert.match(after.options.source, /^Congregational survey/); assert.equal(after.options.screen, "headline");
       assert.ok(after.phone_depth.length > 5, "and the phone depth"); assert.equal(after.state, before.state, "the step's state is unchanged: nothing reaches the TV or phones");
       assert.ok(after.revision > before.revision, "it went through the run of show's own save");
-      assert.ok(!(await layer().innerText().catch(() => "")).includes("small groups"), "the TV shows nothing of it yet");
+      assert.ok(!(await tv.locator("body").innerText()).toLowerCase().includes("small groups are easy"), "the TV shows nothing of it yet");
       await sql.query("update public.sessions set state='ready' where id=$1", [heard.survey]);
       await press(lead, sql, room, "go_live", { session: heard.survey });
       await until(async () => (await layer().innerText()).includes("52%"), "the number on the TV", 10000);
@@ -360,6 +367,7 @@ async function main() {
       assert.equal(await phonePage.locator("[data-signal-id], [data-signal-panel], [data-signal-list], [class*=\"cwl-sg\"]").count(), 0, "no card on a phone");
       const phoneText = (await phonePage.locator("body").innerText()).toLowerCase();
       for (const bad of ["aligned", "divergent", "thin data", "alignment signal", ...cards.map(c => c.title.toLowerCase())]) assert.ok(!phoneText.includes(bad), `a phone never says "${bad}"`);
+      assert.ok(phoneWire.length > 0, "a phone's network was watched");
       for (const bad of forbidden) assert.ok(!phoneWire.join("\n").toLowerCase().includes(bad), `the phone was never sent "${bad}"`);
       for (const p of phones.slice(0, 12)) {
         const snap = JSON.stringify(await (await p.call(`/api/live/${room}?surface=phone`, { cache: "no-store" })).json()).toLowerCase();
@@ -410,18 +418,15 @@ async function main() {
       assert.equal((await sql.query("select count(*)::int n from private.signals where session_id=$1 and kind='thin' and dismissed_at is not null", [wall])).rows[0].n, 1, "dismissed in the database");
     });
 
+    const cover = `(() => { const w = window; w.__cf = { frames: 0, min: 1, blank: 0, maxAsk: 0, stop: false }; const read = () => { if (w.__cf.stop) return; const ls = [...document.querySelectorAll(".tv-layers .tv-layer")].map(l => +getComputedStyle(l).opacity), ask = document.querySelector(".tv-ask"), a = ask ? +getComputedStyle(ask).opacity : 0;
+        const c = 1 - ls.reduce((x, o) => x * (1 - o), 1) * (1 - a); w.__cf.frames++; if (c < w.__cf.min) w.__cf.min = c; if (c < 0.5) w.__cf.blank++; if (a > w.__cf.maxAsk) w.__cf.maxAsk = a; requestAnimationFrame(read); }; requestAnimationFrame(read); })()`;
     await step("The neutral question: the TV cross-fades to it with no blank frame, the count and the AI line are hidden and carry no theme, number or kind; Back to the session restores them", async () => {
       await control.locator("[data-signal-panel] [data-signal-id]").filter({ hasText: "Divergent" }).first().click();
       const detail = control.locator("[data-signal-detail=\"divergent\"]");
       const box = detail.getByRole("textbox"); await box.waitFor({ timeout: 5000 });
       const asked = await box.inputValue();
       assert.match(asked, /\?$/, "the suggested wording is a question");
-      // The AI line on the TV, if the wall has one, must go with the count.
-      const foot = tv.locator(".tv-foot .tv-ask-hide"), top = tv.locator(".tv-top .tv-ask-hide");
-      const hadFoot = await until(async () => (await foot.innerText().catch(() => "")).trim().length > 0, "an AI line on the TV", 15000).catch(() => false);
-      const footWas = hadFoot ? (await foot.innerText()).trim() : "";
-      const cover = `(() => { const w = window; w.__cf = { frames: 0, min: 1, blank: 0, maxAsk: 0, stop: false }; const read = () => { if (w.__cf.stop) return; const ls = [...document.querySelectorAll(".tv-layers .tv-layer")].map(l => +getComputedStyle(l).opacity), ask = document.querySelector(".tv-ask"), a = ask ? +getComputedStyle(ask).opacity : 0;
-        const c = 1 - ls.reduce((x, o) => x * (1 - o), 1) * (1 - a); w.__cf.frames++; if (c < w.__cf.min) w.__cf.min = c; if (c < 0.5) w.__cf.blank++; if (a > w.__cf.maxAsk) w.__cf.maxAsk = a; requestAnimationFrame(read); }; requestAnimationFrame(read); })()`;
+      const top = tv.locator(".tv-top .tv-ask-hide");
       await tv.evaluate(cover);
       await detail.getByRole("button", { name: "Put the question up" }).click();
       await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")) === asked, "the question on the TV", 5000);
@@ -430,7 +435,6 @@ async function main() {
       assert.ok(fade.frames > 20, `the fade was watched (${fade.frames} frames)`); assert.ok(fade.maxAsk > 0.95, "the question reaches full");
       assert.equal(fade.blank, 0, `no blank frame on the way in (the screen never covered less than ${Math.round(fade.min * 100)} percent)`);
       await until(async () => (await top.evaluate(el => getComputedStyle(el).visibility)) === "hidden", "the count is hidden", 3000);
-      if (hadFoot) await until(async () => (await foot.evaluate(el => getComputedStyle(el).visibility)) === "hidden", "the AI line is hidden", 3000);
       const tvText = (await tv.locator(".tv-top, .tv-ask").allInnerTexts()).join(" ").toLowerCase();
       for (const bad of ["aligned", "divergent", "thin data", "silent", "survey", "52%", "small groups are easy", "giving is generous", "young families"]) assert.ok(!tvText.includes(bad), `the question carries no "${bad}"`);
       const payload = (await sql.query("select private.live_public_state($1) as p", [room])).rows[0].p as { state: Record<string, unknown> };
@@ -446,13 +450,53 @@ async function main() {
       await control.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
       await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "the question fades out", 5000);
       await until(async () => (await top.evaluate(el => getComputedStyle(el).visibility)) === "visible", "the count is back", 5000);
-      if (hadFoot) await until(async () => (await foot.evaluate(el => getComputedStyle(el).visibility)) === "visible" && (await foot.innerText()).trim().length > 0, "and the AI line", 5000);
       await delay(600);
       const back = await tv.evaluate(() => { const w = window as unknown as { __cf: { frames: number; min: number; blank: number; stop: boolean } }; w.__cf.stop = true; return { ...w.__cf }; });
       assert.equal(back.blank, 0, `no blank frame on the way out (the screen never covered less than ${Math.round(back.min * 100)} percent)`);
       assert.equal((await sql.query("select neutral_question from public.room_states where engagement_id=$1", [room])).rows[0].neutral_question, null);
       assert.ok(await tv.evaluate(() => (window as unknown as { __loaded?: number }).__loaded === 1), "the TV page never reloaded");
-      table.push(`${"Neutral question crossfade".padEnd(34)} in: lowest cover ${Math.round(fade.min * 100)}%, out: ${Math.round(back.min * 100)}%, ${fade.frames + back.frames} frames sampled, AI line ${hadFoot ? `"${footWas}" hidden and restored` : "none on the wall"}`);
+      table.push(`${"Neutral question crossfade".padEnd(34)} in: lowest cover ${Math.round(fade.min * 100)}%, out: ${Math.round(back.min * 100)}%, ${fade.frames + back.frames} frames sampled`);
+    });
+
+    await step("The neutral question over a word cloud: the AI line shows first (words combined), goes while the question is up, and comes back with Back to the session, with no blank frame either way", async () => {
+      await press(lead, sql, room, "nothing_live");
+      const cloud = await mk("word_cloud", "Words for our church", "One word for our church today.", { sends: 3, chars: 40, words: 2 });
+      await press(lead, sql, room, "go_live", { session: cloud });
+      await layer().locator(".tv-board, .tv-cloud, .tv-words").first().waitFor({ timeout: 10000 }).catch(() => {});
+      // Synonyms the scripted model combines, and one word that speaks of the thin finding so a card (with its question) is raised on this step.
+      const sentWords = ["youth", "teens", "teenagers", "kids", "children", "welcome", "welcoming", "families", "families", "families"];
+      const sent = await Promise.all(sentWords.map(async (w, i) => { await delay(Math.floor(rnd() * 1500)); return phones[20 + i].send(room, cloud, w).then(r => r.status); }));
+      assert.deepEqual([...new Set(sent)], ["accepted"], "every word accepted");
+      const aiLine = tv.locator(".tv-foot [data-ai-foot]");
+      await until(async () => (await aiLine.innerText().catch(() => "")).trim().length > 0, "the AI line on the TV once words are combined", 30000);
+      const lineWas = (await aiLine.innerText()).trim();
+      assert.equal(await aiLine.evaluate(el => getComputedStyle(el).visibility), "visible", "the AI line is showing before the question");
+      await until(async () => (await control.locator("[data-signal-panel] [data-signal=\"thin\"]:not(.is-leaving)").count()) >= 1, "a card with a question on this step", 60000);
+      await control.locator("[data-signal-panel] [data-signal=\"thin\"]").first().click();
+      const detail = control.locator("[data-signal-detail=\"thin\"]"), box = detail.getByRole("textbox");
+      await box.waitFor({ timeout: 5000 });
+      const asked = await box.inputValue(); assert.match(asked, /\?$/);
+      await tv.evaluate(cover);
+      await detail.getByRole("button", { name: "Put the question up" }).click();
+      await until(async () => (await tv.locator(".tv-ask.is-on .tv-headline-xl").innerText().catch(() => "")) === asked, "the question on the TV", 5000);
+      await until(async () => (await aiLine.evaluate(el => getComputedStyle(el).visibility)) === "hidden", "the AI line is hidden while the question is up", 3000);
+      await until(async () => (await tv.locator(".tv-top .tv-ask-hide").evaluate(el => getComputedStyle(el).visibility)) === "hidden", "and so is the count", 3000);
+      assert.ok(!(await tv.locator(".tv-ask").innerText()).toLowerCase().includes(lineWas.toLowerCase()), "the question does not carry the AI line");
+      await delay(800);
+      const fade = await tv.evaluate(() => { const w = window as unknown as { __cf: { frames: number; min: number; blank: number; stop: boolean } }; w.__cf.stop = true; return { ...w.__cf }; });
+      assert.equal(fade.blank, 0, `no blank frame going in (lowest cover ${Math.round(fade.min * 100)}%)`);
+      await tv.evaluate(cover);
+      await control.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
+      await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "the question fades out", 5000);
+      await until(async () => (await aiLine.evaluate(el => getComputedStyle(el).visibility)) === "visible" && (await aiLine.innerText()).trim() === lineWas, "the AI line is back, as it was", 5000);
+      await delay(600);
+      const back = await tv.evaluate(() => { const w = window as unknown as { __cf: { frames: number; min: number; blank: number; stop: boolean } }; w.__cf.stop = true; return { ...w.__cf }; });
+      assert.equal(back.blank, 0, `no blank frame coming out (lowest cover ${Math.round(back.min * 100)}%)`);
+      table.push(`${"Neutral question over word cloud".padEnd(34)} AI line "${lineWas}" hidden while up and restored; lowest cover ${Math.round(Math.min(fade.min, back.min) * 100)}%`);
+      await shot(tv, "neutral-question-ai-line");
+      await press(lead, sql, room, "nothing_live");
+      await press(lead, sql, room, "go_live", { session: wall });
+      await layer().locator(".tv-board, .ai-wall, .tv-feed").first().waitFor({ timeout: 10000 }).catch(() => {});
     });
 
     await step("Silent cards wait for phones: none before, one after phones go down, and still nothing on the TV", async () => {

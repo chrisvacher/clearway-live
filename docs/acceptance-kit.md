@@ -142,6 +142,7 @@ Step 6. No migration. `npm run test:acceptance-m6` and the extended failure kit 
 | Signal inputs | The stored `alignment_signal` run inputs hold accepted themes and the room's words only, no person; no card rests on an unaccepted theme |
 | Dismiss and citation | The dismissed card fades and closes up on both surfaces; only an aligned card can be saved as a citation |
 | The neutral question | The TV cross-fades to it and back with no blank frame (sampled every frame); the count and the AI line are hidden and restored; the payload holds the question and no theme, count or kind; phones keep the live step and never show it |
+| The neutral question over a word cloud | A second question over a live word cloud with combined words: the AI line is asserted to show first, is hidden while the question is up (with the count), and returns as it was, with no blank frame either way |
 | Silent cards | None while phones are up; one after Phones down on the strong theme nobody spoke of; never on the TV |
 | Reset | Reset practice room puts away the findings, notes, themes, drafts and signals the run made |
 
@@ -159,6 +160,10 @@ Step 6. No migration. `npm run test:acceptance-m6` and the extended failure kit 
 | FAIL-05 with the signal | The laptop closed: the remote still lists the cards, takes a new one, edits and puts the neutral question up and down, dismisses, and lists a silent card after Phones down |
 | FAIL-09 on `alignment_signal` | A slow run is not a failed one; with AI failing, answers still land, the cards already up stay and work, and a question the facilitator wrote still goes up |
 | FAIL-01 on the Four Helpful Lists | Offline, cards and agrees are saved on the phone and sent in the order written, each once, and the TV counts them |
+
+## The load script and the Four Helpful Lists
+
+`npm run load` (`scripts/load-test.ts`) now also drives a live Four Helpful Lists step: each phone sends a card (`{ column }` and its words) in every burst, then every phone taps Agree on a standing card through `/api/live/<room>/agree`. Own and repeat agrees are refused by design and reported apart; the pass mark is the same 95 in 100 from the latency report. Practice-room row 23 uses it.
 
 ## Notes from writing the kit
 
