@@ -1,6 +1,6 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Check, ChevronLeft, ChevronRight, Clock, EyeOff, Monitor, Send, Smartphone, Star, Timer } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { Check, ChevronLeft, ChevronRight, Clock, EyeOff, Monitor, MousePointer2, Send, Smartphone, Star, Timer } from "lucide-react";
 import { TvScenes } from "@/components/tv/tv-scenes";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { LiveMark } from "@/components/tv/live-mark";
@@ -17,7 +17,10 @@ import { demoDisplay, demoEngagement, demoFiltered, demoFrame, demoItems, demoKi
 // running the real phone inputs. Eight Riverside phones answer on a script, and a
 // visitor's own answer lands with them. Nothing leaves the browser.
 const visitor = 8;
-const holdMs = 6000, visitorHoldMs = 14000, pressMs = 700, typeAfterMs = 3200;
+const holdMs = 6000, visitorHoldMs = 14000, typeAfterMs = 3200;
+// The facilitator's laptop moves to the next session every 2 seconds: a pause, the pointer glides, a click.
+const laptopMs = { rest: 800, move: 900, click: 300 };
+type Select = "rest" | "move" | "click";
 
 function useInView(el: React.RefObject<HTMLElement | null>) {
   const [seen, setSeen] = useState(false);
@@ -41,7 +44,7 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
   const root = useRef<HTMLDivElement>(null), tv = useRef<HTMLDivElement>(null);
   const inView = useInView(root);
   const [pick, setPick] = useState<{ kind: DemoKind; auto: boolean; run: number }>({ kind: "word_cloud", auto: variant !== "phone", run: 0 });
-  const [typing, setTyping] = useState(false), [pressing, setPressing] = useState(false);
+  const [typing, setTyping] = useState(false), [select, setSelect] = useState<Select>("rest");
   const [frame, setFrame] = useState<LiveSnapshot | null>(null), [flow, setFlow] = useState<TvFlow | null>(null);
   const [mine, setMine] = useState<OwnShown[]>([]);
   const placed = useRef<DemoPlaced[]>([]), version = useRef(0), next = useRef(0), answeredAt = useRef(0);
@@ -82,6 +85,18 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
   useEffect(() => {
     if (!flow || !inView) return;
     let timer: ReturnType<typeof setTimeout>;
+    const advance = () => setPick(p => ({ kind: p.auto ? demoKinds[(demoKinds.indexOf(p.kind) + 1) % demoKinds.length] : p.kind, auto: p.auto, run: p.run + 1 }));
+    // On the laptop, each session shows its finished screen, then the facilitator points at the
+    // next session in the run of show and clicks it.
+    if (variant === "control") {
+      placed.current = script.answers.map((answer, i) => ({ id: `${session}-${i}`, person: i % 8, answer }));
+      next.current = script.answers.length; offer(false);
+      timer = setTimeout(() => {
+        setSelect("move");
+        timer = setTimeout(() => { setSelect("click"); timer = setTimeout(() => { setSelect("rest"); advance(); }, laptopMs.click); }, laptopMs.move);
+      }, laptopMs.rest);
+      return () => clearTimeout(timer);
+    }
     const step = () => {
       const i = next.current;
       if (i < script.answers.length) {
@@ -91,10 +106,7 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
         }, script.gaps[i] ?? 900);
       } else {
         const wait = variant === "full" && answeredAt.current ? Math.max(holdMs, answeredAt.current + visitorHoldMs - Date.now()) : holdMs;
-        const advance = () => setPick(p => ({ kind: p.auto ? demoKinds[(demoKinds.indexOf(p.kind) + 1) % demoKinds.length] : p.kind, auto: p.auto, run: p.run + 1 }));
-        // On the remote, Next is pressed a moment before the screen moves on.
-        if (variant === "control") timer = setTimeout(() => { setPressing(true); timer = setTimeout(() => { setPressing(false); advance(); }, pressMs); }, wait - pressMs);
-        else timer = setTimeout(advance, wait);
+        timer = setTimeout(advance, wait);
       }
     };
     step();
@@ -161,7 +173,7 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
     {/* The TV still runs (off screen) so the laptop's mirror follows the same room. */}
     <div className="scene-offstage" aria-hidden="true">{screen}</div>
     <div className="macbook" aria-hidden="true" inert>
-      <div className="macbook-lid"><span className="macbook-camera" /><LaptopScale><LiveRoomMock frame={frame} at={pick.kind} count={placed.current.length} pressing={pressing} session={session} /></LaptopScale></div>
+      <div className="macbook-lid"><span className="macbook-camera" /><LaptopScale><LiveRoomMock frame={frame} at={pick.kind} count={placed.current.length} select={select} session={session} /></LaptopScale></div>
       <div className="macbook-base"><span className="macbook-notch" /></div>
     </div>
   </div>;
@@ -243,8 +255,15 @@ function LaptopScale({ children }: { children: React.ReactNode }) {
 // own classes: the run of show, the TV mirror and the controls, and the private panels.
 // It follows the demo beside it: Next is pressed and the screen moves to the next step.
 const startTimes = ["9:00", "9:20", "9:45", "10:10"];
-function LiveRoomMock({ frame, at, count, pressing, session }: { frame: LiveSnapshot | null; at: DemoKind; count: number; pressing: boolean; session: string }) {
+function LiveRoomMock({ frame, at, count, select, session }: { frame: LiveSnapshot | null; at: DemoKind; count: number; select: Select; session: string }) {
   const now = demoKinds.indexOf(at), upNext = demoKinds[now + 1];
+  // The pointer rests on the session that is live, then glides to the next one to select it.
+  const target = select === "rest" ? now : (now + 1) % demoKinds.length;
+  const run = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = run.current, row = el?.querySelectorAll("li")[target]; if (!el || !row) return;
+    el.style.setProperty("--cursor-y", `${row.offsetTop + row.offsetHeight / 2}px`);
+  }, [target]);
   const [left, setLeft] = useState(240);
   useEffect(() => {
     setLeft(240);
@@ -261,22 +280,23 @@ function LiveRoomMock({ frame, at, count, pressing, session }: { frame: LiveSnap
       <nav className="ctl-col ctl-run">
         <div className="ctl-row is-between"><h2>Run of show</h2><span className="ctl-chip is-success"><Clock size={14} aria-hidden="true" />On time</span></div>
         <section className="ctl-part"><div className="ctl-row is-between"><h3>Pre-call and Day 1</h3></div>
-          <ol className="ctl-run-list">{demoKinds.map((kind, i) => <li key={kind} className={`${i === now ? "is-current" : ""}${i === now + 1 ? " is-next" : ""}`}>
+          <div ref={run} className="how-run"><ol className="ctl-run-list">{demoKinds.map((kind, i) => <li key={kind}
+            className={[i === now && "is-current", i === now + 1 && "is-next", select !== "rest" && i === target && "is-hover", select === "click" && i === target && "is-pressed"].filter(Boolean).join(" ")}>
             <span className="ctl-time">{startTimes[i]}</span>
             <span className="ctl-run-title"><strong>{demoScripts[kind].title}</strong><small>{demoScripts[kind].label}</small></span>
             <span className="ctl-run-meta"><span className={`show-state is-${i < now ? "closed" : i === now ? "live" : "ready"}`}>{i < now ? "Closed" : i === now ? "Live" : "Ready"}</span><span className="show-button is-small">Preview</span></span>
-          </li>)}</ol></section>
+          </li>)}</ol><MousePointer2 className="how-cursor" size={40} aria-hidden="true" /></div></section>
         <section className="ctl-private"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Up next</span></div>
           <div className="ctl-private-body">{upNext ? <><p className="ctl-label">{demoScripts[upNext].title}</p><p className="ctl-notes">{demoScripts[upNext].prompt}</p></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
       </nav>
       <main className="ctl-col ctl-centre">
-        <div className="ctl-row is-between"><span className="ctl-eyebrow">On the TV now</span><span className="ctl-sync"><Monitor size={14} aria-hidden="true" />TV confirmed</span></div>
-        <TvMirror frame={frame} />
+        <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On the TV now</p><p key={session} className="ctl-label how-swap">{demoScripts[at].title}</p></div><span className="ctl-sync"><Monitor size={14} aria-hidden="true" />TV confirmed</span></div>
+        <div key={session} className="how-swap"><TvMirror frame={frame} /></div>
         <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On phones now</p><p className="ctl-label">Input open · burst {label} left</p></div></div>
         <div className="ctl-controls is-laptop">
           <div className="ctl-countdown"><Timer size={20} aria-hidden="true" /><b>{label}</b><progress className="ctl-progress" max={240} value={left} /></div>
           <div className="ctl-grid"><span className="show-button"><ChevronLeft size={20} aria-hidden="true" />Back</span>
-            <span className={`show-button is-primary how-next${pressing ? " is-pressed" : ""}`}>Next<ChevronRight size={20} aria-hidden="true" /></span></div>
+            <span className="show-button is-primary">Next<ChevronRight size={20} aria-hidden="true" /></span></div>
           <div className="ctl-grid"><span className="show-button"><Smartphone size={18} aria-hidden="true" />Phones down</span><span className="show-button"><Star size={18} aria-hidden="true" />Spotlight</span></div>
         </div>
       </main>
