@@ -17,7 +17,9 @@ import { demoDisplay, demoEngagement, demoFiltered, demoFrame, demoItems, demoKi
 // running the real phone inputs. Eight Riverside phones answer on a script, and a
 // visitor's own answer lands with them. Nothing leaves the browser.
 const visitor = 8;
-const holdMs = 6000, visitorHoldMs = 14000, pressMs = 700, selectMs = 1800, typeAfterMs = 3200;
+const holdMs = 6000, visitorHoldMs = 14000, typeAfterMs = 3200;
+// The facilitator's laptop moves to the next session every 2 seconds: a pause, the pointer glides, a click.
+const laptopMs = { rest: 800, move: 900, click: 300 };
 type Select = "rest" | "move" | "click";
 
 function useInView(el: React.RefObject<HTMLElement | null>) {
@@ -83,6 +85,18 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
   useEffect(() => {
     if (!flow || !inView) return;
     let timer: ReturnType<typeof setTimeout>;
+    const advance = () => setPick(p => ({ kind: p.auto ? demoKinds[(demoKinds.indexOf(p.kind) + 1) % demoKinds.length] : p.kind, auto: p.auto, run: p.run + 1 }));
+    // On the laptop, each session shows its finished screen, then the facilitator points at the
+    // next session in the run of show and clicks it.
+    if (variant === "control") {
+      placed.current = script.answers.map((answer, i) => ({ id: `${session}-${i}`, person: i % 8, answer }));
+      next.current = script.answers.length; offer(false);
+      timer = setTimeout(() => {
+        setSelect("move");
+        timer = setTimeout(() => { setSelect("click"); timer = setTimeout(() => { setSelect("rest"); advance(); }, laptopMs.click); }, laptopMs.move);
+      }, laptopMs.rest);
+      return () => clearTimeout(timer);
+    }
     const step = () => {
       const i = next.current;
       if (i < script.answers.length) {
@@ -92,13 +106,7 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
         }, script.gaps[i] ?? 900);
       } else {
         const wait = variant === "full" && answeredAt.current ? Math.max(holdMs, answeredAt.current + visitorHoldMs - Date.now()) : holdMs;
-        const advance = () => setPick(p => ({ kind: p.auto ? demoKinds[(demoKinds.indexOf(p.kind) + 1) % demoKinds.length] : p.kind, auto: p.auto, run: p.run + 1 }));
-        // On the laptop, the facilitator points at the next session in the run of show and clicks it.
-        if (variant === "control") timer = setTimeout(() => {
-          setSelect("move");
-          timer = setTimeout(() => { setSelect("click"); timer = setTimeout(() => { setSelect("rest"); advance(); }, pressMs); }, selectMs - pressMs);
-        }, wait - selectMs);
-        else timer = setTimeout(advance, wait);
+        timer = setTimeout(advance, wait);
       }
     };
     step();

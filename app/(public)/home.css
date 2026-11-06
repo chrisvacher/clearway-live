@@ -159,9 +159,9 @@ body:has(> .home) { background: var(--cwl-surface); }
 .how-run .ctl-run-list li { transition: background-color 300ms var(--cwl-ease-calm), transform 150ms var(--cwl-ease-calm); }
 .how-run .ctl-run-list li.is-hover { background: var(--cwl-app-selected); }
 .how-run .ctl-run-list li.is-pressed { transform: scale(0.98); }
-.how-cursor { position: absolute; top: 0; left: 44%; z-index: 1; transform: translateY(var(--cursor-y, 0px)); transition: transform 900ms var(--cwl-ease-calm); fill: var(--cwl-text); stroke: var(--cwl-app-card); stroke-width: 1.5; pointer-events: none; }
+.how-cursor { position: absolute; top: 0; left: 44%; z-index: 1; transform: translateY(var(--cursor-y, 0px)); transition: transform 800ms var(--cwl-ease-calm); fill: var(--cwl-text); stroke: var(--cwl-app-card); stroke-width: 1.5; pointer-events: none; }
 .how-run:has(li.is-pressed) .how-cursor { scale: 0.85; }
-.how-swap { animation: how-swap 600ms var(--cwl-ease-calm); }
+.how-swap { animation: how-swap 400ms var(--cwl-ease-calm); }
 @keyframes how-swap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .demo-room { margin-top: var(--space-10); }
 .demo-tabs { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-6); }
