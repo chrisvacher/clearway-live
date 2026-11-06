@@ -1,6 +1,6 @@
 # The Day 2 read-back
 
-Milestone 5, step 3a. One interaction kind, `read_back` (D2-03, D2-04, INT-14). Migration `20261106060000_read_back.sql`. Day 2, 9:00 is a short confirm: the five signed-off lens summaries in lens order, then each reviewed outcome with its 3-year Vision bullets from the latest overnight publication.
+Milestone 5, step 3a. One interaction kind, `read_back` (D2-03, D2-04, INT-14). Migration `20261106070000_read_back.sql`. Day 2, 9:00 is a short confirm: the five signed-off lens summaries in lens order, then each reviewed outcome with its 3-year Vision bullets from the latest overnight publication.
 
 ## What the room sees
 

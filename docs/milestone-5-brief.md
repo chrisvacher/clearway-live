@@ -127,7 +127,7 @@ Built apart from the read-back (step 3a) on its own branch. A facilitator promot
 
 ## Step 3a: the Day 2 short confirm and read-back (built)
 
-Built on its own branch, `docs/read-back.md` describes it. One interaction kind, `read_back` (D2-03, D2-04, INT-14), migration `20261106060000_read_back.sql`. The Day 2 confirm reads the five signed-off lens summaries in lens order and then each reviewed outcome with its 3-year Vision bullets, from the latest overnight publication. The TV, phones, the scribe's correction composer and the control surface's correction queue are built, and a lens item settled with a change becomes a new signed-off lens summary version that the draft Map reads.
+Built on its own branch, `docs/read-back.md` describes it. One interaction kind, `read_back` (D2-03, D2-04, INT-14), migration `20261106070000_read_back.sql`. The Day 2 confirm reads the five signed-off lens summaries in lens order and then each reviewed outcome with its 3-year Vision bullets, from the latest overnight publication. The TV, phones, the scribe's correction composer and the control surface's correction queue are built, and a lens item settled with a change becomes a new signed-off lens summary version that the draft Map reads.
 
 Defaults chosen in step 3a (flagged for Chris):
 
