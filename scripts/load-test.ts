@@ -21,10 +21,14 @@ import { percentile, verdict, type LatencyReport } from "../lib/latency/report";
 
 export const practiceRoom = "90000000-0000-4000-8000-000000000010";
 const words = ["youth", "alpha", "baptisms", "momentum", "welcome", "families", "prayer", "worship", "hope", "generosity", "kids", "students", "seniors", "music", "outreach", "unity", "care", "joy"];
+const fourCards: Record<string, string[]> = {
+  right: ["Preaching is strong and clear", "Our volunteers show up early", "A warm welcome at the door"], wrong: ["Two room Sundays feel split", "Staff are stretched too thin", "Parking is full by nine"],
+  missing: ["A clear way to join a group", "Ministry for young adults", "Training for new volunteers"], confused: ["Who approves the budget", "Roles of staff are unclear", "How decisions get made"] };
+const columns = ["right", "wrong", "missing", "confused"];
 const sentences = ["Teenagers asking to be baptized", "Young families finding us online", "Small groups meeting in homes again", "Volunteers who show up early", "Newcomers in a group within weeks"];
 
 export type LoadOptions = { origin: string; room?: string; phones?: number; bursts?: number; gapSeconds?: number; spreadSeconds?: number; reportCookie?: string; bypass?: string; log?: (line: string) => void; random?: () => number };
-export type LoadResult = { sent: number; accepted: number; refused: Record<string, number>; phoneMs: { p50: number | null; p95: number | null; max: number | null }; from: string; to: string; reportUrl: string; report: LatencyReport | null };
+export type LoadResult = { agrees?: { sent: number; accepted: number; other: Record<string, number> }; sent: number; accepted: number; refused: Record<string, number>; phoneMs: { p50: number | null; p95: number | null; max: number | null }; from: string; to: string; reportUrl: string; report: LatencyReport | null };
 
 // One simulated phone: a cookie jar and the real phone endpoints. The acceptance kit
 // (tests/browser/acceptance-live.ts) reuses it for every kind.
@@ -42,6 +46,17 @@ export class Phone {
   async vote(room: string, question: string) {
     const response = await this.call(`/api/live/${room}/vote`, { method: "POST", body: JSON.stringify({ id: randomUUID(), question, revision: 0, on: true, ...this.stamp() }) });
     return (await response.json().catch(() => ({ status: `http_${response.status}` }))) as { status: string; reason?: string };
+  }
+  // The Four Helpful Lists: the standing cards a phone is offered, and an agree with one of them (as the phone's outbox sends it).
+  async fourCards(room: string, session: string) {
+    const response = await this.call(`/api/live/${room}/agree?session=${session}`, { cache: "no-store" });
+    const data = await response.json().catch(() => null) as { cards?: { id: string; column: string }[] | null } | null;
+    return data?.cards ?? [];
+  }
+  async agree(room: string, card: string) {
+    const response = await this.call(`/api/live/${room}/agree`, { method: "POST", body: JSON.stringify({ id: randomUUID(), card, revision: 0, on: true, ...this.stamp() }) });
+    const data = await response.json().catch(() => ({ status: `http_${response.status}` })) as { status: string; reason?: string };
+    return data.reason ?? data.status;
   }
   async call(path: string, init: RequestInit = {}) {
     const headers = new Headers(init.headers);
@@ -111,8 +126,8 @@ export async function runLoad(options: LoadOptions): Promise<LoadResult> {
   }
   for (const p of phones) { p.offset = best.offset; p.uncertainty = best.uncertainty; }
   const live = first.session;
-  if (!live || live.state !== "live" || !["word_cloud", "wall", "lens"].includes(live.interaction) || first.state.phones_down)
-    throw new Error("Go live on a word cloud, wall or lens session in the practice room, with phones open, before running the load test.");
+  if (!live || live.state !== "live" || !["word_cloud", "wall", "lens", "four_lists"].includes(live.interaction) || first.state.phones_down)
+    throw new Error("Go live on a word cloud, wall, lens or Four Helpful Lists session in the practice room, with phones open, before running the load test.");
   if (live.max_sends < bursts) throw new Error(`The live session allows ${live.max_sends} answers per person. Allow at least ${bursts}, or run fewer bursts.`);
   const from = new Date(Date.now() - 1000).toISOString(), refused: Record<string, number> = {}, phoneMs: number[] = [];
   let accepted = 0;
@@ -121,9 +136,23 @@ export async function runLoad(options: LoadOptions): Promise<LoadResult> {
     log(`Burst ${b + 1} of ${bursts}: ${count} answers ${spread ? `over ${spread / 1000} seconds` : "in the same instant"}`);
     const results = await Promise.all(phones.map(async (p, i) => {
       if (spread) await delay(Math.floor(random() * spread));
+      if (live.interaction === "four_lists") { const list = columns[(i + b) % 4], pool = fourCards[list]; const r = await p.sendValue(room, live.id, { column: list }, `${pool[(i + b) % pool.length]} (${i + 1})`); return { status: r, ms: 0 }; }
       return p.send(room, live.id, live.interaction === "wall" || live.interaction === "lens" ? `${sentences[(i + b) % sentences.length]} (${i + 1})` : words[(i * 7 + b * 3) % words.length]);
     }));
     for (const r of results) { if (r.status === "accepted") { accepted++; phoneMs.push(r.ms); } else refused[r.status] = (refused[r.status] ?? 0) + 1; }
+  }
+  // The Four Helpful Lists also has agrees: every phone taps Agree on a card of the list its number picks, spread over the same window. A person's own card
+  // is refused ("own") and a repeat is a duplicate; neither is a failure.
+  let agrees: LoadResult["agrees"];
+  if (live.interaction === "four_lists") {
+    const cards = await phones[0].fourCards(room, live.id), other: Record<string, number> = {};
+    let ok = 0;
+    if (cards.length) {
+      log(`Agrees: ${count} phones each agree with a card${spread ? ` over ${spread / 1000} seconds` : ""}`);
+      const replies = await Promise.all(phones.map(async (p, i) => { if (spread) await delay(Math.floor(random() * spread)); return p.agree(room, cards[(i * 5) % cards.length].id); }));
+      for (const r of replies) { if (r === "accepted") ok++; else other[r] = (other[r] ?? 0) + 1; }
+    }
+    agrees = { sent: cards.length ? count : 0, accepted: ok, other };
   }
   await delay(4000);
   const to = new Date().toISOString(), query = `from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
@@ -133,11 +162,12 @@ export async function runLoad(options: LoadOptions): Promise<LoadResult> {
     const response = await fetch(`${origin}/api/control/${room}/latency?${query}`, { headers: { Cookie: options.reportCookie, ...(options.bypass ? { "x-vercel-protection-bypass": options.bypass } : {}) } });
     if (response.ok) report = await response.json(); else log(`The latency report needs a facilitator sign-in (${response.status}).`);
   }
-  return { sent: count * bursts, accepted, refused, phoneMs: { p50: percentile(phoneMs, 0.5), p95: percentile(phoneMs, 0.95), max: percentile(phoneMs, 1) }, from, to, reportUrl, report };
+  return { agrees, sent: count * bursts, accepted, refused, phoneMs: { p50: percentile(phoneMs, 0.5), p95: percentile(phoneMs, 0.95), max: percentile(phoneMs, 1) }, from, to, reportUrl, report };
 }
 
 export function describe(result: LoadResult) {
   const lines = [`Sent ${result.sent} answers, ${result.accepted} accepted.${Object.keys(result.refused).length ? ` Refused: ${JSON.stringify(result.refused)}.` : ""}`,
+    ...(result.agrees ? [`Agrees: ${result.agrees.accepted} of ${result.agrees.sent} accepted${Object.keys(result.agrees.other).length ? `, others ${JSON.stringify(result.agrees.other)} (own and repeat agrees are refused by design)` : ""}.`] : []),
     `Phone to server accepted: median ${result.phoneMs.p50} ms, 95th ${result.phoneMs.p95} ms, slowest ${result.phoneMs.max} ms.`];
   if (result.report) {
     const r = result.report;

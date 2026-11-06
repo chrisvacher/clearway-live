@@ -56,6 +56,7 @@
     "test:themes": "node --import tsx tests/browser/themes.ts",
     "test:signal": "node --import tsx tests/browser/signal.ts",
     "test:what-we-heard": "node --import tsx tests/browser/what-we-heard.ts",
+    "test:acceptance-m6": "node --import tsx tests/browser/acceptance-m6.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

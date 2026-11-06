@@ -120,3 +120,52 @@ For each kind the kit prints the share of answers on the TV under one second and
 - **Clear test answers did not clear candidate suggestions.** `private.candidate_suggestions` now has a `test` column set by the same rehearsal trigger as the other tables, and `rehearsal_control` clear puts away the rehearsal's rows. A real suggestion and another room's are untouched.
 - **The practice reset did not clear scribe cards or scribe files.** `reset_practice_room` now puts both away, and the app route removes the stored bytes from Storage (SQL cannot delete from Storage's tables), using the new `practice_scribe_paths()` for the list. Both fixes are in `supabase/tests/database/m4_acceptance_fixes.test.sql`.
 - **The content-screen cross-fade check failed once and passed on rerun (not fixed here).** Cause found: the leaving layer starts to fade as soon as it is marked leaving, while the entering layer waits two animation frames to begin (`SessionLayers` in `components/tv/tv-scenes.tsx`). When one frame runs long, the combined cover dips below one half and the kit sees a dim. The fix tried was a CSS animation on `.tv-layer.is-entering` that starts in the same frame, with the leaving layer removed on a timer. It closed the gap in `acceptance-live`, but with it in place `test:lens-summary` failed its "no row jumped" check (165 px against its 160 px limit) in three of four CI runs, and it passed once the change was taken out. The TV layout is another Claude's area, so the change is left out of this pull request and the tested version is in commit `ba1b394` on this branch for whoever owns the TV. `tests/browser/frame-watch.ts` has `stallOnNewLayer(ms)`, which stalls the page for `ms` when a layer is added; adding `await tv.evaluate(stallOnNewLayer(350))` after the content-screen watch in `acceptance-live` reproduces the dip on demand.
+
+# Milestone 6: the live-screen kit and the failure kit for Discover and the alignment signal
+
+Step 6. No migration. `npm run test:acceptance-m6` and the extended failure kit run in CI with screenshots uploaded (`acceptance-m6-screens`). The practice-room rows are sections 22 to 30 of `docs/practice-room-script.md`.
+
+## `npm run test:acceptance-m6`
+
+`tests/browser/acceptance-m6.ts`. One headless TV is paired to the practice room and watched on every animation frame (`tests/browser/frame-watch.ts`). Fifty phones ("Wayfinder 01" to "50") use the Four Helpful Lists through the real phone endpoints, with the scripted fake AI model, never the API. The facilitator's pages (Discover, the control surface, the remote) are real browser pages under the lead's own sign-in; one phone is a real browser page so its page and network can be read.
+
+| Check | What it proves |
+| --- | --- |
+| Four Helpful Lists, 50 phones, AI slow | Every card on the TV: 95 in 100 under one second from the latency log, no frame blank or faded, no card jumps 150 px or more in a frame, the view animates in place, the page never reloads. The TV's cards in each list and its "more on phones" line equal the server's |
+| Four Helpful Lists, agrees | Twenty timed agrees (95 in 100 under one second) and every phone agreeing in a burst. The TV's numbers equal the server's, no one counts twice |
+| Discover setup | The total and the findings by hand; each finding is its own accepted theme; thin and strong come from the counts (5 of 100 is thin and says why, 52 of 100 is strong) |
+| Draft themes | Themes arrive from the notes and the phones' cards with the AI icon and counts ("2 of 5 conversations", "of N people"); one interview alone is thin; no person on the page; only the findings count until the facilitator accepts |
+| Accept, reject, leave | Only accepted themes are returned by `discover_accepted_themes` |
+| Draft What We Heard | Headlines come from accepted themes; the stored AI run input holds no unaccepted theme and no person; the number is the lead figure; thin is marked exactly when the lead is thin; nothing is written to a step before Apply |
+| Apply, then go live | Apply writes headline, number, source and phone depth and leaves the step's state alone (the TV shows nothing); when the step goes live the TV and a phone show it |
+| Signal cards | Aligned, divergent and thin cards reach the control surface and the remote while 10 phones answer on a wall. Not one is in the TV's or a phone's page, a byte either was sent (network and live socket), or a phone's snapshot. A participant's session and an unsigned caller are refused by the signal route |
+| Signal inputs | The stored `alignment_signal` run inputs hold accepted themes and the room's words only, no person; no card rests on an unaccepted theme |
+| Dismiss and citation | The dismissed card fades and closes up on both surfaces; only an aligned card can be saved as a citation |
+| The neutral question | The TV cross-fades to it and back with no blank frame (sampled every frame); the count and the AI line are hidden and restored; the payload holds the question and no theme, count or kind; phones keep the live step and never show it |
+| The neutral question over a word cloud | A second question over a live word cloud with combined words: the AI line is asserted to show first, is hidden while the question is up (with the count), and returns as it was, with no blank frame either way |
+| Silent cards | None while phones are up; one after Phones down on the strong theme nobody spoke of; never on the TV |
+| Reset | Reset practice room puts away the findings, notes, themes, drafts and signals the run made |
+
+`KIT_SHOTS=<folder>` saves the screens. The kit's data lives in the permanent practice room and is cleared at the end.
+
+## The failure kit, milestone 6
+
+`tests/browser/failures-m6.ts`, run by `npm run test:browser` after milestone 4's checks, on an engagement of its own with the scripted fake model.
+
+| Check | What it proves |
+| --- | --- |
+| FAIL-09 on `fold_four_lists` | AI slow (9 s a call), then failing: every card is on the TV at once, the control surface says "AI is slow." then "AI isn't responding.", the TV never mentions AI, and hide, unhide and agree work by hand |
+| FAIL-09 on `draft_discover_themes` | "This is taking longer than usual", then "AI couldn't draft themes this time" with Redraft themes; a theme added by hand counts while it is slow; accepted themes are untouched by the failure; the retry works |
+| FAIL-09 on `draft_what_we_heard` | The same on What We Heard: a headline typed by hand and applied while the draft is slow; Apply still works while the draft has failed; nothing goes live |
+| FAIL-05 with the signal | The laptop closed: the remote still lists the cards, takes a new one, edits and puts the neutral question up and down, dismisses, and lists a silent card after Phones down |
+| FAIL-09 on `alignment_signal` | A slow run is not a failed one; with AI failing, answers still land, the cards already up stay and work, and a question the facilitator wrote still goes up |
+| FAIL-01 on the Four Helpful Lists | Offline, cards and agrees are saved on the phone and sent in the order written, each once, and the TV counts them |
+
+## The load script and the Four Helpful Lists
+
+`npm run load` (`scripts/load-test.ts`) now also drives a live Four Helpful Lists step: each phone sends a card (`{ column }` and its words) in every burst, then every phone taps Agree on a standing card through `/api/live/<room>/agree`. Own and repeat agrees are refused by design and reported apart; the pass mark is the same 95 in 100 from the latency report. Practice-room row 23 uses it.
+
+## Notes from writing the kit
+
+- A phone named "Discover phone 01" made the signal refuse every card that said "Discover": the database correctly treats an attendee's name as a name. The kit's phones are "Wayfinder NN".
+- A drafted theme is dropped if its label is already on the page, so a card theme the notes also name is not offered twice. The kit's card theme is one the notes never mention.

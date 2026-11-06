@@ -1,4 +1,4 @@
-# Practice-room script: milestones 3 and 4
+# Practice-room script: milestones 3, 4 and 6
 
 This is the acceptance run for milestone 3, the interaction library. It takes about three hours, so plan two sittings: sections 1 to 5 in one, sections 6 to 11 in the other. Each check names what you do, what the TV and phones should show, and the pass mark. Mark each one pass or fail, and note anything that felt slow, jumpy or confusing, even if it passed.
 
@@ -245,10 +245,115 @@ Sections 12 to 21 are the acceptance run for milestone 4. Run them in a Riversid
 | Open the link's TV page on the computer shared in the video call | The shared TV view follows the room | Revoking the link returns the remote to you |
 | Print the run of show from the Wayfinding template | Every session, prompt, phone depth and presenter note prints (FAIL-10) | It prints |
 
+## Milestone 6: Discover and the alignment signal
+
+Sections 22 to 30 are the acceptance run for milestone 6. Run them in the practice room on live.clearway.co, with the TV paired, at least eight real phones and "Use AI in live sessions" on. Press Reset practice room first. Everything in sections 22, 24, 25 and 26 is for the facilitator only: the TV and the phones must never show a finding, a note, a theme, a draft or a signal card. Keep an eye on the TV and one phone through every section. Section 11 above is carried forward unchanged, and it still applies to every Discover and signal surface.
+
+The browser kits cover most of these sections with 50 simulated phones on the local stack and in CI (`npm run test:acceptance-m6`, and the failure checks in `npm run test:browser`). They do not run against live.clearway.co. The one row here that uses simulated phones on the live site is the load test in section 23, run with `npm run load` as in section 11. Rows that need AI made slow or failing (marked "kit only") use the scripted fake model, which is off on production: the failure kit covers them in CI, and they can be run by hand on a preview deployment with the fake model on.
+
+## 22. Set up Discover: survey findings and notes (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| In the practice room's setup, open Discover | A page marked Only you see this, with "Notes stay with Clearway" and "No themes yet" | Nothing on it is on the TV or a phone |
+| Under the survey, type 100 in People who answered and choose Save total. Add three findings: "Small groups are easy to find", 52%, rests on 52; "Giving is generous", 45%, rests on 45; "Young families", 5%, rests on 5 | Each finding becomes its own theme in the Themes list, already accepted, with "52 of 100 respondents". The third says "5 of 100 respondents, fewer than 10" and carries the Thin mark. The first is marked Strong | Only the third is thin. Fifty-two percent is Strong; forty-five percent is Strong too |
+| Add a fourth finding that rests on 200 respondents | A plain sentence says it can't rest on more people than the survey's total of 100 | Nothing is saved |
+| Change the first finding's respondents to 40 and choose Save finding | Its theme follows it. There is still one theme for the finding | No duplicate theme appears |
+| Under "Which conversation is next" pick Leadership interview, type a person's name in Person (for the record only), a title and some notes, then choose Add pasted notes. Add four more notes: two more interviews and two board or staff input conversations | Each note is listed by title with its word count. The person is kept for the record | The person's name appears nowhere except beside the note you typed it on |
+| Under "Which conversation is next" pick Input conversation and add a Word file, a PDF and a text file together | Each is read on the server and added as a note. The files are not kept | A file that can't be read (a scan, a password PDF) says why and what to do |
+
+## 23. The Four Helpful Lists, live with phones (35 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Add a Four Helpful Lists step to the practice room's run of show (in a Discover part ahead of the Pre-call) and go live on it, with AI on | The TV shows four lists with their headings (What's right? What's wrong? What's missing? What's confused?), outlined and waiting, and a count of 0 cards from 0 people. No generic waiting line | Nothing else is on the TV |
+| On every phone pick a list and send a card in a few words | Each card slides in on the TV within about a second, in its list, with the Lime moment, and the count rises | Every card lands under a second and nothing jumps |
+| Send a second card to another list. Send the same words in two different lists | The cards stay in their own lists. Near-identical words in the same list fold beneath one card | Cards never move across lists |
+| On the phones, tap Agree on other people's cards. Tap again to take it back. Look for Agree on your own card | The count ticks on the TV and the card glides up its list. A second tap takes it back | Agree is never offered on your own card, and a person counts once |
+| Send several near-duplicate cards in one list ("Roles of staff are confusing", "Elder and staff roles are unclear") and wait | AI slides the similar cards together beneath one card marked AI, with how many it stands for. The cards were on the TV first | No card waited for AI |
+| On the control surface, press Undo last AI change, then Pin a card, Hide another and Unhide it | Each shows on the TV within a second. Undo puts the folded cards back | Hidden cards leave the TV and come back |
+| Turn AI off for the step | AI folds disappear. Those cards stand alone on the TV | Nothing on the TV says AI is off |
+| Claude runs `npm run load -- --origin https://live.clearway.co` with the Four Helpful Lists step live: 50 simulated phones each send cards in bursts and then each tap Agree | Cards and agrees keep landing; own and repeat agrees are refused by design | Phone to TV report: at least 95 in 100 under one second |
+| Open the review of the Four Helpful Lists in setup and choose Download CSV | Every card by list, with agreement counts and its fold, read only. The file names no one | No person is named anywhere |
+
+## 24. Draft and accept themes (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On Discover, choose Draft themes | Themes arrive from the notes and the cards, each with the AI icon, a count such as "2 of 5 conversations" or "5 of 20 people", and the notes or cards it rests on. A theme resting on one interview is marked Thin | No person is named on the page, and nothing reaches the TV or phones |
+| Accept one theme from the conversations and one from the Four Helpful Lists. Press Undo on one, then Accept it again | Accepted themes are marked. Undo takes it back | The count of accepted themes is the number you accepted, plus one for each survey finding |
+| Rename a theme | It keeps "Renamed from" and the old name | The name you typed is the one on the page |
+| Merge one theme into another of the same kind. Open Merged themes and choose Split out | The merged theme glides beneath the survivor and the survivor's count recounts once. Split out reverses it | The count never counts one conversation twice |
+| Reject a theme, open Rejected themes and choose Bring back | The theme fades off the page, then returns as a draft | It is a draft again, not accepted |
+| Add a note, then choose Redraft themes | Accepted themes stay. Only new themes are offered beside them, and a rejected theme is not offered again | No theme appears twice |
+| (Kit only) Claude makes AI slow, then choose Redraft themes. While it works, choose Add a theme by hand and write one resting on a note | The page says "This is taking longer than usual". The theme you wrote is accepted at once, with no AI icon | You can keep working while it runs |
+| (Kit only) Claude makes AI fail, then choose Redraft themes | "AI couldn't draft themes this time", with Redraft themes and Add a theme by hand still working | Nothing else on the page changes |
+
+## 25. What We Heard (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Check that the run of show has the four What We Heard steps (Congregational survey, Four Helpful Lists, Board and staff input conversations, Leadership interviews), from the Wayfinding template or added by hand with the source in the options | The Discover page lists a row for each | A source with no step says so and links to the run of show |
+| Leave one theme as a draft and reject another. Choose Draft What We Heard | A headline with depth for each source that has accepted themes, with the AI icon, the lead figure as the number, and quotes the room said. A source with nothing accepted says "Nothing accepted yet" | No draft or rejected theme is named in any headline. Thin data says "(thin data)" on its line |
+| Edit the survey headline and choose Save draft, then Redraft What We Heard | Your edit is kept | The edited line is still there |
+| Choose Apply on a draft | "Applied to the step". In the run of show the step has the headline, the number, the source and the phone depth, and nothing else changed | The step is not live and the TV has not changed |
+| Mark the step Ready and go live on it | The TV shows the number and the headline, with the marked phrase in bold. Phones show the depth | The change reaches phones in a second and the TV never flashes white |
+| Go live on the Four Helpful Lists What We Heard step (or any What We Heard step that has a draft), then choose Apply on that step's draft | Apply is off, with "That step is on the TV right now. Apply after it's off." | The live step is untouched |
+| (Kit only) Claude makes AI slow, then fail, and you choose Redraft What We Heard | "This is taking longer than usual", then "AI couldn't draft the headlines this time". Type it by hand and Apply work in both | A hand-typed headline reaches the step |
+
+## 26. The alignment signal (35 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Go live on a wall session (the signal also runs on a word cloud, a lens and Q&A). Open the control surface and the remote on your phone | The control surface's private panel, "Alignment signal, only you see this", says "Nothing stands out yet" and how many silent themes wait until phones first go down. The remote shows a short list | Both show the same list, and neither is on the TV |
+| Everyone sends at least one answer. Make sure some speak of an accepted theme ("small groups meet in homes"), two or three head another way ("we should add a third service") and a few speak of the thin finding ("young families") | Within about 45 seconds cards arrive in the panel and on the remote with a soft rise: aligned, divergent and thin data. Answers are on the TV in a second while the cards come | The TV and every phone show no card, no theme and no word such as aligned or divergent. Hold a phone beside the TV and check |
+| Say something about a theme you left as a draft ("volunteers are stretched") | The room's answers land, and no card speaks of that theme | Only accepted themes raise cards |
+| Open an aligned card | Its theme from Discover with its strength and where it came from, and the room's own words | No person is named |
+| On the aligned card choose Save as a citation. Open a divergent card | The aligned card says "Saved as a citation". The divergent card has no such button | Only aligned cards can be saved |
+| Dismiss a card | It fades, the list closes up after it, and the remote's list closes up too | It stays dismissed when the room says more |
+| Open the divergent card, edit the suggested question, and choose Put the question up. First try wording that names the theme or a percent | The first is refused with a plain sentence. The edited, neutral question is accepted | The refused wording never reaches the TV |
+| Watch the TV as the question goes up | The TV cross-fades to the question. The room's count and the AI line fade away. Phones keep the live step | No blank frame and no flash. The question carries no theme, number or signal kind |
+| Choose Back to the session | The question fades out, and the step, its count and the AI line return | The step is as it was |
+| Press Phones down and wait | Within a minute a silent card appears for a strong theme nobody has spoken of. It does not appear before phones go down | It is on the panel and the remote only |
+
+## 27. The signal with the laptop closed, and AI slow or failing (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Close the laptop and keep the wall session going from the remote. Send more answers | The remote lists the cards it had and adds a new one when it comes (FAIL-05) | A new card reaches the remote alone |
+| From the remote put a question up, take it down, and dismiss a card. Press Phones down, then Open phones | Each works from the remote and reaches the TV. A silent card shows on the remote after Phones down | Nothing needs the laptop |
+| (Kit only) Reopen the laptop. Claude makes AI slow (FAIL-09) and phones keep sending | Every answer is still on the TV in a second. The control surface says "AI is slow." and the cards already up stay | The TV never says anything about AI |
+| (Kit only) Claude makes AI fail | The control surface says "AI isn't responding." No new cards arrive, the cards already up stay, and you can still put a question up and take it down | The room keeps working throughout |
+| (Kit only) Go live on the Four Helpful Lists with AI failing. Send cards, hide one and agree on a phone | Cards land at once, folds stop, Hide and Agree work | The TV never mentions AI |
+
+## 28. Offline and the TV on the new surfaces (15 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On two phones, switch wifi and mobile data off during the Four Helpful Lists. Write a card or two and tap Agree on another person's card | Each card says "Saved on this phone". The header says Offline (FAIL-01) | Nothing reaches the TV |
+| Switch them back on | The cards send in the order written and the agrees send, each once. The TV count and agree numbers rise | Each card and agree is counted once |
+| Unplug the TV computer's network while phones add cards to the Four Helpful Lists (FAIL-02) | The TV keeps its lists with a small Reconnecting mark | Within 3 seconds of plugging back in, the TV catches up without reloading |
+
+## 29. Who cannot see it (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On a phone signed in as a participant, open the control surface and the Discover page | You are sent to sign in or refused | No finding, note, theme or card is shown |
+| Open the scribe console | The scribe sees no signal card and no theme | Nothing from Discover is there |
+| Give the remote to a participant (the team facilitator) | Their phone shows Next and Back. The control surface says the cards stay with you | The team facilitator's remote shows no card |
+| Check the TV and every phone one last time | No finding, note, theme, draft, card or neutral question except the one you put up on purpose | Nothing leaked |
+
+## 30. Clear up (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Start a rehearsal, draft themes and run the signal, then choose Clear test answers | Drafted themes and signals from the rehearsal go. The findings, the notes and the survey themes stay | Real setup data is untouched |
+| Press Reset practice room | The findings, notes, themes, drafts and signals are all gone, and the survey total is cleared | Discover is empty and the Four Helpful Lists step has no cards |
+
 ## Afterward
 
 - Note the Phone to TV numbers you read in section 11 before breaking anything.
 - Note which phones and browsers you used, the venue network, and anything that felt slow or wrong.
-- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. A row that fails becomes the next fix.
+- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. A row that fails becomes the next fix.
 
-The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). This script is the real-device, real-room version of them.
+The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). This script is the real-device, real-room version of them.

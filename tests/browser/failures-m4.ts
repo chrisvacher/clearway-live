@@ -13,8 +13,8 @@ import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Browser, BrowserContext, Page, WebSocketRoute } from "playwright";
 import { engagement, facilitator, mailbox, pairTv, press, startApp, until, type Env } from "./harness";
-import { controlDir, controlFile } from "./failures-m3";
-import { rmSync, writeFileSync } from "node:fs";
+import { controlFile } from "./failures-m3";
+import { writeFileSync } from "node:fs";
 import type pg from "pg";
 
 const fake = (value: { delayMs?: number; fail?: boolean }) => writeFileSync(controlFile, JSON.stringify(value));
@@ -229,5 +229,4 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
   });
   await press(fac, sql, room.id, "nothing_live");
   await Promise.all([tvContext, facContext, ruth.ctx, ben.ctx, grace.ctx].map((c: BrowserContext) => c.close().catch(() => {})));
-  rmSync(controlDir, { recursive: true, force: true });
 }
