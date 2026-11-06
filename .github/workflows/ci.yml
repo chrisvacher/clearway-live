@@ -275,6 +275,8 @@ jobs:
         with:
           name: what-we-heard-screens
           path: heard-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the alignment signal (cards on the control surface and the remote, nothing on the TV or phones, dismiss, citation, neutral question, laptop closed) in a real browser
         if: ${{ !cancelled() }}
         run: mkdir -p signal-shots && npm run test:signal

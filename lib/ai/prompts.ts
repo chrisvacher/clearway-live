@@ -383,7 +383,7 @@ export const prompts: Record<AiJob, Prompt> = {
       "Each card: a title of at most 12 words, and one plain sentence for the line, in sentence case, with no number, share or count (the app counts). No quotation marks. Never name a person, and never guess who said something.",
       "Each card may carry an ask: one neutral question the facilitator could put to the room, at most 140 characters, ending in a question mark. It names no theme, no signal, no number and no survey, and it leads nowhere: it asks what people notice or what they would gain or lose, not whether they agree.",
       "Name a card's theme by its ref (t1, t2...) and list the room refs it rests on. Use only the refs you are given. A card on aligned, divergent or thin must name at least one room ref. At most 6 cards.",
-      "Do not raise a card already in raised, and never raise one marked dismissed. If nothing stands out, reply with no cards.",
+      "A card already in raised stands on its own until you raise it again; raise it again, with the same kind and theme, only when new room input (marked new) changes what it rests on, and it updates in place; never raise one marked dismissed. A silent card is retired only when you raise an aligned, divergent or thin card on its theme, so never raise a silent card for a theme the room has just spoken to. If nothing stands out, reply with no cards.",
       "Use Clearway's terms exactly: 10-year Future, 3-year Vision, 1-year Outlook, Five Lenses.",
       `Reply as {"cards":[{"kind":"aligned","theme":"t1","title":"...","line":"...","ask":"...?","room":["r2","r5"]}]}. ${rules}`,
     ].join("\n"),

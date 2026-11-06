@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EyeOff, Info, MessageCircleQuestion, Undo2, VolumeX } from "lucide-react";
 import type { Room } from "@/components/control/live-controls";
-import { signalKinds, type SignalCardData, type SignalState } from "@/lib/interactions/signal";
+import { askMax, signalKinds, type SignalCardData, type SignalState } from "@/lib/interactions/signal";
 import { SignalCard, SignalDisc } from "./signal-card";
 import { SignalDetail } from "./signal-detail";
 import { useSignal } from "./use-signal";
@@ -68,6 +68,16 @@ export function SignalPanel({ room }: { room: Room }) {
 
 // FAC-03: a short list on the facilitator's own remote, so the cards work with the laptop closed. Each opens to its line, with
 // Put the question up and Dismiss. No evidence view: that is the laptop's.
+// The question as it will go up: the AI's suggestion in a box the facilitator can change before it is sent.
+function RemoteAsk({ card, onTv, busy, press }: { card: SignalCardData; onTv: boolean; busy: boolean; press: ReturnType<typeof useSignal>["press"] }) {
+  const [text, setText] = useState(card.ask ?? "");
+  return <>
+    <label className="cwl-sg-h" htmlFor={`sg-rask-${card.id}`}>Ask the room</label>
+    <textarea id={`sg-rask-${card.id}`} className="cwl-sg-q" value={text} maxLength={askMax} rows={2} placeholder="Write a neutral question, with no theme or figure in it" onChange={event => setText(event.target.value)} />
+    <button type="button" className="show-button is-small is-primary" disabled={busy || !text.trim() || onTv} onClick={() => void press("ask", { signal: card.id, text })}><MessageCircleQuestion size={16} aria-hidden="true" />{onTv ? "Question is on the TV" : "Put the question up"}</button>
+  </>;
+}
+
 export function SignalList({ room }: { room: Room }) {
   const { status, busy, message, press } = useSignal(room);
   const { shown, arrived, leave } = useCards(status);
@@ -86,7 +96,7 @@ export function SignalList({ room }: { room: Room }) {
         {open === card.id && <>
           <p className="ln">{card.line}</p>
           <div className="cwl-sg-acts">
-            {card.ask && <button type="button" className="show-button is-small is-primary" disabled={busy || (status.ask?.signal === card.id)} onClick={() => void press("ask", { signal: card.id })}><MessageCircleQuestion size={16} aria-hidden="true" />{status.ask?.signal === card.id ? "Question is on the TV" : "Put the question up"}</button>}
+            <RemoteAsk card={card} onTv={status.ask?.signal === card.id} busy={busy} press={press} />
             <button type="button" className="show-button is-small" disabled={busy} onClick={() => dismiss(card)}>Dismiss</button>
           </div>
         </>}

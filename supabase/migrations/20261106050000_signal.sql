@@ -23,7 +23,6 @@
 --   private.ai_claim                    step 2's wrapper (20261106020000), renamed ai_claim_pre_signal, plus the signal's claim
 --   private.ai_apply                    step 2's wrapper, renamed ai_apply_pre_signal, plus the signal's apply
 --   private.ai_fail                     step 2's wrapper, renamed ai_fail_pre_signal, plus the signal's failure
---   private.ai_status                   step 2's wrapper, renamed ai_status_pre_signal; the signal's own run never reads as AI being slow
 --   private.reset_practice_room         step 4's wrapper (20261106040000), renamed reset_practice_room_base5 and wrapped, plus the signal's records
 --   private.rehearsal_control           step 4's wrapper (20261106040000), renamed rehearsal_control_pre_signal, plus Clear test answers for signals
 -- Not touched, on purpose: ai_on (the signal runs where AI is already on) and ai_due (it already hands the live step to the worker;
@@ -45,14 +44,17 @@ alter table private.signals
  add column on_tv boolean not null default false;
 
 -- Per step: when phones first went down, and the signal's own watermarks (its last claim, the input it has seen, whether it has
--- read the room with phones down, and its last failure). They never touch the live jobs' watermarks or AI timing.
+-- read the room with phones down, and its last failure) and its own lease, so a run of the deeper model never holds the live jobs' lease. They never touch the live jobs' watermarks or AI timing.
 alter table private.ai_sessions
  add column phones_down_at timestamptz,
  add column signal_at timestamptz,
  add column signal_seen_at timestamptz,
  add column signal_seen_ids uuid[] not null default array[]::uuid[],
  add column signal_phones_seen boolean not null default false,
- add column signal_failed_at timestamptz;
+ add column signal_failed_at timestamptz,
+ add column signal_lease_id uuid,
+ add column signal_lease_run uuid,
+ add column signal_lease_until timestamptz;
 
 -- The TV's neutral question: its text and nothing else. No theme, count, signal kind or AI line is ever stored beside it.
 alter table public.room_states add column neutral_question text check(neutral_question is null or length(btrim(neutral_question)) between 1 and 200);
@@ -89,7 +91,8 @@ begin
  update private.signals set on_tv=false where engagement_id=new.engagement_id and on_tv;
  return new;
 end $$;
-create trigger signal_ask_cleared after update of neutral_question on public.room_states for each row
+-- After any update, not only of the column: signal_ask_guard nulls the question in its own before trigger, which does not fire an "of neutral_question" trigger.
+create trigger signal_ask_cleared after update on public.room_states for each row
  when (old.neutral_question is not null and new.neutral_question is null) execute function private.signal_ask_cleared();
 
 -- ---------- The TV's payload ----------
@@ -120,7 +123,7 @@ $$;
 
 -- ---------- The claim ----------
 -- Due after 8 new inputs, or 45 seconds after the first new input, whichever comes first; and once when phones first go down, so
--- silent themes get their turn. At most one run a session at a time (the session's lease), never closer than 10 seconds apart, and
+-- silent themes get their turn. At most one signal run a session at a time (the signal's own lease, apart from the live jobs'), never closer than 10 seconds apart, and
 -- nothing at all until a theme is accepted. A failed run waits 30 seconds, then reads all the input again.
 create function private.signal_claim(p_session uuid,p_lease uuid,p_model text,p_versions jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
@@ -140,10 +143,10 @@ begin
  select count(*) filter (where a.signal_seen_at is null or not i.id=any(a.signal_seen_ids)),min(i.at) filter (where a.signal_seen_at is null or not i.id=any(a.signal_seen_ids)) into n_new,oldest
   from private.signal_input(s.id) i;
  if not (n_new>=8 or (n_new>=1 and oldest<=t-interval '45 seconds') or (v_phones and not a.signal_phones_seen)) then return jsonb_build_object('status','idle'); end if;
- if a.lease_id is not null and a.lease_until>t then return jsonb_build_object('status','busy'); end if;
+ if a.signal_lease_id is not null and a.signal_lease_until>t then return jsonb_build_object('status','busy'); end if;
  if a.signal_failed_at is not null and a.signal_failed_at>t-interval '30 seconds' and a.signal_seen_at is null then
   return jsonb_build_object('status','cooling','ms',(extract(epoch from a.signal_failed_at+interval '30 seconds'-t)*1000)::integer); end if;
- if a.lease_run is not null then update private.ai_runs set status='stale',finished_at=t where id=a.lease_run and status='running'; end if;
+ if a.signal_lease_run is not null then update private.ai_runs set status='stale',finished_at=t where id=a.signal_lease_run and status='running'; end if;
  -- The worker calls the deeper model and names it when it hands the reply back (apply and fail record it); until then the run carries the model it was claimed with.
  v_model:=p_model;
  -- Up to 40 accepted themes, strong ones first, each with at most two of the room's own quotes.
@@ -161,14 +164,13 @@ begin
  v_inputs:=jsonb_build_object('session',jsonb_build_object('title',s.title,'prompt',private.fill_years(s.prompt,v_base),'kind',s.interaction),'phones_down',v_phones,'themes',v_themes,'room',v_room,'raised',v_raised);
  insert into private.ai_runs(engagement_id,session_id,job,model,prompt_version,inputs,created_at) values(s.engagement_id,s.id,'alignment_signal',v_model,p_versions->>'alignment_signal',v_inputs,t) returning id into v_run;
  update private.ai_sessions set signal_at=t,signal_seen_at=t,signal_seen_ids=array(select i.id from private.signal_input(s.id) i order by i.id),signal_phones_seen=v_phones,
-   lease_id=p_lease,lease_run=v_run,lease_until=t+interval '75 seconds' where session_id=s.id;
+   signal_lease_id=p_lease,signal_lease_run=v_run,signal_lease_until=t+interval '75 seconds' where session_id=s.id;
  return jsonb_build_object('status','claimed','run',v_run,'job','alignment_signal','prompt_version',p_versions->>'alignment_signal','inputs',v_inputs);
 end $$;
 
 alter function private.ai_claim(uuid,uuid,text,jsonb) rename to ai_claim_pre_signal;
 alter function private.ai_apply(uuid,uuid,jsonb,jsonb) rename to ai_apply_pre_signal;
 alter function private.ai_fail(uuid,uuid,text,jsonb) rename to ai_fail_pre_signal;
-alter function private.ai_status(uuid,uuid) rename to ai_status_pre_signal;
 
 -- The worker's claim. A signal that has waited 30 seconds goes first, so a steady stream of answers cannot starve it; otherwise the live
 -- jobs go first and the signal takes the idle moment after them. Anything but "idle" from the live jobs (busy, cooling, off, wait) is theirs.
@@ -181,7 +183,7 @@ begin
  waited:=a.session_id is not null and a.signal_at is not null and a.signal_at<clock_timestamp()-interval '30 seconds';
  if waited then
   sc:=private.signal_claim(p_session,p_lease,p_model,p_versions);
-  if sc->>'status' in ('claimed','busy') then return sc; end if;
+  if sc->>'status'='claimed' then return sc; end if;
  end if;
  out:=private.ai_claim_pre_signal(p_session,p_lease,p_model,p_versions);
  if out->>'status'<>'idle' or waited then return out; end if;
@@ -199,7 +201,7 @@ create function private.ai_apply(p_run uuid,p_lease uuid,p_output jsonb,p_usage 
 language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; a private.ai_sessions; s public.sessions; t timestamptz:=clock_timestamp(); v_ms integer; v_phones boolean;
  themes jsonb; room jsonb; acc jsonb; names text[]; c jsonb; reason text; th jsonb; at_ jsonb; refs text[]; v_kind text; v_title text; v_line text; v_ask text; v_theme uuid;
- n_a integer; n_c integer; v_unit text; samples jsonb; also jsonb; ex private.signals; applied jsonb:='[]'::jsonb; refused jsonb:='[]'::jsonb; touched uuid[]:=array[]::uuid[]; seen text[]:=array[]::text[];
+ n_a integer; n_c integer; v_unit text; samples jsonb; also jsonb; ex private.signals; applied jsonb:='[]'::jsonb; refused jsonb:='[]'::jsonb; touched uuid[]:=array[]::uuid[]; touched_themes uuid[]:=array[]::uuid[]; seen text[]:=array[]::text[];
  v_live integer; v_changed boolean:=false; v_ev jsonb; v_id uuid; v_complete boolean;
 begin
  select * into run from private.ai_runs where id=p_run;
@@ -210,10 +212,10 @@ begin
  perform 1 from public.room_states where engagement_id=run.engagement_id and not deleted for update;
  select * into a from private.ai_sessions where session_id=run.session_id for update;
  select * into run from private.ai_runs where id=p_run;
- if run.status<>'running' or a.lease_id is distinct from p_lease or a.lease_run is distinct from p_run then return jsonb_build_object('status','stale'); end if;
+ if run.status<>'running' or a.signal_lease_id is distinct from p_lease or a.signal_lease_run is distinct from p_run then return jsonb_build_object('status','stale'); end if;
  v_ms:=private.ai_usage(p_usage,'ms',600000)::integer;
  select * into s from public.sessions where id=run.session_id;
- update private.ai_sessions set lease_id=null,lease_run=null,lease_until=null where session_id=run.session_id;
+ update private.ai_sessions set signal_lease_id=null,signal_lease_run=null,signal_lease_until=null where session_id=run.session_id;
  if not private.ai_on(run.session_id) or s.deleted then
   update private.ai_runs set status='discarded',finished_at=t,ms=v_ms,input_tokens=private.ai_usage(p_usage,'input_tokens',10000000)::integer,
    output_tokens=private.ai_usage(p_usage,'output_tokens',10000000)::integer,cost_usd=private.ai_usage(p_usage,'cost_usd',1000) where id=run.id;
@@ -279,10 +281,12 @@ begin
    end if;
   end if;
   touched:=touched||v_id;
+  if v_kind<>'silent' then touched_themes:=touched_themes||v_theme; end if;
  end loop;
- -- A silent card the room has since answered is retired: this run read every theme with phones down and did not raise it again.
- if v_complete and v_phones then
-  update private.signals set deleted=true where session_id=run.session_id and kind='silent' and not deleted and dismissed_at is null and not id=any(touched);
+ -- A silent card stands until the room touches its theme: it is retired only when this run raised an aligned, divergent or thin card on that theme.
+ -- A run that says nothing about the theme leaves it where it is, and a card already on the panel may be raised again, which updates it in place.
+ if v_complete then
+  update private.signals set deleted=true where session_id=run.session_id and kind='silent' and not deleted and dismissed_at is null and theme_id=any(touched_themes) and not id=any(touched);
   if found then v_changed:=true; end if;
  end if;
  update private.ai_runs set status='ok',changed=false,finished_at=t,ms=v_ms,output=jsonb_build_object('result',p_output,'applied',applied,'refused',refused,'cards_changed',v_changed),
@@ -316,27 +320,13 @@ begin
  if run.engagement_id='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(run.engagement_id::text,7)); end if;
  select * into a from private.ai_sessions where session_id=run.session_id for update;
  select * into run from private.ai_runs where id=p_run;
- if run.status<>'running' or a.lease_id is distinct from p_lease or a.lease_run is distinct from p_run then return jsonb_build_object('status','stale'); end if;
+ if run.status<>'running' or a.signal_lease_id is distinct from p_lease or a.signal_lease_run is distinct from p_run then return jsonb_build_object('status','stale'); end if;
  v_ms:=private.ai_usage(p_usage,'ms',600000)::integer;
  update private.ai_runs set status='failed',finished_at=t,ms=v_ms,error=left(coalesce(p_error,'failed'),200),input_tokens=private.ai_usage(p_usage,'input_tokens',10000000)::integer,
   output_tokens=private.ai_usage(p_usage,'output_tokens',10000000)::integer,cost_usd=private.ai_usage(p_usage,'cost_usd',1000),
   model=case when coalesce(p_usage->>'model','') ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$' then p_usage->>'model' else model end where id=run.id;
- update private.ai_sessions set lease_id=null,lease_run=null,lease_until=null,signal_failed_at=t,signal_seen_at=null,signal_phones_seen=false where session_id=run.session_id;
+ update private.ai_sessions set signal_lease_id=null,signal_lease_run=null,signal_lease_until=null,signal_failed_at=t,signal_seen_at=null,signal_phones_seen=false where session_id=run.session_id;
  return jsonb_build_object('status','ok');
-end $$;
-
--- ---------- The AI panel ----------
--- The signal's own run is never "AI is slow": a deeper model takes longer than a live fold, and its time is not the live jobs'. While it runs the
--- panel reads as if nothing were running, as the live jobs' own times and failures are untouched.
-create function private.ai_status(p_engagement uuid,p_session uuid) returns jsonb
-language plpgsql stable security definer set search_path='' as $$
-declare out jsonb; a private.ai_sessions; sid uuid; t timestamptz:=clock_timestamp();
-begin
- out:=private.ai_status_pre_signal(p_engagement,p_session);
- if out->>'status' is distinct from 'ok' or out->'state'->>'job' is distinct from 'alignment_signal' then return out; end if;
- sid:=(out->'session'->>'id')::uuid;
- select * into a from private.ai_sessions where session_id=sid and not deleted;
- return jsonb_set(out,'{state}',(out->'state')||jsonb_build_object('running',false,'job',null,'running_ms',null,'slow',coalesce(a.last_ms,0)>6000 and a.last_ok_at>t-interval '2 minutes'));
 end $$;
 
 -- ---------- The facilitator's reads and presses ----------
@@ -369,7 +359,7 @@ begin
   -- Silent themes wait until phones first go down: the strong themes no card has taken yet.
   'held',case when s.id is null or v_phones or s.interaction not in ('word_cloud','wall','lens','qa') then 0 else greatest(0,v_held-(select count(distinct g.theme_id) from private.signals g where g.session_id=s.id and not g.deleted and g.dismissed_at is null and g.kind in ('aligned','divergent'))::integer) end,
   'ask',v_on,'team',v_team,'signals',cards,
-  'state',jsonb_build_object('running',a.lease_run is not null and a.lease_until>t and exists(select 1 from private.ai_runs x where x.id=a.lease_run and x.job='alignment_signal'),
+  'state',jsonb_build_object('running',a.signal_lease_run is not null and a.signal_lease_until>t,
     'catching_up',a.signal_failed_at is not null and a.signal_seen_at is null,'last_at',a.signal_at));
 end $$;
 
@@ -410,7 +400,8 @@ begin
   if private.screen_text(v_text) then return jsonb_build_object('status','filtered'); end if;
   if not private.signal_neutral(v_text,sg.evidence->'theme'->>'label') then return jsonb_build_object('status','names_signal'); end if;
   if r.live_session_id is distinct from sg.session_id or r.tv_content<>'session' then return jsonb_build_object('status','invalid_state'); end if;
-  update public.room_states set neutral_question=v_text where engagement_id=p_engagement;
+  -- The question has the screen to itself: a spotlight put up before it comes down with it.
+  update public.room_states set neutral_question=v_text,spotlight_id=null,spotlight_key=null where engagement_id=p_engagement;
   update private.signals set on_tv=(id=sg.id),neutral_question_sent_at=case when id=sg.id then t else neutral_question_sent_at end,ask_sent=case when id=sg.id then v_text else ask_sent end
    where engagement_id=p_engagement and (on_tv or id=sg.id);
  else
@@ -474,13 +465,13 @@ end $$;
 -- ---------- Grants ----------
 revoke all on function private.signal_phones_down(),private.signal_ask_guard(),private.signal_ask_cleared(),private.signal_input(uuid),private.signal_claim(uuid,uuid,text,jsonb),
  private.signal_neutral(text,text),private.signal_state(uuid,uuid),private.signal_act(uuid,uuid,uuid,text,jsonb),
- private.ai_claim_pre_signal(uuid,uuid,text,jsonb),private.ai_apply_pre_signal(uuid,uuid,jsonb,jsonb),private.ai_fail_pre_signal(uuid,uuid,text,jsonb),private.ai_status_pre_signal(uuid,uuid),
- private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),private.ai_status(uuid,uuid),
+ private.ai_claim_pre_signal(uuid,uuid,text,jsonb),private.ai_apply_pre_signal(uuid,uuid,jsonb,jsonb),private.ai_fail_pre_signal(uuid,uuid,text,jsonb),
+ private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),
  private.reset_practice_room_base5(),private.reset_practice_room(),private.rehearsal_control_pre_signal(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text),
  public.signal_state(uuid,uuid),public.signal_act(uuid,uuid,uuid,text,jsonb)
  from public,anon,authenticated;
 -- The control surface and the remote call these as the signed-in facilitator; the checks are inside.
-grant execute on function private.signal_state(uuid,uuid),private.signal_act(uuid,uuid,uuid,text,jsonb),private.ai_status(uuid,uuid),private.reset_practice_room(),private.rehearsal_control(uuid,uuid,text),
+grant execute on function private.signal_state(uuid,uuid),private.signal_act(uuid,uuid,uuid,text,jsonb),private.reset_practice_room(),private.rehearsal_control(uuid,uuid,text),
  public.signal_state(uuid,uuid),public.signal_act(uuid,uuid,uuid,text,jsonb) to authenticated;
 -- The worker's claim, apply and fail keep their grants (service role); the renamed earlier versions are for the new ones.
 grant execute on function private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),

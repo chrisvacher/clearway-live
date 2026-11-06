@@ -87,7 +87,9 @@ test("The scripted stand-in follows the rules: aligned, silent only with phones 
   const up = out(riverside.inputs);
   assert.equal(up.complete, true);
   const kinds = (o: typeof up) => o.cards.map(c => `${c.kind}:${c.theme}`).sort();
-  assert.ok(!kinds(up).includes("aligned:t1"), "the aligned card on t1 is already up");
+  assert.ok(kinds(up).includes("aligned:t1"), "new input on t1 raises its card again, which updates it in place");
+  const settled = out({ ...riverside.inputs, room: riverside.inputs.room.map(r => ({ ...r, new: false })) });
+  assert.ok(!kinds(settled).includes("aligned:t1"), "nothing new on t1 leaves its card alone");
   assert.ok(kinds(up).includes("silent:t4") && kinds(up).includes("thin:t3") && kinds(up).some(k => k.startsWith("divergent:")));
   const phonesUp = out({ ...riverside.inputs, phones_down: false });
   assert.ok(!phonesUp.cards.some(c => c.kind === "silent"), "silent only once phones are down");
