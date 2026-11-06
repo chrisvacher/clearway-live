@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { clockSample } from "@/lib/live/protocol";
 import { browserStore, PhoneOutbox } from "@/lib/phone/outbox";
 import type { OutboxEntry } from "@/lib/phone/types";
@@ -77,7 +77,8 @@ class FourPhone {
   }
   kick() { this.outbox.kick(); void this.load(); }
   private soon?: ReturnType<typeof setTimeout>;
-  refresh() { clearTimeout(this.soon); this.soon = setTimeout(() => void this.load(), 1500); }
+  // Throttled, not debounced: a busy room reads again about every 1.5 s at most, and a read already waiting is not stretched.
+  refresh() { if (this.soon) return; this.soon = setTimeout(() => { this.soon = undefined; void this.load(); }, 1500); }
 }
 
 const phones = new Map<string, FourPhone>();
@@ -95,5 +96,6 @@ export function useFourListsPhone(engagement: string | null, poll: string | null
   }, [four, poll]);
   const snap = useSyncExternalStore(four ? four.subscribe : never, () => four?.snap ?? idle, () => four?.snap ?? idle);
   const agrees = useMemo(() => agreeState(snap.agrees, snap.entries), [snap.agrees, snap.entries]);
-  return { ...snap, agrees, agree: (card: string, session: string) => four?.agree(card, session), reload: () => void four?.load(), refresh: () => four?.refresh() };
+  const agree = useCallback((card: string, session: string) => four?.agree(card, session), [four]), reload = useCallback(() => void four?.load(), [four]), refresh = useCallback(() => four?.refresh(), [four]);
+  return { ...snap, agrees, agree, reload, refresh };
 }

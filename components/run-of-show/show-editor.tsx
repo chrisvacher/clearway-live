@@ -373,7 +373,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true }: { initial
                   <span className={`rb-chip is-${s.state}`}><StateIcon aria-hidden="true" />{stateLabels[s.state] ?? s.state}</span>
                   <button type="button" className="rb-tog" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} options for ${s.title}`} onClick={toggle}><ChevronDown size={20} aria-hidden="true" /></button>
                 </div>
-                <div className="rb-opts"><div className="rb-clip">{mounted && <SessionForm key={s.id} variant="inline" session={snapshot(s)} fresh={false} context={ctx} others={sessions}
+                <div className="rb-opts"><div className="rb-clip">{mounted && <SessionForm key={s.id} variant="inline" session={snapshot(s)} fresh={false} context={ctx} others={sessions} fourLists={fourLists}
                   busy={saving === s.id} blocked={locked || !open} feedback={open ? formFeedback.text : ""} failed={formFeedback.failed}
                   revision={bases.current.get(s.id)?.revision} draft={drafts.current.get(s.id)} onDraft={(d, isDirty) => onDraft(s.id, d, isDirty)}
                   startNote={s.mode !== "live" ? "Self-paced: it opens and closes on phones at its own times and takes no room time." : s.id !== firstLive ? (timed && t?.at ? `Starts at ${hour.format(new Date(t.at))}, from the lengths before it.` : `Starts ${clock(t?.offset ?? 0)} into ${part}, from the lengths before it.`) : undefined}

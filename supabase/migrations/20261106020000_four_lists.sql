@@ -13,8 +13,8 @@
 --   private.ai_claim, ai_apply           candidates wrappers, renamed to _base4; four_lists is handled here, the rest delegate
 --   private.ai_fail                      lens_summary wrapper, renamed to _base3; also sends a failed fold back for another try
 --   private.ai_status, ai_control        lens_wall versions, renamed to _base; four_lists sessions are handled here
---   private.reset_practice_room          m4 acceptance fixes (20261104190000), renamed to _base; also clears the new tables
---   private.rehearsal_control            practice fixes 1 (20261105100000), renamed to _base; Clear test answers also clears the new tables
+--   private.reset_practice_room          step 1's version (20261106010000, Discover records), renamed to _base and wrapped; also clears the new tables
+--   private.rehearsal_control            step 1's version (20261106010000, Discover records), renamed to _base and wrapped; Clear test answers also clears the new tables
 --   private.ai_due                       ai_live (20261103110000) plus every open self-paced four_lists step
 --   private.part_order                   gains the Discover part, ahead of the Pre-call
 --   private.show_write, template_write   templates (20261103100000) and map templates (20261104180000), their text patched so
