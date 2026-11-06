@@ -388,7 +388,10 @@
   --cwl-sunrise: var(--cwl-guard-sunrise); --cwl-royal-deep: var(--cwl-guard-royal-deep);
   --cwl-callout: var(--cwl-sunrise); --cwl-bar-leader: var(--cwl-sunrise); --cwl-word-leader: var(--cwl-sunrise); --cwl-flag: var(--cwl-sunrise);
 }
-:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) :is([data-surface="tv"], [data-surface="phone"])[data-theme="dark"] {
+/* A dark TV or phone drawn inside a light area (control surfaces, or a light section of the
+   front page) takes the dark theme back. */
+:is([data-theme="light"]) :is([data-surface="tv"], [data-surface="phone"])[data-theme="dark"] { --cwl-word-leader: var(--cwl-sunrise); }
+:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"], [data-theme="light"]) :is([data-surface="tv"], [data-surface="phone"])[data-theme="dark"] {
   --cwl-surface: var(--cw-navy); --cwl-surface-card: var(--cw-off-white); --cwl-text: var(--cw-off-white); --cwl-text-muted: var(--cw-sky-blue);
   --cwl-border: var(--cwl-border-dark-ink); --cwl-border-strong: var(--cw-sky-blue); --cwl-presence: var(--cw-sky-blue); --cwl-scrim: var(--cwl-scrim-ink);
   --cwl-word-single: var(--cw-sky-blue); --cwl-word-repeated: var(--cw-off-white); --cwl-word-new: var(--cw-lime);

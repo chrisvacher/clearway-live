@@ -12,7 +12,8 @@ export function tokenMs(el: Element, name: string) {
   if (!value) return 0;
   return value.endsWith("ms") ? parseFloat(value) : parseFloat(value) * 1000;
 }
-const token = (el: Element, name: string) => getComputedStyle(el).getPropertyValue(`--${name}`).trim();
+// An easing token. A row removed mid-frame has no computed style, so it falls back to plain ease.
+const token = (el: Element, name: string) => getComputedStyle(el).getPropertyValue(`--${name}`).trim() || "ease";
 // The TV has its own setting; phones and mirrors follow the system setting.
 export function reducedMotion(el: Element) {
   const setting = el.closest("[data-motion]")?.getAttribute("data-motion");

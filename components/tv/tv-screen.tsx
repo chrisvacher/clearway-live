@@ -130,7 +130,7 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
       const before = boxes.current.get(name.dataset.nameKey!), after = name.getBoundingClientRect();
       if (before && duration && (before.left !== after.left || before.top !== after.top)) {
         name.getAnimations().forEach(animation => animation.cancel());
-        name.animate([{ transform: `translate(${(before.left - after.left) / scale}px,${(before.top - after.top) / scale}px)` }, { transform: "translate(0,0)" }], { duration, easing: style.getPropertyValue("--cwl-ease-signature").trim() });
+        name.animate([{ transform: `translate(${(before.left - after.left) / scale}px,${(before.top - after.top) / scale}px)` }, { transform: "translate(0,0)" }], { duration, easing: style.getPropertyValue("--cwl-ease-signature").trim() || "ease-in-out" });
       }
     });
     // The persistent shell has committed this version, and animation begins on
