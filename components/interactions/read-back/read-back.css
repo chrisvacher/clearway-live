@@ -10,14 +10,17 @@
 
 /* ---------- LensProgress: every item, settled ones marked ---------- */
 .rbk-head { flex: none; display: flex; align-items: center; }
-.rbk-progress { display: flex; flex-wrap: wrap; gap: 8px 14px; min-width: 0; margin: 0; padding: 0; list-style: none; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); }
-.rbk-chip { position: relative; display: inline-flex; align-items: center; gap: 0.4em; height: 1.7em; max-width: 9em; padding: 0 0.6em; border-radius: var(--cwl-radius-marker); overflow: hidden;
+/* One row, at the floor size of the type ramp whatever the room size: the strip is an index, the heading below names the item. A long
+   confirm (five lenses and up to five outcomes) used to wrap to two or three rows and take the height the answers need. The current
+   chip keeps its name; the others share what is left and shorten with an ellipsis. */
+.rbk-progress { display: flex; flex-wrap: nowrap; gap: 8px 10px; min-width: 0; width: 100%; margin: 0; padding: 0; list-style: none; font-size: 36px; font-weight: var(--fw-bold); overflow: hidden; }
+.rbk-chip { position: relative; display: inline-flex; flex: 0 1 auto; align-items: center; gap: 0.4em; height: 1.7em; min-width: 3.4em; max-width: 9em; padding: 0 0.6em; border-radius: var(--cwl-radius-marker); overflow: hidden;
   color: var(--cwl-text-muted); box-shadow: inset 0 0 0 2px var(--cwl-border);
   transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature), color var(--cwl-dur-settle-color) var(--cwl-ease-signature), box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
 .rbk-chip > :not(.rbk-sweep) { position: relative; z-index: 1; }
 .rbk-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rbk-ok { display: none; flex: none; }
-.rbk-chip.is-now { background: var(--cwl-text); color: var(--cwl-surface); box-shadow: none; }
+.rbk-chip.is-now { flex-shrink: 0; background: var(--cwl-text); color: var(--cwl-surface); box-shadow: none; }
 .rbk-chip.is-settled { color: var(--cwl-text); box-shadow: inset 0 0 0 2px var(--cwl-text); }
 .rbk-chip.is-settled .rbk-ok { display: inline-flex; }
 .rbk-sweep { position: absolute; inset: 0; background: var(--cwl-live); transform: scaleX(0); transform-origin: left center; z-index: 0; pointer-events: none; }
@@ -34,12 +37,16 @@
 .rbk-settled { font-size: var(--cwl-fs-tv-floor); }
 
 /* ---------- ReadBackTally: one colour for both bars, no leader ---------- */
-.rbk-tally { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; margin: 0; padding: 16px 20px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); }
+.rbk-tally { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; margin: 0; padding: 12px 20px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); }
 .rbk-bar-row { display: grid; grid-column: 1 / -1; grid-template-columns: subgrid; align-items: baseline; row-gap: 6px; }
 .rbk-bar-row dt { min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; }
-.rbk-bar-row dd { margin: 0; font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
+.rbk-bar-row dd { margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
 .rbk-bar { grid-column: 1 / -1; height: 0.4em; font-size: var(--cwl-fs-tv-floor); border-radius: var(--cwl-radius-marker); background: var(--cwl-bar-track); overflow: hidden; }
 .rbk-bar i { display: block; height: 100%; width: var(--rbk-w, 0%); background: var(--cwl-text-on-panel); border-radius: inherit; transition: width var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+/* The answers share the side column with the tally, so both are kept close: the column's height is what decides how many answers fit whole. */
+.rbk-tv .rbk-side { gap: 10px; }
+.rbk-tv .rbk-missing { gap: 8px; }
+.rbk-tv .rbk-missing .lsm-card { padding: 6px 18px; }
 .rbk-missing-h { flex: none; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); color: var(--cwl-text); }
 .rbk-missing { min-height: 0; }
 .rbk-clip { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }

@@ -5,7 +5,7 @@ import type { Draft, DraftBullet, DraftNote, OvernightState, SourceKind } from "
 import type { Api } from "./review";
 import { StatusChip } from "./chips";
 import { Photo } from "./photo";
-import { liveBullets, markOf } from "@/lib/overnight/policy";
+import { counted, liveBullets, markOf } from "@/lib/overnight/policy";
 
 type Ok = Extract<OvernightState, { status: "ok" }>;
 const kindIcon = { quote: Quote, decision: Gavel, tension: Zap, action: SquareCheck, question: CircleHelp, mitigation: ShieldCheck } as const;
@@ -98,7 +98,7 @@ export function OutcomeView({ state, draft, api, engagement, back }: { state: Ok
           return <div key={b.id} role="listitem" className={`ovr-bullet${b.id === selected?.id ? " is-selected" : ""}${b.flag ? " is-unsourced" : ""}`}>
             <button type="button" className="ovr-bullet-main" aria-pressed={b.id === selected?.id} onClick={() => { setSel(b.id); setTab("sources"); }} data-testid="ovn-bullet">
               <span className="txt">{b.text}</span>
-              <span className={`ovr-mark${m.kind === "room" ? " is-room" : m.kind === "none" ? " is-none" : ""}`} title={m.kind === "none" ? "No source" : m.kind === "room" ? "The room’s own words" : `${m.n} sources`} data-testid="ovn-mark">
+              <span className={`ovr-mark${m.kind === "room" ? " is-room" : m.kind === "none" ? " is-none" : ""}`} title={m.kind === "none" ? "No source" : m.kind === "room" ? "The room’s own words" : counted(m.n, "source")} data-testid="ovn-mark">
                 {m.kind === "none" ? <TriangleAlert aria-label="No source" /> : <>{m.kind === "room" && <Quote aria-label="The room’s own words" />}{m.n}</>}</span></button>
             {edit?.id === b.id && <div className="ovr-edit"><textarea className="ovr-input" aria-label={`Edit bullet ${i + 1}`} value={edit.text} maxLength={280} rows={2} autoFocus onChange={e => setEdit({ id: b.id, text: e.target.value })} />
               <div className="ovr-row"><span className="ovr-muted">{280 - edit.text.length} left</span><span className="grow" /><button type="button" className="ovr-btn is-primary is-sm" disabled={!edit.text.trim() || api.busy} onClick={() => void save()}>Save the bullet</button><button type="button" className="ovr-btn is-sm" onClick={stopEdit}>Cancel</button></div></div>}

@@ -72,6 +72,10 @@ Four new tables, each under forced row-level security and reachable only through
 - `tests/unit/candidates.test.ts` with `tests/fixtures/ai/candidates.json` (a Riverside draft): the prompt, the parse and the scripted stand-in.
 - `npm run test:candidates`: a paired TV and 50 simulated phones. A failed AI draft first, then a good one; renames, merges and new candidates from phones; accepts; 100 points with the one-second rule (95 in 100); nothing jumps, blanks or redraws; accepted renames stay in place; marking against the counts. Screenshots go to `KIT_SHOTS`.
 
+## After a reset
+
+Reset practice room puts every board away. A candidates step that goes live again starts a new board at the review phase (`private.candidate_board` revives a put-away board with no phase, cut line, draft, mark or decision), so a step marked in an earlier run is not found stuck in `marked`. Before November 6 the board came back as it was left.
+
 ## Known limits
 
 - Clear test answers (the rehearsal control) does not clear candidate suggestions. The practice reset does.

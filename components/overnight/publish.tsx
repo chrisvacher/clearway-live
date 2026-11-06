@@ -3,7 +3,7 @@ import { useState } from "react";
 import { BadgeCheck, Check, TriangleAlert, Undo2 } from "lucide-react";
 import type { OvernightState } from "./types";
 import type { Api } from "./review";
-import { clock, liveBullets } from "@/lib/overnight/policy";
+import { clock, counted, liveBullets } from "@/lib/overnight/policy";
 
 type Ok = Extract<OvernightState, { status: "ok" }>;
 
@@ -22,7 +22,7 @@ export function PublishView({ state, api, zone, blockers, ready, back }: { state
     <div className="ovr-preview"><span className="ovr-eyebrow">Checklist</span>
       <div className="ovr-check-list" data-testid="ovn-checklist">
         {row(check.drafting ? "todo" : "ok", check.drafting ? "The draft is still being written" : round.status === "failed" ? "The draft didn’t finish; the outcomes are written by hand" : round.status === "ai_off" ? "AI is off; the outcomes are written by hand" : "Drafts are ready")}
-        {row(check.reviewed === check.total && check.total > 0 ? "ok" : "todo", `${check.reviewed} of ${check.total} outcomes reviewed`, check.unreviewed.length ? check.unreviewed.join(", ") : `${bullets} ${bullets === 1 ? "bullet" : "bullets"}, every one with a source`)}
+        {row(check.reviewed === check.total && check.total > 0 ? "ok" : "todo", `${check.reviewed} of ${check.total} outcomes reviewed`, check.unreviewed.length ? check.unreviewed.join(", ") : `${counted(bullets, "bullet")}, every one with a source`)}
         {row(check.editing.length ? "todo" : "ok", check.editing.length ? "Someone is still editing" : "No one is editing", check.editing.map(e => `${e.by} in ${e.name}`).join(", "))}
         {check.thin.map(t => row(t.acknowledged ? "ok" : "flag", t.acknowledged ? `${t.name} shows as thin in the morning` : `Flag not acknowledged: ${t.name} has no bullets`,
           t.acknowledged ? undefined : <label className="ovr-check"><input type="checkbox" onChange={e => { const o = state.outcomes.find(x => x.name === t.name); if (o) void api.act({ action: "ack_thin", outcome: o.id, value: e.target.checked }); }} />Show it in the morning as thin</label>))}

@@ -49,8 +49,14 @@ export const dropOptions: Partial<Record<InteractionKind, Record<string, unknown
   sign: {},
   intent: { assign: "remote" },
   candidates: { ai: true, cut: 5 },
+  read_back: { ai: true },
 };
-const limits: Partial<Record<InteractionKind, [number, number, number]>> = { wall: [3, 280, 50], qa: [10, 200, 50], four_lists: [12, 140, 30] };
+// A step that asks one fixed question starts with it, as the Wayfinding template's step does (the TV shows the session's prompt under
+// the heading, and without one the title in capitals). Every other kind starts with no prompt for the facilitator to write.
+export const dropPrompts: Partial<Record<InteractionKind, string>> = { read_back: "Did we hear you right?" };
+// The read-back's 60 sends and 280 characters are the template step's: one Yes or change per item and several "What's missing?" answers
+// for each of up to ten items must never run into the limit.
+const limits: Partial<Record<InteractionKind, [number, number, number]>> = { wall: [3, 280, 50], qa: [10, 200, 50], four_lists: [12, 140, 30], read_back: [60, 280, 50] };
 // Content screens that need their words before they can run start as drafts.
 const readyScreens: ContentScreen[] = ["prayer", "holding", "screen_check"];
 
@@ -71,7 +77,7 @@ export function droppedSession(entry: PaletteEntry, engagement: string, part: Pa
   const selfPaced = mode === "self_paced" && canSelfPace(entry), window = selfPaced ? defaultWindow(now) : { opens_at: null, closes_at: null };
   return {
     id, engagement_id: engagement, title: entry.label, part, position: 0, planned_start: null, planned_minutes: entry.minutes, mode: selfPaced ? "self_paced" : "live", ...window,
-    interaction: entry.kind, prompt: "", phone_depth: "", notes: "", lands_in: "", segment: "", revision: 0,
+    interaction: entry.kind, prompt: dropPrompts[entry.kind] ?? "", phone_depth: "", notes: "", lands_in: "", segment: "", revision: 0,
     state: !selfPaced && entry.screen && readyScreens.includes(entry.screen) ? "ready" : "draft", max_sends, max_characters, max_words,
     settings: { anonymous: info?.named !== "always", burst_minutes: 4, join_strip: false },
     options: entry.kind === "content" ? { screen: entry.screen ?? "headline" } : { ...(dropOptions[entry.kind] ?? {}) },

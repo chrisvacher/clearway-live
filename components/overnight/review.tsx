@@ -7,7 +7,7 @@ import { useOvernight } from "./use-overnight";
 import { OutcomeView } from "./outcome";
 import { StatusChip } from "./chips";
 import { PublishView } from "./publish";
-import { blockers, clock, minutesBetween } from "@/lib/overnight/policy";
+import { blockers, clock, counted, minutesBetween } from "@/lib/overnight/policy";
 import { Photo } from "./photo";
 import "./overnight.css";
 
@@ -47,23 +47,23 @@ function Overview({ state, api, zone, engagement, open }: { state: Ok; api: Api;
   const hand = state.outcomes.filter(o => o.tidy === "by_hand").length;
   return <>
     {running && <div className="ovr-progress" data-testid="ovn-progress"><div className="row"><span><b>Tidying</b> · started when Day 1 closed at {clock(r.day_closed_at, zone)}</span>
-      <span className="ovr-muted">{mins} {mins === 1 ? "minute" : "minutes"} so far · usually under 30</span></div>
+      <span className="ovr-muted">{counted(mins, "minute")} so far · usually under 30</span></div>
       <progress className="ovr-bar" value={tidied} max={Math.max(total, 1)} aria-label="Progress" />
-      <div className="row"><span className="ovr-muted">{tidied} of {total} outcomes tidied. Working from {r.inputs.bullets ?? 0} bullets, {r.inputs.cards ?? 0} scribe cards and {r.inputs.photos ?? 0} easel photos.</span>
+      <div className="row"><span className="ovr-muted">{tidied} of {total} outcomes tidied. Working from {counted(r.inputs.bullets ?? 0, "bullet")}, {counted(r.inputs.cards ?? 0, "scribe card")} and {counted(r.inputs.photos ?? 0, "easel photo")}.</span>
         <button type="button" className="ovr-btn is-sm" disabled={api.busy} onClick={() => void api.act({ action: "by_hand" })}>Write it by hand instead</button></div></div>}
     {running && r.attempts > 0 && <div className="ovr-banner is-warning" role="status" data-testid="ovn-retry"><TriangleAlert aria-hidden="true" /><div><strong>The draft hit a problem and is trying again.</strong> You don’t have to wait: write the outcomes by hand from the room’s bullets and the scribe’s cards.</div></div>}
     {running && mins >= 30 && <div className="ovr-banner is-warning" role="status" data-testid="ovn-slow"><TriangleAlert aria-hidden="true" /><div><strong>The draft is taking longer than 30 minutes.</strong> Write the outcomes by hand if you want to start now. A late draft will not overwrite what you write.</div></div>}
     {r.status === "failed" && <div className="ovr-banner is-warning" role="alert" data-testid="ovn-failed"><TriangleAlert aria-hidden="true" /><div><strong>{hand > 0 || r.error ? "The draft didn’t finish, so the outcomes are yours to write." : "The draft didn’t finish."}</strong> Write each outcome from the room’s bullets and the scribe’s cards, with a source for every line.
       <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy} onClick={() => void api.act({ action: "start" })}><Undo2 aria-hidden="true" />Try the draft again</button></div></div></div>}
     {r.status === "ai_off" && <div className="ovr-banner" role="status" data-testid="ovn-ai-off"><CircleAlert aria-hidden="true" /><div><strong>AI is off for this engagement.</strong> There is no tidy draft. Write each outcome from the room’s own bullets and the scribe’s cards.</div></div>}
-    {(r.status === "ready" || r.status === "failed" || r.status === "ai_off") && <div className="ovr-progress"><div className="row"><span><b>{reviewed} of {total} reviewed</b>{r.ready_at ? ` · drafts ready at ${clock(r.ready_at, zone)}, ${mins} minutes after Day 1 closed` : ""}</span>
+    {(r.status === "ready" || r.status === "failed" || r.status === "ai_off") && <div className="ovr-progress"><div className="row"><span><b>{reviewed} of {total} reviewed</b>{r.ready_at ? ` · drafts ready at ${clock(r.ready_at, zone)}, ${counted(mins, "minute")} after Day 1 closed` : ""}</span>
       <span className="ovr-muted">About 45 minutes to review</span></div><progress className="ovr-bar" value={reviewed} max={Math.max(total, 1)} aria-label="Progress" /></div>}
     {thin.length > 0 && <div className="ovr-banner is-warning" role="status" data-testid="ovn-thin"><TriangleAlert aria-hidden="true" /><div><strong>{thin.length === 1 ? "1 outcome has no bullets." : `${thin.length} outcomes have no bullets.`}</strong> Acknowledge each one before publishing; it then shows as thin on Day 2. The draft never invents bullets.</div></div>}
     <Unreadable state={state} api={api} engagement={engagement} />
     <div className="ovr-list" data-testid="ovn-list"><div className="ovr-list-h"><span>Provisional Vision Outcomes and the 3-year Vision first pass</span><span>{r.published_at ? `Published ${clock(r.published_at, zone)}` : r.status === "ready" ? `Ready ${clock(r.ready_at, zone)}` : running ? `Started ${clock(r.day_closed_at, zone)}` : ""}</span></div>
       {state.outcomes.map(o => <button type="button" key={o.id} className="ovr-row-btn" onClick={() => open(o.id)} data-testid="ovn-row">
         <span className="ic"><ListChecks aria-hidden="true" /></span>
-        <span className="t"><b>{o.name}</b><span>{o.tidy === "waiting" ? "Tidying from Day 1" : `${o.bullets.filter(b => !b.removed).length} ${o.bullets.filter(b => !b.removed).length === 1 ? "bullet" : "bullets"}${o.voices.length ? ` · ${o.voices.length} ${o.voices.length === 1 ? "voice" : "voices"} not to lose` : ""}${o.tensions.length ? ` · ${o.tensions.length} ${o.tensions.length === 1 ? "tension" : "tensions"}` : ""}`}</span></span>
+        <span className="t"><b>{o.name}</b><span>{o.tidy === "waiting" ? "Tidying from Day 1" : `${counted(o.bullets.filter(b => !b.removed).length, "bullet")}${o.voices.length ? ` · ${counted(o.voices.length, "voice")} not to lose` : ""}${o.tensions.length ? ` · ${counted(o.tensions.length, "tension")}` : ""}`}</span></span>
         <StatusChip draft={o} /></button>)}
       <div className="ovr-row-btn is-static"><span className="ic"><Telescope aria-hidden="true" /></span><span className="t"><b>10-year Future, five lenses</b><span>Decided by the room on Day 1. Not redrafted overnight</span></span>
         <span className="ovr-st is-reviewed"><BadgeCheck aria-hidden="true" />Signed off on Day 1</span></div></div>
