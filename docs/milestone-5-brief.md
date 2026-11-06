@@ -120,3 +120,7 @@ Tests from the acceptance criteria; `npm run check`; `supabase db lint --local -
 ## Questions for Chris
 
 None open for step 1. The Defaults above are flagged for confirmation.
+
+## Step 3b: promoting a scribe quote to the TV
+
+Built apart from the read-back (step 3a) on its own branch. A facilitator promotes a quote card from the scribe feed on FAC-01 and the TV shows its words anonymously (PromotedQuote: pass 3's spotlight with the Scripture screen's light and bold treatment) over the live step, which keeps running and taking answers underneath. Take down returns the TV to the step exactly as it is. The state lives on the card, so Reset practice room clears it without a change to that function, and it rides the room state and version like every other screen. The Defaults chosen (phones stay on the live step, the words go as written, the remote can take it down, the quote comes down when the live step changes) and the behaviour are in `scribe-console.md` ("Promoting a quote to the TV"). This settles the step 1 Default "Promote a quote to the TV: not in step 1".

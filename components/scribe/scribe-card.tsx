@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Calendar, Camera, Check, CircleHelp, FileText, FolderInput, Gavel, Link2, Lock, MessageSquareText, Paperclip, Pencil, Quote, RefreshCw, ShieldCheck, SquareCheck, User, WifiOff, X, Zap } from "lucide-react";
+import { Calendar, Camera, Check, CircleHelp, FileText, FolderInput, Gavel, Link2, Lock, MessageSquareText, MonitorOff, Paperclip, Pencil, Quote, RefreshCw, ShieldCheck, SquareCheck, Tv, User, WifiOff, X, Zap } from "lucide-react";
 import type { CardKind, ScribeSession } from "@/lib/scribe/types";
 import { cleanDetail, kindInfo, canCapture, type ShownCard, type ShownFile } from "@/lib/scribe/policy";
 import "./scribe.css";
@@ -30,11 +30,13 @@ type CardProps = {
   card?: ShownCard; file?: ShownFile; engagement: string; surface: CardSurface; sessions?: ScribeSession[]; sessionTitle?: string; isNew?: boolean;
   onEdit?: (card: ShownCard, next: { text: string; detail: ReturnType<typeof cleanDetail>; speaker: string }) => void;
   onRefile?: (id: string, session: string) => void;
+  // The feed's Promote to TV on a quote: on the TV now, why it can't be pressed (plain words), and the two presses.
+  promote?: { on: boolean; block: string | null; busy: boolean; error: string; onPromote: () => void; onTakeDown: () => void };
 };
 
 // ScribeCard: one capture. An icon and a word tell the kinds apart. The speaker is kept for the record
 // and is never shown here: the card says only that one was kept, on the scribe's own console.
-export function ScribeCard({ card, file, engagement, surface, sessions = [], sessionTitle, isNew, onEdit, onRefile }: CardProps) {
+export function ScribeCard({ card, file, engagement, surface, sessions = [], sessionTitle, isNew, onEdit, onRefile, promote }: CardProps) {
   const [mode, setMode] = useState<"view" | "edit" | "refile">("view");
   const [text, setText] = useState(card?.text ?? "");
   const [target, setTarget] = useState("");
@@ -55,13 +57,14 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
   }
   const editable = surface === "console" && card && !card.pending && state !== "queued";
   const meta = `${time(item.captured_at)}${sessionTitle && surface !== "console" ? ` · ${sessionTitle}` : ""}`;
-  return <article className={`scr-card is-${kind}${state === "queued" ? " is-queued" : ""}${state === "failed" ? " is-failed" : ""}${isNew ? " is-new" : ""}`} aria-label={kind === "photo" ? "Photo" : kind === "file" ? "File" : kindInfo[kind].label} data-state={state}>
+  return <article className={`scr-card is-${kind}${promote?.on ? " is-promoted" : ""}${state === "queued" ? " is-queued" : ""}${state === "failed" ? " is-failed" : ""}${isNew ? " is-new" : ""}`} aria-label={kind === "photo" ? "Photo" : kind === "file" ? "File" : kindInfo[kind].label} data-state={state}>
     <div className="scr-top">
       {item.order ? <span className="scr-order" aria-label={`Sends number ${item.order}`}>{item.order}</span> : null}
       <KindChip kind={kind} />
       <span className="scr-meta">{meta}</span>
       <span className="scr-state">
         {item.refiled ? <span className="scr-refiled"><FolderInput className="scr-icon" aria-hidden="true" />Re-filed</span> : null}
+        {promote?.on ? <span className="scr-chip is-on-tv"><Tv className="scr-icon" aria-hidden="true" />On the TV</span> : null}
         {surface !== "feed" ? <StateChip state={state} device={device} /> : <StateChip state={state} device={device} show="waiting" />}
       </span>
       {surface === "console" && (card || file) && state !== "failed" && mode === "view" ? <span className="scr-acts">
@@ -85,6 +88,13 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
       ? <a href={fileUrl(engagement, file.id, surface === "feed" ? "control" : "scribe")} download={file.name}>{file.name}</a> : <span className="scr-trunc">{file.name}</span>}<small>{fileSize(file.bytes)}</small></div> : null}
     {facts.length ? <div className="scr-facts">{facts.map((f, i) => <span key={i}>{f}</span>)}</div> : null}
     {item.reason ? <div className="scr-err" role="alert">{item.reason}</div> : null}
+    {promote && card?.kind === "quote" ? <div className="scr-promote">
+      {promote.on
+        ? <button type="button" className="scr-btn is-sm" disabled={promote.busy} onClick={promote.onTakeDown}><MonitorOff className="scr-icon" aria-hidden="true" />Take off the TV</button>
+        : <button type="button" className="scr-btn is-sm is-primary" disabled={promote.busy || Boolean(promote.block)} aria-describedby={promote.block ? `why-${card.id}` : undefined} onClick={promote.onPromote}><Tv className="scr-icon" aria-hidden="true" />Promote to TV</button>}
+      {!promote.on && promote.block ? <span id={`why-${card.id}`} className="scr-promote-why">{promote.block}</span> : null}
+      {promote.error ? <span className="scr-err" role="alert">{promote.error}</span> : null}
+    </div> : null}
     {mode === "refile" ? <div className="scr-refile">
       <select aria-label="Re-file to" value={target} onChange={e => setTarget(e.target.value)}><option value="">Pick a session</option>
         {sessions.filter(s => s.id !== item.session_id && !s.team_led).map(s => <option key={s.id} value={s.id}>{s.title}</option>)}</select>

@@ -10,7 +10,9 @@ export type LiveState = { engagement_id: string; live_session_id: string | null;
 export type LiveResults = { total: number; people: number; words: { key: string; text: string; count: number; size: number; level: string; order?: number }[]; [key: string]: unknown };
 export type LiveAnswer = { id: string; session_id: string; text: string; answers: { text: string; key: string }[]; value?: unknown; revision: number; created_at?: string };
 export type LivePatch = LiveAnswer & { withdrawn?: boolean; hidden?: boolean; replaced?: string[] };
-export type LiveEvent = { display?: TvAppearance; presence?: TvPresence; state: LiveState; session: LiveSession | null; answer?: LivePatch | null; qa?: QaPublic | null };
+// A scribe quote a facilitator put on the TV: the words and the live step's name. Never an id, a speaker or the scribe.
+export type PromotedQuote = { text: string; session: string };
+export type LiveEvent = { display?: TvAppearance; presence?: TvPresence; state: LiveState; session: LiveSession | null; answer?: LivePatch | null; qa?: QaPublic | null; promoted_quote?: PromotedQuote | null };
 export type LiveSnapshot = LiveEvent & { status: "ok"; role: "participant" | "facilitator" | "tv"; topic: string; version: number; answers: LiveAnswer[]; next: string | null; phone_depth: string | null; server_time: string };
 export type LiveTransport = { url: string; key: string; token: string };
 export type LiveRead = LiveSnapshot & { connection?: LiveTransport };

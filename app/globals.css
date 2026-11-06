@@ -355,6 +355,16 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 [data-motion="reduced"] .tv-layer, [data-motion="reduced"] .tv-scrim, [data-motion="reduced"] .tv-spot, [data-motion="reduced"] .tv-note, [data-motion="reduced"] .tv-texture span { transition-duration: var(--cwl-dur-reduced); }
 [data-motion="reduced"] .tv-word, [data-motion="reduced"] .tv-live, [data-motion="reduced"] .tv-feed-row::before { transition-duration: 0ms; }
 [data-motion="reduced"] .tv-spot { transform: translate(-50%,-50%); }
+/* PromotedQuote (FAC-01, pass 5): a scribe quote in the spotlight, anonymous, light with its second half bold.
+   The size is the headline size for the room, then shrinks to fit (components/tv/promoted-quote.tsx), never clips. */
+.pq-layers { display: contents; }
+.pq-spot.is-wide { width: 1720px; padding: 56px 64px; }
+.pq-spot.is-swap { transition-duration: var(--cwl-dur-spotlight-on); } /* a quote crossfading out takes as long as the next fades in, so one is always in view */
+[data-motion="reduced"] .pq-spot.is-swap { transition-duration: var(--cwl-dur-reduced); }
+.pq-text { font-size: calc(64px * var(--cwl-room-scale)); font-weight: var(--fw-light); line-height: 1.2; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+.pq-text strong { font-weight: var(--fw-bold); }
+.pq-spot.is-columns .pq-text { column-count: 2; column-gap: 56px; }
+.pq-spot .pq-session { font-weight: var(--fw-semibold); opacity: 0.8; }
 
 /* FAC-01 and FAC-03: the live room's control surface and remote (approved pass 2).
    All colors and type come from Clearway Live tokens. */

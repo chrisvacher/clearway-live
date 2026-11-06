@@ -10,6 +10,7 @@ import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 import { HandoverPanel } from "@/components/interactions/intent/handover";
 import { AiRemote } from "@/components/interactions/ai/ai-panel";
 import { OvernightCard } from "@/components/overnight/overnight-card";
+import { QuoteOnTv } from "./quote-on-tv";
 
 // FAC-03: the live controls in the facilitator's hand. It holds its own
 // connection and needs nothing from the laptop.
@@ -32,6 +33,7 @@ export function Remote({ initial }: { initial: RunOfShow }) {
       <section className="ctl-private" aria-label="Up next, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Up next</span></div>
         <div className="ctl-private-body">{upNext ? <><p className="ctl-label">{upNext.title}</p><p className="ctl-notes">{upNext.notes || "No presenter notes."}</p>
           <button className="show-button is-small" onClick={() => setSheet("preview")}>Preview</button></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
+      <QuoteOnTv room={room} />
       <LiveControls room={room} variant="remote" onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
       <AiRemote room={room} />
       <section className="ctl-private" aria-label="Overnight review, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Overnight review</span></div>

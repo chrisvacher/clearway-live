@@ -45,6 +45,7 @@
     "test:lens-summary": "node --import tsx tests/browser/lens-summary.ts",
     "test:candidates": "node --import tsx tests/browser/candidates.ts",
     "test:scribe": "node --import tsx tests/browser/scribe.ts",
+    "test:promoted-quote": "node --import tsx tests/browser/promoted-quote.ts",
     "test:overnight": "node --import tsx tests/browser/overnight.ts",
     "test:acceptance-live": "node --import tsx tests/browser/acceptance-live.ts",
     "test:premortem-goals": "node --import tsx tests/browser/premortem-goals.ts",

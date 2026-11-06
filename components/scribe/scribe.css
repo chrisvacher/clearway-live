@@ -76,6 +76,10 @@ textarea.scr-input { min-height: 84px; resize: none; }
 .scr-card { position: relative; background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .scr-card.is-new { box-shadow: 0 0 0 2px var(--cwl-app-focus); animation: scr-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
 @keyframes scr-arrive { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+.scr-card.is-promoted { box-shadow: inset 4px 0 0 var(--cwl-app-primary); }
+.scr-chip.is-on-tv { border-color: var(--cwl-app-primary); }
+.scr-promote { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.scr-promote-why { font-size: var(--cwl-fs-app-micro); font-weight: 600; color: var(--cwl-app-text-muted); }
 .scr-card.is-queued { border-style: dashed; border-color: var(--cwl-app-border-strong); }
 .scr-card.is-failed { border-color: var(--cwl-app-error); }
 .scr-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
