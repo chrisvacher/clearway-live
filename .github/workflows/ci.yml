@@ -288,6 +288,19 @@ jobs:
           path: signal-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test milestone 6 acceptance (Four Helpful Lists with 50 simulated phones, Discover, What We Heard, the alignment signal and the neutral question, frame sampling)
+        if: ${{ !cancelled() }}
+        run: mkdir -p acceptance-m6-shots && npm run test:acceptance-m6
+        env:
+          KIT_SHOTS: acceptance-m6-shots
+      - name: Upload the milestone 6 acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-m6-screens
+          path: acceptance-m6-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

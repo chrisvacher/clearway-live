@@ -11,6 +11,7 @@ import { db, engagement, facilitator, localEnv, mailbox, pairTv, press, startApp
 // Imported first: it points the app's AI worker at the scripted fake model before the app starts.
 import { milestone3Failures } from "./failures-m3";
 import { milestone4Failures } from "./failures-m4";
+import { milestone6Failures } from "./failures-m6";
 
 async function main() {
 const env = localEnv(), sql = db(env), mail = await mailbox();
@@ -190,6 +191,8 @@ try {
   await milestone3Failures({ env, sql, mail, app, browser, step, shot });
   await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
   await milestone4Failures({ env, sql, mail, app, browser, step, shot });
+  await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
+  await milestone6Failures({ env, sql, mail, app, browser, step, shot });
 
   console.log(`Browser failure kit: ${passed.length} checks passed.\n${passed.map(p => `  ${p}`).join("\n")}\nLocal checks on loopback; venue acceptance is the practice-room script.`);
 } catch (error) {
