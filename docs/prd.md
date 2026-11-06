@@ -19,7 +19,7 @@ The Clearway app is Clearway's live facilitation platform. It is built first for
 | The church's team in the room | Their own phones, usually about 8 people |
 | A team member who takes the remote | Their own phone, for the team-led block |
 | Elders and boards | A read-only copy of the plan |
-| The congregation | Team Hub's open survey link during Discover, before the event |
+| The congregation | Team Hub's survey during Discover, before the event. The congregation doesn't use this app |
 
 **What success looks like**
 
@@ -145,8 +145,8 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 - Its own repository, its own database and its own domain, connected to Team Hub. The domain is live.clearway.co, following team.clearway.co and core.clearway.co, and clearway.co/live redirects to it. Room links and QR codes use live.clearway.co directly. The app reads Team Hub through Supabase, from its server. (Oct 29)
 - The stack matches CORE as closely as possible. (Oct 29)
 - Data is organized around the engagement, not the retreat: church, then engagement, then Discover inputs, then sessions, then outputs. (Oct 28)
-- Survey results, the Four Helpful Lists and board input conversations all live inside the platform. (Oct 28)
-- The Discover congregational survey uses Team Hub's survey builder, and surveys go to the congregation before the event. The app shows the survey data sourced from Team Hub and doesn't run real-time surveys. In-room polls and rankings are the app's own interactions. (Nov 3, for milestone 6)
+- The Four Helpful Lists and board input conversations live inside the platform. Survey results stay in Team Hub. (Oct 28, changed Nov 5)
+- The Discover congregational survey is built in Team Hub's survey builder and goes to the congregation before the event. Clearway runs its data report in Team Hub ahead of Wayfinding. The app doesn't read the survey. Its only polls are quick polls from participants in the room. (Nov 3, changed Nov 5)
 - Scope: Wayfinding first, and the app effectively covers anything Clearway uses Mentimeter for. The longer-term vision is one platform for all of Clearway's facilitation. (Oct 28 and 29)
 - The goal is a working app, not readiness for a particular engagement or date. Chris decides open choices, and Claude presents options rather than deciding them. (Oct 29)
 - Claude builds the concept and direction (this PRD), Claude Design creates the wireframes and high-fidelity designs, and Codex codes the app. (Oct 29)
@@ -279,7 +279,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Team facilitator | A participant the facilitator hands the remote to, for one block | Run that block's TV and phone controls | See the alignment signal, presenter notes, Discover data or other blocks |
 | TV | A pairing code shown on the TV and entered on the control surface | Show the room | Anything else. It holds no personal data beyond what's on screen |
 | Elders and board | A shared read-only link the facilitator creates and can revoke | View the plan from the engagement | Edit, or see raw answers, scribe cards or drafts |
-| Congregation | Team Hub's open survey link, no sign-in (Decided November 3: the survey runs in Team Hub) | Answer the Discover survey anonymously, before the event | Anything in this app |
+| Congregation | Team Hub's open survey link, no sign-in (Decided November 3: the survey runs in Team Hub. November 5: the app doesn't read it) | Answer the Discover survey anonymously, before the event | Anything in this app |
 
 **Sign-in** (Decided: email sign-in checked against the attendee list. The code and these mechanics are Default.)
 
@@ -321,7 +321,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Phone | Each person's own phone | In hand | Input and depth: prompts, full text, sources, their own answers |
 | Scribe console | The scribe's laptop, plus their phone for photos | The side table | Tagged capture that attaches to the live session |
 | Setup | A laptop | Before and after | Engagements, attendees, Discover, run of show, templates, overnight review, outputs |
-| Survey | Any phone or computer | Anywhere | The congregational survey, in Team Hub's survey builder (Decided November 3). The app shows its results and doesn't host the survey |
+| Survey | Any phone or computer | Anywhere | The congregational survey, in Team Hub's survey builder (Decided November 3). The app doesn't host or read it (Decided November 5) |
 | Read-only copy | Any browser | Elders' meetings | The plan and how its goals stand |
 
 **The control surface and the TV are separate** (Decided, Oct 29)
@@ -671,7 +671,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | Output | Lands in |
 | --- | --- |
 | Who took part, celebrations, discernment notes, how the room decided | The Process |
-| Survey, Four Helpful Lists, board and staff input themes | What We Heard |
+| Survey report findings (added by the facilitator), Four Helpful Lists, board and staff input themes | What We Heard |
 | Interview themes | Leadership Interviews |
 | Scribe tensions, challenged outcomes | Strategic Tensions |
 | Lens sentences and the confirmed read-back | The 10-year Future (Map page 1) |
@@ -852,7 +852,7 @@ Claude does the AI work. It speeds the room up and never stands in its way.
 | Merge duplicate pre-mortem reasons | Live | Reasons as they arrive | Merged dots | Directly, with undo | 4 |
 | Summarize an open text wall | Live, on request | The wall's answers | A short read of the room | Only after the facilitator taps Show summary | 3 |
 | Propose candidate priorities | Live, on request | All Five Lenses | 6 to 10 candidates with their sources | Control surface first, then the facilitator sends them | 4 |
-| Discover themes | As input arrives | Survey answers, Four Helpful Lists cards, interview and input-conversation notes | Themes with counts and sources | Never directly. The facilitator accepts each theme | 6 |
+| Discover themes | As input arrives | Four Helpful Lists cards, interview and input-conversation notes | Themes with counts and sources | Never directly. The facilitator accepts each theme | 6 |
 | Alignment signal | Live | Accepted Discover themes and the session's input | Private signal cards | Never | 6 |
 | Overnight drafts | Overnight | Lens input, scribe cards, easel photos | Present-tense paragraphs per lens with source links, tidied outcomes, flags | After review and publishing | 5 |
 | Fold read-back corrections | Live, Day 2 | Agreed corrections | Tracked changes | After the facilitator accepts each | 5 |
@@ -874,14 +874,13 @@ Claude does the AI work. It speeds the room up and never stands in its way.
   - **"How we use AI"**, a page on phones, reachable without signing in, linked from the room sign-in and the invite email: "Clearway uses Claude, an AI model made by Anthropic, to help your team see what it's saying while the conversation is happening, and to help us prepare drafts afterward." / "During the sessions, Claude groups similar answers, combines answers that say the same thing, brings matching questions together and suggests short labels. Anything it groups or writes is marked as AI on the screen, and your facilitator can undo it, rename it or turn it off. Your answers always reach the screen first, so the room keeps working even if AI is slow." / "Between and after the sessions, Claude helps us draft summaries, the read-back and the report from your team's own words. Each drafted sentence links back to what was said, and Clearway reviews every draft before your team sees it." / "AI never makes a decision. Your team decides together." / "Claude never receives your name, email or role. It does receive your answers and any easel photos as written, so if you name someone in an answer, that name goes with it. Anthropic doesn't train its models on what we send." Its last line is the icon credit (below).
   - **Room sign-in**, under the sign-in button, when the engagement has AI on (the last three words link to the page): "We use AI to group similar answers and help draft summaries. It never receives your name or email, and anything it produces is marked as AI. How we use AI"
   - **Invite email**, one paragraph, when the engagement has AI on: "We'll use AI in the room. Claude, an AI model from Anthropic, groups similar answers and helps us draft summaries. It never receives your name or email, everything it produces is marked as AI, and Clearway reviews every draft before your team sees it. You can read more when you sign in."
-  - **Survey intro** (milestone 6): "Your answers are anonymous. We use AI to find common themes across everyone's answers, and Clearway reviews each theme before it's used."
   - "Use AI in live sessions" is on by default for new engagements.
 - How AI is marked (Decided by Chris, November 3: gradient ink with a sweep). One icon, "Generative" by LAFS, marks anything AI grouped, combined, folded, drafted or summarized, with what AI did beside it in plain words (Grouped, Combined, Drafted). There is no badge behind it: the icon itself carries a gradient, chosen by the ground it sits on. On dark screens it runs from Sky to Soft Lime. On light grounds (cards on the TV wall, phone answer cards, the light TV theme, the control surface, setup, the scribe console and overnight review) it runs from Royal to Bright Chartreuse (#A6C800), a live-only colour used only for this icon. When AI acts, a light passes through the icon once (900 ms, on the calm ease), timed with the regroup or combine. It never loops and never runs on an ordinary redraw, and with reduced motion it doesn't run. Inside buttons and on coloured fills the icon is plain, in the label's colour. The AI summary keeps its Sky to Soft Lime header band with Navy text on every theme. The icon never sits next to the LIVE marker: a wall grouped by AI carries one icon, on its "Grouped from answers" line above the groups.
 - The AI icon's license (Decided by Chris, November 3): Flaticon's free license with attribution. The credit "The AI mark is the Generative icon by LAFS from Flaticon." appears only as the last line of the "How we use AI" page, nowhere in the app chrome.
 
 **Models and cost** (Default): a fast Claude model for live folding and clustering, where speed matters, and the most capable Claude model for overnight drafts, the report and the signal. Model names live in configuration, not code. AI cost per engagement is logged.
 
-**Testing AI** (Default): Codex builds a fixture set from an anonymized past engagement (lens sentences, scribe notes, a survey export) and the fictional Riverside engagement. Each prompt has expected-behaviour tests (folds what should fold, never invents content, keeps present tense, never names people) that run on every change.
+**Testing AI** (Default): Codex builds a fixture set from an anonymized past engagement (lens sentences, scribe notes, interview notes) and the fictional Riverside engagement. Each prompt has expected-behaviour tests (folds what should fold, never invents content, keeps present tense, never names people) that run on every change.
 
 ## Overnight review and the read-back
 
@@ -906,16 +905,9 @@ Milestone 5. Nothing reaches the room until Chris and the co-facilitator have re
 
 ## Discover
 
-Milestone 6. Everything from Discover lives in the engagement record and is available in the room.
+Milestone 6. The Four Helpful Lists, the conversation themes and the survey report's findings live in the engagement record and are available in the room. The survey itself stays in Team Hub.
 
-**Congregational survey** (SET-04, SET-10)
-
-- The survey uses Team Hub's survey builder, with surveys and responses linked to engagements (Decided November 3). Surveys go to the congregation before the event. The app shows the survey data sourced from Team Hub and holds the results and themes for the engagement. It doesn't run real-time surveys: in-room polls and rankings are the app's own interactions. Team Hub's responses can carry an email, which affects anonymity.
-- Question types, in Team Hub's survey builder: multiple choice, scale, ranking, open text, and demographics for segments (age band, years at the church, role).
-- Team Hub's open link, with no sign-in. A light duplicate check (a device id and a hashed network address) only flags possible duplicates for the facilitator and never blocks an answer, since a whole congregation can share church wifi.
-- A response count on the control surface, read from Team Hub, and a CSV import for surveys run elsewhere.
-- AI themes open-text answers as they arrive, with counts and example quotes, no names. The facilitator accepts, renames, merges or rejects each theme. Only accepted themes reach What We Heard and the signal.
-- Segment breakdowns are hidden for segments under 5 respondents (Default), so small groups can't be identified.
+**Congregational survey** (Decided November 5): built in Team Hub's survey builder and sent to the congregation before the event. Clearway runs its data report in Team Hub ahead of Wayfinding. The app doesn't read the survey or its responses and runs no survey of its own: its only polls are quick polls from participants in the room. The facilitator adds the report's key findings to the engagement by hand, each with a short title, the share or count the report gives and how many respondents it rests on, so What We Heard and the signal can use them (Default). The SET-04 and SET-10 survey screens from design pass 6 are shelved.
 
 **The Four Helpful Lists** (SET-05, INT-11): run live on the TV and phones as a session in the engagement, usually with the board or team.
 
@@ -926,7 +918,7 @@ Milestone 6. Everything from Discover lives in the engagement record and is avai
 
 **Thin data** (Default rule): a theme or segment is flagged as thin when it rests on fewer than 10 responses or under 10 percent of respondents, or on one interview. Thin themes are marked wherever they appear.
 
-**What We Heard** is assembled from accepted survey themes, Four Helpful Lists cards, and interview and conversation themes, as headlines with depth for the pre-call (PRE-08) and as the report section.
+**What We Heard** is assembled from the survey report's findings, Four Helpful Lists cards, and interview and conversation themes, as headlines with depth for the pre-call (PRE-08) and as the report section.
 
 ## The alignment signal
 
@@ -958,7 +950,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 
 **Report draft** (AFT-01)
 
-- AI assembles the full report in Clearway's order from the engagement record: survey and interview themes, the Five Lenses in the team's words, scribe decisions and tensions, the pre-mortem grid, the 1-year Outlook and the commander's intent cards.
+- AI assembles the full report in Clearway's order from the engagement record: the survey report's findings and interview themes, the Five Lenses in the team's words, scribe decisions and tensions, the pre-mortem grid, the 1-year Outlook and the commander's intent cards.
 - Every paragraph keeps its sources in the app. Quotes are verbatim. Names appear only where someone owns a step or agreed to be quoted. Thin data is labeled.
 - Chris edits, adds his own read of the team, and signs off.
 - Export as a Clearway-branded Word document following Clearway's document standard, and as PDF.
@@ -1016,7 +1008,6 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 | events (engagement\_id) | Reading scheduled session dates where they exist |
 | people, person\_emails, person\_organizations | Building the attendee list from the church's people (SET-03) |
 | team\_members | Clearway's facilitators and co-facilitators (name and email only) |
-| surveys, survey\_responses | Reading Discover survey results (Decided November 3: the survey uses Team Hub's survey builder) |
 
 - The app stores each linked record's Team Hub id. It reads on demand and on a refresh button, and never writes to Team Hub (Default).
 - The connection exposes only the columns the app needs. Team Hub tables hold sensitive columns (for example calendar tokens on team\_members) that the app must never be able to read.
@@ -1063,7 +1054,7 @@ Everything hangs off the engagement. These are the entities the screens need. Co
 | --- | --- | --- |
 | Scribe card | Kind, text, speaker (record only), owner and date for actions, time | Session, risk (for mitigations) |
 | Photo and file | Storage path, kind, time | Session |
-| Survey and response | Questions, answers and segments read from Team Hub's survey (or a CSV import), duplicate flag | Engagement, Team Hub survey id |
+| Survey finding | Title, the share or count from Team Hub's report, the respondents it rests on, thin flag | Engagement |
 | Conversation note | Uploaded interview or input-conversation notes, kind, person (record only) | Engagement |
 | Discover theme | Source, label, count, strength, example quotes, thin flag, accepted flag | Engagement, its sources |
 | Signal | Kind, theme, evidence, dismissed and saved flags | Session, theme |
@@ -1187,7 +1178,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | 3 | Every general interaction with its states, content screens, the group palette | Milestone 3 | Delivered November 2 |
 | 4 | Lens colors, Wayfinding components (lens wall, cluster and rename, outcome rows, pre-mortem grid, goal builder, intent card, draft Map), Scripture and prayer screens | Milestone 4 | Delivered November 3 (PR #34) |
 | 5 | Scribe console, overnight review, read-back | Milestone 5 | Delivered November 3 (PR #39) |
-| 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Not started |
+| 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Delivered November 3 (PR #45). Its survey screens (SET-04, SET-10) are shelved (November 5) |
 | 7 | Report, communication plan, read-only copy, check-ins | Milestone 7 | Delivered November 4 (PR #61). Its Publish to CORE screens are shelved (November 4) |
 | Interaction refresh | The 2x2 grid, scale, Q&A and private form count, reworked as one family (see "The interaction library") | Before the first retreat | In progress (November 3) |
 
@@ -1206,7 +1197,7 @@ The room is small, so the bar is reliability, speed and feel rather than scale.
 | --- | --- |
 | Live feel | Everything in "The screen is alive". Measured in every milestone from 2 |
 | Speed | Phone to TV under 1 second, 95 times in 100, with 50 phones. Go live moves every phone within 1 second. Phone pages load in under 2 seconds on 4G. The TV animates smoothly (60 frames per second) on the reference TV device |
-| Size | Rooms of 8 to 50 people. Surveys of a few hundred responses (one past engagement had 360). Several engagements can run at once, each in its own room |
+| Size | Rooms of 8 to 50 people. Several engagements can run at once, each in its own room |
 | Offline | Phones and the scribe console queue input and sync in order. The TV keeps its last state |
 | Devices (Default) | Phones: current and previous major versions of iPhone Safari and Android Chrome, with nothing to install. TV: a separate laptop or desktop running a current Chrome, Edge or Safari at 1080p, connected to the TV or projector by HDMI or screen mirroring (Decided). The reference TV device is a laptop on HDMI. Smart-TV browsers and streaming sticks are supported only once tested in the practice room. Control surface and scribe: a current laptop browser |
 | Readability | TV text readable from the back of the room. Minimum sizes set in the design system and checked in the practice room |
@@ -1361,22 +1352,21 @@ Screens: SCR-01, SCR-02, OVN-01 to OVN-03, D2-03, D2-04, INT-14, FAIL-03.
 
 User stories
 
-- As Chris, I connect the engagement to its congregational survey in Team Hub, which goes to the congregation before the event, and see its results in the app. Answers are anonymous.
+- As Chris, I add the key findings from the survey's Team Hub report to the engagement, so What We Heard and the signal can use them.
 - As Chris, I run the Four Helpful Lists on the TV and phones.
 - As Chris, I upload interview and input-conversation notes and get themes with no names attached, which I edit and accept.
 - As Chris, during a session I see private signal cards: aligned, divergent, silent and thin data.
 
 Acceptance criteria
 
-- Survey and conversation themes show how many answers or conversations each rests on, and thin data is flagged by the rule in Discover. Small segments are hidden.
-- Possible duplicate survey answers are flagged, never blocked.
+- Survey findings and conversation themes show how many respondents or conversations each rests on, and thin data is flagged by the rule in Discover.
 - Only accepted themes reach What We Heard and the signal.
 - Signal cards never reach the TV or any participant's phone, tested.
 - From a signal card, the facilitator can put a neutral question on the TV that carries no data and doesn't name the signal.
 - Aligned signals can be saved as citations for the report.
 - What We Heard headlines with depth are generated from accepted themes for the pre-call.
 
-Screens: SET-04, SET-05, SET-06, SET-10, FAC-02, INT-11.
+Screens: SET-05, SET-06, FAC-02, INT-11, PRE-08.
 
 ### 7. After the retreat
 
@@ -1445,10 +1435,10 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | Pre-mortem mitigations | Decided November 3: the facilitator records them from the control surface until the scribe console exists. After that the scribe can tag them too | Resolved |
 | Outcome bullets on the TV | Decided November 3: letter by letter as people type, with field locks and batching | Resolved |
 | Video follow-up access | Decided November 3: the team's own facilitator pairs the shared TV view and takes the remote without a Clearway sign-in, through a follow-up link and code issued by the facilitator for that block only | Resolved |
-| Discover survey | Decided November 3: Team Hub's survey builder. Surveys go to the congregation before the event. The app shows the survey data from Team Hub and doesn't run real-time surveys (in-room polls and rankings are its own interactions) | Resolved |
+| Discover survey | Decided November 3: Team Hub's survey builder, sent to the congregation before the event. Decided November 5: Clearway runs the data report in Team Hub ahead of Wayfinding, and the app doesn't read the survey. Its only polls are quick in-room polls | Resolved |
 | Conversation notes | Upload and paste only, or also import Granola transcripts | Milestone 6 |
 | Publish to CORE | Decided November 4: not part of the app. Clearway's team enters the plan into CORE after the retreat. The questions about how the app would write to CORE are withdrawn | Resolved |
-| AI disclosure | Decided November 3: Chris approved the wording for the invite email, room sign-in, a "How we use AI" page on phones and the survey intro (see "AI") | Resolved |
+| AI disclosure | Decided November 3: Chris approved the wording for the invite email, room sign-in, a "How we use AI" page on phones and the survey intro (see "AI"). The survey intro is withdrawn, since the app doesn't run or read the survey (November 5) | Resolved |
 | The AI icon's license | Decided November 3: the free license with the credit "The AI mark is the Generative icon by LAFS from Flaticon." as the last line of the "How we use AI" page only | Resolved |
 | Privacy and retention | Consent wording and how long engagement data is kept, checked against Canadian privacy law | Before first use with a church |
 | Language | English only for now, or French as well for churches in Quebec | Before first use with a church |
@@ -1498,7 +1488,7 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | AI | A fast Claude model live, the most capable Claude model overnight and for the report and signal. Identity fields stripped. Merge limits as listed. Fixture tests on every change |
 | Overnight | Drafts ready within 30 minutes of Day 1 closing |
 | Signal | Silent signals appear only after phones first go down in a session |
-| Discover | Thin data under 10 responses, under 10 percent of respondents, or one interview. Segment breakdowns hidden under 5 respondents. Possible duplicate survey answers flagged, never blocked |
+| Discover | Thin data under 10 responses, under 10 percent of respondents, or one interview. Survey findings added by hand from Team Hub's report |
 | Team Hub | Read only, never written to |
 | Read-only copy | Available once Day 2 closes. The report added after sign-off |
 | Check-ins | Each owner reports where their own goals stand. Nothing is read from CORE |

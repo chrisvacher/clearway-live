@@ -1,5 +1,7 @@
 # Discover survey source: Team Hub's survey builder
 
+**Superseded November 5.** Chris decided the app doesn't read the congregational survey. It is built in Team Hub's survey builder, and Clearway runs its data report in Team Hub ahead of Wayfinding. The app's only polls are quick polls from participants in the room, and the facilitator adds the report's key findings to the engagement by hand. Nothing below is built, and no Team Hub views for surveys are needed. The research is kept for reference.
+
 Research for milestone 6, read only, November 3. Nothing was created or changed in Team Hub.
 
 ## Summary for Chris
