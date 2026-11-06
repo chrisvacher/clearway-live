@@ -41,7 +41,7 @@ const editPayload = (b: Extract<HeardBody, { action: "edit" | "apply" }>) => ({ 
 
 // Apply: save the facilitator's edits to the draft, then write the step's headline, number, source and phone depth through the run of show's own
 // save (show_write: its role check, its revision check, its refusal when the engagement is closed). Nothing else in the step changes. A step that
-// is not live yet reaches the TV and phones only when it goes live as usual; one already live shows the change at once, as any edit to it does.
+// is live, open or has phones down is refused ("running"): nothing reaches the TV or phones except when the step goes live as usual.
 async function apply(client: Client, engagement: string, body: Extract<HeardBody, { action: "apply" }>) {
   const saved = await client.rpc("discover_heard_edit", { p_engagement: engagement, p_source: body.source, p: editPayload(body) });
   if (saved.error) throw saved.error;
@@ -54,6 +54,8 @@ async function apply(client: Client, engagement: string, body: Extract<HeardBody
   if (!show) return { status: "denied" };
   const session = show.sessions.find(s => s.id === source.step!.id);
   if (!session || heardKeyOf(session.options.source) !== body.source) return { status: "step_missing" };
+  // A step on the TV, with phones down or open for answers is the room's right now: the draft is saved, but the step is left alone.
+  if (["live", "phones_down", "open"].includes(session.state)) return { status: "running" };
   let input;
   try { input = sessionInput({ ...session, ...stepFields(draft, session, heardNames[body.source]) }); } catch { return { status: "invalid_request" }; }
   const { data, error } = await roomMutation(client, engagement, () => client.rpc("show_write", { p_engagement: engagement, p_action: "save", p_input: input }));

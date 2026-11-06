@@ -23,10 +23,12 @@ export function useHeard(engagement: string, initial: HeardState | null, watch: 
   }, [engagement]);
   const status = load.state?.round?.status;
   const active = status === "pending" || status === "drafting";
+  const missing = load.missing;
   useEffect(() => {
+    if (missing) return; // The functions are not in the database: nothing to ask again.
     const timer = setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, active ? 3000 : 12000);
     return () => clearInterval(timer);
-  }, [refresh, active]);
+  }, [refresh, active, missing]);
   // A theme accepted, renamed or turned down above changes what can be drafted: read again.
   useEffect(() => { void refresh(); }, [refresh, watch]);
   const send = useCallback(async (body: Record<string, unknown>): Promise<HeardReply> => {
