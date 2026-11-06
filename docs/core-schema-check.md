@@ -151,3 +151,26 @@ The invitations table in CORE's repository migration (`20250102_create_invitatio
 4. **Invitations after commit.** Use CORE's own `upsertPendingInvitation` and `sendInvitationEmail` after the transaction, and check seats first with CORE's seat rules.
 5. **Values to send.** `source_type` set to a Live value, `indicator_progress` as zeros, goal `status` NOT_STARTED, `season` from the end date by CORE's month rule, and an explicit outcome `status` once you choose one.
 6. **Your decisions.** Starting status for outcomes (three choices), owners without accounts (empty owner works today), where first steps go, whether to fill the Vision Matrix, where commander's intent lives, and who creates a church that isn't in CORE yet.
+
+## The PRD's former "Write to CORE" section (removed November 4)
+
+Chris decided on November 4 that the app doesn't publish to CORE: Clearway's team enters the plan into CORE after the Wayfinding retreat. The PRD's mapping is kept here, as it stood, for reference if that ever changes.
+
+**Write to CORE** (milestone 7). CORE is a separate Supabase project. Table names, required columns and allowed values below are CORE's as of October 29.
+
+| From the app | CORE table | Fields |
+| --- | --- | --- |
+| Church | organizations | Matched by the CORE organization id stored on the church. The id is empty until the church is linked. Who creates a CORE organization for a church that isn't in CORE yet is Open |
+| Vision Outcome | vision\_outcomes | title (required), description (the outcome's one-line description), indicators (the 3-year Vision bullets), display\_order, organization\_id, status set explicitly (Open: CORE defaults to ON\_TRACK, which shows Green on a brand-new outcome), source\_type set to a new value marking it as from the app |
+| 1-year goal | goals | title (required), description (the result), owner\_id, due\_date (the end date), season (required: SEP\_DEC, JAN\_APR or MAY\_AUG, from the end date), vision\_outcome\_id, organization\_id, status NOT\_STARTED |
+| Owner without a CORE account | invitations, through CORE's own invite flow | CORE's invite flow creates the token and sends the email. requested\_role is MEMBER, ADMIN or OWNER (Default MEMBER) |
+| 30-day first step | Open | Options: tasks (title, goal\_id, assignee\_id, due\_date), a goal of its own, or a project task |
+| Goals in the 3x3 Vision Matrix | Open | Option: vision\_matrix\_items with item\_type GOAL, goal\_id, year 1, and the season mapped to CORE's SEASON\_1, SEASON\_2 or SEASON\_3 for that organization. created\_by must be a CORE user |
+
+- **One transaction.** Publishing runs as a single CORE-side operation (an API endpoint or database function in CORE) that creates every record or none. Invitations are sent only after it commits. This needs a small addition to CORE, which Codex builds in CORE's repository with Chris's approval.
+- **Additive.** Publishing adds records and never overwrites existing ones. Before publishing, the facilitator sees anything that may overlap (an outcome with the same title already in CORE) and chooses to add, link or skip.
+- **Re-publishing.** Later changes (after a day-and-a-half follow-up session, or corrections after the retreat) publish as additional records linked to what's already there. The app remembers every CORE id it created, so it never duplicates.
+- **Owners.** Matched to CORE users by email. Anyone without a CORE account gets a CORE invitation. How their goals are held until they accept is Open.
+- **Seats.** CORE organizations have plan and seat limits (the Free plan has one seat). How invitations for about 8 owners fit a church's plan is Open.
+
+**Read from CORE** (milestone 7): goals.status (NOT\_STARTED, ON\_TRACK, AT\_RISK, OFF\_TRACK, COMPLETED) for check-ins and the read-only copy. On track shows as Green, at risk as Yellow, off track as Red, and completed as completed (never Green).

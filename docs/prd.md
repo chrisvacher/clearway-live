@@ -2,11 +2,11 @@
 
 Oct 29, 2026 · @Chris Vacher
 
-Version 2, October 29, 2026, with decisions to November 3, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
+Version 2, October 29, 2026, with decisions to November 5, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
 
 ## Summary
 
-The Clearway app is Clearway's live facilitation platform. It is built first for the Wayfinding retreat and will grow to cover every session Clearway facilitates, replacing Mentimeter and similar tools. A shared TV shows the room's input the moment it is sent, phones carry the questions and the depth, the facilitator runs everything from a private view and a phone remote, a scribe captures what the easel can't hold, and Claude helps live and overnight. Everything sits in one engagement record that runs from Discover through the retreat and hands the plan to CORE in one deliberate step.
+The Clearway app is Clearway's live facilitation platform. It is built first for the Wayfinding retreat and will grow to cover every session Clearway facilitates, replacing Mentimeter and similar tools. A shared TV shows the room's input the moment it is sent, phones carry the questions and the depth, the facilitator runs everything from a private view and a phone remote, a scribe captures what the easel can't hold, and Claude helps live and overnight. Everything sits in one engagement record that runs from Discover through the retreat. Clearway's team enters the plan into CORE afterwards.
 
 "Clearway app" is a working name.
 
@@ -27,7 +27,7 @@ The Clearway app is Clearway's live facilitation platform. It is built first for
 - Every submission reaches the TV in under 1 second, and the remote, TV and phones never disagree.
 - No input is lost when venue wifi drops.
 - The overnight read-back is ready after about 45 minutes of facilitator review.
-- Vision Outcomes, goals and first steps reach CORE from the room, without being re-entered from the report.
+- Every Vision Outcome, goal and first step leaves the room owned and dated in the draft Clearway Map, ready for Clearway's team to enter into CORE without waiting for the report.
 - The report draft is assembled from the engagement record, so Chris edits rather than writes.
 - A team workshop runs end to end without Mentimeter.
 
@@ -140,9 +140,9 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 
 **Product and platform**
 
-- Its own product, not a CORE module. CORE is the year-round operating rhythm, and many CORE churches never do Wayfinding. CORE is an outcome of the app, which hands off through one "Publish to CORE" step. (Oct 28)
-- The app connects and integrates fully with CORE. (Oct 29)
-- Its own repository, its own database and its own domain, connected to Team Hub and CORE. The domain is live.clearway.co, following team.clearway.co and core.clearway.co, and clearway.co/live redirects to it. Room links and QR codes use live.clearway.co directly. The app reads Team Hub through Supabase, from its server. (Oct 29)
+- Its own product, not a CORE module. CORE is the year-round operating rhythm, and many CORE churches never do Wayfinding. The app doesn't publish to CORE: Clearway's team enters the plan into CORE after the Wayfinding retreat. (Oct 28, changed Nov 4)
+- The app doesn't connect to CORE. (Nov 4, replacing "The app connects and integrates fully with CORE", Oct 29)
+- Its own repository, its own database and its own domain, connected to Team Hub. The domain is live.clearway.co, following team.clearway.co and core.clearway.co, and clearway.co/live redirects to it. Room links and QR codes use live.clearway.co directly. The app reads Team Hub through Supabase, from its server. (Oct 29)
 - The stack matches CORE as closely as possible. (Oct 29)
 - Data is organized around the engagement, not the retreat: church, then engagement, then Discover inputs, then sessions, then outputs. (Oct 28)
 - Survey results, the Four Helpful Lists and board input conversations all live inside the platform. (Oct 28)
@@ -240,7 +240,7 @@ Numerals always, "year" lowercase and hyphenated, the noun capitalized, never mi
 
 - At Pathway, two priorities left the room with no 3-year outcomes and were deferred to the fall. The app flags an empty Vision Outcome while the team is still in the room.
 - At Pathway, under-30s were 6 of 87 survey respondents. The app flags thin data like this.
-- At Global 180, four surveys drew 360 responses, the volume where live theming saves the most hours, and priorities reached CORE only after the report. The app publishes to CORE from the room.
+- At Global 180, four surveys drew 360 responses, the volume where live theming saves the most hours, and priorities reached CORE only after the report. The app holds every goal owned and dated at the close, so entering them into CORE doesn't wait for the report.
 - In both reports the 1-year Outlook was mostly activities with few owners or dates. The goal builder makes owners and dates part of every goal.
 
 ## Words in the app
@@ -272,13 +272,13 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Role | Signs in by | Can | Can't |
 | --- | --- | --- | --- |
 | Clearway admin | Clearway sign-in | Everything: engagements, templates, people, settings, the practice room | Nothing restricted |
-| Lead facilitator | Clearway sign-in, assigned to the engagement as lead | Set up and run the engagement, see the alignment signal and presenter notes, review overnight drafts, approve the door list, hand over and take back the remote, publish to CORE | Edit Clearway accounts |
-| Co-facilitator | Clearway sign-in, assigned to the engagement | Everything the lead facilitator can, except publishing to CORE (Default) | Publish to CORE (Default) |
+| Lead facilitator | Clearway sign-in, assigned to the engagement as lead | Set up and run the engagement, see the alignment signal and presenter notes, review overnight drafts, approve the door list, hand over and take back the remote, publish the overnight drafts | Edit Clearway accounts |
+| Co-facilitator | Clearway sign-in, assigned to the engagement | Everything the lead facilitator can, except publishing the overnight drafts (Default) | Publish the overnight drafts (Default) |
 | Scribe | Room link plus email sign-in, listed as Scribe on the attendee list (Decided: scribes come in by the room link, Oct 29) | Capture tagged cards, photos and files for the live session, and see the current session's prompt | See the alignment signal, presenter notes, overnight drafts, or anyone's identity on answers |
 | Participant | Room link or QR plus email sign-in, on the attendee list | Answer, see and change their own answers while a session is open, affirm, sign together, read published read-backs | See who wrote what, any facilitator view, or anything not yet published |
 | Team facilitator | A participant the facilitator hands the remote to, for one block | Run that block's TV and phone controls | See the alignment signal, presenter notes, Discover data or other blocks |
 | TV | A pairing code shown on the TV and entered on the control surface | Show the room | Anything else. It holds no personal data beyond what's on screen |
-| Elders and board | A shared read-only link the facilitator creates and can revoke | View the published plan and its CORE status | Edit, or see raw answers, scribe cards or drafts |
+| Elders and board | A shared read-only link the facilitator creates and can revoke | View the plan from the engagement | Edit, or see raw answers, scribe cards or drafts |
 | Congregation | Team Hub's open survey link, no sign-in (Decided November 3: the survey runs in Team Hub) | Answer the Discover survey anonymously, before the event | Anything in this app |
 
 **Sign-in** (Decided: email sign-in checked against the attendee list. The code and these mechanics are Default.)
@@ -322,7 +322,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Scribe console | The scribe's laptop, plus their phone for photos | The side table | Tagged capture that attaches to the live session |
 | Setup | A laptop | Before and after | Engagements, attendees, Discover, run of show, templates, overnight review, outputs |
 | Survey | Any phone or computer | Anywhere | The congregational survey, in Team Hub's survey builder (Decided November 3). The app shows its results and doesn't host the survey |
-| Read-only copy | Any browser | Elders' meetings | The published plan and its status |
+| Read-only copy | Any browser | Elders' meetings | The plan and how its goals stand |
 
 **The control surface and the TV are separate** (Decided, Oct 29)
 
@@ -393,7 +393,6 @@ Every role is enforced in the database with row-level security, not only hidden 
 - The facilitator picks a person. Their phone becomes the remote for that block, with a "You have the remote" banner and a switch between the remote and their own participant view, so they can draft a card too.
 - While a team facilitator holds the remote, the facilitator's and co-facilitator's remotes stay live but show "Priya has the remote" (the person's first name). They can still take it back at any moment, without the TV changing.
 - The remote returns to the facilitator automatically after the block's last session, or when the facilitator takes it back. The team facilitator's phone then shows "Chris has the remote" (the facilitator's first name) and returns to participant mode.
-- Publishing to CORE needs the lead facilitator, whoever holds the remote (COR-02).
 
 **Scribe console (SCR-01, SCR-02)**
 
@@ -444,7 +443,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 | Settings | Anonymous or named, answer limits, burst length, AI on or off, moderation, join strip |
 | Presenter notes | Private to the control surface |
 | Team-led | Marks the sessions in a handed-over block |
-| Lands in | The report section, Clearway Map field or CORE record its output feeds |
+| Lands in | The report section or Clearway Map field its output feeds |
 | Seeded from | Optional: a self-paced session whose answers appear first |
 | Segment | Optional: groups consecutive sessions that belong together, such as Five Lenses. Late answers stay open across a segment (Decided November 1) |
 
@@ -678,8 +677,8 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | Lens sentences and the confirmed read-back | The 10-year Future (Map page 1) |
 | Vision Outcomes, their indicators, what we'll stop, and the success measures the team ranked | The 3-year Vision (Map page 1) |
 | Pre-mortem risks and mitigations | Risks and Roadblocks (Map page 2 Key Issues) |
-| 1-year goals | The 1-year Outlook (Map page 2 This Season's Goals, and CORE) |
-| Commander's intent cards and first steps | Commander's Intent (and CORE) |
+| 1-year goals | The 1-year Outlook (Map page 2 This Season's Goals) |
+| Commander's intent cards and first steps | Commander's Intent |
 | Facilitator decisions and scribe decision cards | Decisions |
 | Scribe actions, risks about who hears what | Communication (the communication plan) |
 | Scribe questions | Key Issues (Map page 2) |
@@ -741,17 +740,17 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | 10:45 | 1-year Outlook | CORE goal builder (INT-15) | One outcome at a time: 3-year Vision left, goals right, each tagged with the risk it answers | Propose a goal with a title, result, owner and end date | Decisions, owners, dates | None (CORE checks are code) | The 1-year Outlook, CORE goals | D2-09, D2-10 |
 | 12:15 | Lunch | Nothing live |  |  |  |  |  |  |
 | 1:00 | The team takes the remote | Hand over (FAC-03) |  | The team facilitator's phone becomes the remote | No scribe from here |  |  | D2-11 |
-| 1:10 | Commander's intent | Commander's intent card (INT-16), team-led | Every card filling in at once | Pairs or trios draft one card per Vision Outcome, then present |  | Flags first steps missing an owner or date (code) | Commander's Intent, CORE | D2-12, D2-13 |
+| 1:10 | Commander's intent | Commander's intent card (INT-16), team-led | Every card filling in at once | Pairs or trios draft one card per Vision Outcome, then present |  | Flags first steps missing an owner or date (code) | Commander's Intent | D2-12, D2-13 |
 | 2:30 | Affirm together | Sign together (INT-10), team-led | Names gathering beneath the cards | Affirm the full set |  |  | Commander's Intent | D2-14 |
 | 2:45 | Recap | Draft Clearway Map | The draft Map assembled from the two days | Read along |  |  | Clearway Map | D2-15 |
-| 3:10 | Publish and close | Publish to CORE (a placeholder in the template until milestone 7 builds it), then Scripture and prayer | "Published", then Scripture |  |  |  | CORE | COR-01 to COR-03 |
+| 3:10 | Closing prayer | Prayer | Prayer screen | Phones away |  |  | The Process |  |
 
 **Day-and-a-half template** (Default split, since Chris decided only that a self-facilitated follow-up session is available)
 
 - The half day ends after confirming the Vision Outcomes and the 1-year Outlook, with a short close and a draft Map showing what's ready.
 - The pre-mortem and commander's intent move to the follow-up session, on video within two weeks of the half day, with the team's own facilitator pairing the shared TV view and holding the remote, without a Clearway sign-in. The facilitator issues a follow-up link and code for that block only, and the team remote keeps its limits: no alignment signal, presenter notes, Discover data or other blocks (Decided November 3).
 - Goals built before the pre-mortem don't need a linked risk. After the follow-up session, the team tags each goal with the risks it answers.
-- Vision Outcomes and goals can be published to CORE at the end of the half day. Commander's intent first steps publish after the follow-up session as a second, additive publish.
+- Clearway's team enters the Vision Outcomes and goals into CORE after the half day, and the commander's intent first steps after the follow-up session.
 
 **Wayfinding interactions**
 
@@ -786,20 +785,20 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 
 - One Vision Outcome at a time: "In 2029, what's true?" Bullets fill in under the heading as people type.
 - An outcome with no bullets shows as empty, outlined in Sunrise, until it has at least one (code, not AI).
-- Bullets are the outcome's success indicators and publish to CORE as indicators.
+- Bullets are the outcome's success indicators, which Clearway's team enters into CORE as its indicators.
 
 **Outcome confirm** (milestone 4)
 
 - Phones: confirm, rename or challenge each provisional outcome, with an optional reason.
 - TV: the counts per outcome. A challenged outcome lifts to the top of the control surface and gets a soft highlight on the TV until decided.
 - The facilitator records the room's consensus decision and its reasons. Counts never decide. Renames suggested here are accepted by the facilitator, as in INT-13.
-- Each outcome gets a one-line description (drafted by the facilitator from the room's words, Default), which publishes to CORE.
+- Each outcome gets a one-line description (drafted by the facilitator from the room's words, Default), which Clearway's team enters into CORE as its description.
 
 **INT-15 CORE goal builder** (milestone 4)
 
 - TV: one Vision Outcome at a time, its 3-year Vision bullets on the left and its 1-year goals on the right. Each goal shows the risk it answers and its four CORE letters.
 - Phones: propose a goal with a short title, the result, one owner, an end date (defaulting to a season end) and the pre-mortem risk it answers.
-- The owner is chosen from the attendee list or added by name and email (Default), since 1-year goals are often owned by staff who aren't in the room. An owner added this way becomes a CORE invitation at publishing.
+- The owner is chosen from the attendee list or added by name and email (Default), since 1-year goals are often owned by staff who aren't in the room. Clearway's team invites an owner added this way to CORE when it enters the plan.
 - Each CORE letter shows met or missing, checked in code: Connected (linked to this outcome), Owned (exactly one person), Result (a result is written, and the facilitator confirms it's clear), End date (a date is set). A goal with a missing letter is outlined in Sunrise with what's missing ("Needs an owner") until fixed, and turns solid when all four are met.
 - The facilitator can edit any goal from the control surface.
 
@@ -955,10 +954,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 - Page 2: This Year's Priorities (empty: left for the church's Annual Planning, Decided November 3), This Season's Goals (1-year goals ending this season), Leadership Rhythms (from the church record), Key Issues (scribe questions and open tensions).
 - Empty fields show as empty, never invented.
 
-**Publish to CORE** (COR-01 to COR-03): see Integrations.
-
-- The readiness check (COR-01) lists every goal and first step with its gaps, like a commitments register: nothing publishes without a title, an agreed result, one named owner and an end date. Vision Outcomes need a title and at least one indicator.
-- If publishing fails in the room, the TV stays on the Day 2 recap, the remote shows "Not published yet" with the reason, and the facilitator can retry or publish later from setup. Nothing partial is left in CORE.
+**CORE** (Decided November 4): the app doesn't publish to CORE. Clearway's team enters the Vision Outcomes, goals and first steps into CORE after the retreat, from the draft Clearway Map and the report.
 
 **Report draft** (AFT-01)
 
@@ -969,9 +965,9 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 
 **Communication plan** (AFT-02): drafted from what the room said about key leaders, major donors and the risk of anyone hearing the plan from the stage first. Rows: who, when, who tells them, what they hear, the risk it answers. Chris reviews it with the church on a follow-up call within two weeks.
 
-**Read-only copy** (AFT-03): available once the plan is published to CORE (Default). It shows the Clearway Map, the Vision Outcomes with their indicators, the 1-year goals with owners, dates and their CORE status, and the commander's intent cards. It's a link the facilitator creates and can revoke, and never shows raw answers, scribe cards or drafts. The report is added once Chris signs it off.
+**Read-only copy** (AFT-03): available once Day 2 closes (Default). It shows the Clearway Map, the Vision Outcomes with their indicators, the 1-year goals with owners and dates, and the commander's intent cards. It's a link the facilitator creates and can revoke, and never shows raw answers, scribe cards or drafts. The report is added once Chris signs it off.
 
-**Check-ins** (AFT-04, AFT-05): at 30, 60 and 90 days, each participant gets an email with a link to a short self-paced pulse about their own first steps and goals: done, under way, stuck, and a note. Goal status is read back from CORE. The facilitator sees results and follow-ups.
+**Check-ins** (AFT-04, AFT-05): at 30, 60 and 90 days, each participant gets an email with a link to a short self-paced pulse about their own first steps and goals: done, under way, stuck, and a note. Each owner reports where their own goals stand; nothing is read from CORE (Default). The facilitator sees results and follow-ups.
 
 **Results recap** (Default): a facilitator page with one card per session (type, prompt, count, results as they appeared), which updates without re-animating, prints to PDF, and downloads as CSV.
 
@@ -979,7 +975,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 
 ## Architecture
 
-**Decided:** its own repository, domain and database. The stack matches CORE as closely as possible. It reads from Team Hub, and writes to and reads from CORE through deliberate connections. The live room is kept separate from the setup side, as Synrg does, so a session keeps running if anything else fails.
+**Decided:** its own repository, domain and database. The stack matches CORE as closely as possible. It reads from Team Hub. It doesn't connect to CORE (Decided November 4). The live room is kept separate from the setup side, as Synrg does, so a session keeps running if anything else fails.
 
 &#91;embedded content: Architecture · the app, its database, three connections\]
 
@@ -1007,7 +1003,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 | Public | The read-only copy | No sign-in |
 | Server | Submission endpoint, realtime broadcast, AI jobs, integrations, scheduled jobs (self-paced opening and closing, check-ins, nightly practice-room reset) | Secrets stay on the server |
 
-**Keys and secrets**: the Supabase service key, the Anthropic key, the Resend key and the Team Hub and CORE connection credentials live only in Vercel environment variables and are never sent to a browser.
+**Keys and secrets**: the Supabase service key, the Anthropic key, the Resend key and the Team Hub connection credentials live only in Vercel environment variables and are never sent to a browser.
 
 ## Integrations
 
@@ -1026,24 +1022,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 - The connection exposes only the columns the app needs. Team Hub tables hold sensitive columns (for example calendar tokens on team\_members) that the app must never be able to read.
 - The app reads Team Hub through Supabase, from its server only (Decided October 29). Default: a read-only database role on Team Hub with views that expose only the columns the app needs, which Codex adds in Team Hub's repository with Chris's approval.
 
-**Write to CORE** (milestone 7). CORE is a separate Supabase project. Table names, required columns and allowed values below are CORE's as of October 29.
-
-| From the app | CORE table | Fields |
-| --- | --- | --- |
-| Church | organizations | Matched by the CORE organization id stored on the church. The id is empty until the church is linked. Who creates a CORE organization for a church that isn't in CORE yet is Open |
-| Vision Outcome | vision\_outcomes | title (required), description (the outcome's one-line description), indicators (the 3-year Vision bullets), display\_order, organization\_id, status set explicitly (Open: CORE defaults to ON\_TRACK, which shows Green on a brand-new outcome), source\_type set to a new value marking it as from the app |
-| 1-year goal | goals | title (required), description (the result), owner\_id, due\_date (the end date), season (required: SEP\_DEC, JAN\_APR or MAY\_AUG, from the end date), vision\_outcome\_id, organization\_id, status NOT\_STARTED |
-| Owner without a CORE account | invitations, through CORE's own invite flow | CORE's invite flow creates the token and sends the email. requested\_role is MEMBER, ADMIN or OWNER (Default MEMBER) |
-| 30-day first step | Open | Options: tasks (title, goal\_id, assignee\_id, due\_date), a goal of its own, or a project task |
-| Goals in the 3x3 Vision Matrix | Open | Option: vision\_matrix\_items with item\_type GOAL, goal\_id, year 1, and the season mapped to CORE's SEASON\_1, SEASON\_2 or SEASON\_3 for that organization. created\_by must be a CORE user |
-
-- **One transaction.** Publishing runs as a single CORE-side operation (an API endpoint or database function in CORE) that creates every record or none. Invitations are sent only after it commits. This needs a small addition to CORE, which Codex builds in CORE's repository with Chris's approval.
-- **Additive.** Publishing adds records and never overwrites existing ones. Before publishing, the facilitator sees anything that may overlap (an outcome with the same title already in CORE) and chooses to add, link or skip.
-- **Re-publishing.** Later changes (after a day-and-a-half follow-up session, or corrections after the retreat) publish as additional records linked to what's already there. The app remembers every CORE id it created, so it never duplicates.
-- **Owners.** Matched to CORE users by email. Anyone without a CORE account gets a CORE invitation. How their goals are held until they accept is Open.
-- **Seats.** CORE organizations have plan and seat limits (the Free plan has one seat). How invitations for about 8 owners fit a church's plan is Open.
-
-**Read from CORE** (milestone 7): goals.status (NOT\_STARTED, ON\_TRACK, AT\_RISK, OFF\_TRACK, COMPLETED) for check-ins and the read-only copy. On track shows as Green, at risk as Yellow, off track as Red, and completed as completed (never Green).
+**CORE** (Decided November 4): the app doesn't write to or read from CORE. Clearway's team enters the Vision Outcomes, goals and first steps into CORE after the retreat, from the draft Clearway Map and the report. The CORE field mapping that was here is kept for reference in `docs/core-schema-check.md`.
 
 ## Data model
 
@@ -1053,7 +1032,7 @@ Everything hangs off the engagement. These are the entities the screens need. Co
 
 | Entity | Holds | Links to |
 | --- | --- | --- |
-| Church | Name, time zone, logo, Mission, Purpose, Values, Strategy, Leadership Rhythms, governance body's name | Team Hub client id, CORE organization id (empty until linked) |
+| Church | Name, time zone, logo, Mission, Purpose, Values, Strategy, Leadership Rhythms, governance body's name | Team Hub client id |
 | Engagement | Type, status, dates, base year, lens names, AI on or off, Scripture translation, TV theme, texture and room size | Church, Team Hub engagement id |
 | Clearway user | Name, email, admin flag | Team Hub team member id |
 | Engagement facilitator | Lead or co-facilitator | Engagement, Clearway user |
@@ -1107,7 +1086,6 @@ Everything hangs off the engagement. These are the entities the screens need. Co
 | Clearway Map draft | The assembled two pages | Engagement |
 | Report draft | Sections, text, sources, sign-off | Engagement |
 | Communication plan | Rows: who, when, who tells them, message, risk | Engagement |
-| CORE publish | When, by whom, each CORE id created, result | Engagement |
 | Check-in | 30, 60 or 90-day pulse answers | Engagement, attendee |
 | Read-only link | Token, created by, revoked flag | Engagement |
 | AI run | Job, model, prompt version, inputs, output, cost, time | Whatever it produced |
@@ -1210,7 +1188,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | 4 | Lens colors, Wayfinding components (lens wall, cluster and rename, outcome rows, pre-mortem grid, goal builder, intent card, draft Map), Scripture and prayer screens | Milestone 4 | Delivered November 3 (PR #34) |
 | 5 | Scribe console, overnight review, read-back | Milestone 5 | Delivered November 3 (PR #39) |
 | 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Not started |
-| 7 | Publish to CORE, report, communication plan, read-only copy, check-ins | Milestone 7 | Not started |
+| 7 | Report, communication plan, read-only copy, check-ins | Milestone 7 | Delivered November 4 (PR #61). Its Publish to CORE screens are shelved (November 4) |
 | Interaction refresh | The 2x2 grid, scale, Q&A and private form count, reworked as one family (see "The interaction library") | Before the first retreat | In progress (November 3) |
 
 **Done when**
@@ -1233,15 +1211,15 @@ The room is small, so the bar is reliability, speed and feel rather than scale.
 | Devices (Default) | Phones: current and previous major versions of iPhone Safari and Android Chrome, with nothing to install. TV: a separate laptop or desktop running a current Chrome, Edge or Safari at 1080p, connected to the TV or projector by HDMI or screen mirroring (Decided). The reference TV device is a laptop on HDMI. Smart-TV browsers and streaming sticks are supported only once tested in the practice room. Control surface and scribe: a current laptop browser |
 | Readability | TV text readable from the back of the room. Minimum sizes set in the design system and checked in the practice room |
 | Accessibility | WCAG AA contrast for text. Touch targets at least 44 px. Phones respect reduced-motion and text-size settings. Every color-coded meaning also has a label, icon or size |
-| Security | Row-level security on every table, with tests. Participant, scribe, team facilitator and TV sessions can't read facilitator-only data (the signal, presenter notes, drafts, authorship). Secrets stay on the server. Sign-in codes expire and are rate-limited. Read-only links are revocable. The connections to Team Hub and CORE expose only the columns the app needs |
+| Security | Row-level security on every table, with tests. Participant, scribe, team facilitator and TV sessions can't read facilitator-only data (the signal, presenter notes, drafts, authorship). Secrets stay on the server. Sign-in codes expire and are rate-limited. Read-only links are revocable. The connection to Team Hub exposes only the columns the app needs |
 | Privacy | Answers are anonymous on screen and stored with identity for the record (see "Who sees authorship"). AI use is disclosed. No other data restrictions for now. Churches are in Canada and the US, so consent wording and how long engagement data is kept should be checked against Canadian privacy law before first use with a church (Open). Anything on the TV can be photographed, and the disclosure says so |
-| Reliability | The live room keeps running if AI, Team Hub, CORE or the setup side fails. Nightly database backups (Supabase) |
+| Reliability | The live room keeps running if AI, Team Hub or the setup side fails. Nightly database backups (Supabase) |
 | Monitoring | Each submission's phone-to-TV time is logged and summarized after every session. Server and client errors are captured with an error-monitoring tool, matching what CORE uses if it has one |
 | Copy | Every word follows "Words in the app" |
 
 ## Milestones
 
-Milestones 1 to 7 in order, with no dates (the order was delegated to Claude by Chris). The live room comes first because everything runs on it and it's the riskiest part. The interaction library proves the live screen across every kind of input and replaces Mentimeter on its own. The Wayfinding tools build on it, scribe and overnight need real lens input, Discover and the signal enrich a retreat that already works, and the CORE handoff needs goals and cards to publish. Each milestone is done when its test script passes in the practice room and the definition of done is met.
+Milestones 1 to 7 in order, with no dates (the order was delegated to Claude by Chris). The live room comes first because everything runs on it and it's the riskiest part. The interaction library proves the live screen across every kind of input and replaces Mentimeter on its own. The Wayfinding tools build on it, scribe and overnight need real lens input, Discover and the signal enrich a retreat that already works, and the report and check-ins need goals and cards to work from. Each milestone is done when its test script passes in the practice room and the definition of done is met.
 
 ### 1. Foundation
 
@@ -1353,10 +1331,10 @@ Acceptance criteria
 - The draft Map's 10-year Future comes from the signed-off summaries.
 - A team facilitator for the video follow-up takes the remote without a Clearway sign-in, through a link and code issued for that block only, and sees none of the alignment signal, presenter notes, Discover data or other blocks.
 - Outcome bullets appear on the TV letter by letter as people type, with field locks and batching.
-- The read-back and Publish to CORE sessions are in the Wayfinding template as placeholders.
+- The read-back is in the Wayfinding template as a placeholder. There is no Publish to CORE session (November 4).
 - Every prompt shows the right years for the base year, and the right lens names.
 
-Screens: PRE-06 to PRE-11, D1-04 to D1-13, D2-01, D2-02, D2-05 to D2-15, INT-12, INT-13, INT-15, INT-16, SET-08 (Wayfinding templates), and the lens summary screens. Not in this milestone: the overnight review and the Day 2 short confirm (5), Discover data in What We Heard (6, entered by hand as headlines until then), the alignment signal (6), publishing to CORE (7).
+Screens: PRE-06 to PRE-11, D1-04 to D1-13, D2-01, D2-02, D2-05 to D2-15, INT-12, INT-13, INT-15, INT-16, SET-08 (Wayfinding templates), and the lens summary screens. Not in this milestone: the overnight review and the Day 2 short confirm (5), Discover data in What We Heard (6, entered by hand as headlines until then), the alignment signal (6).
 
 ### 5. Scribe and overnight
 
@@ -1400,11 +1378,10 @@ Acceptance criteria
 
 Screens: SET-04, SET-05, SET-06, SET-10, FAC-02, INT-11.
 
-### 7. CORE and after
+### 7. After the retreat
 
 User stories
 
-- As Chris, I review what will be created in CORE, fix any gaps, and publish from the room.
 - As Chris, I edit an AI report draft in Clearway's report order, sign it off, and export it.
 - As Chris, I review an AI-drafted communication plan built from what the room said.
 - As a participant, I answer a short 30, 60 and 90-day check-in about my own first steps.
@@ -1412,15 +1389,11 @@ User stories
 
 Acceptance criteria
 
-- Publishing waits until every goal and first step passes the readiness check, and needs the lead facilitator.
-- Publishing runs as one CORE-side transaction: every record is created or none is. Invitations are sent only after it commits. A failure leaves nothing partial in CORE and shows the reason on the remote and control surface.
-- Publishing adds records and never overwrites existing ones. The facilitator sees any overlap first. A second publish adds only what's new.
-- Owners are matched to CORE users by email. Anyone without a CORE account gets a CORE invitation through CORE's invite flow.
-- Check-ins go out by email at 30, 60 and 90 days and read each goal's status back from CORE.
+- Check-ins go out by email at 30, 60 and 90 days, and each owner reports where their own goals and first steps stand.
 - The report follows Clearway's order and exports as a Clearway-branded Word document and PDF.
 - The read-only copy has no edit controls and its link can be revoked.
 
-Screens: COR-01 to COR-03, AFT-01 to AFT-05.
+Screens: AFT-01 to AFT-05.
 
 ## Test plan
 
@@ -1468,19 +1441,13 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | This Year's Priorities | Decided November 3: left for the church's Annual Planning, not named in the retreat. The draft Map shows that field empty | Resolved |
 | The day-and-a-half follow-up | Decided November 3: on video, within two weeks of the half day, with a team facilitator holding the remote | Resolved |
 | When the 10-year Future is drafted | Decided November 3: live on Day 1, not overnight. A per-lens summary goes to the TV as drafted, phones Approve or Suggest a change, AI folds suggestions into a new version live, and Chris marks the decision per lens. The draft Map takes it from the signed-off summaries | Resolved |
-| Read-back and Publish to CORE in the template | Decided November 3: both ship as placeholders until milestones 5 and 7 build them. Day 2 at 9:00 becomes a short confirm of the signed-off 10-year Future | Resolved |
+| Read-back and Publish to CORE in the template | Decided November 3: the read-back ships as a placeholder until milestone 5 builds it. Day 2 at 9:00 becomes a short confirm of the signed-off 10-year Future. Publish to CORE is out of the app (November 4) | Resolved |
 | Pre-mortem mitigations | Decided November 3: the facilitator records them from the control surface until the scribe console exists. After that the scribe can tag them too | Resolved |
 | Outcome bullets on the TV | Decided November 3: letter by letter as people type, with field locks and batching | Resolved |
 | Video follow-up access | Decided November 3: the team's own facilitator pairs the shared TV view and takes the remote without a Clearway sign-in, through a follow-up link and code issued by the facilitator for that block only | Resolved |
 | Discover survey | Decided November 3: Team Hub's survey builder. Surveys go to the congregation before the event. The app shows the survey data from Team Hub and doesn't run real-time surveys (in-room polls and rankings are its own interactions) | Resolved |
 | Conversation notes | Upload and paste only, or also import Granola transcripts | Milestone 6 |
-| How the app writes to CORE | An endpoint or database function added to CORE that creates everything in one transaction (the Default approach), built in CORE's repository with Chris's approval | Milestone 7 |
-| Status of new Vision Outcomes in CORE | CORE defaults new outcomes to On track (Green). Keep that, or set another status at publishing | Milestone 7 |
-| Where 30-day first steps go in CORE | Tasks linked to a goal, a goal of their own, or project tasks | Milestone 7 |
-| The 3x3 Vision Matrix | Also place each 1-year goal in CORE's Vision Matrix (year 1, in the church's matching season), or leave the Matrix for after the retreat | Milestone 7 |
-| Owners without a CORE account | Goals published with no owner and flagged until the invitation is claimed, or held in the app until then | Milestone 7 |
-| CORE seats | How invitations for about 8 owners fit a church's CORE plan (the Free plan has one seat) | Milestone 7 |
-| Churches not yet in CORE | Who creates the CORE organization, and when | Milestone 7 |
+| Publish to CORE | Decided November 4: not part of the app. Clearway's team enters the plan into CORE after the retreat. The questions about how the app would write to CORE are withdrawn | Resolved |
 | AI disclosure | Decided November 3: Chris approved the wording for the invite email, room sign-in, a "How we use AI" page on phones and the survey intro (see "AI") | Resolved |
 | The AI icon's license | Decided November 3: the free license with the credit "The AI mark is the Generative icon by LAFS from Flaticon." as the last line of the "How we use AI" page only | Resolved |
 | Privacy and retention | Consent wording and how long engagement data is kept, checked against Canadian privacy law | Before first use with a church |
@@ -1501,7 +1468,7 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Image or document page | An image (PNG, JPEG or WebP, up to 4 MB), fitted in the browser to a 2400px long edge and stored with the engagement. A document page is exported as an image first (milestone 3, step 1) |
 | Engagement types | Wayfinding, day and a half, team workshop and practice in the first release |
 | Engagement close | Device sign-ins, the read-only copy and check-ins stay active until the facilitator closes the engagement, after the 90-day check-in |
-| Roles | Only the lead facilitator publishes to CORE |
+| Roles | Only the lead facilitator publishes the overnight drafts. Co-facilitators review and edit |
 | Sign-in | The invite opens the room page and "Send me a sign-in code". Codes expire after 10 minutes with 5 attempts. Links sign in only after a tap. A gentle "not on the list" message. Manual sign-in by device code |
 | Authorship | Nobody in the room sees who wrote what. Authorship appears only in a facilitator's full export |
 | Answers | Changing an answer is Decided. Withdrawing one is Default |
@@ -1533,8 +1500,8 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Signal | Silent signals appear only after phones first go down in a session |
 | Discover | Thin data under 10 responses, under 10 percent of respondents, or one interview. Segment breakdowns hidden under 5 respondents. Possible duplicate survey answers flagged, never blocked |
 | Team Hub | Read only, never written to |
-| CORE | Invitations as MEMBER. Publishing additive and in one transaction |
-| Read-only copy | Available once published to CORE. The report added after sign-off |
+| Read-only copy | Available once Day 2 closes. The report added after sign-off |
+| Check-ins | Each owner reports where their own goals stand. Nothing is read from CORE |
 | Realtime | Supabase Realtime broadcast with the snapshot check, and snapshot fallback when a venue blocks realtime |
 | Devices | Current and previous iPhone Safari and Android Chrome. The reference TV device is a laptop on HDMI |
 | Environments | Local, a preview per pull request on a Supabase branch or staging project, and production |
@@ -1549,8 +1516,8 @@ Measured from the app itself (Default):
 - No lost submissions in any session, including through wifi drops.
 - Overnight review time: about 45 minutes.
 - Report sign-off within a week of the retreat (it currently takes about 30 days).
-- Every Vision Outcome, goal and first step in CORE by the end of Day 2.
-- At 90 days, the share of first steps done, from check-ins and CORE.
+- Every Vision Outcome, goal and first step owned and dated in the app by the end of Day 2.
+- At 90 days, the share of first steps done, from check-ins.
 - Team workshops run without Mentimeter.
 
 ## Glossary
