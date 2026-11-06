@@ -65,7 +65,7 @@ Follow-ups from the same answers:
 | Day 1 | 3-year Vision, first pass | Outcome bullets | D1-11, D1-12 |
 | Day 1 | Close | The provisional outcomes, then Scripture | D1-13 |
 | Day 2 | Prayer and listening, "What are we sensing?" | Scripture, prayer, open text | D2-01, D2-02 |
-| Day 2 | Confirm the 10-year Future (9:00, placeholder until milestone 5) | Short confirm of the signed-off summaries | Placeholder |
+| Day 2 | Confirm the 10-year Future (9:00, a `read_back` step since milestone 5 step 3a) | Short confirm of the signed-off summaries and the reviewed outcomes | Read-back |
 | Day 2 | Confirm the Vision Outcomes | Outcome confirm | D2-05, D2-06 |
 | Day 2 | Pre-mortem | 2x2 grid, Pre-mortem preset | D2-07, D2-08 |
 | Day 2 | 1-year Outlook | CORE goal builder | D2-09, D2-10 |

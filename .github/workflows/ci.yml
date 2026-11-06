@@ -188,6 +188,17 @@ jobs:
         with:
           name: lens-summary-screens
           path: lens-summary-shots/
+      - name: Test the Day 2 read-back (D2-03, INT-14) with corrections, AI folds and 50 simulated phones in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p read-back-shots && npm run test:read-back
+        env:
+          KIT_SHOTS: read-back-shots
+      - name: Upload the read-back screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: read-back-screens
+          path: read-back-shots/
       - name: Test candidate priorities (INT-13) with AI, suggestions, 100 points and 50 simulated phones in a real browser
         if: ${{ !cancelled() }}
         run: mkdir -p candidates-shots && npm run test:candidates

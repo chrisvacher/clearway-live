@@ -4,14 +4,15 @@ import { test } from "node:test";
 import { aiConfig, costUsd } from "../../lib/ai/config";
 import { aiClient, anthropicClient, type AiClient } from "../../lib/ai/client";
 import { fakeClient, jobOf, recordedClient, scripted } from "../../lib/ai/fake";
-import { capWords, prompts, promptVersions, replyJson, summaryWords, type AiInputs, type AiJob, type GroupOutput, type LensDraftInputs, type LensDraftOutput, type LensFoldInputs, type LensFoldOutput, type MergeOutput, type SummaryOutput } from "../../lib/ai/prompts";
+import { capWords, prompts, promptVersions, replyJson, summaryWords, type AiInputs, type AiJob, type GroupOutput, type LensDraftInputs, type LensDraftOutput, type LensFoldInputs, type LensFoldOutput, type MergeOutput, type ReadBackFoldInputs, type ReadBackFoldOutput, type SummaryOutput } from "../../lib/ai/prompts";
 import { rawChars, runSession, workSessions } from "../../lib/ai/worker";
 import { absorbedInto, aiControlBody, aiNotice, combinedLine, combinedWith, dollars, moreGroups, shownGroups, wallOf, type AiStatus, type WallGroup } from "../../lib/interactions/ai";
 
 type Case = { name: string; job: AiJob; inputs: AiInputs; reply: string;
   expect: { together?: string[][]; apart?: string[][]; maxGroup?: number; labelWords?: number; joins?: string[][]; neverJoins?: string[][]; maxWords?: number; mentions?: string[];
     summary?: { maxSentences: number; maxChars: number; covers: string[]; mentions: string[] };
-    fold?: { edits: number; adds: number; removes: number; kept: string[]; leftOut: string[]; maxChars: number } } };
+    fold?: { edits: number; adds: number; removes: number; kept: string[]; leftOut: string[]; maxChars: number };
+    readBack?: { line: string; mentions: string[]; maxChars: number } } };
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/ai/live.json", import.meta.url), "utf8")) as { names: string[]; cases: Case[] };
 const caseOf = (job: AiJob, n = 0) => fixtures.cases.filter(c => c.job === job)[n];
 const id = (n: number) => `75000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -112,6 +113,19 @@ function checkFold(c: Case, out: LensFoldOutput) {
   assert.ok(result.join(" ").length <= e.maxChars, `${c.name}: still one screen`);
   if (out.note) plainLine(c, out.note);
 }
+// The read-back fold changes one line or adds one, in the room's words, in the present tense, within one screen.
+function checkReadBack(c: Case, out: ReadBackFoldOutput) {
+  const i = c.inputs as ReadBackFoldInputs, e = c.expect.readBack!, refs = new Set(i.lines.map(l => l.ref));
+  assert.equal(out.line, e.line, `${c.name}: the line it chose`);
+  assert.ok(out.line === "new" || refs.has(out.line), `${c.name}: a known line or a new one`);
+  plainLine(c, out.text);
+  assert.ok(out.text.length > 0 && out.text.length <= 400, `${c.name}: one line of at most 400 characters`);
+  for (const m of e.mentions) assert.ok(out.text.toLowerCase().includes(m), `${c.name}: uses the room's words (${m})`);
+  const after = i.lines.map(l => l.ref === out.line ? out.text : l.text).concat(out.line === "new" ? [out.text] : []);
+  assert.ok(after.length <= i.max_lines, `${c.name}: at most ${i.max_lines} lines`);
+  assert.ok(after.join(" ").length <= e.maxChars, `${c.name}: still one screen`);
+  if (out.note) plainLine(c, out.note);
+}
 function check(c: Case, reply: string) {
   const out = prompts[c.job].parse(reply, c.inputs), e = c.expect;
   if (c.job === "summarize_wall") {
@@ -125,6 +139,7 @@ function check(c: Case, reply: string) {
   }
   if (c.job === "draft_lens_summary") return checkDraft(c, out as LensDraftOutput);
   if (c.job === "fold_lens_summary") return checkFold(c, out as LensFoldOutput);
+  if (c.job === "fold_read_back") return checkReadBack(c, out as ReadBackFoldOutput);
   if (c.job === "group_wall" || c.job === "group_lens") {
     const groups = (out as GroupOutput).groups, sets = groups.map(g => g.answers.map(r => textOf(c, r)));
     const all = groups.flatMap(g => g.answers);

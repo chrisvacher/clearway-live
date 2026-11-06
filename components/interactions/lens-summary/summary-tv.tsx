@@ -16,7 +16,7 @@ import "./lens-summary.css";
 // their place in the page across versions (reconcile), so nothing redraws, resets or waits for a reveal.
 const stateLine = { drafting: "AI is drafting the summary", folding: "AI is folding in suggestions" } as const;
 
-function Words({ parts, text, leave }: { parts: Part[] | null; text: string; leave: boolean }) {
+export function Words({ parts, text, leave }: { parts: Part[] | null; text: string; leave: boolean }) {
   if (!parts) return <>{text}</>;
   return <>{parts.map((p, i) => p.k === "keep" ? <span key={i}>{p.t} </span> : <span key={i} className={`lsm-${p.k}${p.k === "del" && leave ? " is-leaving" : ""}`} data-tc={p.k}>{p.t} </span>)}</>;
 }
@@ -28,7 +28,7 @@ function Words({ parts, text, leave }: { parts: Part[] | null; text: string; lea
 // nothing leaves every glide in flight alone. The TV's parent re-renders this view about every frame, and a glide
 // restarted on each render never leaves its first frame.
 const shiftOf = (el: Element) => new DOMMatrixReadOnly(getComputedStyle(el).transform).m42 || 0;
-function useGlide(host: RefObject<HTMLElement | null>) {
+export function useGlide(host: RefObject<HTMLElement | null>) {
   const seen = useRef(new Map<Element, number>()), laid = useRef(new Map<Element, number>());
   useEffect(() => {
     let frame = 0;
@@ -65,7 +65,7 @@ function useGlide(host: RefObject<HTMLElement | null>) {
 // fits, down to the floor ramp of the Very large room; the lines alone may then step on down to that ramp's floor size, never
 // below. The size is searched a pixel of line type at a time before paint, whenever the lines, the struck words or the room
 // change, and set before the glide runs, so the glide sees the lines' new places and moves them there: nothing jumps.
-function useLineFit(list: RefObject<HTMLOListElement | null>, sign: string) {
+export function useLineFit(list: RefObject<HTMLOListElement | null>, sign: string) {
   const seen = useRef(""), watch = useRef<{ el: Element | null; ro: ResizeObserver | null; kids: Set<Element> }>({ el: null, ro: null, kids: new Set() }), [, redraw] = useState(0);
   const fit = () => {
     const el = list.current, host = el?.closest<HTMLElement>(".tv-layer") ?? el?.closest<HTMLElement>(".lsm-tv");
