@@ -251,6 +251,17 @@ jobs:
         with:
           name: four-lists-screens
           path: four-lists-shots/
+      - name: Test Discover themes (draft, accept, rename, merge, reject, redraft, slow and failed AI, who can reach it) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p themes-shots && npm run test:themes
+        env:
+          KIT_SHOTS: themes-shots
+      - name: Upload the Discover themes screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: themes-screens
+          path: themes-shots/
           if-no-files-found: ignore
           retention-days: 14
       - name: Stop local database

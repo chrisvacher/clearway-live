@@ -6,7 +6,7 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { overnightPrompt, prompts, replyJson, type AiJob, type OvernightOutput } from "./prompts";
+import { overnightPrompt, prompts, replyJson, themesPrompt, type AiJob, type OvernightOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
   return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
@@ -15,13 +15,13 @@ const tokens = (text: string) => Math.ceil(text.length / 4);
 const reply = (call: AiCall, text: string): AiReply => ({ text, inputTokens: tokens(call.system + call.user), outputTokens: tokens(text) });
 
 // A recorded reply per job and user message.
-export function recordedClient(recordings: { job: AiJob | "overnight_draft"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
+export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
   const calls: AiCall[] = [];
   return {
     calls, model: () => "recorded-fixture",
     async complete(call) {
       calls.push(call);
-      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
+      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
       if (!hit) throw new Error(`No recorded reply for ${job}`);
       return reply(call, hit.reply);
     },
@@ -86,6 +86,38 @@ function scriptedOvernight(call: AiCall): string {
   return JSON.stringify(out);
 }
 
+// The Discover themes' stand-in: a theme for each pattern that at least one note (or card) matches, resting on every one that
+// does, with the first matching sentence of the first note as its quote, word for word (the most agreed card's words for the
+// Four Helpful Lists). It skips any label already on the page or rejected, and writes no count, as the prompt asks.
+export const isThemes = (call: Pick<AiCall, "system">) => call.system === themesPrompt.system;
+const discoverThemes: [string, string, RegExp][] = [
+  ["Small groups are hard to find", "Newcomers cannot find a way into a small group.", /small group|find a group|join a group|groups are (?:full|hard)|way into groups|way in\b/i],
+  ["Volunteers are stretched", "The same few people carry the work.", /volunteer|burn out|burnt out|burning out|stretched/i],
+  ["The next step is unclear", "People are welcomed warmly and then find no clear next step.", /next step|first step|newcomer|new famil|visitor/i],
+  ["Worship and music are strengths", "People are proud of the music and the worship.", /music|worship|singing|band/i],
+  ["Leaders feel alone", "Leaders carry the load without much support.", /alone|isolated|lonely|unsupported/i],
+  ["Giving is steady", "People give steadily and gladly.", /giving|generos|tithe/i],
+  ["Communication is unclear", "People do not always know what is happening.", /communicat|announce|don't know what|nobody knows|who decides/i],
+];
+function scriptedThemes(call: AiCall): string {
+  const input = replyJson(call.user) as { notes?: { ref: string; text: string }[]; cards?: { ref: string; text: string; people_agree?: number }[]; already_on_the_page?: { label: string }[]; rejected_by_the_facilitator?: string[] };
+  const seen = new Set([...(input.already_on_the_page ?? []).map(a => a.label), ...(input.rejected_by_the_facilitator ?? [])].map(l => l.trim().toLowerCase()));
+  const out: ThemesOutput = { themes: [] };
+  const first = (text: string, re: RegExp) => text.split(/(?<=[.!?])\s+/).find(s => re.test(s))?.trim().slice(0, 200) ?? "";
+  for (const [label, detail, re] of discoverThemes) {
+    if (seen.has(label.toLowerCase())) continue;
+    const notes = (input.notes ?? []).filter(n => re.test(n.text));
+    if (notes.length && out.themes.filter(t => t.source === "conversations").length < 8) {
+      const quote = first(notes[0].text, re);
+      out.themes.push({ source: "conversations", label, detail, sources: notes.slice(0, 12).map(n => n.ref), quote: quote ? { text: quote, source: notes[0].ref } : null });
+    }
+    const cards = (input.cards ?? []).filter(c => re.test(c.text)).sort((a, b) => (b.people_agree ?? 0) - (a.people_agree ?? 0));
+    if (cards.length && out.themes.filter(t => t.source === "four_lists").length < 8) out.themes.push({ source: "four_lists", label, detail, sources: cards.slice(0, 12).map(c => c.ref), quote: { text: cards[0].text, source: cards[0].ref } });
+  }
+  const kind = (source: "conversations" | "four_lists") => out.themes.filter(t => t.source === source).map(t => ({ label: t.label, detail: t.detail, sources: t.sources, quote: t.quote }));
+  return JSON.stringify({ conversations: kind("conversations"), four_lists: kind("four_lists") });
+}
+
 // The lens summary's stand-in. The draft makes one line per cluster, in the room's own words (the cluster's
 // first sentence), then the sentences no cluster holds, within 8 lines and 420 characters. The fold follows the
 // prompt's rules: "Add ..." adds a line, "Remove ..." removes the line it shares most words with, anything else
@@ -132,6 +164,7 @@ function scriptedLensFold(input: Record<string, unknown>) {
 
 export function scripted(call: AiCall): string {
   if (isOvernight(call)) return scriptedOvernight(call);
+  if (isThemes(call)) return scriptedThemes(call);
   const job = jobOf(call), input = replyJson(call.user);
   if (job === "combine_words") {
     const list = (input.words ?? []) as { ref: string; text: string; count: number }[], groups: { survivor: string; members: string[] }[] = [];

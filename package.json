@@ -51,6 +51,7 @@
     "test:acceptance-m4": "node --import tsx tests/browser/acceptance-m4.ts",
     "test:wayfinding": "node --import tsx tests/browser/wayfinding-retreat.ts",
     "test:discover": "node --import tsx tests/browser/discover.ts",
+    "test:themes": "node --import tsx tests/browser/themes.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {
