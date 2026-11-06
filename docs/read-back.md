@@ -23,7 +23,7 @@ Milestone 5, step 3a. One interaction kind, `read_back` (D2-03, D2-04, INT-14). 
 
 ## Shared database objects this migration changes
 
-Redefined as supersets of the newest definitions: `ai_runs_job_check`, `ai_on`, `decision_mark`, `decisions_subject_check`, `lens_summary_versions_author_check`, `map_assemble`, `control_status` (patched in place). Wrapped by renaming the previous function: `ai_claim` (to `ai_claim_base5`), `ai_apply` (`ai_apply_base5`), `ai_fail` (`ai_fail_base4`), `reset_practice_room` (`reset_practice_room_base5`), `rehearsal_control` (`rehearsal_control_base5`).
+Redefined as supersets of the newest definitions: `ai_runs_job_check`, `ai_on`, `decision_mark`, `decisions_subject_check`, `lens_summary_versions_author_check`, `map_assemble`, `control_status` (patched in place). Wrapped by renaming the previous function: `ai_claim` (to `ai_claim_pre_read_back`), `ai_apply` (`ai_apply_pre_read_back`), `ai_fail` (`ai_fail_pre_read_back`), `reset_practice_room` (`reset_practice_room_pre_read_back`), `rehearsal_control` (`rehearsal_control_pre_read_back`).
 
 ## Tests
 

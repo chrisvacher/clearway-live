@@ -18,15 +18,15 @@
 --   private.ai_on                       keeps every branch and adds the read_back kind
 --   private.ai_claim, private.ai_apply, private.ai_fail
 --                                       now wrappers: a read_back session (or its job) is handled here, everything else
---                                       goes to the function that was there, renamed ai_claim_base5, ai_apply_base5, ai_fail_base4
+--                                       goes to the function that was there, renamed ai_claim_pre_read_back, ai_apply_pre_read_back, ai_fail_pre_read_back
 --   private.decision_mark, private.decisions subject check
 --                                       the subject read_back is added (every earlier subject and rule unchanged)
 --   private.lens_summary_versions author check
 --                                       also allows read_back (the Day 2 confirm's version of a lens summary)
 --   private.map_assemble                the outcome's 3-year Vision bullets read the read-back's settled version first, then the
 --                                       overnight publication, then the room's bullets; everything else unchanged
---   private.reset_practice_room         the newest definition (What We Heard's wrapper), renamed to _base5 and wrapped; also clears this step's tables
---   private.rehearsal_control           the newest definition (What We Heard's wrapper), renamed to _base5 and wrapped; Clear test answers also clears this step's test rows
+--   private.reset_practice_room         the newest definition (What We Heard's wrapper), renamed to _pre_read_back and wrapped; also clears this step's tables
+--   private.rehearsal_control           the newest definition (What We Heard's wrapper), renamed to _pre_read_back and wrapped; Clear test answers also clears this step's test rows
 --   private.control_status              the newest definition, text-patched: this step's test items join the rehearsal count (nothing else changes)
 --   private.templates (data)            the "Confirm the 10-year Future" placeholder in both Wayfinding templates becomes a read_back step
 begin;
@@ -185,7 +185,7 @@ alter table private.decisions add constraint decisions_subject_check check(subje
 alter table private.lens_summary_versions drop constraint lens_summary_versions_author_check;
 alter table private.lens_summary_versions add constraint lens_summary_versions_author_check check(author in ('ai','facilitator','read_back'));
 alter table private.ai_runs drop constraint ai_runs_job_check;
-alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft','draft_lens_summary','fold_lens_summary','propose_candidates','fold_four_lists','draft_discover_themes','draft_what_we_heard','fold_read_back'));
+alter table private.ai_runs add constraint ai_runs_job_check check(job in ('combine_words','group_wall','summarize_wall','fold_questions','merge_reasons','group_lens','overnight_draft','draft_lens_summary','fold_lens_summary','propose_candidates','fold_four_lists','draft_discover_themes','draft_what_we_heard','alignment_signal','fold_read_back'));
 
 create or replace function private.ai_on(p_session uuid) returns boolean
 language sql stable security definer set search_path='' as $$
@@ -822,9 +822,9 @@ create function public.read_back_correct(p_engagement uuid,p_id uuid,p_item uuid
 language sql security invoker set search_path='' as $$ select private.read_back_correct(p_engagement,p_id,p_item,p_line,p_wording,p_reason) $$;
 
 -- ---------- The AI worker: claim, apply, fail ----------
-alter function private.ai_claim(uuid,uuid,text,jsonb) rename to ai_claim_base5;
-alter function private.ai_apply(uuid,uuid,jsonb,jsonb) rename to ai_apply_base5;
-alter function private.ai_fail(uuid,uuid,text,jsonb) rename to ai_fail_base4;
+alter function private.ai_claim(uuid,uuid,text,jsonb) rename to ai_claim_pre_read_back;
+alter function private.ai_apply(uuid,uuid,jsonb,jsonb) rename to ai_apply_pre_read_back;
+alter function private.ai_fail(uuid,uuid,text,jsonb) rename to ai_fail_pre_read_back;
 
 -- A correction that names no line is claimed here for the AI; every other session goes to the function that was there. The room is
 -- on the step, the AI is on, and the facilitator accepted a correction into "folding".
@@ -833,7 +833,7 @@ language plpgsql security definer set search_path='' as $$
 declare s public.sessions; a private.ai_sessions; r public.room_states; e public.engagements; t timestamptz:=clock_timestamp(); c private.read_back_corrections; it private.read_back_items; cv private.read_back_versions; v_inputs jsonb; v_run uuid;
 begin
  select * into s from public.sessions where id=p_session and not deleted;
- if s.id is null or s.interaction<>'read_back' then return private.ai_claim_base5(p_session,p_lease,p_model,p_versions); end if;
+ if s.id is null or s.interaction<>'read_back' then return private.ai_claim_pre_read_back(p_session,p_lease,p_model,p_versions); end if;
  if p_lease is null or p_model is null or length(p_model) not between 1 and 100 or jsonb_typeof(p_versions) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  if not private.ai_on(s.id) or s.state not in ('live','phones_down','open') then return jsonb_build_object('status','off'); end if;
  select * into r from public.room_states where engagement_id=s.engagement_id and not deleted for update;
@@ -887,7 +887,7 @@ declare run private.ai_runs; a private.ai_sessions; r public.room_states; s publ
  t timestamptz:=clock_timestamp(); v_ms integer; ids jsonb; ref text; txt text; note text; prob text; allowed text; target uuid; texts text[]; froms uuid[]; srcs jsonb; origs text[]; i integer; vid uuid; total integer; did boolean:=false; why text:=null; discard boolean:=false;
 begin
  select * into run from private.ai_runs where id=p_run;
- if run.id is null or run.job<>'fold_read_back' then return private.ai_apply_base5(p_run,p_lease,p_output,p_usage); end if;
+ if run.id is null or run.job<>'fold_read_back' then return private.ai_apply_pre_read_back(p_run,p_lease,p_output,p_usage); end if;
  if p_lease is null then return jsonb_build_object('status','invalid_request'); end if;
  if run.engagement_id='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(run.engagement_id::text,7)); end if;
  select * into r from public.room_states where engagement_id=run.engagement_id and not deleted for update;
@@ -971,7 +971,7 @@ begin
  if run.id is not null and run.job='fold_read_back' then
   perform 1 from public.room_states where engagement_id=run.engagement_id and not deleted for update;
  end if;
- res:=private.ai_fail_base4(p_run,p_lease,p_error,p_usage);
+ res:=private.ai_fail_pre_read_back(p_run,p_lease,p_error,p_usage);
  if run.id is not null and run.job='fold_read_back' and res->>'status'='ok' then
   update private.read_back_corrections set state='failed',failure='ai_failed',run_id=null where run_id=run.id and state='folding';
   update public.room_states set results=private.live_results(run.engagement_id) where engagement_id=run.engagement_id and live_session_id=run.session_id;
@@ -1125,15 +1125,15 @@ begin
 end $$;
 
 -- Practice reset, Clear test answers and the control status: the newest definitions (What We Heard's wrappers over the earlier ones),
--- renamed to _base5 and wrapped, so every table and count they have stays. This step's tables are cleared after.
-alter function private.reset_practice_room() rename to reset_practice_room_base5;
-alter function private.rehearsal_control(uuid,uuid,text) rename to rehearsal_control_base5;
+-- renamed to _pre_read_back and wrapped, so every table and count they have stays. This step's tables are cleared after.
+alter function private.reset_practice_room() rename to reset_practice_room_pre_read_back;
+alter function private.rehearsal_control(uuid,uuid,text) rename to rehearsal_control_pre_read_back;
 
 create function private.reset_practice_room() returns boolean
 language plpgsql security definer set search_path='' as $$
 declare eng uuid:='90000000-0000-4000-8000-000000000010'::uuid; ok boolean;
 begin
- ok:=private.reset_practice_room_base5();
+ ok:=private.reset_practice_room_pre_read_back();
  if ok then
   update private.read_back_corrections set deleted=true where engagement_id=eng and not deleted;
   update private.read_back_lines set deleted=true where engagement_id=eng and not deleted;
@@ -1149,7 +1149,7 @@ create function private.rehearsal_control(p_engagement uuid,p_id uuid,p_action t
 language plpgsql security definer set search_path='' as $$
 declare out jsonb;
 begin
- out:=private.rehearsal_control_base5(p_engagement,p_id,p_action);
+ out:=private.rehearsal_control_pre_read_back(p_engagement,p_id,p_action);
  if p_action='clear' and p_engagement is not null and out->>'status'='ok' then
   update private.read_back_corrections set deleted=true where engagement_id=p_engagement and test and not deleted;
   update private.read_back_lines set deleted=true where version_id in (select v.id from private.read_back_versions v join private.read_back_items i on i.id=v.item_id and i.engagement_id=v.engagement_id
@@ -1202,8 +1202,8 @@ revoke all on function private.rb_uuid(text),private.rb_marks(text,text),private
  public.read_back_state(uuid),public.read_back_control(uuid,uuid,text,jsonb),public.read_back_phone(uuid,uuid),public.read_back_scribe(uuid),
  public.read_back_correct(uuid,uuid,uuid,text,text,text),
  private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),
- private.ai_claim_base5(uuid,uuid,text,jsonb),private.ai_apply_base5(uuid,uuid,jsonb,jsonb),private.ai_fail_base4(uuid,uuid,text,jsonb),
- private.reset_practice_room_base5(),private.reset_practice_room(),private.rehearsal_control_base5(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text)
+ private.ai_claim_pre_read_back(uuid,uuid,text,jsonb),private.ai_apply_pre_read_back(uuid,uuid,jsonb,jsonb),private.ai_fail_pre_read_back(uuid,uuid,text,jsonb),
+ private.reset_practice_room_pre_read_back(),private.reset_practice_room(),private.rehearsal_control_pre_read_back(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text)
  from public,anon,authenticated;
 -- The engine finds options, parse, results and items by name; the wrappers call the private functions as the signed-in caller.
 grant execute on function private.read_back_state(uuid),private.read_back_control(uuid,uuid,text,jsonb),private.read_back_phone(uuid,uuid),private.read_back_scribe(uuid),
@@ -1212,6 +1212,6 @@ grant execute on function private.read_back_state(uuid),private.read_back_contro
  public.read_back_correct(uuid,uuid,uuid,text,text,text) to authenticated;
 -- The worker's claim, apply and fail keep their grants (service role); the renamed originals are for the wrappers.
 grant execute on function private.ai_claim(uuid,uuid,text,jsonb),private.ai_apply(uuid,uuid,jsonb,jsonb),private.ai_fail(uuid,uuid,text,jsonb),
- private.ai_claim_base5(uuid,uuid,text,jsonb),private.ai_apply_base5(uuid,uuid,jsonb,jsonb),private.ai_fail_base4(uuid,uuid,text,jsonb) to service_role;
+ private.ai_claim_pre_read_back(uuid,uuid,text,jsonb),private.ai_apply_pre_read_back(uuid,uuid,jsonb,jsonb),private.ai_fail_pre_read_back(uuid,uuid,text,jsonb) to service_role;
 grant execute on function private.reset_practice_room(),private.rehearsal_control(uuid,uuid,text) to authenticated;
 commit;
