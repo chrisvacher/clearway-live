@@ -1,0 +1,68 @@
+/* The alignment signal (milestone 6, step 5): the facilitator's private panel and the remote's short list.
+   Tokens only. Every rule is scoped to the control surface, so nothing here can reach the TV, a phone or the scribe console. */
+[data-surface="control"] .cwl-sg-panel { display: flex; flex-direction: column; gap: 10px; }
+[data-surface="control"] .cwl-sg-list { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+[data-surface="control"] .cwl-sg-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700; color: var(--cwl-fac-private-text); }
+[data-surface="control"] .cwl-sg-item { display: block; overflow: hidden; max-height: 480px; padding-bottom: 8px; }
+/* A card in: a soft fade and an 8px rise, slower than a room arrival. No ring, no flash, no sound. */
+[data-surface="control"] .cwl-sg-item.is-arriving { animation: cwl-sg-in var(--cwl-dur-signal-in) var(--cwl-ease-calm) both; }
+@keyframes cwl-sg-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+/* Dismiss: the card fades and the list closes up after it. */
+[data-surface="control"] .cwl-sg-item { transition: opacity var(--cwl-dur-hide) var(--cwl-ease-signature), max-height var(--cwl-dur-hide) var(--cwl-ease-signature), padding var(--cwl-dur-hide) var(--cwl-ease-signature); }
+[data-surface="control"] .cwl-sg-item.is-leaving { opacity: 0; max-height: 0; padding-block: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-surface="control"] .cwl-sg-item.is-arriving { animation: none; }
+  [data-surface="control"] .cwl-sg-item { transition: none; }
+}
+[data-surface="control"] .cwl-signal { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; background: var(--cwl-fac-signal-card); color: var(--cwl-fac-private-text); border-radius: var(--cwl-radius-card); padding: 12px 14px; font-size: 14px; line-height: 1.45; text-align: left; font-family: inherit; border: 0; width: 100%; }
+[data-surface="control"] button.cwl-signal { cursor: pointer; }
+[data-surface="control"] .cwl-signal-disc { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--cwl-fac-signal-glyph); }
+[data-surface="control"] .cwl-signal-disc .cwl-icon { width: 18px; height: 18px; }
+[data-surface="control"] .is-aligned .cwl-signal-disc { background: var(--cwl-fac-signal-aligned); }
+[data-surface="control"] .is-divergent .cwl-signal-disc { background: var(--cwl-fac-signal-divergent); }
+[data-surface="control"] .is-silent .cwl-signal-disc { background: var(--cwl-fac-signal-silent); }
+[data-surface="control"] .is-thin .cwl-signal-disc { background: var(--cwl-fac-signal-thin); }
+[data-surface="control"] .cwl-sg-card .b, [data-surface="control"] .cwl-signal .b { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+[data-surface="control"] .cwl-sg-card .k { font-weight: 700; }
+[data-surface="control"] .cwl-signal-title { font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; font-weight: 700; }
+[data-surface="control"] .cwl-sg-card .ln { font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
+[data-surface="control"] .cwl-sg-card .sv { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+[data-surface="control"] .cwl-sg-card .sv .cwl-icon { width: 14px; height: 14px; }
+[data-surface="control"] .cwl-sg-detail { display: flex; flex-direction: column; gap: 10px; background: var(--cwl-fac-signal-card); color: var(--cwl-fac-private-text); border-radius: var(--cwl-radius-card); padding: 12px 14px; }
+[data-surface="control"] .cwl-sg-detail .cwl-signal { padding: 0; }
+[data-surface="control"] .cwl-sg-detail .ln { margin: 0; font-size: 13px; line-height: 1.45; }
+[data-surface="control"] .cwl-sg-kind { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+[data-surface="control"] .cwl-sg-theme { font-size: 18px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+[data-surface="control"] .cwl-sg-h { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-fac-private-text); margin: 2px 0 0; }
+[data-surface="control"] .cwl-sg-ev { display: flex; flex-direction: column; }
+[data-surface="control"] .cwl-sg-ev .r { display: flex; flex-direction: column; gap: 1px; padding: 7px 0; font-size: 13px; line-height: 1.4; border-top: 1px solid var(--cwl-fac-private-surface); overflow-wrap: anywhere; }
+[data-surface="control"] .cwl-sg-ev .r b { font-weight: 700; }
+[data-surface="control"] .cwl-sg-ev .r.is-room { background: var(--cwl-fac-private-surface); border-radius: 6px; padding: 7px 8px; border-top: 0; margin-top: 4px; }
+[data-surface="control"] .cwl-sg-said { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; }
+[data-surface="control"] .cwl-sg-said li { font-size: 13px; line-height: 1.45; padding-left: 10px; box-shadow: inset 2px 0 0 var(--cwl-fac-private-band); overflow-wrap: anywhere; }
+[data-surface="control"] .cwl-sg-q { height: auto; min-height: 60px; padding: 8px 10px; line-height: 1.45; resize: none; font-family: inherit; font-size: 13px; }
+[data-surface="control"] .cwl-sg-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+[data-surface="control"] .cwl-sg-fine { display: flex; gap: 6px; margin: 0; font-size: 12px; font-weight: 600; line-height: 1.45; }
+[data-surface="control"] .cwl-sg-fine .cwl-icon { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+[data-surface="control"] .cwl-sg-empty { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: var(--cwl-radius-card); background: var(--cwl-fac-signal-card); color: var(--cwl-fac-private-text); font-size: 13px; line-height: 1.45; }
+[data-surface="control"] .cwl-sg-empty .cwl-icon { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+[data-surface="control"] .cwl-sg-empty div { display: flex; flex-direction: column; gap: 2px; }
+[data-surface="control"] .cwl-sg-heldnote { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 8px 10px; border-radius: var(--cwl-radius-card); border: 1.5px dashed var(--cwl-fac-private-text); font-size: 12px; font-weight: 600; line-height: 1.45; }
+[data-surface="control"] .cwl-sg-heldnote .cwl-icon { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+/* The question that is on the TV now, with Back to the session. */
+[data-surface="control"] .cwl-sg-onTv { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--cwl-radius-card); background: var(--cwl-fac-private-surface); color: var(--cwl-fac-private-text); font-size: 13px; font-weight: 600; line-height: 1.4; }
+[data-surface="control"] .cwl-sg-onTv .cwl-icon { width: 16px; height: 16px; flex: none; }
+[data-surface="control"] .cwl-sg-onTv span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* The facilitator's own remote: a short list. */
+[data-surface="control"] .cwl-sg-rlist { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-radius: var(--cwl-radius-card); background: var(--cwl-fac-private-surface); color: var(--cwl-fac-private-text); }
+[data-surface="control"] .cwl-sg-rhead { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; }
+[data-surface="control"] .cwl-sg-rhead .cwl-icon { width: 14px; height: 14px; }
+[data-surface="control"] .cwl-sg-rhead span { margin-left: auto; padding: 1px 6px; border-radius: 4px; background: var(--cwl-fac-private-band); color: var(--cwl-fac-private-band-text); font-size: 11px; }
+[data-surface="control"] .cwl-sg-ritem { background: var(--cwl-fac-signal-card); border-radius: 8px; padding: 6px 8px; display: flex; flex-direction: column; gap: 6px; }
+[data-surface="control"] .cwl-sg-ritem .row { display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; width: 100%; }
+[data-surface="control"] .cwl-sg-ritem .cwl-signal-disc { width: 26px; height: 26px; flex: none; }
+[data-surface="control"] .cwl-sg-ritem .cwl-signal-disc .cwl-icon { width: 14px; height: 14px; }
+[data-surface="control"] .cwl-sg-ritem .t { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 12px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+[data-surface="control"] .cwl-sg-ritem .t b { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+[data-surface="control"] .cwl-sg-ritem .ln { margin: 0; font-size: 12px; line-height: 1.4; }
+[data-surface="control"] .cwl-sg-rnone { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.4; }

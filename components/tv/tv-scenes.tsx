@@ -1,6 +1,6 @@
 "use client";
 import { Check } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { roomQr } from "@/lib/tv/qr";
 import { shortRoomLink } from "@/lib/tv/policy";
 import type { LiveSnapshot } from "@/lib/live/types";
@@ -8,7 +8,7 @@ import type { TvStatus } from "@/lib/tv/types";
 import type { TvFlow } from "@/lib/tv/flow";
 import { tokenMs } from "@/lib/tv/board";
 import { Spotlight, Tally } from "./live-board";
-import { ContentScreen, ScreenCheck } from "./content-screen";
+import { ContentScreen, MediaSurface, ScreenCheck } from "./content-screen";
 import { ChurchLockup, LiveMark, type MarkState } from "./live-mark";
 import { tvViews } from "@/components/interactions/tv-views";
 import { contentOf, kindOf } from "@/lib/interactions/kinds";
@@ -30,7 +30,7 @@ function CodeExpiry({ seconds }: { seconds: number }) {
 // cross-fades in; the old layer keeps its last picture while it fades out, so
 // the TV never blanks.
 type Layer = { id: string; frame: LiveSnapshot; leaving: boolean; entering: boolean };
-function SessionLayers({ frame, flow }: { frame: LiveSnapshot | null; flow?: TvFlow | null }) {
+function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; flow?: TvFlow | null; asking: boolean }) {
   const id = frame?.state.tv_content === "session" ? frame.session?.id ?? null : null;
   const [layers, setLayers] = useState<Layer[]>(() => frame && id ? [{ id, frame, leaving: false, entering: false }] : []);
   const box = useRef<HTMLDivElement>(null), last = useRef<LiveSnapshot | null>(frame);
@@ -48,7 +48,7 @@ function SessionLayers({ frame, flow }: { frame: LiveSnapshot | null; flow?: TvF
     const timer = setTimeout(() => setLayers(current => current.filter(layer => !layer.leaving)), wait);
     return () => { cancelAnimationFrame(raf); clearTimeout(timer); };
   }, [layers]);
-  return <div ref={box} className="tv-layers">{layers.map(layer => {
+  return <div ref={box} className={`tv-layers${asking ? " is-asking" : ""}`}>{layers.map(layer => {
     const shown = !layer.leaving && frame && frame.session?.id === layer.id ? frame : layer.frame, session = shown.session!;
     const kind = kindOf(session), input = Boolean(kind?.input), View = tvViews[session.interaction];
     return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} data-kind={session.interaction} aria-hidden={layer.leaving}>
@@ -63,6 +63,18 @@ function SessionLayers({ frame, flow }: { frame: LiveSnapshot | null; flow?: TvF
   })}</div>;
 }
 
+// The facilitator's neutral question (FAC-02, Ask the room): a layer over the live step that cross-fades in and out like a session change.
+// It carries the question's words and nothing else. The live step keeps its place beneath it, and phones never show it.
+function NeutralQuestion({ frame, text }: { frame: LiveSnapshot | null; text: string | null }) {
+  const [kept, setKept] = useState("");
+  // The words stay through the fade out, so the layer never empties while it leaves.
+  if (text && text !== kept) setKept(text);
+  return <div className={`tv-ask${text ? " is-on" : ""}`} aria-hidden={!text} data-neutral-question={text ? "on" : "off"}>
+    <p className="tv-eyebrow">{frame?.session?.title}</p>
+    <h1 className="tv-headline-xl">{kept}</h1>
+  </div>;
+}
+
 export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }: { status: TvStatus; pair?: { code: string | null; seconds: number }; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null }) {
   // Only a code the server will still accept is shown. Between one code ending
   // and its replacement arriving, the cards stay in place, empty.
@@ -72,6 +84,8 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
   const mode = paired ? frame!.state.tv_content : status.status === "pair" ? "pair" : "opening";
   const link = display ? shortRoomLink(display.room_code) : "";
   const session = frame?.session ?? null, kind = kindOf(session);
+  const surface = useContext(MediaSurface);
+  const ask = surface !== "phone" && paired && mode === "session" && typeof frame?.state.neutral_question === "string" && frame.state.neutral_question ? frame.state.neutral_question : null;
   const inputOn = mode === "session" && Boolean(kind?.input);
   // A screen check in the run of show uses the full-bleed check, like the room's own.
   const checkOn = mode === "screen_check" || (mode === "session" && session?.interaction === "content" && contentOf(session.options).screen === "screen_check");
@@ -80,7 +94,7 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
   return <>
     <div className="tv-texture" aria-hidden="true"><span /></div>
     <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}
-      {inputOn && frame && kind?.counts !== "none" && <Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} />}</div>
+      {inputOn && frame && kind?.counts !== "none" && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} /></span>}</div>
       <div className="tv-top-status"><LiveMark state={mark} reconnecting={reconnecting} /></div>
     </header>
     <div className="tv-scenes">
@@ -95,15 +109,16 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
         {display && <><Qr code={display.room_code} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>live.clearway.co</span><span>/{display.room_code}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
       </section>
       <section className={`tv-scene tv-session${mode === "session" ? " is-active" : ""}`} aria-hidden={mode !== "session"}>
-        <SessionLayers frame={paired ? frame : null} flow={flow} />
+        <SessionLayers frame={paired ? frame : null} flow={flow} asking={Boolean(ask)} />
+        <NeutralQuestion frame={frame} text={ask} />
       </section>
       <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1></section>
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
-    {paired && <Spotlight frame={frame} />}
-    {paired && <QaSpotlight frame={frame} />}
-    {paired && <PromotedQuoteSpot frame={frame} />}
-    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <QaWaiting frame={frame} />}{paired && <AiFoot frame={frame} />}</span>
+    {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}
+    {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaSpotlight frame={frame} /></span>}
+    {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><PromotedQuoteSpot frame={frame} /></span>}
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
 }

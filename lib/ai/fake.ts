@@ -6,7 +6,7 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { heardPrompt, overnightPrompt, prompts, replyJson, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type OvernightOutput, type ThemesOutput } from "./prompts";
+import { heardPrompt, overnightPrompt, prompts, replyJson, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type OvernightOutput, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
   return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
@@ -181,6 +181,30 @@ function scriptedLensFold(input: Record<string, unknown>) {
   return JSON.stringify({ sentences, remove: [...removed].map(([ref, suggestions]) => ({ ref, suggestions })) });
 }
 
+// The alignment signal's stand-in. A strong theme whose label words the room used becomes an aligned card on those answers; a strong theme the
+// room has not touched becomes a silent card once phones are down; a thin theme the room spoke to becomes a thin card. Answers that talk of adding
+// a service or moving everything (the kit's own words for a different direction) become one divergent card, on the first strong theme they do
+// not match, once. It never repeats a card the run was told is already up, and its questions are neutral, as the prompt asks.
+const stem = (w: string) => w.slice(0, 4);
+const signalAsks: Record<SignalKind, string> = { aligned: "What does this look like on a Sunday?", divergent: "What would we gain or lose by going that way?", silent: "Where have you seen this in our church?", thin: "What have you noticed about this?" };
+const differentWay = /third service|another service|move everything|every ministry/i;
+function scriptedSignal(input: Record<string, unknown>): string {
+  const themes = (input.themes ?? []) as { ref: string; label: string; weight: string }[], room = (input.room ?? []) as { ref: string; text: string; new?: boolean }[];
+  const raised = (input.raised ?? []) as { kind: string; theme: string | null }[], phonesDown = input.phones_down === true;
+  const up = (kind: string, theme: string) => raised.some(r => r.kind === kind && r.theme === theme);
+  const cards: SignalOutput["cards"] = [], hit = (theme: { label: string }) => { const mine = new Set([...words(theme.label)].map(stem)); return room.filter(r => [...words(r.text)].some(w => mine.has(stem(w)))); };
+  const matched = new Map(themes.map(t => [t.ref, hit(t)]));
+  for (const t of themes) {
+    const rows = matched.get(t.ref)!;
+    if (t.weight === "strong" && rows.length && (!up("aligned", t.ref) || rows.some(r => r.new))) cards.push({ kind: "aligned", theme: t.ref, title: `${t.label} shows up in the room`, line: `Answers here speak of ${t.label.toLowerCase()}, as the Discover findings do.`, ask: signalAsks.aligned, room: rows.slice(0, 6).map(r => r.ref), also: [] });
+    else if (t.weight === "strong" && !rows.length && phonesDown && !up("silent", t.ref)) cards.push({ kind: "silent", theme: t.ref, title: `${t.label} has not come up`, line: `Nothing in the room yet speaks of ${t.label.toLowerCase()}.`, ask: signalAsks.silent, room: [], also: [] });
+    else if (t.weight === "thin" && rows.length && !up("thin", t.ref)) cards.push({ kind: "thin", theme: t.ref, title: `${t.label} has little behind it`, line: `The room spoke to ${t.label.toLowerCase()}, and the data behind it is thin.`, ask: signalAsks.thin, room: rows.slice(0, 6).map(r => r.ref), also: [] });
+  }
+  const away = room.filter(r => differentWay.test(r.text)), base = themes.find(t => t.weight === "strong" && !matched.get(t.ref)!.length) ?? themes.find(t => t.weight === "strong");
+  if (away.length && base && !raised.some(r => r.kind === "divergent")) cards.push({ kind: "divergent", theme: base.ref, title: "Some answers head a different way", line: "A few answers turn toward something the Discover findings do not hold.", ask: signalAsks.divergent, room: away.slice(0, 6).map(r => r.ref), also: [] });
+  return JSON.stringify({ cards: cards.slice(0, 6), complete: true });
+}
+
 export function scripted(call: AiCall): string {
   if (isOvernight(call)) return scriptedOvernight(call);
   if (isThemes(call)) return scriptedThemes(call);
@@ -237,6 +261,7 @@ export function scripted(call: AiCall): string {
     }
     return JSON.stringify({ groups });
   }
+  if (job === "alignment_signal") return scriptedSignal(input);
   if (job === "draft_lens_summary") return scriptedLensDraft(input);
   if (job === "fold_lens_summary") return scriptedLensFold(input);
   if (job === "propose_candidates") {

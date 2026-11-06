@@ -15,6 +15,7 @@ import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
 import { AiPanel } from "@/components/interactions/ai/ai-panel";
+import { SignalPanel } from "@/components/interactions/signal/signal-panel";
 import { aiPressNames } from "@/lib/interactions/ai";
 import { ScribeFeed } from "@/components/scribe/scribe-feed";
 import { OvernightCard } from "@/components/overnight/overnight-card";
@@ -85,6 +86,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
         </>}
       </main>
       <aside className="ctl-col ctl-side">
+        <SignalPanel room={room} />
         <AiPanel room={room} />
         <Private title="Room">
           <div className="ctl-stats">

@@ -71,6 +71,7 @@ export const actionNames: Record<string, string> = {
   room_size: "Room size", close_part: "Close the day", burst_ended: "Burst ended",
   turn_ai_on: "Turn AI on", turn_ai_off: "Turn AI off", undo_ai_combine: "Undo an AI combine", undo_ai_group: "Undo an AI group", redo_ai_group: "Redo an AI group",
   pin_group: "Pin a group", unpin_group: "Unpin a group", rename_group: "Rename a group", undo_last_ai_change: "Undo last AI change", show_summary: "Show summary", hide_summary: "Hide summary",
+  dismiss_signal: "Dismiss a signal card", save_signal_citation: "Save a citation", ask_the_room: "Ask the room", back_to_session: "Back to the session",
   candidates_draft: "Draft candidates", candidates_add: "Add a candidate", candidates_rename: "Rename a candidate", candidates_remove: "Remove a candidate", candidates_merge: "Merge candidates",
   candidates_accept: "Accept a suggestion", candidates_dismiss: "Dismiss a suggestion", candidates_send: "Send candidates to the TV", candidates_hold: "Hold candidates back", candidates_open_points: "Open 100 points",
   undo_fold: "Undo a fold", pin_card: "Pin a card", unpin_card: "Unpin a card", hide_card: "Hide a card", unhide_card: "Unhide a card",

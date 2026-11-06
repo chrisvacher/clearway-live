@@ -9,6 +9,7 @@ import { TvMirror } from "@/components/tv/tv-mirror";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 import { HandoverPanel } from "@/components/interactions/intent/handover";
 import { AiRemote } from "@/components/interactions/ai/ai-panel";
+import { SignalList } from "@/components/interactions/signal/signal-panel";
 import { OvernightCard } from "@/components/overnight/overnight-card";
 import { QuoteOnTv } from "./quote-on-tv";
 
@@ -36,6 +37,7 @@ export function Remote({ initial }: { initial: RunOfShow }) {
       <QuoteOnTv room={room} />
       <LiveControls room={room} variant="remote" onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
       <AiRemote room={room} />
+      <SignalList room={room} />
       <section className="ctl-private" aria-label="Overnight review, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Overnight review</span></div>
         <div className="ctl-private-body"><OvernightCard engagement={initial.context.id} tick={room.overnightTick} link={false} /></div></section>
       <HandoverPanel room={room} />

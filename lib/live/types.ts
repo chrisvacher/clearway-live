@@ -4,7 +4,7 @@ import type { QaPublic } from "../interactions/qa";
 export type LiveSession = { revision?: number; base_year?: number; settings?: { anonymous: boolean; burst_minutes: number; join_strip: boolean }; id: string; title: string; interaction: InteractionKind; prompt: string; state: string; max_sends: number; max_characters: number; max_words: number;
   options?: Record<string, unknown>; kind?: KindInfo };
 export type LiveState = { engagement_id: string; live_session_id: string | null; version: number; tv_content: string; phones_down: boolean; burst_ends_at: string | null;
-  spotlight_key?: string | null; hidden_keys?: string[]; hidden_ids?: string[]; show_tv_on_phones?: boolean; phone_refresh_version?: number;
+  spotlight_key?: string | null; neutral_question?: string; hidden_keys?: string[]; hidden_ids?: string[]; show_tv_on_phones?: boolean; phone_refresh_version?: number;
   results: LiveResults; [key: string]: unknown };
 // Every kind's results carry total and people, computed once on the server. Each kind adds its own fields.
 export type LiveResults = { total: number; people: number; words: { key: string; text: string; count: number; size: number; level: string; order?: number }[]; [key: string]: unknown };

@@ -290,6 +290,19 @@ jobs:
           path: heard-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the alignment signal (cards on the control surface and the remote, nothing on the TV or phones, dismiss, citation, neutral question, laptop closed) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p signal-shots && npm run test:signal
+        env:
+          KIT_SHOTS: signal-shots
+      - name: Upload the alignment signal screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: signal-screens
+          path: signal-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup
