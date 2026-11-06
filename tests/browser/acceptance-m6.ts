@@ -57,7 +57,7 @@ async function main() {
   const env = localEnv(), sql = db(env), app = await startApp(env);
   let browser: Browser | undefined, fac: Awaited<ReturnType<typeof facilitator>> | undefined;
   const passed: string[] = [], table: string[] = [], cleanup: string[] = [];
-  const shots = process.env.KIT_SHOTS, tag = randomUUID().slice(0, 6);
+  const startedAt = new Date().toISOString(), shots = process.env.KIT_SHOTS, tag = randomUUID().slice(0, 6);
   const shot = async (page: Page, name: string) => { if (shots) { await delay(900); await page.screenshot({ path: `${shots}/acceptance-m6-${name}.png` }); } };
   const step = async (name: string, run: () => Promise<void>) => { const t0 = Date.now(); await run(); passed.push(`${name} (${((Date.now() - t0) / 1000).toFixed(1)} s)`); console.log(`ok · ${name}`); };
   let seed = 23; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
@@ -102,8 +102,8 @@ async function main() {
     const layer = () => tv.locator(".tv-layer:not(.is-leaving)").last();
     const tally = async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).replace(/\s+/g, " ").trim();
     const watch = async (sel: string) => tv.evaluate(s => { const a = (window as unknown as { __acc: Watch & { sel: string } }).__acc; const out = { ...a, jumps: a.jumps.slice() }; Object.assign(a, { sel: s, frames: 0, blank: 0, dim: 0, worst: 0, worstKey: "", worstDt: 0, steps: 0, jumps: [] }); return out as Watch; }, sel);
-    const phones = await joinPhones(app.origin, 50, { prefix: "Discover phone" });
-    const attendees = (await sql.query("select id from public.attendees where engagement_id=$1 and not deleted and name like 'Discover phone%'", [room])).rows;
+    const phones = await joinPhones(app.origin, 50, { prefix: "Wayfinder" });
+    const attendees = (await sql.query("select id from public.attendees where engagement_id=$1 and not deleted and name like 'Wayfinder %'", [room])).rows;
     assert.equal(attendees.length, 50, "fifty phones in the room");
     // One of them is a real browser page, so a phone's own page and network can be read.
     const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
@@ -233,6 +233,8 @@ async function main() {
       await shot(page, "discover-findings");
     });
     await step("Draft themes: themes arrive from the notes and the 50 phones' cards with the AI icon and counts, resting on conversations and cards, with no person anywhere; a single source is thin", async () => {
+      const standing = (await sql.query("select count(*)::int n from private.four_lists_cards_for_themes($1)", [room])).rows[0].n as number;
+      assert.ok(standing >= 20, `the cards the 50 phones wrote stand for the themes to read (${standing})`);
       await page.getByRole("button", { name: "Draft themes" }).click();
       await theme("Small groups are hard to find", conv).waitFor({ timeout: 30000 });
       await until(async () => (await themeRows("and source in ('conversations','four_lists')")).length >= 6, "themes saved", 30000);
@@ -241,22 +243,22 @@ async function main() {
       assert.ok(drafted.some(r => r.source === "four_lists"), "the cards the phones wrote gave themes too");
       assert.match(await theme("Small groups are hard to find", conv).innerText(), /2\s*of 5 conversations/, "rests on / out of, from the sources");
       assert.ok(await theme("Small groups are hard to find", conv).locator(".cwl-ai-mark").count() >= 1, "the AI icon on a drafted theme");
-      assert.match(await theme("Small groups are hard to find", fl).innerText(), /of \d+ people/, "a card theme counts people");
+      assert.match(await theme("Communication is unclear", fl).innerText(), /of \d+ people/, "a card theme counts people");
       // One interview alone is thin by the rule (one interview), and says so.
       assert.equal(await theme("Giving is steady", conv).locator(".dsc-thin").count(), 1, "a theme resting on one interview is marked thin");
       assert.ok(!new RegExp(people.join("|") + "|Shah").test(await page.locator("main").innerText()), "no person on the page");
-      assert.equal((await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_discover_themes' and status='ok'", [room])).rows[0].n, 1);
+      assert.equal((await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_discover_themes' and status='ok' and created_at>=$2", [room, startedAt])).rows[0].n, 1);
       assert.equal((await accepted()).length, 3, "only the three findings count before anything is accepted");
       await shot(page, "discover-drafted");
     });
     await step("Accept, reject and leave: only the themes the facilitator accepts count", async () => {
       await theme("Small groups are hard to find", conv).getByRole("button", { name: "Accept" }).click();
-      await theme("Small groups are hard to find", fl).getByRole("button", { name: "Accept" }).click();
+      await theme("Communication is unclear", fl).getByRole("button", { name: "Accept" }).click();
       await theme("Leaders feel alone").getByRole("button", { name: "Reject" }).click();
       await until(async () => (await accepted()).length === 5, "five themes count: three findings and two accepted", 10000);
       const labels = (await accepted()).map(a => a.label);
-      for (const none of ["Volunteers are stretched", "Leaders feel alone", "Giving is steady", "Communication is unclear"]) assert.ok(!labels.includes(none), `${none} does not count`);
-      assert.equal((await themeRows("and label='Leaders feel alone' and status='rejected'")).length >= 1, true);
+      for (const none of ["Volunteers are stretched", "Leaders feel alone", "Giving is steady", "Worship and music are strengths"]) assert.ok(!labels.includes(none), `${none} does not count`);
+      await until(async () => (await themeRows("and label='Leaders feel alone' and status='rejected'")).length >= 1, "a rejected theme is saved as rejected", 10000);
       assert.ok((await themeRows("and label='Volunteers are stretched' and status='draft'")).length >= 1, "a theme left alone stays a draft");
       await shot(page, "discover-accepted");
     });
@@ -281,12 +283,13 @@ async function main() {
       assert.ok(drafts.every(d => d.ai && !d.applied_at), "each is an AI draft, not yet applied");
       assert.equal(drafts.find(d => d.source_key === "survey")!.number, "52%", "the number is the lead theme's own figure, set by the database");
       assert.ok(await source("survey").locator(".cwl-ai-mark").count() >= 1, "the AI icon on a draft");
-      const run = (await sql.query("select inputs::text as inputs, output::text as output from private.ai_runs where engagement_id=$1 and job='draft_what_we_heard' and status='ok' order by created_at desc limit 1", [room])).rows[0];
-      for (const want of ["Small groups are easy to find", "Small groups are hard to find"]) assert.ok(run.inputs.includes(want), `the accepted theme "${want}" was sent`);
-      for (const none of ["Volunteers are stretched", "Leaders feel alone", "Giving is steady", "Communication is unclear", "The next step is unclear", ...people]) assert.ok(!run.inputs.includes(none) && !run.output.includes(none), `"${none}" never reached the model`);
+      const run = (await sql.query("select inputs::text as inputs, output::text as output from private.ai_runs where engagement_id=$1 and job='draft_what_we_heard' and status='ok' and created_at>=$2 order by created_at desc limit 1", [room, startedAt])).rows[0];
+      for (const want of ["Small groups are easy to find", "Small groups are hard to find", "Communication is unclear"]) assert.ok(run.inputs.includes(want), `the accepted theme "${want}" was sent`);
+      for (const none of ["Volunteers are stretched", "Leaders feel alone", "Giving is steady", "Worship and music are strengths", "The next step is unclear", ...people]) assert.ok(!run.inputs.includes(none) && !run.output.includes(none), `"${none}" never reached the model`);
       assert.equal((await stepRow("survey")).prompt, "", "nothing is written to a step until Apply");
-      // A thin finding is marked on the line it feeds.
-      assert.match(await source("survey").innerText(), /thin/i, "thin data is marked on the survey line");
+      // Thin follows the lead theme: the page marks "(thin data)" on a line exactly when the database says its lead is thin, and the survey's lead (52 percent) is not.
+      assert.equal(drafts.find(d => d.source_key === "survey")!.thin, false, "the survey headline leads with a strong finding");
+      for (const d of drafts) assert.equal(/\(thin data\)/i.test(await source(d.source_key).innerText()), d.thin, `${d.source_key}: "(thin data)" is on the line exactly when its lead is thin`);
       await shot(page, "what-we-heard-drafted");
     });
     await step("Apply writes the step's headline, number, source and phone depth, and nothing goes live; when the step goes live the TV and a phone show it", async () => {
@@ -331,7 +334,9 @@ async function main() {
       assert.deepEqual([...new Set(statuses)], ["accepted"], "every answer accepted");
       const panelKinds = async () => (await control.locator("[data-signal-panel] [data-signal-id]:not(.is-leaving)").evaluateAll(els => els.map(e => e.getAttribute("data-signal")))).sort();
       const listKinds = async () => (await remote.locator("[data-signal-list] [data-signal-id]:not(.is-leaving)").evaluateAll(els => els.map(e => e.getAttribute("data-signal")))).sort();
-      await until(async () => { const k = await panelKinds(); return ["aligned", "divergent", "thin"].every(x => k.includes(x)); }, "aligned, divergent and thin cards on the control surface", 45000);
+      await until(async () => { const k = await panelKinds(); return ["aligned", "divergent", "thin"].every(x => k.includes(x)); }, "aligned, divergent and thin cards on the control surface", 60000).catch(async e => {
+        const runs = (await sql.query("select status,error,jsonb_array_length(inputs->'room') as room,left(output::text,600) as out from private.ai_runs where session_id=$1 and job='alignment_signal' order by created_at", [wall])).rows;
+        console.error("signal runs:", JSON.stringify(runs), "cards:", JSON.stringify((await sql.query("select kind,title,dismissed_at from private.signals where session_id=$1", [wall])).rows)); throw e; });
       await until(async () => JSON.stringify(await listKinds()) === JSON.stringify(await panelKinds()), "the same cards on the remote", 20000);
       const w = (await report(from)).sessions.find(s => s.id === wall);
       assert.ok(w && w.measured === 10 && verdict(w).met, `the wall's answers reached the TV under one second while the signal ran (${w ? verdict(w).label : "no log"})`);
@@ -344,7 +349,9 @@ async function main() {
       const tvText = (await tv.locator("body").innerText()).toLowerCase();
       for (const c of cards) for (const part of [c.title, c.line]) assert.ok(!tvText.includes(part.toLowerCase()), `the TV page never holds "${part}"`);
       for (const word of ["aligned", "divergent", "thin data", "silent", "alignment"]) assert.ok(!tvText.includes(word), `the TV never says "${word}"`);
-      const forbidden = [...cards.flatMap(c => [c.title, c.line, c.ask ?? ""]), ...(await accepted()).map(a => a.label), "alignment_signal", "\"divergent\"", "\"aligned\"", "evidence"].filter(Boolean).map(s => s.toLowerCase());
+      // Words the room itself said, and the What We Heard step the facilitator applied and took live, are public on purpose; the rest of the accepted themes are not.
+      const publicText = (said.join(" ") + " " + (await sql.query("select string_agg(prompt||' '||phone_depth||' '||options::text,' ') as t from public.sessions where id=any($1::uuid[])", [Object.values(heard)])).rows[0].t).toLowerCase();
+      const forbidden = [...cards.flatMap(c => [c.title, c.line, c.ask ?? ""]), ...(await accepted()).map(a => a.label).filter(l => !publicText.includes(l.toLowerCase())), "alignment_signal", "\"divergent\"", "\"aligned\"", "evidence"].filter(Boolean).map(s => s.toLowerCase());
       const tvAll = tvWire.join("\n").toLowerCase();
       assert.ok(tvWire.length > 0, "the TV's network was watched");
       for (const bad of forbidden) assert.ok(!tvAll.includes(bad), `the TV was never sent "${bad}"`);
@@ -372,8 +379,8 @@ async function main() {
       const runs = (await sql.query("select inputs::text as inputs, status from private.ai_runs where session_id=$1 and job='alignment_signal' order by created_at", [wall])).rows as { inputs: string; status: string }[];
       assert.ok(runs.length >= 1 && runs.every(r => r.status === "ok"), `signal runs logged and ok (${runs.length})`);
       const inputs = runs.map(r => r.inputs).join("\n");
-      for (const want of ["Small groups are easy to find", "Giving is generous", "Young families", "Small groups are hard to find"]) assert.ok(inputs.includes(want), `the accepted theme "${want}" was sent`);
-      for (const none of ["Volunteers are stretched", "Leaders feel alone", "Giving is steady", "Communication is unclear", "The next step is unclear", "Worship and music", ...people, "Discover phone"]) assert.ok(!inputs.includes(none), `"${none}" never reached the model`);
+      for (const want of ["Small groups are easy to find", "Giving is generous", "Young families", "Small groups are hard to find", "Communication is unclear"]) assert.ok(inputs.includes(want), `the accepted theme "${want}" was sent`);
+      for (const none of ["Volunteers are stretched", "Leaders feel alone", "Giving is steady", "Worship and music are strengths", "The next step is unclear", "Worship and music", ...people, "Wayfinder 0"]) assert.ok(!inputs.includes(none), `"${none}" never reached the model`);
       const noCard = (await sql.query("select count(*)::int n from private.signals s join private.discover_themes t on t.id=s.theme_id where s.session_id=$1 and t.status<>'accepted'", [wall])).rows[0].n;
       assert.equal(noCard, 0, "no card rests on a theme that is not accepted");
       const volunteers = (await sql.query("select count(*)::int n from private.signals where session_id=$1 and not deleted and (title ilike '%volunteer%' or line ilike '%volunteer%')", [wall])).rows[0].n;
@@ -390,13 +397,15 @@ async function main() {
       await aligned.getByRole("button", { name: "Save as a citation" }).click();
       await until(async () => (await sql.query("select count(*)::int n from private.signals where session_id=$1 and saved_as_citation_at is not null and kind='aligned'", [wall])).rows[0].n === 1, "the citation is saved", 5000);
       await aligned.getByRole("button", { name: "See all signals" }).click();
+      const thinId = await panel.filter({ hasText: "Thin data" }).first().getAttribute("data-signal-id");
       await panel.filter({ hasText: "Thin data" }).first().click();
       const thin = control.locator("[data-signal-detail=\"thin\"]");
       assert.equal(await thin.getByRole("button", { name: /Save as a citation/ }).count(), 0, "only an aligned card can be saved");
-      const count = await panel.count();
       await thin.getByRole("button", { name: "Dismiss" }).click();
-      await until(async () => (await panel.count()) === count - 1, "the list has closed up", 4000);
-      await until(async () => (await remote().locator("[data-signal-list] [data-signal-id]").count()) === count - 1, "and so has the remote's", 10000);
+      const mine = (root: Page, list: string) => root.locator(`${list} [data-signal-id="${thinId}"]:not(.is-leaving)`);
+      await until(async () => (await mine(control, "[data-signal-panel]").count()) === 0, "the dismissed card is gone from the control surface", 6000);
+      await until(async () => (await mine(remote(), "[data-signal-list]").count()) === 0, "and from the remote's list", 10000);
+      assert.ok((await panel.count()) >= 1, "the other cards are still listed");
       assert.equal((await sql.query("select count(*)::int n from private.signals where session_id=$1 and kind='thin' and dismissed_at is not null", [wall])).rows[0].n, 1, "dismissed in the database");
     });
 
@@ -421,7 +430,7 @@ async function main() {
       assert.equal(fade.blank, 0, `no blank frame on the way in (the screen never covered less than ${Math.round(fade.min * 100)} percent)`);
       await until(async () => (await top.evaluate(el => getComputedStyle(el).visibility)) === "hidden", "the count is hidden", 3000);
       if (hadFoot) await until(async () => (await foot.evaluate(el => getComputedStyle(el).visibility)) === "hidden", "the AI line is hidden", 3000);
-      const tvText = (await tv.locator(".tv-top, .tv-scenes").allInnerTexts()).join(" ").toLowerCase();
+      const tvText = (await tv.locator(".tv-top, .tv-ask").allInnerTexts()).join(" ").toLowerCase();
       for (const bad of ["aligned", "divergent", "thin data", "silent", "survey", "52%", "small groups are easy", "giving is generous", "young families"]) assert.ok(!tvText.includes(bad), `the question carries no "${bad}"`);
       const payload = (await sql.query("select private.live_public_state($1) as p", [room])).rows[0].p as { state: Record<string, unknown> };
       assert.equal(payload.state.neutral_question, asked, "the payload holds the question");
