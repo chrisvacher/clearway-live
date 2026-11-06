@@ -42,13 +42,13 @@ export type AiGroupRow = { id: string; label: string; ai_label: string; pinned: 
 export type AiFold = { id: string; survivor: string; member: string; survivor_text: string; member_text: string; at: string; undone: boolean };
 export type AiStatus = {
   status: "ok"; version: number; engagement_ai: boolean; cost: { usd: number; runs: number; input_tokens: number; output_tokens: number };
-  session: null | { id: string; title: string; interaction: "word_cloud" | "wall" | "qa" | "lens"; live: boolean; ai: boolean; option: boolean; override: boolean | null; summary_available: boolean; summary_shown: boolean };
+  session: null | { id: string; title: string; interaction: "word_cloud" | "wall" | "qa" | "lens" | "four_lists"; live: boolean; ai: boolean; option: boolean; override: boolean | null; summary_available: boolean; summary_shown: boolean };
   state?: AiState; last_change?: { run: string; job: string; at: string; count: number } | null;
   combines?: AiCombine[]; different?: number; threshold?: number;
   groups?: AiGroupRow[]; answers?: number; grouped?: number; waiting?: number; summary?: { text: string; answers: number; at: string } | null;
   folds?: AiFold[];
 };
-export const aiKinds = ["word_cloud", "wall", "qa", "lens"] as const;
+export const aiKinds = ["word_cloud", "wall", "qa", "lens", "four_lists"] as const;
 export const isAiKind = (kind: unknown): kind is typeof aiKinds[number] => aiKinds.includes(kind as typeof aiKinds[number]);
 
 export const aiActions = ["ai_on", "ai_off", "undo_combine", "undo_group", "redo_group", "pin_group", "unpin_group", "rename_group", "undo_last", "show_summary", "hide_summary"] as const;
@@ -71,7 +71,7 @@ export function aiNotice(status: AiStatus | null): { kind: "warning" | "info"; t
   const s = status?.session;
   if (!status || !s) return null;
   if (!status.engagement_ai) return { kind: "info", title: "AI is off for this engagement.", text: "Turn it on in the engagement's setup. The room works in arrival order.", short: "AI is off for this engagement." };
-  if (!s.ai) return { kind: "info", title: "AI is off for this session.", text: s.interaction === "wall" ? "The wall shows answers in arrival order." : s.interaction === "lens" ? "The wall shows sentences in arrival order, with no clusters." : "Nothing on the TV is marked as AI.", short: "AI is off. The room is fine." };
+  if (!s.ai) return { kind: "info", title: "AI is off for this session.", text: s.interaction === "wall" ? "The wall shows answers in arrival order." : s.interaction === "lens" ? "The wall shows sentences in arrival order, with no clusters." : s.interaction === "four_lists" ? "Only cards with the same words combine. Nothing on the TV is marked as AI." : "Nothing on the TV is marked as AI.", short: "AI is off. The room is fine." };
   const waiting = status.waiting ? ` ${status.waiting} ${status.waiting === 1 ? "answer" : "answers"} waiting for grouping.` : "";
   if (status.state?.failing) return { kind: "warning", title: "AI isn't responding.", text: `The room keeps working: answers show in arrival order and AI catches up when it's back.${waiting}`, short: "AI isn't responding. The room is fine." };
   if (status.state?.slow) return { kind: "warning", title: "AI is slow.", text: `The room keeps working: answers show in arrival order and ${s.interaction === "wall" ? "groups catch up" : "AI catches up"} when AI does.${waiting}`, short: "AI is slow. The room is fine." };

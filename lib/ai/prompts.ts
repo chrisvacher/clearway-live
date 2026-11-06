@@ -2,8 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
-export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates";
-export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates"];
+export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates" | "fold_four_lists";
+export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates", "fold_four_lists"];
 
 // What ai_claim hands the worker for each job.
 export type CombineInputs = { raw: number; threshold: number; words: { ref: string; key: string; text: string; count: number }[] };
@@ -28,7 +28,10 @@ export type LensFoldInputs = Omit<LensDraftInputs, "job"> & { job: "fold"; versi
 export type CandidateInputs = { lens_names?: string[]; base_year?: number; min: number; max: number;
   sentences: { ref: string; id: string; lens: number; text: string; cluster: string | null }[];
   clusters: { ref: string; lens: number; label: string; count: number }[] };
-export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs;
+// The Four Helpful Lists (INT-11): cards by column, each under a short ref (r1 right, w1 wrong, m1 missing, c1 confused)
+// with how many people agree. The model folds within one column only; the database refuses anything across columns.
+export type FourListsInputs = { columns: { column: "right" | "wrong" | "missing" | "confused"; label: string; cards: { ref: string; id: string; text: string; agree: number }[] }[] };
+export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs | FourListsInputs;
 
 export type MergeOutput = { groups: { survivor: string; members: string[] }[] };
 export type GroupOutput = { groups: { group: string; label?: string; answers: string[] }[] };
@@ -233,6 +236,20 @@ export const prompts: Record<AiJob, Prompt> = {
     ].join("\n"),
     user: inputs => JSON.stringify({ questions: (inputs as FoldInputs).questions.map(q => ({ ref: q.ref, text: q.text, asked: q.asked })) }),
     parse: (text, inputs) => merges(text, (inputs as FoldInputs).questions?.map(q => ({ ref: q.ref, texts: [q.text] })) ?? []),
+  },
+  // The Four Helpful Lists. Cards fold within one column only; the database refuses a fold across columns, a quote,
+  // a changed number, more than four cards in one fold, or a pass that would fold away too much of a column.
+  fold_four_lists: {
+    job: "fold_four_lists", version: "fold-four-lists@1", maxTokens: 900,
+    system: [
+      "You fold near-duplicate cards in the Four Helpful Lists at a church team gathering, run by Clearway Church Solutions. The team writes short cards under four headings: what is right, what is wrong, what is missing and what is confused.",
+      "Fold cards only when they say the same thing in different words, and only when they are in the same column. Cards in different columns never fold, even when they use the same words. Cards on the same topic that say different things stay apart.",
+      "Never fold cards whose numbers differ. Never fold a quote. Never fold more than four cards into one. Most cards fold with nothing; that is normal. Never reword a card.",
+      "The survivor is the clearest wording, usually the one more people agree with. Name every card by its ref (r1, w2, m3, c4), never by its text.",
+      `Reply as {"groups":[{"survivor":"r1","members":["r4"]}]}, or {"groups":[]} when nothing should fold. ${rules}`,
+    ].join("\n"),
+    user: inputs => JSON.stringify({ columns: (inputs as FourListsInputs).columns.map(c => ({ column: c.label, cards: c.cards.map(k => ({ ref: k.ref, text: k.text, agree: k.agree })) })) }),
+    parse: (text, inputs) => merges(text, (inputs as FourListsInputs).columns?.flatMap(c => c.cards.map(k => ({ ref: k.ref, texts: [k.text] }))) ?? []),
   },
   merge_reasons: {
     job: "merge_reasons", version: "merge-reasons@1", maxTokens: 800,

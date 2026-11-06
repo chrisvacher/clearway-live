@@ -67,6 +67,8 @@ test("Replies are read defensively: anything that isn't the shape is an empty an
 // ---------- Prompt behaviour, against fixtures (and the real API when a key is present) ----------
 const textOf = (c: Case, ref: string) => {
   const i = c.inputs as unknown as Record<string, { ref: string; text?: string; label?: string }[]>;
+  const cards = (c.inputs as { columns?: { cards: { ref: string; text: string }[] }[] }).columns?.flatMap(x => x.cards);
+  if (cards) return cards.find(x => x.ref === ref)?.text;
   for (const list of [i.words, i.answers, i.questions, i.groups, i.reasons]) { const hit = list?.find(x => x.ref === ref); if (hit) return hit.text ?? hit.label; }
   return undefined;
 };
@@ -198,6 +200,17 @@ test("Fold: questions given as their text are read back to their refs", () => {
   const questions = caseOf("fold_questions").inputs;
   assert.deepEqual(prompts.fold_questions.parse(reply({ groups: [{ survivor: "When does the new building open?", members: ["what date will the new building be ready?"] }] }), questions),
     { groups: [{ survivor: "q1", members: ["q2"] }] });
+});
+test("Four Helpful Lists: cards given as text read back, and the scripted stand-in never folds across columns", () => {
+  const c = caseOf("fold_four_lists"), cards = (c.inputs as { columns: { cards: { ref: string; text: string }[] }[] }).columns;
+  assert.deepEqual(prompts.fold_four_lists.parse(reply({ groups: [{ survivor: "Our Sunday welcome team is warm", members: ["the welcome team at the door is friendly", "w9", "R1"] }] }), c.inputs),
+    { groups: [{ survivor: "r1", members: ["r2"] }] });
+  assert.deepEqual(prompts.fold_four_lists.parse("nothing", c.inputs), { groups: [] });
+  assert.match(prompts.fold_four_lists.system, /different columns never fold/i);
+  const out = (JSON.parse(scripted({ system: prompts.fold_four_lists.system, user: prompts.fold_four_lists.user(c.inputs), maxTokens: 1, timeoutMs: 1 })) as MergeOutput).groups;
+  const column = (ref: string) => cards.findIndex(x => x.cards.some(k => k.ref === ref));
+  assert.ok(out.length > 0, "the stand-in folds the near-duplicates");
+  for (const g of out) for (const m of g.members) assert.equal(column(m), column(g.survivor), `${m} stays in ${g.survivor}'s column`);
 });
 test("Group: new groups with no ref, a label for a ref, or a bare number each become their own new group", () => {
   const wall = caseOf("group_wall").inputs, parse = (v: unknown) => prompts.group_wall.parse(reply(v), wall) as GroupOutput;

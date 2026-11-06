@@ -13,8 +13,8 @@ import { contentPromptLabel } from "./content-options";
 // takes the session out, and unsaved edits survive the options sliding closed (draft).
 export type FormDraft = { value: ShowSession; start: string; opens: string; closes: string };
 type Props = { session: ShowSession; fresh: boolean; context: ShowContext; busy: boolean; blocked: boolean; feedback: string; failed: boolean; onSave: (v: SessionInput) => Promise<void>; onClose: () => void; onRemove: () => void;
-  variant?: "panel" | "inline"; revision?: number | null; draft?: FormDraft; onDraft?: (draft: FormDraft, dirty: boolean) => void; startNote?: string; others?: ShowSession[] };
-export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove, variant = "panel", revision, draft, onDraft, startNote, others = [] }: Props) {
+  variant?: "panel" | "inline"; revision?: number | null; draft?: FormDraft; onDraft?: (draft: FormDraft, dirty: boolean) => void; startNote?: string; others?: ShowSession[]; fourLists?: boolean };
+export function SessionForm({ session, fresh, context, busy, blocked, feedback, failed, onSave, onClose, onRemove, variant = "panel", revision, draft, onDraft, startNote, others = [], fourLists = true }: Props) {
   const inline = variant === "inline";
   const [value, setValue] = useState(() => draft?.value ?? session);
   const [start, setStart] = useState(() => draft?.start ?? localTime(session.planned_start, context.timezone));
@@ -76,7 +76,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
         <div className="show-fields">
           <label className="is-full" htmlFor="session-title">Title<input ref={first} id="session-title" required maxLength={200} value={value.title} onChange={e => change("title", e.target.value)} /></label>
           <label className="is-full" htmlFor="session-segment">Segment<input id="session-segment" maxLength={100} value={value.segment ?? ""} onChange={e => change("segment", e.target.value)} /><span className="show-help">Steps in the same segment, like Five Lenses, keep taking answers until the room moves on from the segment.</span></label>
-          <label htmlFor="session-part">Part<select id="session-part" value={value.part} onChange={e => change("part", e.target.value as ShowSession["part"])}>{parts.map(part => <option key={part}>{part}</option>)}</select></label>
+          <label htmlFor="session-part">Part<select id="session-part" value={value.part} onChange={e => change("part", e.target.value as ShowSession["part"])}>{parts.filter(part => part !== "Discover" || fourLists || session.part === "Discover").map(part => <option key={part}>{part}</option>)}</select></label>
           <label htmlFor="session-mode">Mode<select id="session-mode" disabled={running} value={value.mode} onChange={e => { const mode = e.target.value as ShowSession["mode"]; change("mode", mode); if (mode === "self_paced" && !opens && !closes) { const w = defaultWindow(Date.now()); setOpens(localTime(w.opens_at, context.timezone)); setCloses(localTime(w.closes_at, context.timezone)); } }}><option value="live">Live, in the room</option><option value="self_paced">Self-paced</option></select></label>
           {startNote !== undefined ? <p className="show-help" id="session-start">{startNote}</p> : <label htmlFor="session-start">Planned start<input id="session-start" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} /></label>}
           <label htmlFor="session-length">Length in minutes<input id="session-length" type="number" min={1} max={1440} required value={value.planned_minutes} onChange={e => change("planned_minutes", Number(e.target.value))} /></label>

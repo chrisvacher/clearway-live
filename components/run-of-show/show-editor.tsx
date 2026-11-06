@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Copy, DoorOpen, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
+import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, DoorOpen, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
   CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Search, Users, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
@@ -15,7 +15,7 @@ import "./builder.css";
 
 type Icon = ComponentType<LucideProps>;
 const kindIcons: Partial<Record<InteractionKind, Icon>> = { word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
-  points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck };
+  points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck, four_lists: Columns4 };
 const screenIcons: Record<ContentScreen, Icon> = { scripture: BookOpen, headline: Newspaper, prayer: HandHeart, image: ImageIcon, holding: Monitor, screen_check: ScanLine };
 const iconOf = (kind: InteractionKind, screen?: ContentScreen | null) => kind === "content" && screen ? screenIcons[screen] : kindIcons[kind] ?? Monitor;
 const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", open: "Open", live: "Live", phones_down: "Phones down", closed: "Closed" };
@@ -64,7 +64,7 @@ function useGlide(root: RefObject<HTMLElement | null>, key: string) {
   return measure;
 }
 
-export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notice?: string }) {
+export function ShowEditor({ initial, notice = "", fourLists = true }: { initial: RunOfShow; notice?: string; fourLists?: boolean }) {
   const [show, setShow] = useState(initial), [pending, setPending] = useState<Op[]>([]);
   const [message, setMessage] = useState(notice), [error, setError] = useState(false), [reloadNeeded, setReloadNeeded] = useState(false), [announce, setAnnounce] = useState("");
   const [openId, setOpenId] = useState<string | null>(null), [closingId, setClosingId] = useState<string | null>(null);
@@ -333,6 +333,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
       <Link href={`/control/${ctx.id}`}><Radio aria-hidden="true" size={18} />Live room</Link>
       <Link href={`${base}/tv`}><Monitor aria-hidden="true" size={18} />Pair a TV</Link>
       <Link href={`${base}/door`}><DoorOpen aria-hidden="true" size={18} />Door list</Link>
+      {fourLists && <Link href={`${base}/four-lists`}><Columns4 aria-hidden="true" size={18} />Four Helpful Lists</Link>}
       <Link href={`${base}/run-of-show/print`}><Printer aria-hidden="true" size={18} />Printouts</Link>
       <Link href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate aria-hidden="true" size={18} />Templates</Link>
       <Link href="/setup">View engagements</Link>
@@ -351,7 +352,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
       <p className="sr-only" id="rb-move-help">Press Space or Enter to pick it up, then the up and down arrows to move it.</p>
       <div className="rb-body">
         <div className="rb-run" ref={runRef} onTransitionEnd={e => { if ((e.target as HTMLElement).classList.contains("rb-opts")) remeasure(false); }}>
-          {parts.map(part => {
+          {parts.filter(part => part !== "Discover" || fourLists || partOf(sessions, part).length > 0).map(part => {
             const group = partOf(sessions, part), times = partTimes(group), timed = group.some(s => s.mode === "live" && s.planned_start);
             const firstLive = group.find(s => s.mode === "live")?.id, target = drag?.gap?.part === part;
             let shown = 0;
@@ -372,7 +373,7 @@ export function ShowEditor({ initial, notice = "" }: { initial: RunOfShow; notic
                   <span className={`rb-chip is-${s.state}`}><StateIcon aria-hidden="true" />{stateLabels[s.state] ?? s.state}</span>
                   <button type="button" className="rb-tog" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} options for ${s.title}`} onClick={toggle}><ChevronDown size={20} aria-hidden="true" /></button>
                 </div>
-                <div className="rb-opts"><div className="rb-clip">{mounted && <SessionForm key={s.id} variant="inline" session={snapshot(s)} fresh={false} context={ctx} others={sessions}
+                <div className="rb-opts"><div className="rb-clip">{mounted && <SessionForm key={s.id} variant="inline" session={snapshot(s)} fresh={false} context={ctx} others={sessions} fourLists={fourLists}
                   busy={saving === s.id} blocked={locked || !open} feedback={open ? formFeedback.text : ""} failed={formFeedback.failed}
                   revision={bases.current.get(s.id)?.revision} draft={drafts.current.get(s.id)} onDraft={(d, isDirty) => onDraft(s.id, d, isDirty)}
                   startNote={s.mode !== "live" ? "Self-paced: it opens and closes on phones at its own times and takes no room time." : s.id !== firstLive ? (timed && t?.at ? `Starts at ${hour.format(new Date(t.at))}, from the lengths before it.` : `Starts ${clock(t?.offset ?? 0)} into ${part}, from the lengths before it.`) : undefined}

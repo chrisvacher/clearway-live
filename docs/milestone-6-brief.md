@@ -64,7 +64,7 @@ One branch and one pull request per step. Each migration takes the timestamp ass
 
 Steps 1 and 2 run side by side: the Four Helpful Lists uses none of step 1's tables. Step 3 follows step 1. Steps 4 and 5 run side by side once 2 and 3 merge. Step 6 is last. Whichever of two parallel steps merges second rebases on the first and folds its shared-object changes in.
 
-**The cards contract between steps 2 and 3.** Step 2 provides `private.four_lists_cards_for_themes(p_engagement uuid)` returning one row per visible card that hasn't been folded away: card id, session id, column (`right`, `wrong`, `missing`, `confused`), text, agreement count (people), and the ids of cards folded into it. Step 3 writes against a fixture function of the same signature in its own tests, and step 2's migration replaces it with the real one.
+**The cards contract between steps 2 and 3.** Step 2 provides `private.four_lists_cards_for_themes(p_engagement uuid)` returning one row per visible card that hasn't been folded away: card id, session id, column (`right`, `wrong`, `missing`, `confused`), text, agreement count (people), the ids of cards folded into it, and a seventh, last column `people uuid[]`: the distinct attendee ids of the writer and every agreer (test rows left out) across the card and every card folded into it, sorted. Service role only. Step 3 writes against a fixture function of the same signature in its own tests, and step 2's migration replaces it with the real one.
 
 ## The engine contract
 

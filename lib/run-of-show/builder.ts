@@ -14,6 +14,7 @@ const blurbs: Partial<Record<InteractionKind, string>> = {
   sign: "Signatures and names on the screen", statements: "Rate agreement with each, 1 to 5", lens: "The 10-year Future in present-tense sentences", goals: "1-year goals with the four CORE checks",
   bullets: "What is true, one outcome at a time", confirm: "Confirm, rename or challenge each outcome",
   intent: "One card per outcome, written in pairs", lens_summary: "Each lens's 10-year Future, approved or changed live", candidates: "Name the priorities, then weigh them against each other",
+  four_lists: "Right, wrong, missing, confused, with agreement",
 };
 const screenBlurbs: Record<ContentScreen, string> = {
   scripture: "Passage, reference, translation", headline: "One line on the TV, depth on phones", prayer: "A still screen or a single line",
@@ -21,7 +22,7 @@ const screenBlurbs: Record<ContentScreen, string> = {
 };
 // Starting lengths in minutes (the pass 3 builder's), editable per session.
 export const kindMinutes: Partial<Record<InteractionKind, number>> = {
-  word_cloud: 10, wall: 15, qa: 10, choice: 5, scale: 5, ranking: 10, points: 15, grid: 15, form: 10, sign: 5, statements: 5, goals: 20, lens: 15, content: 5, bullets: 15, confirm: 15, intent: 30, candidates: 25, lens_summary: 25,
+  word_cloud: 10, wall: 15, qa: 10, choice: 5, scale: 5, ranking: 10, points: 15, grid: 15, form: 10, sign: 5, statements: 5, goals: 20, lens: 15, content: 5, bullets: 15, confirm: 15, intent: 30, candidates: 25, lens_summary: 25, four_lists: 30,
 };
 export const paletteScreens: ContentScreen[] = ["scripture", "headline", "prayer", "image", "holding", "screen_check"];
 
@@ -48,7 +49,7 @@ export const dropOptions: Partial<Record<InteractionKind, Record<string, unknown
   intent: { assign: "remote" },
   candidates: { ai: true, cut: 5 },
 };
-const limits: Partial<Record<InteractionKind, [number, number, number]>> = { wall: [3, 280, 50], qa: [10, 200, 50] };
+const limits: Partial<Record<InteractionKind, [number, number, number]>> = { wall: [3, 280, 50], qa: [10, 200, 50], four_lists: [12, 140, 30] };
 // Content screens that need their words before they can run start as drafts.
 const readyScreens: ContentScreen[] = ["prayer", "holding", "screen_check"];
 

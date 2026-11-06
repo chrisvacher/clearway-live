@@ -13,6 +13,7 @@
 - `self-paced.md`: self-paced sessions (on time, from the room link and the invite email), rehearsals and Clear test answers, each session's CSV and the results recap (milestone 3, step 6a).
 - `templates.md`: the run of show built by dragging (SET-07, pass 3 change 15) and templates with the team workshop template (SET-08) (milestone 3, step 6b).
 - `lens-wall.md`: lens seeding and the lens wall (milestone 4, step 2).
+- `four-lists.md`: the Four Helpful Lists, INT-11 and SET-05 (milestone 6, step 2).
 - `ai-live.md`: AI, live: word cloud combines, wall groups and Show summary, Q&A folding by AI, the merge limits in code, and FAIL-09 (milestone 3, step 5).
 - `milestone-4-brief.md`: milestone 4, the Wayfinding session tools: what it builds, the engine contract each Wayfinding kind follows, the work order and what can run in parallel, and the questions for Chris.
 - `discover-survey-source.md`: research for milestone 6. The Team Hub survey tables Clearway Live would read, how a survey links to an engagement, reader options for Chris, volume and privacy.
