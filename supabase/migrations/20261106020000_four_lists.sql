@@ -19,6 +19,7 @@
 --   private.part_order                   gains the Discover part, ahead of the Pre-call
 --   private.show_write, template_write   templates (20261103100000) and map templates (20261104180000), their text patched so
 --                                        every part list gains Discover (nothing else in either function changes)
+--   private.control_status               the rehearsal test_answers count also counts test agrees (text patch; nothing else changes)
 --   private.templates                    the two shipped Wayfinding templates gain one live Four Helpful Lists step in Discover
 -- New: private.four_list_cards, four_list_folds, four_list_agrees and the functions below, and the cards
 -- contract step 3 reads: private.four_lists_cards_for_themes(p_engagement).
@@ -726,6 +727,19 @@ begin
   end if;
   execute patched;
  end loop;
+end $patch$;
+
+-- The rehearsal count on the control surface includes the agrees a rehearsal made, as it does every other test item that Clear test
+-- answers removes. control_status keeps every line it has (step 1 widened it for Discover themes and signals); only this one count grows.
+do $patch$
+declare def text; patched text;
+begin
+ def:=pg_get_functiondef('private.control_status(uuid)'::regprocedure);
+ patched:=replace(def,'+(select count(*) from private.scribe_files y where y.engagement_id=p_engagement and y.test and not y.deleted)',
+  '+(select count(*) from private.scribe_files y where y.engagement_id=p_engagement and y.test and not y.deleted)'||chr(10)||
+  '     +(select count(*) from private.four_list_agrees y where y.engagement_id=p_engagement and y.test and not y.deleted)');
+ if patched=def then raise exception 'The rehearsal count in control_status did not patch cleanly'; end if;
+ execute patched;
 end $patch$;
 
 -- Both shipped Wayfinding templates open with Discover: one live Four Helpful Lists step for the board or team, a week

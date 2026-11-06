@@ -386,6 +386,7 @@ select is((select count(*) from private.four_list_agrees where card_id=tests.id(
 select ok(not exists(select 1 from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(940)),'A rehearsal card is not in the cards contract');
 set local role authenticated;
 select tests.login(1);
+select is((public.control_status(tests.id(100))->'rehearsal'->>'test_answers')::integer,4,'The rehearsal count includes the agrees it made: a test card and three test agrees');
 select is(public.rehearsal_control(tests.id(100),tests.id(1002),'end')->>'status','ok','End the rehearsal');
 select tests.login(8);
 select is(tests.agree(942,907,1,true)->>'status','accepted','The scribe presses the agree again, for real');

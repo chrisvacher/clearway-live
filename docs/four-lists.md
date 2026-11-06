@@ -30,10 +30,11 @@ Each is the newest earlier definition plus Four Helpful Lists, built by renaming
 - `ai_claim` (wraps `ai_claim_base4`), `ai_apply` (wraps `ai_apply_base4`), `ai_fail` (wraps `ai_fail_base3`)
 - `ai_status`, `ai_control` (wrap `ai_status_base`, `ai_control_base`)
 - `reset_practice_room` (wraps `reset_practice_room_base`), `rehearsal_control` (wraps `rehearsal_control_base`)
+- `control_status`: the rehearsal `test_answers` count also counts test agrees (text patch; nothing else changes).
 - `part_order` now includes Discover. `ai_due` also lists open self-paced Four Helpful Lists steps, so they get folds too.
 - Rehearsals: an agree pressed during a rehearsal is a test row beside the person's real one (the unique key includes the test flag, and the newest row counts), so Clear test answers puts the real agree back. A test agree pressed again for real after the rehearsal becomes a real agree and is not cleared.
 
-Deviation: `show_write`, `template_write` and `room_control` take Discover by a text patch of their current definition (`pg_get_functiondef`, then a replace inside a DO block), not a rewrite. The result is the same as a rewrite, without copying three long bodies. The pgTAP file checks each contains the new part list.
+Deviation: `show_write`, `template_write` (which also anchors a saved template on its Pre-call) and `room_control` take Discover by a text patch of their current definition (`pg_get_functiondef`, then a replace inside a DO block), not a rewrite. The result is the same as a rewrite, without copying three long bodies. The pgTAP file checks each contains the new part list.
 
 ## Contract for Team Hub and CORE
 
@@ -41,7 +42,6 @@ Deviation: `show_write`, `template_write` and `room_control` take Discover by a 
 
 ## Known limits
 
-- `control_status.test_answers` does not count test agrees.
 - `ai_apply` refuses a whole group (`kept_apart`) if the facilitator ever separated one of its members, so the AI never re-folds what a person pulled apart.
 - The home page's tool count rises by one.
 - The 60% standing rule is per run (against the groups standing when the run was claimed), across all four lists together.
