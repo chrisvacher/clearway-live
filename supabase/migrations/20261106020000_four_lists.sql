@@ -437,12 +437,16 @@ end $$;
 
 -- ---------- The cards contract (steps 2 and 3) ----------
 -- One row per visible card that has not been folded away: its id, its step, its column, its text, how many people agree,
--- and the ids of the cards folded into it. Hidden, withdrawn, deleted and rehearsal (test) cards are not rows. Service role only: Discover
+-- the ids of the cards folded into it, and the people who stand behind it (the distinct attendee ids of every writer and every
+-- agreer, test rows left out, across the card and every card folded into it, sorted). Hidden, withdrawn, deleted and rehearsal (test) cards are not rows. Service role only: Discover
 -- themes read it on the server and never hand a person to a screen.
-create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[])
+create or replace function private.four_lists_cards_for_themes(p_engagement uuid) returns table(card_id uuid,session_id uuid,"column" text,"text" text,agree integer,folded_ids uuid[],people uuid[])
 language sql stable security definer set search_path='' as $$
  select (e->>'id')::uuid,s.id,e->>'column',e->>'text',(e->>'agree')::integer,
-  coalesce((select array_agg(i::uuid order by i) from jsonb_array_elements_text(e->'ids') i where i<>e->>'id'),array[]::uuid[])
+  coalesce((select array_agg(i::uuid order by i) from jsonb_array_elements_text(e->'ids') i where i<>e->>'id'),array[]::uuid[]),
+  (select coalesce(array_agg(distinct q.p order by q.p),array[]::uuid[]) from (
+    select x.attendee_id as p from public.submissions x where x.id in(select i::uuid from jsonb_array_elements_text(e->'ids') i) and not x.test
+    union select v.attendee_id from private.four_list_agrees v where v.card_id in(select i::uuid from jsonb_array_elements_text(e->'ids') i) and v.agreed and not v.test and not v.deleted) q)
  from public.sessions s cross join lateral jsonb_array_elements(private.four_lists_board(s.id,false)) e
  where s.engagement_id=p_engagement and s.interaction='four_lists' and not s.deleted
   and not exists(select 1 from public.submissions t where t.id=(e->>'id')::uuid and t.test)

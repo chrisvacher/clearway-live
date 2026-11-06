@@ -356,6 +356,12 @@ select is((select folded_ids from private.four_lists_cards_for_themes(tests.id(1
 select is((select "column" from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(907)),'missing','the column');
 select is((select agree from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(907)),1,'and the agreement count in people');
 select ok(not exists(select 1 from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(921)),'A folded card is not a row of its own');
+set local role authenticated;
+select tests.login(5);
+select is(tests.agree(1030,920,0,true)->>'status','accepted','Ben agrees with the survivor');
+select is(tests.agree(1031,932,0,true)->>'status','accepted','and with the card folded beneath it: one agreer, twice');
+reset role;
+select is((select people from private.four_lists_cards_for_themes(tests.id(100)) where card_id=tests.id(920)),(select array_agg(x order by x) from unnest(array[tests.id(503),tests.id(505),tests.id(507)]) x),'People: two writers (Priya and Ben, one fold) and a shared agreer (Sam) give the three distinct ids');
 select is((select array_agg(card_id) from private.four_lists_cards_for_themes(tests.id(101))),array[tests.id(331)],'Another engagement gets only its own cards');
 select is((select count(*) from private.four_lists_cards_for_themes(tests.id(100)) where session_id=tests.id(311)),0::bigint,'A step with no cards has none');
 

@@ -38,7 +38,7 @@ Deviation: `show_write`, `template_write` (which also anchors a saved template o
 
 ## Contract for Team Hub and CORE
 
-`private.four_lists_cards_for_themes(p_engagement uuid)` returns each standing card (card id, session id, list, text, people agreeing, ids folded beneath it) for the engagement, for the themes step to read. Nothing is written to CORE.
+`private.four_lists_cards_for_themes(p_engagement uuid)` returns each standing card (card id, session id, list, text, people agreeing, ids folded beneath it, and `people uuid[]`: the distinct attendee ids of the writer and every agreer across the card and its folds, test rows left out, sorted) for the engagement, for the themes step to read. Service role only. Nothing is written to CORE.
 
 ## Known limits
 
