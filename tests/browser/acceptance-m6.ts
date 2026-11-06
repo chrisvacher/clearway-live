@@ -340,7 +340,7 @@ async function main() {
       await until(async () => JSON.stringify(await listKinds()) === JSON.stringify(await panelKinds()), "the same cards on the remote", 20000);
       const w = (await report(from)).sessions.find(s => s.id === wall);
       // Ten answers on a two CPU box with the model running: one slow answer is 90 percent, so the gate here is every answer logged and the 95th under 1.5 s. The 50 phone steps above hold the 95 in 100 rule.
-      assert.ok(w && w.measured === 10 && w.p95 <= 1500, `the wall's answers reached the TV promptly while the signal ran (${w ? verdict(w).label : "no log"})`);
+      assert.ok(w && w.measured === 10 && (w.p95 ?? 0) <= 1500, `the wall's answers reached the TV promptly while the signal ran (${w ? verdict(w).label : "no log"})`);
       table.push(`${"Wall with the signal running".padEnd(34)} ${w!.under_second} of ${w!.measured} under 1 s, 95th ${w!.p95} ms; cards on the control surface and the remote: ${(await panelKinds()).join(", ")}`);
       // The cards, from the database.
       const cards = (await sql.query("select kind,title,line,ask from private.signals where session_id=$1 and not deleted", [wall])).rows as { kind: string; title: string; line: string; ask: string | null }[];
