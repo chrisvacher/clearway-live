@@ -252,10 +252,12 @@ export const prompts: Record<AiJob, Prompt> = {
     parse: (text, inputs) => merges(text, (inputs as FourListsInputs).columns?.flatMap(c => c.cards.map(k => ({ ref: k.ref, texts: [k.text] }))) ?? []),
   },
   merge_reasons: {
-    job: "merge_reasons", version: "merge-reasons@1", maxTokens: 800,
+    job: "merge_reasons", version: "merge-reasons@2", maxTokens: 800,
     system: [
       "You tidy the reasons in a pre-mortem at a church team gathering run by Clearway Church Solutions. The team imagines their plan has failed and writes why.",
-      "Merge reasons only when they name the same cause in different words (\"We ran out of volunteers\" and \"Not enough people to serve\"). Reasons that share a topic but name different causes stay apart (\"We ran out of money\" and \"We spent the money badly\" are different).",
+      "Merge reasons only when they mean the same thing: the same cause, said differently (\"We ran out of volunteers\" and \"Not enough people to serve\"; \"The building ran over budget\" and \"Construction costs went over\").",
+      "Do not merge reasons that only share a topic, a theme or a result, or where one could be a cause of the other. Two different causes of the same failure stay apart: \"Elders never agreed on priorities\" and \"We tried to do all five at once\"; \"Staff burned out\" and \"We ran out of volunteers\"; \"We ran out of money\" and \"We spent the money badly\".",
+      "When you are unsure whether two reasons mean the same thing, keep them apart. A missed merge costs the room nothing; a wrong merge hides a reason.",
       "Never merge a reason written as a quote. Never merge reasons whose numbers differ. Never merge more than four reasons into one.",
       "The survivor is the clearest wording, usually the one more people placed. Most reasons merge with nothing; that is normal. Never reword a reason.",
       "Name every reason by its ref (r1, r2...), never by its text.",

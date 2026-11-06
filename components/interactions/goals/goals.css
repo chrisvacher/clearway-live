@@ -1,6 +1,6 @@
 /* Milestone 4, step 5: the CORE goal builder (INT-15) on the TV, built from design pass 4's look.
    Tokens only. Positions and fades move in code on springs; colors change on token transitions. */
-.tv-board.gl-board { display: grid; grid-template-columns: calc(620px * var(--cwl-tv-scale, 1)) minmax(0, 1fr); gap: 48px; font-size: var(--cwl-fs-tv-floor); }
+.tv-board.gl-board { display: grid; grid-template-columns: calc(520px * var(--cwl-tv-scale, 1)) minmax(0, 1fr); gap: 48px; font-size: var(--cwl-fs-tv-floor); }
 .gl-vision { display: flex; flex-direction: column; gap: 18px; padding: 32px; border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-panel); color: var(--cwl-text-on-panel); min-height: 0; overflow: hidden; }
 .gl-vision .ey { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); letter-spacing: 0.08em; text-transform: uppercase; }
 .gl-vision .nm { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); line-height: 1.15; overflow-wrap: anywhere; }
@@ -8,26 +8,41 @@
 .gl-vision li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 16px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere; }
 .gl-vision li::before { content: ""; width: 14px; height: 14px; margin-top: 0.4em; border-radius: var(--cwl-radius-marker); background: var(--cwl-text-on-panel); }
 .gl-goals { position: relative; min-height: 0; display: flex; flex-direction: column; }
-.gl-list { position: relative; flex: 1; min-height: 0; overflow: hidden; }
-.gl-goal { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 28px; padding: 18px 26px; border-radius: var(--cwl-radius-tv-card);
+/* The goal cards stand in one column or two (goals-view.tsx sets each card's width, column and row). The
+   list clips a little beyond its edge so a flagged card's Sunrise outline is never cut off. */
+.gl-list { position: relative; flex: 1; min-height: 0; margin: 12px; clip-path: inset(-12px); }
+/* A compact card, so as many goals as fit show whole. Two columns: the title (two lines at most), the four letters
+   beside the owner's first name and the end date, then one line: what the goal still needs, or its result.
+   One column (the default, largest type): the letters sit beside the title and the last line shares a row with the owner and date.
+   The phones hold the full text. */
+.gl-goal { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "t t" "l m" "r r"; align-items: center; gap: 4px 12px; padding: 10px 14px; border-radius: var(--cwl-radius-tv-card); box-sizing: border-box;
   background: var(--cwl-surface-card); color: var(--cwl-text-on-card); will-change: transform, opacity; transition: box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
-.gl-goal .t { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); line-height: 1.15; overflow-wrap: anywhere; }
-.gl-goal .r { grid-column: 1 / -1; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere; }
-.gl-goal .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); }
-.gl-goal .meta span { display: inline-flex; align-items: center; gap: 0.35em; }
-.gl-goal .risk { padding: 0.1em 0.5em; border-radius: var(--cwl-radius-marker); box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
-.gl-goal .flags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 12px; }
-.gl-goal .flags:empty { display: none; }
+.gl-goal .t { grid-area: t; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); line-height: 1.15; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gl-goal .gl-letters { grid-area: l; }
+.gl-goal .meta { grid-area: m; display: flex; flex-wrap: nowrap; white-space: nowrap; align-items: center; gap: 2px 14px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.2; min-width: 0; }
+.gl-goal .meta:empty { display: none; }
+.gl-goal .r { grid-area: r; min-width: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.25; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gl-goal .r:not(:has(.gl-flag)) { -webkit-line-clamp: 1; }
+.gl-list.is-single .gl-goal { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t l" "m r"; column-gap: 14px; }
+.gl-list.is-single .gl-letters { align-self: start; }
+.gl-list.is-single .gl-goal .r { text-align: right; }
+.gl-list.is-single .gl-goal .meta:empty + .r { grid-column: 1 / -1; text-align: left; }
+.gl-goal .meta span { display: inline-flex; align-items: center; gap: 0.35em; flex: none; }
+.gl-goal .meta span:first-child:not(:last-child) { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
+.gl-goal .risk { padding: 0.05em 0.45em; border-radius: var(--cwl-radius-marker); box-shadow: inset 0 0 0 3px var(--cwl-text-on-card); }
 .gl-goal.is-new { box-shadow: 0 0 0 6px var(--cwl-live); }
-.gl-flag { display: inline-flex; align-items: center; padding: 0.15em 0.55em; border-radius: var(--cwl-radius-marker); background: var(--cwl-flag); color: var(--cwl-on-flag); font-weight: var(--fw-bold); line-height: 1.2; white-space: nowrap; }
-.gl-letters { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: repeat(4, auto); gap: 10px; align-self: start; }
-.gl-letter { display: inline-grid; place-items: center; width: calc(var(--cwl-fs-tv-floor) * 1.8); height: calc(var(--cwl-fs-tv-floor) * 1.8); border-radius: var(--cwl-radius-card); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); line-height: 1;
+/* A card missing a letter: the Sunrise outline on dark screens, a dashed outline on light ones (pass 4's flag). */
+.gl-goal.is-flagged { box-shadow: 0 0 0 var(--cwl-flag-gap) var(--cwl-surface), 0 0 0 calc(var(--cwl-flag-gap) + var(--cwl-flag-width)) var(--cwl-flag); }
+[data-surface="tv"][data-theme="light"] .gl-goal.is-flagged { box-shadow: none; outline: var(--cwl-flag-width) dashed var(--cwl-text); outline-offset: var(--cwl-flag-gap); }
+.gl-flag { display: inline; padding: 0.03em 0.5em; box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: var(--cwl-radius-marker); background: var(--cwl-flag); color: var(--cwl-on-flag); font-weight: var(--fw-bold); line-height: 1.2; }
+.gl-letters { display: grid; grid-template-columns: repeat(4, auto); gap: 3px; }
+.gl-letter { display: inline-grid; place-items: center; width: calc(var(--cwl-fs-tv-floor) * var(--gl-letter, 1)); height: calc(var(--cwl-fs-tv-floor) * var(--gl-letter, 1)); border-radius: var(--cwl-radius-marker); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); line-height: 1;
   background: var(--cwl-text-on-card); color: var(--cwl-surface-card); transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature), color var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
 .gl-letter.is-missing { background-color: transparent; color: var(--cwl-text-on-card); box-shadow: inset 0 0 0 3px var(--cwl-text-on-card);
   background-image: repeating-linear-gradient(135deg, transparent 0 8px, var(--cwl-letter-hatch) 8px 11px); }
 .gl-empty { margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 .gl-empty:empty { display: none; }
-.gl-more { flex: none; min-height: 1.3em; margin: 0; padding-top: 12px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.gl-more { flex: none; min-height: 1.3em; margin: 0 12px; padding-top: 4px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
 
 /* ---------- Phone ---------- */
 .gl-ph { display: flex; flex-direction: column; gap: var(--space-4); }

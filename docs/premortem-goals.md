@@ -5,7 +5,7 @@ D2-07 to D2-10 and INT-15. Migration `20261104130000_premortem_goals.sql`; brows
 ## Pre-mortem (on the grid kind)
 - The grid's Pre-mortem preset takes the prompt "It's {base year + 3} and this plan failed. Why?". Reasons are grid items placed on likelihood and impact.
 - Participants add reasons from their phones (`reason_add`). Each reason mirrors into `private.risks`, so goals can link to risks.
-- AI merges duplicate reasons (`merge-reasons@1`, job `merge_reasons`) under the existing merge limits. Merges are written to `grid_merges` with `made_by = 'ai'`. Unmerge undoes one; "Undo AI merges" undoes all, and AI does not merge what was undone.
+- AI merges duplicate reasons (`merge-reasons@2`, job `merge_reasons`) under the existing merge limits. Merges are written to `grid_merges` with `made_by = 'ai'`. Unmerge undoes one; "Undo AI merges" undoes all, and AI does not merge what was undone.
 - The facilitator records mitigations from the control surface (`reasons_control`). Each row stores `recorded_by` (`facilitator` or `scribe`) so a scribe can tag them later. They show under the reason on the TV.
 
 ## CORE goal builder (`goals` kind)

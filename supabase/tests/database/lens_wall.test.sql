@@ -276,5 +276,14 @@ select is(private.public_options((select x from public.sessions x where x.id=tes
 select is(private.ai_on(tests.id(410)),true,'AI stays on for an unseeded lens session after every later migration');
 select is(private.ai_on(tests.id(400)),false,'and stays off for the seeding step');
 
+-- ---------- November 5: a seeded sentence may run to 400 characters; the live wall keeps its own limit ----------
+set local role authenticated;
+select tests.login(6);
+select is(tests.send(90,400,repeat('x',400),jsonb_build_object('lens',3))->>'status','accepted','A seeded sentence of 400 characters lands although the step says 200');
+select is(tests.send(91,400,repeat('x',401),jsonb_build_object('lens',3))->>'status','invalid_answer','but not 401');
+select is(tests.send(92,411,repeat('x',201))->>'status','limit','A live lens sentence still stops at the step''s own limit');
+reset role;
+select is(length((tests.sentence(90)).text),400,'The 400 characters are stored whole');
+
 select * from finish();
 rollback;

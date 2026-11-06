@@ -30,8 +30,9 @@ class IntentWall extends LiveView {
   destroy() { this.observer?.disconnect(); super.destroy(); }
   // Each card's intent line shows the whole lines that fit between its title and its progress bar,
   // up to three, and ends in an ellipsis; the bar keeps its own space below it. A line never runs
-  // into the bar or is cut through the middle of its letters. When not even one line fits under a
-  // two-line title, the card tightens (a one-line title, closer rows) so the intent still shows.
+  // into the bar or is cut through the middle of its letters. When the card has less room than the
+  // intent wants (it wraps to more lines than fit), the card tightens (a one-line title, closer
+  // rows) to give the intent its lines, and when not even one line fits it tightens to make one.
   private fitLines() {
     if (!this.root.isConnected || this.grid.hidden) return;
     for (const card of this.cards.values()) {
@@ -39,9 +40,14 @@ class IntentWall extends LiveView {
       const box = getComputedStyle(card), text = getComputedStyle(line), gap = parseFloat(box.rowGap) || 0;
       const lh = parseFloat(text.lineHeight) || parseFloat(text.fontSize) * 1.25;
       const lines = () => fitLines(card.clientHeight - parseFloat(box.paddingTop) - parseFloat(box.paddingBottom) - hd.offsetHeight - prog.offsetHeight - 2 * gap, lh, 3);
+      // How many lines the intent wraps to at this width (up to three), measured unclamped.
+      const was = line.style.getPropertyValue("--int-lines");
+      line.style.setProperty("--int-lines", "3"); line.removeAttribute("data-lines");
+      const natural = Math.min(3, Math.max(1, Math.round(line.scrollHeight / lh)));
+      if (was) line.style.setProperty("--int-lines", was);
       card.classList.remove("is-tight");
       let n = lines();
-      if (n === 0) { card.classList.add("is-tight"); n = lines(); if (n === 0) card.classList.remove("is-tight"); }
+      if (n < natural) { card.classList.add("is-tight"); const t = lines(); if (t > n) n = t; else card.classList.remove("is-tight"); }
       if (line.dataset.lines !== String(n)) { line.dataset.lines = String(n); line.style.setProperty("--int-lines", String(n)); }
     }
   }
