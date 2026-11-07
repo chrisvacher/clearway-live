@@ -38,6 +38,15 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
   const setting = <K extends keyof ShowSession["settings"]>(key: K, v: ShowSession["settings"][K]) => change("settings", { ...value.settings, [key]: v });
  const seedable = others.filter(s => s.id !== session.id && s.interaction === value.interaction && s.seeded_from !== session.id);
   const running = !["draft", "ready"].includes(session.state);
+  // Remove is offered for every step that is not on air (a closed step too: the database refuses only the current, live, open or phones-down
+  // one). A step that has been on air asks first, here in the panel: a browser's own confirm box is dismissed by some browsers and
+  // tools without a word, which left Remove looking dead.
+  const onAir = ["live", "open", "phones_down"].includes(session.state), canRemove = !onAir && !context.closed;
+  const [asking, setAsking] = useState(false);
+  const askRemove = () => { if (session.state === "draft") onRemove(); else setAsking(true); };
+  const removeBox = (cls: string) => <span className={cls} role="alert" data-remove-confirm>Remove {session.title} from the run of show?{" "}
+    <button className="show-button is-small" type="button" disabled={busy || blocked} onClick={() => { setAsking(false); onRemove(); }}>Remove session</button>{" "}
+    <button className="show-button is-small" type="button" onClick={() => setAsking(false)}>Keep it</button></span>;
   // The kinds this server can run, in the library's order. A session keeps its own kind.
   const kinds: KindInfo[] = context.kinds?.length ? context.kinds : Object.values(fallbackKinds);
   const kind = kinds.find(k => k.kind === value.interaction) ?? fallbackKinds[value.interaction] ?? null;
@@ -112,11 +121,13 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
       {inline ? <div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}
         <span className="show-help">Every setting has a default. Finish now or come back later; edits go out when you press Done.</span>
         {dirty && <button className="show-button" type="button" disabled={busy} onClick={() => { setValue(session); setStart(localTime(session.planned_start, context.timezone)); setOpens(localTime(session.opens_at, context.timezone)); setCloses(localTime(session.closes_at, context.timezone)); }}>Discard changes</button>}
-        {!running && !context.closed && <button className="show-button" type="button" disabled={busy || blocked} onClick={onRemove}><Trash2 size={16} aria-hidden="true" />Remove</button>}
+        {canRemove && (asking ? removeBox("show-help show-remove-ask") : <button className="show-button" type="button" disabled={busy || blocked} onClick={askRemove}><Trash2 size={16} aria-hidden="true" />Remove</button>)}
+        {onAir && !context.closed && <span className="show-help" data-remove-note>This step is on air. Choose Nothing live in the live room, then remove it.</span>}
         {!running && <button className="show-button" type="submit" name="intent" value="draft" disabled={busy || blocked || context.closed}>Save as draft</button>}
         <button className="show-button is-primary" type="submit" name="intent" value="ready" disabled={busy || blocked || context.closed}><Check size={16} aria-hidden="true" />{busy ? "Saving..." : "Done"}</button></div>
       : <><div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}<span className="show-help">Edits go out when you save.</span><button className="show-button" type="button" disabled={busy} onClick={close}>Cancel</button><button className="show-button is-primary" type="submit" disabled={busy || blocked || context.closed}>{busy ? "Saving..." : "Save"}</button></div>
-      {!fresh && !running && !context.closed && <button className="show-remove" type="button" disabled={busy || blocked} onClick={() => { if (window.confirm(`Remove ${session.title} from the run of show?`)) onRemove(); }}>Remove session</button>}</>}
+      {!fresh && canRemove && (asking ? removeBox("show-remove show-remove-ask") : <button className="show-remove" type="button" disabled={busy || blocked} onClick={askRemove}>Remove session</button>)}
+      {!fresh && onAir && !context.closed && <span className="show-help" data-remove-note>This step is on air. Choose Nothing live in the live room, then remove it.</span>}</>}
     </form>
   </Wrap>;
 }

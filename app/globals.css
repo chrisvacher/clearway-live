@@ -159,6 +159,7 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .show-panel-foot { position: sticky; bottom: 0; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-6); background: var(--cwl-app-card); border-top: 1px solid var(--cwl-app-border); }
 .show-panel-foot .show-help { margin-right: auto; }
 .show-remove { border: 0; background: var(--cwl-app-card); color: var(--cwl-app-error); margin: var(--space-2) var(--space-6) var(--space-6); padding: var(--space-3); min-height: var(--cwl-phone-touch); cursor: pointer; text-decoration: underline; }
+.show-remove.show-remove-ask { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); text-decoration: none; cursor: default; }
 .show-message { margin: var(--space-4) var(--space-6); padding: var(--space-4); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); border-radius: var(--cwl-radius-button); }
 .show-message.is-error { background: var(--cwl-app-error-bg); border: 1px solid var(--cwl-app-error); }
 .show-print { max-width: 1100px; margin: auto; padding: var(--space-10); color: var(--cwl-app-text); background: var(--cwl-app-card); }

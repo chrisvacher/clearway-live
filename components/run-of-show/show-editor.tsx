@@ -185,7 +185,6 @@ export function ShowEditor({ initial, notice = "", fourLists = true }: { initial
     setAnnounce(`${session.title} moved to ${slot.part}, position ${Math.min(slot.index, rest.length) + 1}.`);
   }
   function remove(session: ShowSession) {
-    if (session.state !== "draft" && !window.confirm(`Remove ${session.title} from the run of show?`)) return;
     closeOptions(session.id); forget(session.id);
     enqueue(list => list.filter(s => s.id !== session.id), current => { const cur = current.sessions.find(x => x.id === session.id); return cur ? { action: "remove", input: { id: cur.id, revision: cur.revision } } : null; },
       ok => { if (ok) { setError(false); setMessage("Session removed."); } });

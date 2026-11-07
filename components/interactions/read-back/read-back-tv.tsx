@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import type { TvViewProps } from "@/components/interactions/tv-views";
 import { LensIcon } from "@/components/wayfinding/lens-icon";
-import { useFitCount } from "@/components/tv/use-fit-count";
+import { useAnswerFit } from "./use-answer-fit";
 import { Words, useGlide, useLineFit } from "@/components/interactions/lens-summary/summary-tv";
 import { changeText, leaveMs, missingText, moreOnPhones, readBackOf, reconcile, shownMissing, shownReadBack, share, struckHoldMs, yesText, type ReadBackItem, type ReadBackResults, type Row } from "@/lib/interactions/read-back";
 import type { LensNumber } from "@/lib/wayfinding/lens";
@@ -46,7 +46,7 @@ export function ReadBackView({ frame }: TvViewProps) {
     setTimeout(() => setPhase("in"), (reduced ? 0 : liftMs) + riseMs);
   }, [res]);
   const item: ReadBackItem | null = shown.item, versionId = item?.versionId ?? "", settled = item?.settled ?? false;
-  const linesRef = useRef<HTMLOListElement>(null), cardsRef = useRef<HTMLUListElement>(null);
+  const linesRef = useRef<HTMLOListElement>(null), cardsRef = useRef<HTMLUListElement>(null), sideRef = useRef<HTMLElement>(null);
   const keys = useRef(0), [rows, setRows] = useState<Row[]>([]), [leave, setLeave] = useState(false);
   const lines = item ? shownReadBack(item) : [];
   const marks = useRef(new Map<string, Row["parts"]>());
@@ -83,7 +83,7 @@ export function ReadBackView({ frame }: TvViewProps) {
     return () => clearTimeout(t);
   }, [res.items]);
 
-  const cards = shown.missing.slice(0, shownMissing), fit = useFitCount(cardsRef, cards.length, "start", 0);
+  const cards = shown.missing.slice(0, shownMissing), fit = useAnswerFit(sideRef, cardsRef, cards.map(c => `${c.id}:${c.text}`).join("\u0001"), cards.length);
   const further = Math.max(0, shown.missingCount - fit);
   const of = Math.max(shown.of, shown.tally.yes + shown.tally.change, 1);
   return <div className="lsm-tv rbk-tv" data-read-back data-item={item?.id ?? ""} data-version={versionId} data-settled={settled ? "true" : "false"} data-phase={phase}>
@@ -105,7 +105,7 @@ export function ReadBackView({ frame }: TvViewProps) {
           {item.more > 0 && <p className="lsm-more" data-more>{moreOnPhones(item.more)}</p>}
         </> : <p className="lsm-empty" role="status">{res.count === 0 ? "Nothing to confirm yet. The facilitator will load the items." : "The next item is coming up"}</p>}
       </section>
-      <aside className={`lsm-side rbk-side is-${phase}`} aria-label="What the room says">
+      <aside ref={sideRef} className={`lsm-side rbk-side is-${phase}`} aria-label="What the room says">
         <dl className="rbk-tally" aria-live="polite">
           <Bar label={yesText} n={shown.tally.yes} of={of} which="yes" />
           <Bar label={changeText} n={shown.tally.change} of={of} which="change" />

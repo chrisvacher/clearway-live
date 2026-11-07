@@ -43,10 +43,15 @@
 .rbk-bar-row dd { margin: 0; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; line-height: 1; }
 .rbk-bar { grid-column: 1 / -1; height: 0.4em; font-size: var(--cwl-fs-tv-floor); border-radius: var(--cwl-radius-marker); background: var(--cwl-bar-track); overflow: hidden; }
 .rbk-bar i { display: block; height: 100%; width: var(--rbk-w, 0%); background: var(--cwl-text-on-panel); border-radius: inherit; transition: width var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
-/* The answers share the side column with the tally, so both are kept close: the column's height is what decides how many answers fit whole. */
-.rbk-tv .rbk-side { gap: 10px; }
-.rbk-tv .rbk-missing { gap: 8px; }
-.rbk-tv .rbk-missing .lsm-card { padding: 6px 18px; }
+/* The answers share the side column with the tally, so the tally stays slim and the column's own type steps down toward the floor of
+   the ramp (--rbk-side-fit, set before paint by useAnswerFit) until up to six answers fit whole. The column keeps its width. */
+.rbk-tv .rbk-side { gap: 8px;
+  --rbk-side-fit: 1; --rbk-sc: max(1, calc(var(--cwl-tv-scale) * var(--rbk-side-fit)));
+  --cwl-fs-tv-main: calc(56px * var(--rbk-sc)); --cwl-fs-tv-body: calc(44px * var(--rbk-sc)); --cwl-fs-tv-floor: calc(36px * var(--rbk-sc)); }
+.rbk-tv .rbk-tally { padding: 8px 18px; gap: 4px 16px; }
+.rbk-tv .rbk-bar { height: 0.2em; }
+.rbk-tv .rbk-missing { gap: 6px; }
+.rbk-tv .rbk-missing .lsm-card { padding: 6px 16px; line-height: 1.2; }
 .rbk-missing-h { flex: none; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); color: var(--cwl-text); }
 .rbk-missing { min-height: 0; }
 .rbk-clip { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }

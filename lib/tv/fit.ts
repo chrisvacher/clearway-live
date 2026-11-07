@@ -19,3 +19,14 @@ export function fitLines(space: number, lineHeight: number, most: number): numbe
   if (!(lineHeight > 0) || !(space > 0)) return 0;
   return Math.max(0, Math.min(most, Math.floor((space + 0.5) / lineHeight)));
 }
+
+// The type size for a side list of answers: the room's own size first, then a few even steps down to `least` (the floor of the
+// type ramp, never below it), stopping at the largest one at which `fits` says every answer in the list shows whole. A few steps,
+// not every pixel, so a new answer moves the type at most a step or two; when even `least` does not fit, the list keeps `least`
+// and shows as many whole answers as it can.
+export function answerSize(fits: (px: number) => boolean, least: number, most: number, steps = 4): number {
+  if (!(most > least)) return Math.max(most, least);
+  const n = Math.max(1, Math.min(steps, Math.ceil(most - least)));
+  for (let k = 0; k < n; k++) { const px = most - (most - least) * k / n; if (fits(px)) return px; }
+  return least;
+}
