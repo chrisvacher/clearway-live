@@ -105,7 +105,8 @@ async function main() {
       await page.getByText("That doesn't look like a text file.").waitFor({ timeout: 10000 });
       assert.equal(await page.locator(".dsc-file.is-err").count(), 2, "both are marked with the error edge");
       assert.equal((await sql.query("select count(*)::int n from private.conversation_notes where engagement_id=$1 and not deleted", [room.id])).rows[0].n, 4, "and added nothing");
-      assert.ok((await page.getByText("3 input conversations").count()) === 1 || (await page.getByText("1 interview and 3 input conversations").count()) === 1, "the count of interviews and conversations");
+      // The page's note list refreshes on its own poll after the uploads, so wait for the count.
+      await until(async () => (await page.getByText("3 input conversations").count()) === 1 || (await page.getByText("1 interview and 3 input conversations").count()) === 1, "the count of interviews and conversations", 15000);
       await shot(page, "discover-files");
     });
 
