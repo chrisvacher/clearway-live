@@ -107,6 +107,18 @@ insert into private.first_steps(id,engagement_id,card_id,text,owner_attendee_id,
  ('90000000-0000-4000-8000-000000000462','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000000452','Ask three people to share a baptism story',null,null,0)
  on conflict do nothing;
 
+-- Milestone 7, step 2: what the check-ins need on Riverside. Goal seasons, and one goal and one first step owned by a name and email
+-- with no attendee row (an .example address, so nothing is ever emailed). Idempotent: seasons are set only where empty.
+update private.goals set season='JAN_APR' where id='90000000-0000-4000-8000-000000000441' and season is null;
+update private.goals set season='MAY_AUG' where id='90000000-0000-4000-8000-000000000442' and season is null;
+update private.goals set season='SEP_DEC' where id='90000000-0000-4000-8000-000000000443' and season is null;
+insert into private.goals(id,engagement_id,outcome_id,title,result,result_clear,owner_name,owner_email,end_date,season,position) values
+ ('90000000-0000-4000-8000-000000000444','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000000401','Welcome every first-time guest by name','Every first-time guest is greeted by name and invited back',true,'Naomi Okafor','naomi.okafor@riverside.example','2027-04-30','JAN_APR',3)
+ on conflict do nothing;
+insert into private.first_steps(id,engagement_id,card_id,text,owner_name,owner_email,due_date,position) values
+ ('90000000-0000-4000-8000-000000000463','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000000452','Invite two baptised members to tell their story on a Sunday','Marcus Webb','marcus.webb@riverside.example','2026-12-11',1)
+ on conflict do nothing;
+
 insert into private.key_metrics(id,engagement_id,text,rank) values
  ('90000000-0000-4000-8000-000000000471','90000000-0000-4000-8000-000000000011','People in groups',1),
  ('90000000-0000-4000-8000-000000000472','90000000-0000-4000-8000-000000000011','Leaders in training',2),

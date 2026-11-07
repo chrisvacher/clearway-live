@@ -327,6 +327,19 @@ jobs:
           path: acceptance-m6-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the check-ins (scheduled run at 30, 60 and 90 days into the harness mailbox, the phone page offline, results and follow-ups, Send now) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p check-ins-shots && npm run test:check-ins
+        env:
+          KIT_SHOTS: check-ins-shots
+      - name: Upload the check-ins screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: check-ins-screens
+          path: check-ins-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)
         if: ${{ !cancelled() }}
         run: mkdir -p acceptance-m5-shots && npm run test:acceptance-m5

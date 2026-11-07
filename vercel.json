@@ -3,5 +3,13 @@
   "framework": "nextjs",
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
-  "git": { "deploymentEnabled": true }
+  "git": {
+    "deploymentEnabled": true
+  },
+  "crons": [
+    {
+      "path": "/api/cron/check-ins",
+      "schedule": "7 13 * * *"
+    }
+  ]
 }
