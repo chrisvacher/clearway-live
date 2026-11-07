@@ -34,6 +34,14 @@ test("The themes prompt is versioned, JSON only, keeps horizons exact and never 
   for (const p of Object.values(prompts)) assert.notEqual(p.system, themesPrompt.system);
 });
 
+test("The prompt never offers a theme that says the same as one on the page, even reworded, and asks for natural labels", () => {
+  assert.match(themesPrompt.system, /Never offer a theme that says the same thing as one already on the page/);
+  assert.match(themesPrompt.system, /even in different words/);
+  assert.match(themesPrompt.system, /Roles of staff are unclear/);
+  assert.match(themesPrompt.system, /check it against every label on the page/);
+  assert.match(themesPrompt.system, /natural sentence/);
+});
+
 test("The model sees note text and card words under short refs: no ids, titles, people or attendees", () => {
   const user = themesPrompt.user(riverside.inputs);
   assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-/.test(user), "no ids");

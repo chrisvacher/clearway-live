@@ -2,7 +2,7 @@
 
 PRE-08. On the Discover setup page the facilitator presses Draft What We Heard. AI reads only the accepted themes and survey findings and drafts one headline with depth for each What We Heard content step in the engagement's run of show. The facilitator edits each draft and presses Apply, which writes the step. Nothing reaches the TV or phones until the step goes live as usual.
 
-Migration: `supabase/migrations/20261106040000_what_we_heard.sql`. Prompt: `heard-draft@1` in `lib/ai/prompts.ts`. Page: Discover, `/setup/[id]/discover`, the What We Heard part (below Themes).
+Migration: `supabase/migrations/20261106040000_what_we_heard.sql`. Prompt: `heard-draft@2` in `lib/ai/prompts.ts`. Page: Discover, `/setup/[id]/discover`, the What We Heard part (below Themes).
 
 ## What the facilitator sees
 
@@ -63,3 +63,8 @@ Wrapping the newest definition keeps every earlier step's clearing in place, whi
 - pgTAP `supabase/tests/database/what_we_heard.test.sql` (177): the records, grants, job check, source matching, theme splitting, roles, claim contents, apply refusals, number from the lead figure, quotes by ref, thin, kept edits on redraft, failure and retry, the practice reset and Clear test answers.
 - Unit `tests/unit/what-we-heard.test.ts` (16) with `tests/fixtures/ai/what-we-heard.json` (Riverside): prompt rules, refs only, defensive parse, recorded reply, a real never-names check, the fake, the pure helpers and the worker.
 - Browser `npm run test:what-we-heard` (10 checks): drafting, edit and redraft, Apply into the step exactly as drafted, quote ticks after a save, a live step refused, nothing accepted, slow and failed AI with the by-hand path, roles, and the quiet state.
+
+## Practice-room fixes, batch B (November 7)
+
+- **Prompt `heard-draft@2`.** The line is one natural clause, with "as" used at most once and never stacked ("as ... as ..."), so a line no longer reads "named staff roles as blurred and unclear as stretched". The four lines and the four details must differ from source to source: a different lead where the sources differ, a different verb and the source's own particulars where they are close, and no sentence copied from one source's headline into another's.
+- **A live step refuses Apply from a stale page.** The route reads the step's state when Apply is pressed (`running` for a live, open or phones-down step), so a page that has not yet seen the step go live is refused with "That step is on the TV right now. Apply after it's off." and the step is left untouched. The page also follows the step live and off again without a reload (the "On the TV now" chip and Apply's state). Tested in `npm run test:what-we-heard`, with the page's own reads blocked so it is genuinely stale.

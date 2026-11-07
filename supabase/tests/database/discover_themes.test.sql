@@ -150,11 +150,11 @@ reset role;
 select is((select public.discover_theme_due(tests.id(100))),true,'The worker sees it due');
 set local role service_role;
 select is(public.discover_theme_claim(tests.id(100),tests.id(600),'x'::text,'{"other":"v"}')->>'status','invalid_request','A claim with no prompt version is refused');
-select is(public.discover_theme_claim(tests.id(100),tests.id(600),'fake-model','{"draft_discover_themes":"themes-draft@1"}')->>'status','claimed','The worker claims it');
-select is(public.discover_theme_claim(tests.id(100),tests.id(601),'fake-model','{"draft_discover_themes":"themes-draft@1"}')->>'status','busy','A second worker is told it is busy');
+select is(public.discover_theme_claim(tests.id(100),tests.id(600),'fake-model','{"draft_discover_themes":"themes-draft@2"}')->>'status','claimed','The worker claims it');
+select is(public.discover_theme_claim(tests.id(100),tests.id(601),'fake-model','{"draft_discover_themes":"themes-draft@2"}')->>'status','busy','A second worker is told it is busy');
 select is(public.discover_theme_due(tests.id(100)),false,'and nothing is due while the lease holds');
 reset role;
-select is((select job||' '||model||' '||prompt_version||' '||coalesce(session_id::text,'none') from private.ai_runs where engagement_id=tests.id(100) and job='draft_discover_themes'),'draft_discover_themes fake-model themes-draft@1 none','The run is logged with its model and prompt version');
+select is((select job||' '||model||' '||prompt_version||' '||coalesce(session_id::text,'none') from private.ai_runs where engagement_id=tests.id(100) and job='draft_discover_themes'),'draft_discover_themes fake-model themes-draft@2 none','The run is logged with its model and prompt version');
 select is((select jsonb_array_length(inputs->'notes') from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),5,'with five notes');
 select is((select jsonb_array_length(inputs->'cards') from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),4,'and four cards');
 select is((select (inputs->'notes'->0)->>'ref' from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100)),'n1','under short refs');
@@ -321,18 +321,18 @@ select is(public.discover_draft_start(tests.id(100),tests.id(511))->>'status','o
 select is((public.discover_themes_state(tests.id(100))->'round'->>'redraft'),'true','and the page knows it is a redraft');
 reset role;
 set local role service_role;
-select is(public.discover_theme_claim(tests.id(100),tests.id(610),'fake-model','{"draft_discover_themes":"themes-draft@1"}')->>'status','claimed','A redraft is claimed');
+select is(public.discover_theme_claim(tests.id(100),tests.id(610),'fake-model','{"draft_discover_themes":"themes-draft@2"}')->>'status','claimed','A redraft is claimed');
 reset role;
 select ok((select inputs->'already' @> '[{"label":"Small groups are hard to find"}]' and inputs->'already' @> '[{"label":"Leaders feel alone"}]' and not (inputs->'already' @> '[{"label":"Volunteers are stretched"}]') from private.ai_runs where id=(select lease_run from private.discover_theme_rounds where engagement_id=tests.id(100))),'It is told which themes stand (accepted and offered), so it offers new ones beside them');
 select is((select inputs->'rejected' from private.ai_runs where id=(select lease_run from private.discover_theme_rounds where engagement_id=tests.id(100))),'["Volunteers are stretched"]'::jsonb,'and which the facilitator rejected');
 set local role service_role;
 select is(public.discover_theme_fail((select lease_run from private.discover_theme_rounds where engagement_id=tests.id(100)),tests.id(610),'timeout','{"ms":50000}')->>'status','ok','The first failure is recorded');
-select is(public.discover_theme_claim(tests.id(100),tests.id(611),'fake-model','{"draft_discover_themes":"themes-draft@1"}')->>'status','cooling','and the next try waits a moment');
+select is(public.discover_theme_claim(tests.id(100),tests.id(611),'fake-model','{"draft_discover_themes":"themes-draft@2"}')->>'status','cooling','and the next try waits a moment');
 reset role;
 update private.discover_theme_rounds set last_failed_at=now()-interval '1 minute' where engagement_id=tests.id(100);
 set local role service_role;
 select is(public.discover_theme_due(tests.id(100)),true,'After the pause it is due again');
-select is(public.discover_theme_claim(tests.id(100),tests.id(612),'fake-model','{"draft_discover_themes":"themes-draft@1"}')->>'status','claimed','and claimed');
+select is(public.discover_theme_claim(tests.id(100),tests.id(612),'fake-model','{"draft_discover_themes":"themes-draft@2"}')->>'status','claimed','and claimed');
 select is(public.discover_theme_fail((select lease_run from private.discover_theme_rounds where engagement_id=tests.id(100)),tests.id(612),'unavailable','{"ms":10}')->>'gave_up','true','The second failure gives up');
 reset role;
 select is((select status||' '||attempts||' '||last_error from private.discover_theme_rounds where engagement_id=tests.id(100)),'failed 2 unavailable','The round is failed, with a reason that holds nothing from the notes');
@@ -345,19 +345,42 @@ reset role;
 
 -- A redraft offers new themes beside the standing ones and never repeats them.
 set local role service_role;
-select is(public.discover_theme_claim(tests.id(100),tests.id(620),'fake-model','{"draft_discover_themes":"themes-draft@1"}')->>'status','claimed','The redraft is claimed');
+select is(public.discover_theme_claim(tests.id(100),tests.id(620),'fake-model','{"draft_discover_themes":"themes-draft@2"}')->>'status','claimed','The redraft is claimed');
 reset role;
 select set_config('tests.out2',$j${"themes":[
  {"source":"conversations","label":"Small groups are hard to find","detail":"Again","sources":["n1"]},
  {"source":"conversations","label":"Volunteers are stretched","detail":"Rejected earlier","sources":["n1"]},
+ {"source":"conversations","label":"Roles of staff are unclear","detail":"Says what the accepted theme says, in other words.","sources":["n3"]},
+ {"source":"conversations","label":"Volunteers are very stretched","detail":"Says what the rejected theme says, in other words.","sources":["n3"]},
+ {"source":"four_lists","label":"Roles of staff are unclear","detail":"The same words, from the cards: a different source, so it stands.","sources":["f1"]},
+ {"source":"conversations","label":"Newcomers do not feel welcome","detail":"The opposite of an accepted theme, not a repeat.","sources":["n1"]},
  {"source":"conversations","label":"The next step is unclear","detail":"Warm welcome, then no clear step.","sources":["n1","n2"],"quote":{"text":"the next step is unclear","source":"n1"}}
 ]}$j$,false);
+-- An accepted theme already on the page: an offer that says the same in other words must be dropped, whatever the order of its words.
+insert into private.discover_themes(id,engagement_id,source,label,detail,status) values(tests.id(990),tests.id(100),'conversations','Staff roles have blurred and are unclear','','accepted'),(tests.id(991),tests.id(100),'conversations','Newcomers feel welcome','','accepted');
 set local role service_role;
 select is(public.discover_theme_apply((select lease_run from private.discover_theme_rounds where engagement_id=tests.id(100)),tests.id(620),current_setting('tests.out2')::jsonb,'{}')->>'status','ok','Applying the redraft');
 reset role;
-select is((select count(*)::integer from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100) and output->>'offered'='1'),1,'One new theme is offered');
+select is((select count(*)::integer from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100) and output->>'offered'='3'),1,'Three new themes are offered: the new one, the cards'' wording of a conversation theme, and an opposite');
 select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label in('Small groups are hard to find','Volunteers are stretched') and not deleted),2,'and the accepted and the rejected ones are not offered a second time');
 select is(tests.field('The next step is unclear','status'),'draft','The new theme is a draft beside them');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Roles of staff are unclear' and source='conversations' and not deleted),0,'A theme whose meaningful words match an accepted theme''s is dropped ("Roles of staff are unclear" beside "Staff roles have blurred and are unclear")');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Volunteers are very stretched' and not deleted),0,'and so is one that says what a rejected theme said');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Roles of staff are unclear' and source='four_lists' and not deleted),1,'The near-repeat check is within a source: the same words from the Four Helpful Lists cards stand');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Newcomers do not feel welcome' and not deleted),1,'and a negated label stands beside the accepted one it contradicts');
+select is((select count(*)::integer from private.ai_runs r,jsonb_array_elements(r.output->'refused') x where r.job='draft_discover_themes' and r.engagement_id=tests.id(100) and x->>'reason'='repeat'),2,'Each drop is written to the run''s refused output with the reason repeat');
+select is(private.discover_label_alike('Newcomers do not feel welcome',array['newcomers feel welcome']),false,'Negation: "do not feel welcome" is not "feel welcome"');
+select is(private.discover_label_alike('There is no clear way into groups',array['there is a clear way into groups']),false,'"no clear way" is not "a clear way"');
+select is(private.discover_label_alike('More young families',array['fewer young families']),false,'More is not fewer');
+select is(private.discover_label_alike('Small groups are hard to find',array['small groups are easy to find']),false,'Hard is not easy');
+select is(private.discover_label_alike('Our leaders are strong in vision',array['our leaders are weak in vision']),false,'Strong is not weak');
+select is(private.discover_label_alike('The way into groups is clear',array['the way into groups is unclear']),false,'Clear is not unclear');
+select is(private.discover_label_alike('Newcomers do not feel welcome',array['newcomers do not feel welcome here']),true,'but two negated wordings of the same thing are a repeat');
+select is(private.discover_label_alike('Roles of staff are unclear',array['staff roles have blurred and are unclear']),true,'The check: three of three meaningful words shared');
+select is(private.discover_label_alike('Giving is generous',array['giving is down this year']),false,'The check keeps a theme that shares only one word');
+select is(private.discover_label_alike('Newcomers struggle to find a small group',array['small groups are hard to find']),true,'and drops a longer wording of the same thing');
+select is(private.discover_label_alike('Worship is a strength',array['staff roles are unclear','volunteers are stretched']),false,'and keeps a plainly different one');
+select is(private.discover_label_alike('Music',array['music']),false,'A one-word label is left to the exact-repeat check');
 select is(tests.field('Small groups are hard to find','status'),'accepted','and the accepted one is still accepted');
 
 

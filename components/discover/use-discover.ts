@@ -1,20 +1,34 @@
 "use client";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { DiscoverState } from "@/lib/discover/types";
+import { POLL_MS, usePoll } from "./use-poll";
 
 export type Reply = { status: string; message?: string } & Record<string, unknown>;
 
-// Reads and writes Discover through the app's own route, under the facilitator's sign-in. After a write it reads again,
-// so the page always shows what the database holds.
+// Reads and writes Discover through the app's own route, under the facilitator's sign-in. After a write it reads again, and it reads
+// every few seconds while the page is on screen, so the notes, findings and total follow the database without a reload.
 export function useDiscover(engagement: string, initial: DiscoverState) {
   const [state, setState] = useState(initial);
-  const refresh = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/discover/${engagement}`, { cache: "no-store" });
-      const data = await response.json();
-      if (data?.status === "ok") setState(data as DiscoverState);
-    } catch { /* the page keeps what it shows */ }
+  // One read at a time; a read asked for while another is in flight is not dropped (see use-themes.ts): the old one is discarded and a fresh one follows.
+  const loop = useRef<Promise<void> | null>(null), again = useRef(false);
+  const refresh = useCallback((): Promise<void> => {
+    if (loop.current) { again.current = true; return loop.current; }
+    loop.current = (async () => {
+      try {
+        do {
+          again.current = false;
+          try {
+            const response = await fetch(`/api/discover/${engagement}`, { cache: "no-store" });
+            const data = await response.json();
+            if (again.current) continue;
+            if (data?.status === "ok") setState(data as DiscoverState);
+          } catch { /* the page keeps what it shows */ }
+        } while (again.current);
+      } finally { loop.current = null; }
+    })();
+    return loop.current;
   }, [engagement]);
+  usePoll(refresh, POLL_MS);
   const send = useCallback(async (body: Record<string, unknown>): Promise<Reply> => {
     try {
       const response = await fetch(`/api/discover/${engagement}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

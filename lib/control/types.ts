@@ -15,6 +15,6 @@ export type ControlStatus = {
   self_paced?: ControlSelfPaced[]; rehearsal?: ControlRehearsal;
 };
 export type ControlSelfPaced = { id: string; title: string; part: string; interaction: string; state: string; opens_at: string | null; closes_at: string | null; answered: number };
-export type ControlRehearsal = { since: string | null; test_answers: number; last_clear: { at: string; answers: number; sessions: number; by: string | null } | null };
+export type ControlRehearsal = { since: string | null; test_answers: number; test_counts?: { answers: number; themes: number; signals: number; other: number; total: number }; last_clear: { at: string; answers: number; sessions: number; themes?: number; signals?: number; other?: number; by: string | null } | null };
 // Private notices on the facilitator topic. Hints only: the status read is authoritative.
 export type ControlNotice = { kind: "ack"; screen: string; version: number; at: string } | { kind: "scribe"; what: string } | { kind: "overnight"; what: string } | { kind: "signal"; session?: string } | { kind: "control"; id?: string; action: string; by?: string | null; version: number; changed?: boolean; at: string };

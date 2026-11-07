@@ -158,6 +158,37 @@ async function main() {
       assert.ok(depth.includes(second) && !depth.includes(first), "Apply writes the quote that was kept, not the one taken out");
     });
 
+    await step("A page left open follows a step that goes live, and a stale Apply is still refused by the server", async () => {
+      await sql.query("update public.sessions set state='draft' where id=$1", [steps.input]);
+      await page.goto(url);
+      const apply = source("input").getByRole("button", { name: "Apply" });
+      await until(async () => await apply.isEnabled(), "Apply is on while the step is not live", 15000);
+      assert.equal(await source("input").getByText("On the TV now").count(), 0, "and no chip");
+      // The step goes live elsewhere. The page is not reloaded: the chip shows and Apply goes off within a few seconds.
+      await sql.query("update public.sessions set state='live' where id=$1", [steps.input]);
+      await source("input").getByText("On the TV now").waitFor({ timeout: 15000 });
+      await until(async () => await apply.isDisabled(), "Apply goes off with the chip, without a reload", 5000);
+      await source("input").getByText("That step is on the TV right now. Apply after it's off.").waitFor();
+      // And it follows the step back off the TV.
+      await sql.query("update public.sessions set state='draft' where id=$1", [steps.input]);
+      await until(async () => (await source("input").getByText("On the TV now").count()) === 0 && await apply.isEnabled(), "Apply is on again once the step is off the TV", 15000);
+      // A stale page: the page cannot read the step (its reads fail), the step goes live, and Apply is pressed on the old state. The server decides, from the step.
+      await page.route(`**/api/discover/${room.id}/heard`, route => route.request().method() === "GET" ? route.abort() : route.continue());
+      await sql.query("update public.sessions set state='live' where id=$1", [steps.input]);
+      const before = await stepRow("input");
+      await delay(4500);
+      assert.equal(await source("input").getByText("On the TV now").count(), 0, "the stale page still shows the old state");
+      assert.equal(await apply.isEnabled(), true, "and still offers Apply");
+      await apply.click();
+      await source("input").getByText("That step is on the TV right now. Apply after it's off.").waitFor({ timeout: 10000 });
+      const after = await stepRow("input");
+      assert.equal(after.prompt, before.prompt); assert.equal(after.revision, before.revision, "the live step is untouched by a stale Apply");
+      assert.equal(after.state, "live");
+      await page.unroute(`**/api/discover/${room.id}/heard`);
+      await sql.query("update public.sessions set state='draft' where id=$1", [steps.input]);
+      await page.goto(url);
+    });
+
     await step("A step that is on the TV now cannot be changed from here", async () => {
       await sql.query("update public.sessions set state='live' where id=$1", [steps.input]);
       const before = await stepRow("input"), line = (await drafts()).find(r => r.source_key === "input")!.line as string;

@@ -76,12 +76,20 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
 // The facilitator's neutral question (FAC-02, Ask the room): a layer over the live step that cross-fades in and out like a session change.
 // It carries the question's words and nothing else. The live step keeps its place beneath it, and phones never show it.
 function NeutralQuestion({ frame, text }: { frame: LiveSnapshot | null; text: string | null }) {
-  const [kept, setKept] = useState("");
+  const title = frame?.session?.title ?? "";
+  const [kept, setKept] = useState({ text: "", title: "" });
   // The words stay through the fade out, so the layer never empties while it leaves.
-  if (text && text !== kept) setKept(text);
+  if (text && (text !== kept.text || title !== kept.title)) setKept({ text, title });
+  // Once the layer has faded out (a 700 millisecond fade, or the reduced-motion one) the words go: the layer stays in place, empty and aria-hidden,
+  // so a question that has come down is not left in the page at opacity 0. A question put up again within the fade keeps its words.
+  useEffect(() => {
+    if (text || !kept.text) return;
+    const timer = setTimeout(() => setKept({ text: "", title: "" }), 1000);
+    return () => clearTimeout(timer);
+  }, [text, kept.text]);
   return <div className={`tv-ask${text ? " is-on" : ""}`} aria-hidden={!text} data-neutral-question={text ? "on" : "off"}>
-    <p className="tv-eyebrow">{frame?.session?.title}</p>
-    <h1 className="tv-headline-xl">{kept}</h1>
+    <p className="tv-eyebrow">{kept.title}</p>
+    <h1 className="tv-headline-xl">{kept.text}</h1>
   </div>;
 }
 

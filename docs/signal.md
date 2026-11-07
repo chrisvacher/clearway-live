@@ -75,3 +75,10 @@ Not changed on purpose: `ai_on` (the signal runs where AI is already on) and `ai
 - `signal.test.sql`: forced row-level security, no browser grant; who may read and press (lead and co-facilitator yes; another engagement's facilitator, participant, scribe, team facilitator, TV, no place and unsigned no); the claim thresholds; code limits and refusals; replaced not duplicated; dismissed stays dismissed; citation aligned only; silent only after phones go down and retired once raised; failure and cooling; neutral question refusals; the TV payload with a question up holds the text and no theme, count or kind; the question leaves with the step.
 - `tests/unit/signal.test.ts` with the Riverside fixture `tests/fixtures/ai/signal.json`: the prompt's rules, what the model sees, defensive parsing, suggestions that never correct, the scripted stand-in and the worker's use of the deeper model.
 - `npm run test:signal`: cards arriving on the control surface and the remote with the soft rise, nothing on the TV or phones, the API refusing anyone else, evidence, citation, dismiss, the cross-fade to a neutral question and back, the remote with the laptop closed, and a silent card once phones go down.
+
+## Practice-room fixes, batch B (November 7)
+
+Migration `supabase/migrations/20261107020000_m6_fixes_b.sql`, tested in `supabase/tests/database/m6_fixes_b.test.sql` and `npm run test:signal`.
+
+- **Silent themes waiting.** `signal_state.held` is the strong accepted themes that have no card at all in this step (any kind, dismissed or not). It used to subtract the themes with an aligned or divergent card from the strong count, so a divergent card on a thin theme took one off a strong theme the room had never spoken of. It now equals what a silent card can still come for, and is 0 once phones are down.
+- **The TV's question layer.** Once the neutral question has faded out (700 ms, or the reduced-motion fade), the text and the step title are removed from `.tv-ask`. The layer stays in place, empty and `aria-hidden`, and the words stay for the whole fade so the cross-fade is unchanged.

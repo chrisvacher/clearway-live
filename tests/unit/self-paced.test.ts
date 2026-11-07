@@ -67,6 +67,13 @@ test("Rehearsal presses and their messages", () => {
   assert.equal(rehearsalMessage({ status: "ok", answers: 5, sessions: 2 }), "Cleared 5 test answers and set 2 steps back to Ready.");
   assert.equal(rehearsalMessage({ status: "ok", answers: 1, sessions: 0 }), "Cleared 1 test answer.");
   assert.equal(rehearsalMessage({ status: "ok" }), "", "start and end say nothing");
+  // The clear names what it cleared, and the parts add up to the count the panel showed ("Tap again to clear 25 test items").
+  const rehearsal = { status: "ok", answers: 9, themes: 12, signals: 4 };
+  assert.equal(rehearsalMessage(rehearsal), "Cleared 9 test answers, 12 drafted themes and 4 signals.");
+  assert.equal(rehearsalMessage({ ...rehearsal, other: 3, sessions: 2 }), "Cleared 9 test answers, 12 drafted themes, 4 signals and 3 other test items, and set 2 steps back to Ready.");
+  assert.equal(rehearsalMessage({ status: "ok", answers: 0, themes: 1, signals: 0, other: 0 }), "Cleared 1 drafted theme.");
+  assert.equal(rehearsalMessage({ status: "duplicate", answers: 0 }), "Cleared 0 test answers.");
+  assert.equal(testAnswersLabel(rehearsal.answers + rehearsal.themes + rehearsal.signals), "25 test items");
   assert.match(rehearsalMessage({ status: "live", title: "Celebration" }), /^Celebration is live\. Choose Nothing live first\./);
   for (const s of ["live", "closed", "denied", "unavailable"]) assert.doesNotMatch(rehearsalMessage({ status: s }), /[–—]/);
 });
@@ -188,5 +195,5 @@ test("Clear test answers is on when a rehearsal left only non-answer test items"
   assert.equal(canClearTests(0, false), false, "nothing to clear");
   assert.equal(canClearTests(1, false), true, "one candidate suggestion is enough");
   assert.equal(canClearTests(0, true), true, "a running rehearsal can be cleared");
-  assert.equal(testAnswersLabel(1), "1 test answer"); assert.equal(testAnswersLabel(3), "3 test answers");
+  assert.equal(testAnswersLabel(1), "1 test item"); assert.equal(testAnswersLabel(25), "25 test items");
 });

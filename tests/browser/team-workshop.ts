@@ -192,7 +192,7 @@ async function main() {
       await until(async () => (await layer().innerText()).includes("budget"), "the rehearsal question on the TV", 8000);
       await control.locator(".qa-ctl-item", { hasText: "budget" }).first().getByRole("button", { name: "Spotlight" }).click();
       await until(async () => await tv.locator(".qa-spot.is-on").count() === 1, "a spotlit rehearsal question", 8000);
-      await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test answers"), "the control surface counts the test answers", 10000);
+      await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test items"), "the control surface counts the test answers", 10000);
       await shot(control, "team-rehearsal-control");
     });
     await step("Clear test answers: refused while live, then everything from the rehearsal goes and the steps are Ready again", async () => {
