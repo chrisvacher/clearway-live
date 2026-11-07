@@ -228,8 +228,18 @@ async function main() {
     });
 
     await step("Back to the session: the question fades, the step and its count return", async () => {
+      // The words stay while the layer fades (no blank frame mid-fade), then go: the layer is left empty, not holding the question at opacity 0.
+      const fade: { opacity: number; text: string }[] = [];
+      const fadeSampler = (async () => { for (let i = 0; i < 70; i++) { fade.push(await tv.locator(".tv-ask").evaluate(el => ({ opacity: Number(getComputedStyle(el).opacity), text: (el.querySelector(".tv-headline-xl")?.textContent ?? "") }))); await delay(30); } })();
       await control.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
       await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "the question fades out", 5000);
+      await fadeSampler;
+      assert.ok(fade.some(f => f.opacity > 0.05 && f.opacity < 0.95), `the layer cross-fades out (${fade.map(f => f.opacity).join(",")})`);
+      assert.ok(fade.filter(f => f.opacity > 0.05).every(f => f.text.length > 0), "the question's words stay for as long as the layer can be seen");
+      await until(async () => (await tv.locator(".tv-ask .tv-headline-xl").evaluate(el => el.textContent ?? "x")) === "", "the question's text is removed from the page once it has faded", 4000);
+      assert.equal((await tv.locator(".tv-ask .tv-eyebrow").evaluate(el => el.textContent ?? "x")), "", "and so is the step title on the layer");
+      assert.equal(await tv.locator(".tv-ask").getAttribute("aria-hidden"), "true", "the empty layer stays aria-hidden");
+      assert.ok(!(await tv.locator("body").innerHTML()).includes("What would we gain or lose by going that way?"), "nothing of the question is left in the TV's markup");
       await until(async () => Number(await tv.locator(".tv-layers .tv-layer").last().evaluate(el => getComputedStyle(el).opacity)) > 0.99, "the step is back", 5000);
       await until(async () => await tv.locator(".tv-top .tv-ask-hide").evaluate(el => getComputedStyle(el).visibility) === "visible", "with its count", 5000);
       assert.equal((await sql.query("select neutral_question from public.room_states where engagement_id=$1", [room.id])).rows[0].neutral_question, null);
@@ -254,6 +264,7 @@ async function main() {
       await until(async () => (await remote.locator("[data-signal-ask]").count()) === 1, "the remote shows it", 8000);
       await remote.locator("[data-signal-ask]").getByRole("button", { name: "Back to the session" }).click();
       await until(async () => Number(await tv.locator(".tv-ask").evaluate(el => getComputedStyle(el).opacity)) < 0.01, "back to the step", 8000);
+      await until(async () => (await tv.locator(".tv-ask .tv-headline-xl").evaluate(el => el.textContent ?? "x")) === "", "the remote's question leaves the page once faded", 4000);
       const aligned = remote.locator("[data-signal-list] [data-signal=\"aligned\"]").first();
       await aligned.getByRole("button").first().click();
       await aligned.getByRole("button", { name: "Dismiss" }).click();

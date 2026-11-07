@@ -4,7 +4,7 @@ import { Download, FlaskConical } from "lucide-react";
 import type { useControlRoom } from "./use-control-room";
 import { useSecondTap } from "./live-controls";
 import { stateLabels } from "@/lib/control/policy";
-import { canClearTests, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction } from "@/lib/run-of-show/self-paced";
+import { canClearTests, clearedParts, joinParts, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction, type RehearsalResult } from "@/lib/run-of-show/self-paced";
 import { SeedCounts } from "@/components/interactions/lens/lens-panel";
 import { pressId } from "@/lib/control/own-presses";
 import "./self-paced.css";
@@ -54,7 +54,7 @@ export function RehearsalPanel({ room }: { room: Room }) {
     setBusy(action); setNote(null);
     try {
       const response = await fetch(`/api/control/${engagement}/rehearsal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), action }) });
-      const result = await response.json() as { status: string; answers?: number; sessions?: number; title?: string };
+      const result = await response.json() as RehearsalResult;
       const text = rehearsalMessage(result);
       setNote(text ? { text, error: !["ok", "duplicate", "unchanged"].includes(result.status) } : null);
     } catch { setNote({ text: rehearsalMessage({ status: "unavailable" }), error: true }); }
@@ -69,10 +69,10 @@ export function RehearsalPanel({ room }: { room: Room }) {
       {on ? <button className="show-button is-small" disabled={Boolean(busy) || closed} onClick={() => void send("end")}>End rehearsal</button>
         : <button className="show-button is-small" disabled={Boolean(busy) || closed} onClick={() => void send("start")}>Start rehearsal</button>}
       <button className="show-button is-small sp-clear" disabled={Boolean(busy) || closed || live || !canClearTests(tests, on)} aria-describedby={live ? "sp-clear-why" : undefined}
-        onClick={() => confirm.tap("clear", () => void send("clear"))}>{busy === "clear" ? "Clearing..." : confirm.armed === "clear" ? `Tap again to clear ${tests}` : "Clear test answers"}</button>
+        onClick={() => confirm.tap("clear", () => void send("clear"))}>{busy === "clear" ? "Clearing..." : confirm.armed === "clear" ? `Tap again to clear ${testAnswersLabel(tests)}` : "Clear test answers"}</button>
     </div>
     {live && <p id="sp-clear-why" className="show-help">Choose Nothing live first. Test answers can’t be cleared while a session is live.</p>}
     {note && <p className={`show-help${note.error ? " is-error" : ""}`} role={note.error ? "alert" : "status"}>{note.text}</p>}
-    {rehearsal?.last_clear && <p className="show-help">Last cleared {when(rehearsal.last_clear.at)}{rehearsal.last_clear.by ? ` by ${rehearsal.last_clear.by}` : ""}: {rehearsal.last_clear.answers} test {rehearsal.last_clear.answers === 1 ? "answer" : "answers"}.</p>}
+    {rehearsal?.last_clear && <p className="show-help">Last cleared {when(rehearsal.last_clear.at)}{rehearsal.last_clear.by ? ` by ${rehearsal.last_clear.by}` : ""}: {joinParts(clearedParts(rehearsal.last_clear)) || "0 test answers"}.</p>}
   </div>;
 }

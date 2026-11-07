@@ -1,12 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ThemesState } from "@/lib/discover/themes";
+import { POLL_ACTIVE_MS, POLL_MS, usePoll } from "./use-poll";
 
 export type ThemeReply = { status: string; message?: string } & Record<string, unknown>;
 type Load = { state: ThemesState | null; missing: boolean };
 
 // Reads and writes the themes through the app's own route, under the facilitator's sign-in. The page asks every 3 seconds while a draft
-// is running and every 12 otherwise, so the other facilitator's changes appear. If the themes functions are not in the database yet,
+// is running and every 4 otherwise, and at once when the tab shows again, so changes made elsewhere appear without a reload. If the themes functions are not in the database yet,
 // `missing` is true and the page keeps showing the read-only list it had.
 export function useThemes(engagement: string, initial: ThemesState | null, watch: string) {
   const [load, setLoad] = useState<Load>({ state: initial, missing: initial === null });
@@ -24,10 +25,7 @@ export function useThemes(engagement: string, initial: ThemesState | null, watch
   }, [engagement]);
   const status = load.state?.round?.status;
   const active = status === "pending" || status === "drafting";
-  useEffect(() => {
-    const timer = setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, active ? 3000 : 12000);
-    return () => clearInterval(timer);
-  }, [refresh, active]);
+  usePoll(refresh, active ? POLL_ACTIVE_MS : POLL_MS);
   // A finding saved above changes the survey themes: read again.
   useEffect(() => { void refresh(); }, [refresh, watch]);
   const send = useCallback(async (body: Record<string, unknown>): Promise<ThemeReply> => {

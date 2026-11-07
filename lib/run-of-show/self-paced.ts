@@ -59,10 +59,21 @@ export function rehearsalBody(value: unknown): { id: string; action: RehearsalAc
   const v = value as Record<string, unknown>;
   return uuid(v.id) && rehearsalActions.includes(v.action as RehearsalAction) ? { id: v.id as string, action: v.action as RehearsalAction } : null;
 }
-export function rehearsalMessage(result: { status: string; answers?: number; sessions?: number; title?: string }): string {
+export type RehearsalResult = { status: string; answers?: number; sessions?: number; themes?: number; signals?: number; other?: number; title?: string };
+// What Clear test answers cleared, in words: "Cleared 9 test answers, 12 drafted themes and 4 signals". The parts add up to the count the panel showed
+// ("25 test items"); anything that is not an answer, a drafted theme or a signal (votes, agrees, scribe cards and the like) reads as other test items.
+export function clearedParts(result: Omit<RehearsalResult, "status">): string[] {
+  const part = (n: number | undefined, one: string, many: string) => n ? `${n} ${n === 1 ? one : many}` : "";
+  return [part(result.answers, "test answer", "test answers"), part(result.themes, "drafted theme", "drafted themes"), part(result.signals, "signal", "signals"), part(result.other, "other test item", "other test items")].filter(Boolean);
+}
+export const joinParts = (parts: string[]) => parts.length < 2 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+export function rehearsalMessage(result: RehearsalResult): string {
   switch (result.status) {
-    case "ok": case "duplicate":
-      return result.answers === undefined ? "" : `Cleared ${result.answers} test ${result.answers === 1 ? "answer" : "answers"}${result.sessions ? ` and set ${result.sessions} ${result.sessions === 1 ? "step" : "steps"} back to Ready` : ""}.`;
+    case "ok": case "duplicate": {
+      if (result.answers === undefined) return "";
+      const parts = clearedParts(result), list = parts.length ? joinParts(parts) : "0 test answers";
+      return `Cleared ${list}${result.sessions ? `${parts.length > 1 ? "," : ""} and set ${result.sessions} ${result.sessions === 1 ? "step" : "steps"} back to Ready` : ""}.`;
+    }
     case "unchanged": return "";
     case "live": return `${result.title ? `${result.title} is live. ` : ""}Choose Nothing live first. Test answers can’t be cleared while a session is live.`;
     case "closed": return "This engagement has closed.";
@@ -71,7 +82,8 @@ export function rehearsalMessage(result: { status: string; answers?: number; ses
   }
 }
 
-// The Rehearsal panel's count: every test item Clear test answers removes (answers, votes, suggestions, scribe cards
-// and files), and they are all counted as test answers (the wording the panel and its tests already use). Clear is on whenever there is one, or a rehearsal is running.
-export const testAnswersLabel = (n: number) => `${n} test ${n === 1 ? "answer" : "answers"}`;
+// The Rehearsal panel's count: every test item Clear test answers removes (answers, drafted themes, signals, votes, suggestions, scribe cards
+// and files), named as test items because an answer is only one kind of them. The clear's own message reports the same total, part by part.
+// Clear is on whenever there is one, or a rehearsal is running.
+export const testAnswersLabel = (n: number) => `${n} test ${n === 1 ? "item" : "items"}`;
 export const canClearTests = (items: number, rehearsing: boolean) => items > 0 || rehearsing;

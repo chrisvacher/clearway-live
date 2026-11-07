@@ -64,3 +64,13 @@ The Discover page checks that `discover_state` exists; if not it says "Discover 
 
 - Accept, rename, merge and reject on themes, and drafting themes from notes, are step 3.
 - Granola transcripts stay Open.
+
+## Practice-room fixes, batch B (November 7)
+
+- **The page follows the database.** The Discover page reads the notes, the themes and What We Heard every 4 seconds while it is on screen (3 while a draft runs), and at once when the tab shows again, the window gets focus or the network returns (`components/discover/use-poll.ts`). A tab the facilitator left to run the show from another window used to keep the state it had when they left. A note added or removed reads the themes again, so "of 8 conversations" and "N notes were added since" move with it.
+- **The rehearsal count.** The control surface says "N test items", counted once by `private.rehearsal_counts` (answers, drafted themes, signals, and every other test item Clear test answers removes), and `control_status.rehearsal.test_answers` is that total, with `test_counts` beside it. Clear test answers returns `answers`, `themes`, `signals` and `other` and the message names them, for example "Cleared 9 test answers, 12 drafted themes and 4 signals"; the parts add up to the count on the button. `private.rehearsal_log` gains `themes`, `signals` and `other`, so the last clear reads the same. The themes round goes back to idle when no drafted theme is left, so "AI offered 12 themes" does not outlive them.
+
+| Shared object | Extends | Change |
+| --- | --- | --- |
+| `private.control_status` | the read-back's patch (20261106070000) | `test_answers` is the helper's total; adds `test_counts`; `last_clear` gains `themes`, `signals`, `other` |
+| `private.rehearsal_control` | the read-back's wrapper (20261106070000) | renamed `_pre_fixes_b` and wrapped: reports the parts, records them, quiets the themes round |

@@ -189,10 +189,10 @@ reset role;
 select is((select public.discover_heard_due(tests.id(100))),true,'The worker sees it due');
 set local role service_role;
 select is(public.discover_heard_claim(tests.id(100),tests.id(600),'x'::text,'{"other":"v"}')->>'status','invalid_request','A claim with no prompt version is refused');
-select is(public.discover_heard_claim(tests.id(100),tests.id(600),'fake-model','{"draft_what_we_heard":"heard-draft@1"}')->>'status','claimed','The worker claims the round');
-select is(public.discover_heard_claim(tests.id(100),tests.id(601),'fake-model','{"draft_what_we_heard":"heard-draft@1"}')->>'status','busy','A second claim while the lease holds is busy');
+select is(public.discover_heard_claim(tests.id(100),tests.id(600),'fake-model','{"draft_what_we_heard":"heard-draft@2"}')->>'status','claimed','The worker claims the round');
+select is(public.discover_heard_claim(tests.id(100),tests.id(601),'fake-model','{"draft_what_we_heard":"heard-draft@2"}')->>'status','busy','A second claim while the lease holds is busy');
 reset role;
-select is((select job||' '||model||' '||prompt_version||' '||coalesce(session_id::text,'none') from private.ai_runs where engagement_id=tests.id(100) and job='draft_what_we_heard'),'draft_what_we_heard fake-model heard-draft@1 none','The run is logged with its job, model and prompt version and no session');
+select is((select job||' '||model||' '||prompt_version||' '||coalesce(session_id::text,'none') from private.ai_runs where engagement_id=tests.id(100) and job='draft_what_we_heard'),'draft_what_we_heard fake-model heard-draft@2 none','The run is logged with its job, model and prompt version and no session');
 select is((select jsonb_agg(s->>'key' order by ord) from private.ai_runs r,jsonb_array_elements(r.inputs->'sources') with ordinality x(s,ord) where r.job='draft_what_we_heard'),'["survey","four_lists","input","interviews"]'::jsonb,'The model reads each source that has a step and accepted themes, in the templates'' order');
 select is((select count(*)::integer from private.ai_runs r,jsonb_array_elements(r.inputs->'sources') s,jsonb_array_elements(s.value->'themes') x where r.job='draft_what_we_heard' and r.engagement_id=tests.id(100)),8,'with the accepted themes of each');
 select ok((select not (inputs::text ~* 'Tasha|Brown|Sam Lee|Ruth|Gomez|Senior leaders|Associate pastor|Board conversation|Staff team|Worship pastor|Priya|Shah|Ortiz|Scribe') from private.ai_runs where job='draft_what_we_heard' and engagement_id=tests.id(100)),'No person, no note title and no attendee is in what the model reads');
@@ -301,7 +301,7 @@ select is(public.discover_heard_start(tests.id(100),tests.id(502))->>'status','o
 reset role;
 select is((select public.discover_heard_due(tests.id(100))),true,'and it is due');
 set local role service_role;
-select is(public.discover_heard_claim(tests.id(100),tests.id(610),'fake-model','{"draft_what_we_heard":"heard-draft@1"}')->>'status','claimed','The worker claims it');
+select is(public.discover_heard_claim(tests.id(100),tests.id(610),'fake-model','{"draft_what_we_heard":"heard-draft@2"}')->>'status','claimed','The worker claims it');
 select is(public.discover_heard_apply(tests.run(),tests.id(610),
  jsonb_build_object('headlines',jsonb_build_array(
   jsonb_build_object('source','survey','lead',tests.tref('People under 30'),'line','survey answers came from **people under 30**','detail','Six answers cannot speak for every young adult.'),
@@ -326,16 +326,16 @@ select tests.login(1);
 select is(public.discover_heard_start(tests.id(100),tests.id(503))->>'status','ok','Another round starts');
 reset role;
 set local role service_role;
-select is(public.discover_heard_claim(tests.id(100),tests.id(620),'fake-model','{"draft_what_we_heard":"heard-draft@1"}')->>'status','claimed','and is claimed');
+select is(public.discover_heard_claim(tests.id(100),tests.id(620),'fake-model','{"draft_what_we_heard":"heard-draft@2"}')->>'status','claimed','and is claimed');
 select is(public.discover_heard_fail(tests.run(),tests.id(620),'timeout','{"ms":9000}')->>'gave_up','false','A first failure is retried');
 reset role;
 select is((select status||' '||attempts from private.heard_rounds where engagement_id=tests.id(100)),'pending 1','The round waits to try again');
 set local role service_role;
-select is(public.discover_heard_claim(tests.id(100),tests.id(621),'fake-model','{"draft_what_we_heard":"heard-draft@1"}')->>'status','cooling','and a claim during the pause is cooling');
+select is(public.discover_heard_claim(tests.id(100),tests.id(621),'fake-model','{"draft_what_we_heard":"heard-draft@2"}')->>'status','cooling','and a claim during the pause is cooling');
 reset role;
 update private.heard_rounds set last_failed_at=now()-interval '5 minutes' where engagement_id=tests.id(100);
 set local role service_role;
-select is(public.discover_heard_claim(tests.id(100),tests.id(622),'fake-model','{"draft_what_we_heard":"heard-draft@1"}')->>'status','claimed','After the pause it is claimed again');
+select is(public.discover_heard_claim(tests.id(100),tests.id(622),'fake-model','{"draft_what_we_heard":"heard-draft@2"}')->>'status','claimed','After the pause it is claimed again');
 select is(public.discover_heard_fail(tests.run(),tests.id(622),'unavailable','{"ms":9000}')->>'gave_up','true','A second failure gives up');
 select is(public.discover_heard_fail(tests.lastrun(),tests.id(622),'unavailable','{}')->>'status','stale','and a run that has failed is not failed twice');
 reset role;

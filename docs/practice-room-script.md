@@ -340,14 +340,15 @@ The browser kits cover most of these sections with 50 simulated phones on the lo
 | --- | --- | --- |
 | On a phone signed in as a participant, open the control surface and the Discover page | You are sent to sign in or refused | No finding, note, theme or card is shown |
 | Open the scribe console | The scribe sees no signal card and no theme | Nothing from Discover is there |
-| Give the remote to a participant (the team facilitator) | Their phone shows Next and Back. The control surface says the cards stay with you | The team facilitator's remote shows no card |
+| Go live on Commander's intent (or a sign step) and, from the control surface, pick a team facilitator and choose Hand over. It runs only on a Commander's intent or sign step, so no signal step is live during the block | The team facilitator's phone shows the block's steps and its controls (Next, Back, Go live, Phones down, Open phones, Pair everyone and Present) and no card, no theme and no Discover data. Your control surface shows no alignment signal panel, because the signal does not read this step | The team facilitator's remote shows no card |
+| Choose Take it back, then go live on the wall session again (going live outside the block also returns the remote on its own) | The remote is yours again and taking it back does not change the live step. The signal panel and your remote's list show the wall's cards as before, only to you, and nothing the team facilitator saw changes | The cards are on the lead's and the co-facilitator's surfaces only |
 | Check the TV and every phone one last time | No finding, note, theme, draft, card or neutral question except the one you put up on purpose | Nothing leaked |
 
 ## 30. Clear up (10 minutes)
 
 | Do | What should happen | Pass when |
 | --- | --- | --- |
-| Start a rehearsal, draft themes and run the signal, then choose Clear test answers | Drafted themes and signals from the rehearsal go. The findings, the notes and the survey themes stay | Real setup data is untouched |
+| Start a rehearsal, draft themes and run the signal, then choose Clear test answers. Read the count on the button first: it says "Tap again to clear 25 test items" or whatever the number is | The message says what went, for example "Cleared 9 test answers, 12 drafted themes and 4 signals", and the parts add up to the number on the button. The Themes part stops saying "AI offered 12 themes" once no drafted theme is left. The findings, the notes and the survey themes stay | The cleared parts add up to the count the button showed, and real setup data is untouched |
 | Press Reset practice room | The findings, notes, themes, drafts and signals are all gone, and the survey total is cleared | Discover is empty and the Four Helpful Lists step has no cards |
 
 ## Milestone 5: scribe, overnight and the Day 2 confirm

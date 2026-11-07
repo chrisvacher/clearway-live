@@ -222,6 +222,25 @@ async function main() {
       await seen(async () => (await page.getByRole("button", { name: /Draft themes|Redraft themes/ }).count()) > 0, "the drafting controls come back");
     });
 
+
+    await step("The page follows the database while it stays open: counts, the added-since line and the round after a clear, with no reload", async () => {
+      // The page is not reloaded after it opens. Changes are made in the database, as another window or the control surface would make them.
+      await page.goto(url);
+      await page.getByText(/AI offered \d+ themes?/).waitFor({ timeout: 15000 });
+      const total = async () => (await sql.query("select count(*)::int n from private.conversation_notes where engagement_id=$1 and not deleted", [room.id])).rows[0].n as number;
+      const before = await total();
+      const first = page.locator(".dsc-theme", { hasText: "of " + before + " conversation" }).first();
+      await first.waitFor({ timeout: 15000 });
+      await sql.query("insert into private.conversation_notes(id,engagement_id,kind,person,title,body,source_kind,word_count) values($1,$2,'input','Mia Lund','Added elsewhere','A note that arrives while the page is open.','paste',8)", [randomUUID(), room.id]);
+      await page.getByText(/1 note was added since/).waitFor({ timeout: 15000 });
+      await page.locator(".dsc-theme", { hasText: "of " + (before + 1) + " conversation" }).first().waitFor({ timeout: 15000 });
+      assert.equal(await page.locator(".dsc-theme", { hasText: "of " + before + " conversation" }).count(), 0, "no theme still says the old total");
+      // Clear test answers puts the drafted themes away and the round quiet: the line about what AI offered goes with them.
+      await sql.query("update private.discover_themes set deleted=true where engagement_id=$1 and source<>'survey' and ai_run is not null", [room.id]);
+      await sql.query("update private.discover_theme_rounds set status='idle' where engagement_id=$1 and not deleted and status='ready'", [room.id]);
+      await until(async () => (await page.getByText(/AI offered \d+ themes?/).count()) === 0, "AI offered N themes goes once no drafted theme is left, without a reload", 15000);
+      assert.equal(await page.locator(".dsc-theme .cwl-ai-mark").count(), 0, "and no drafted theme is left on the page");
+    });
     console.log(`Themes kit: ${passed.length} checks passed.`);
   } catch (error) {
     console.error(app.output().slice(-3000)); throw error;

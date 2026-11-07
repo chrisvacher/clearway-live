@@ -2,7 +2,7 @@
 
 SET-06's themes. AI drafts themes from the conversation notes and the Four Helpful Lists cards when the facilitator presses Draft themes. The facilitator accepts, renames, merges or rejects each one, or writes one by hand. Only accepted themes count anywhere.
 
-Migration: `supabase/migrations/20261106030000_discover_themes.sql`. Prompt: `themes-draft@1` in `lib/ai/prompts.ts`. Page: Discover, `/setup/[id]/discover`, the Themes part.
+Migration: `supabase/migrations/20261106030000_discover_themes.sql`. Prompt: `themes-draft@2` in `lib/ai/prompts.ts`. Page: Discover, `/setup/[id]/discover`, the Themes part.
 
 ## What the facilitator sees
 
@@ -68,3 +68,8 @@ It is `security definer` in `private`, with no grant to `anon` or `authenticated
 - `supabase/tests/database/discover_themes.test.sql`: row-level security, wrappers, every role on every function, the claim contents, the apply refusals, counts, quotes, merge and split, hand-made themes, note recounts, `discover_accepted_themes`, failure and retry, redraft.
 - `tests/unit/discover-themes.test.ts` with `tests/fixtures/ai/discover-themes.json` (Riverside): prompt rules, parse, recorded reply, the scripted fake, the worker.
 - `npm run test:themes`: the browser kit (draft, accept, rename, merge, reject, redraft, slow, failed, by hand, who can reach it). It stands a fixed set of cards in for step 2's function and puts the original back.
+
+## Practice-room fixes, batch B (November 7)
+
+- **Prompt `themes-draft@2`.** Never offer a theme that says the same as one on the page or one rejected, even in other words (with the example "Roles of staff are unclear" beside "Staff roles have blurred and are unclear"), and write labels as natural sentences.
+- **Near repeats are dropped in code.** `private.discover_theme_apply` now drops an offered theme whose meaningful words mostly match a label already there: lower-cased words of three letters or more, without filler words, with plurals, -ed and -ing trimmed. It drops the offer when it shares at least two words and at least three quarters of the shorter label's words (`private.discover_words`, `private.discover_label_alike`). It compares against accepted, offered and rejected labels, a renamed theme's old name, and the themes kept earlier in the same run. A one-word label is left to the exact-repeat check. The dropped theme is not counted as refused.

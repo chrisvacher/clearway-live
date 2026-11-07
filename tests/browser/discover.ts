@@ -121,6 +121,18 @@ async function main() {
       await until(async () => (await sql.query("select count(*)::int n from private.conversation_notes where engagement_id=$1 and not deleted", [room.id])).rows[0].n === 3, "note removed");
     });
 
+    await step("The page follows the database while it stays open: a note and a total changed elsewhere show with no reload", async () => {
+      await sql.query("insert into private.conversation_notes(id,engagement_id,kind,person,title,body,source_kind,word_count) values(gen_random_uuid(),$1,'input','Mia Lund','Added in another window','Arrived while the page was open.','paste',6)", [room.id]);
+      await page.getByText("Added in another window").first().waitFor({ timeout: 15000 });
+      const total0 = String((await sql.query("select survey_respondents from public.engagements where id=$1", [room.id])).rows[0].survey_respondents);
+      await sql.query("update public.engagements set survey_respondents=120 where id=$1", [room.id]);
+      await until(async () => (await page.getByLabel("People who answered").inputValue().catch(() => "")) === "120", "the survey total follows", 15000);
+      await sql.query("update private.conversation_notes set deleted=true where engagement_id=$1 and title='Added in another window'", [room.id]);
+      await until(async () => (await page.getByText("Added in another window").count()) === 0, "a note removed elsewhere leaves the page", 15000);
+      await sql.query("update public.engagements set survey_respondents=$2 where id=$1", [room.id, Number(total0)]);
+      await until(async () => (await page.getByLabel("People who answered").inputValue().catch(() => "")) === total0, "and the total returns", 15000);
+    });
+
     await step("Nobody else reaches Discover, and nothing reaches the room state", async () => {
       const anon = await fetch(`${app.origin}/api/discover/${room.id}`);
       assert.ok([401, 403].includes(anon.status), `anonymous request refused, got ${anon.status}`);

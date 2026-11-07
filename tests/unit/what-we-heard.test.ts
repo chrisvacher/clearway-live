@@ -40,6 +40,25 @@ test("The prompt is versioned, JSON only, keeps horizons exact, never invents, n
   for (const p of [...Object.values(prompts), themesPrompt]) assert.notEqual(p.system, heardPrompt.system);
 });
 
+test("The prompt asks for natural lines, no stacked as ... as, and distinct lines and details for each source", () => {
+  assert.match(heardPrompt.system, /single clause/);
+  assert.match(heardPrompt.system, /never stack 'as \.\.\. as \.\.\.'/);
+  assert.match(heardPrompt.system, /no two read alike/);
+  assert.match(heardPrompt.system, /details must be distinct too/);
+});
+
+test("The recorded Riverside reply has natural lines (no stacked as ... as) and lines and details that differ from source to source", () => {
+  const out = heardPrompt.parse(riverside.reply, riverside.inputs);
+  const words = (t: string) => new Set(t.toLowerCase().replace(/\*\*/g, "").split(/[^a-z0-9']+/).filter(w => w.length > 3));
+  const share = (a: string, b: string) => { const x = words(a), y = words(b); const both = [...x].filter(w => y.has(w)).length; return both / Math.max(1, Math.min(x.size, y.size)); };
+  for (const h of out.headlines) assert.ok(!/\bas\b.*\bas\b/i.test(h.line), `${h.source}: no stacked as ... as in "${h.line}"`);
+  for (let i = 0; i < out.headlines.length; i++) for (let j = i + 1; j < out.headlines.length; j++) {
+    const a = out.headlines[i], b = out.headlines[j];
+    assert.ok(share(a.line, b.line) < 0.8, `${a.source} and ${b.source} lines are not near-identical`);
+    assert.ok(share(a.detail, b.detail) < 0.6, `${a.source} and ${b.source} details are not near-identical`);
+  }
+});
+
 test("The model reads accepted themes under short refs: no ids, notes, titles, people or attendees", () => {
   const user = heardPrompt.user(riverside.inputs);
   assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-/.test(user), "no ids");

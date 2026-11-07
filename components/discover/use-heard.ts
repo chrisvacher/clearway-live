@@ -1,12 +1,13 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HeardState } from "@/lib/discover/heard";
+import { POLL_ACTIVE_MS, POLL_MS, usePoll } from "./use-poll";
 
 export type HeardReply = { status: string; message?: string } & Record<string, unknown>;
 type Load = { state: HeardState | null; missing: boolean };
 
 // Reads and writes What We Heard through the app's own route, under the facilitator's sign-in. The page asks every 3 seconds while a draft is
-// running and every 12 otherwise. If the functions are not in the database yet, `missing` is true and the page leaves the section out.
+// running and every 4 otherwise, and at once when the tab shows again, so a step that went live elsewhere shows as live without a reload. If the functions are not in the database yet, `missing` is true and the page leaves the section out.
 export function useHeard(engagement: string, initial: HeardState | null, watch: string) {
   const [load, setLoad] = useState<Load>({ state: initial, missing: initial === null });
   const [clock, setClock] = useState(() => (initial ? Date.parse(initial.server_time) - Date.now() : 0));
@@ -24,11 +25,7 @@ export function useHeard(engagement: string, initial: HeardState | null, watch: 
   const status = load.state?.round?.status;
   const active = status === "pending" || status === "drafting";
   const missing = load.missing;
-  useEffect(() => {
-    if (missing) return; // The functions are not in the database: nothing to ask again.
-    const timer = setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, active ? 3000 : 12000);
-    return () => clearInterval(timer);
-  }, [refresh, active, missing]);
+  usePoll(refresh, active ? POLL_ACTIVE_MS : POLL_MS, !missing); // The functions are not in the database: nothing to ask again.
   // A theme accepted, renamed or turned down above changes what can be drafted: read again.
   useEffect(() => { void refresh(); }, [refresh, watch]);
   const send = useCallback(async (body: Record<string, unknown>): Promise<HeardReply> => {

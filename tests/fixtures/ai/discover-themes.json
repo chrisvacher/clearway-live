@@ -1,5 +1,5 @@
 {
-  "about": "Fixture set for the Discover themes prompt (themes-draft@1), from the fictional Riverside engagement. Each case has the inputs discover_theme_claim hands the worker, the reply recorded for the fake client, and what the themes may and may not contain. The recorded reply is checked against the expectations always.",
+  "about": "Fixture set for the Discover themes prompt (themes-draft@2), from the fictional Riverside engagement. Each case has the inputs discover_theme_claim hands the worker, the reply recorded for the fake client, and what the themes may and may not contain. The recorded reply is checked against the expectations always.",
   "names": [
     "Priya",
     "Ben",
