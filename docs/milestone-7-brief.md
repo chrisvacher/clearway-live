@@ -19,7 +19,7 @@ Screens: AFT-01 (report), AFT-02 (visibility plan), AFT-03 (share links and the 
 | Publish to CORE is out of the app. Clearway's team enters the plan into CORE after the retreat | Chris, November 4 (PRD) |
 | Nothing is read from CORE. Each owner reports where their own goals and first steps stand | PRD Default, confirmed by the November 4 decision |
 | The read-only copy is available once Day 2 closes, and the report joins it once signed off | PRD Default |
-| Report order: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions, The 10-year Future, The 3-year Vision, Risks and Roadblocks, The 1-year Outlook, Commander's Intent, Decisions, Communication, Closing | 02-wayfinding-method, the PRD's "Where each output lands" |
+| Report order: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions, The 10-year Future, The 3-year Vision, Risks and Roadblocks, The 1-year Outlook, Commander's Intent, Decisions, Make the Vision Visible, Closing | 02-wayfinding-method, the PRD's "Where each output lands", with the section renamed on November 7 |
 | The report and the overnight drafts use the most capable model | PRD Default ("Models and cost") |
 | AI never receives attendee identity fields. Owners are added back by code | PRD "AI" rules |
 | The 10-year Future in the report is the five lens summaries signed off on Day 1, word for word | Pass 7 handoff, PRD |
@@ -28,13 +28,15 @@ Screens: AFT-01 (report), AFT-02 (visibility plan), AFT-03 (share links and the 
 
 Of the ten Defaults on pass 7's decisions board, seven were about publishing to CORE and are withdrawn with it: who presses Publish, a Vision Outcome's status from CORE, first steps as CORE tasks, the Vision Matrix, owners without a CORE account, an email in another church in CORE, and commander's intent in CORE. Commander's intent stays where that Default put it: the report, the Map and the read-only copy.
 
-These three still apply, adjusted for no CORE. They are with Chris before the build starts:
+These three still apply, adjusted for no CORE. Chris decided them on November 7, each as the Default below:
 
-| Decision | Default | The other option |
-| --- | --- | --- |
-| Which words the report and plan use | "Visibility plan" in the app, and "Make the Vision Visible" as the report section, following the Brain's ruling of November 1. The PRD and its report order are edited to match | Keep "communication plan" and the section "Communication". Only labels change |
-| The read-only copy and the report | The link shows the plan from the engagement's records. The report appears on it only once signed off, and a new sign-off replaces what the link shows. Edits after sign-off stay off the link until signed off again | The link always shows the latest draft, marked Draft |
-| Who gets check-in emails | Each owner of a first step, plus each goal owner who owns no first step, one email each per round, in their own email, listing only their own steps and goals | Owners of a first step only (a goal whose owner has no first step goes unreported), or one team email listing every first step |
+| Decision | Decided (Chris, November 7) |
+| --- | --- |
+| Which words the report and plan use | "Visibility plan" in the app, and "Make the Vision Visible" as the report section, following the Brain's ruling of November 1. The PRD and its report order are edited to match |
+| The read-only copy and the report | The link shows the plan from the engagement's records. The report appears on it only once signed off, and a new sign-off replaces what the link shows. Edits after sign-off stay off the link until signed off again |
+| Who gets check-in emails | Each owner of a first step, plus each goal owner who owns no first step, one email each per round, in their own email, listing only their own steps and goals |
+
+Also decided November 7: the read-only copy shows each goal's status as its owner gave it in their newest check-in (label and date, never the note), and Claude adds a generated `CRON_SECRET` to the app's Vercel Production environment variables for the scheduled check-in run.
 
 ### Defaults chosen in this brief
 
@@ -51,7 +53,7 @@ Flagged for Chris, built until he changes them.
 | The visibility plan's order | Working back from the most public moment, which the facilitator names with its date (default "Vision Sunday", date blank): the lead pastor, the retreat participants, the board or elders, the team, members and key leaders (major donors here), then the congregation. With no date, "when" stays empty rather than invented |
 | When Day 2 has closed | When the last retreat part (Day 2, or the half day for a day-and-a-half engagement) is closed with Close the day and all its steps are closed, the engagement records `day2_closed_at`, as Day 1's close opens the overnight round today. The facilitator can also press Mark the retreat closed on the After page |
 | Read-only links | Any number of named links. Each is a 24-byte token, stored only as its hash, shown once with Copy. The page is `noindex`. It shows when the link was last opened and how many times. Links stop when the engagement is closed |
-| Goal status in the read-only copy | Each goal shows the status its owner gave in their newest check-in, as a label with its date ("On track, Dec 13"), never the note. Before the first check-in it shows nothing |
+| Goal status in the read-only copy | Decided above. Before the first check-in it shows nothing |
 | Check-in timing | Rounds fall 30, 60 and 90 days after the retreat's last day (the engagement's retreat end date, otherwise the date Day 2 closed). A daily scheduled run on Vercel at 13:07 UTC (8:07 am Eastern) sends each round on its due date. Check-ins switch on when Day 2 closes, for Wayfinding and day-and-a-half engagements. The facilitator can switch them off or press Send now on a round, which asks inside the panel |
 | The check-in link | One link per person per round, no sign-in. Answers save on each tap and queue offline ("Saved on this phone"). A round's answers can be changed until the next round goes out, then that link shows the answers read-only and points to the newest email. Every link ends kindly when the engagement is closed |
 | What a check-in asks | For each of their own first steps: Done, Under way or Stuck, and an optional note. For each of their own goals: Not started, On track, At risk, Off track or Done, and "What would help?". Labels and icons carry the status. Phones show no Warning or Error colors |
@@ -121,7 +123,7 @@ Sections are keyed and ordered:
 - `check_in_rounds`: engagement, day (30, 60 or 90), due on, status (`scheduled`, `sending`, `sent`, `off`), sent at, sent by (`schedule` or a facilitator).
 - `check_in_recipients`: round, email (lowercase), name, attendee (null for a name-and-email owner), token hash, send result (`sent`, `practice_address`, `failed`), sent at, opened at, answered at, help text.
 - `check_in_answers`: recipient, exactly one of first step or goal, answer (`done`, `under_way`, `stuck` for a step; `not_started`, `on_track`, `at_risk`, `off_track`, `done` for a goal), note (up to 500 characters), followed up at and by, updated at.
-- Recipients are the distinct owner emails of the engagement's first steps (and goals, per the Default with Chris), worked out when the round is sent, so an owner changed before then is the one emailed. A person sees only the steps and goals they own.
+- Recipients are the distinct owner emails of the engagement's first steps and of goals whose owner owns no first step (decided November 7), worked out when the round is sent, so an owner changed before then is the one emailed. A person sees only the steps and goals they own.
 
 ## The engine contract
 
@@ -157,4 +159,4 @@ Tests from the acceptance criteria; role tests for every new table and function 
 
 ## Questions for Chris
 
-The three pass 7 Defaults above ("Which words the report and plan use", "The read-only copy and the report", "Who gets check-in emails") before the build starts. The Defaults chosen in this brief are flagged and built until he changes them. Adding `CRON_SECRET` to the app's Vercel environment variables is the one change outside the repository.
+None block the work. The pass 7 Defaults were decided on November 7. The Defaults chosen in this brief are flagged and built until Chris changes them.
