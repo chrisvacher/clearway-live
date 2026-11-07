@@ -107,23 +107,26 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     assert.equal((await tvTexts("confused")).length, 3, "the three cards stand apart on the TV until AI folds them");
     await panel().scrollIntoViewIfNeeded(); await shot(control, "fail-09-m6-fold-slow-control");
     fake({ fail: true });
-    for (const [n, text] of ["The budget is unclear to us", "Nobody knows who approves things"].entries()) {
-      await write([ben.page, grace.page][n], "confused", text);
-      await until(async () => (await tvTexts("confused")).includes(text), `a card is on the TV while AI fails`, 2500);
+    // "What's confused?" already holds three cards and the TV shows the top four of a column (by agreement,
+    // then arrival), so a fifth there is only "+ 1 more on phones" unless a fold has landed. Write these to
+    // "What's right?", where each one has room on the TV whether or not AI ever folds the first three.
+    for (const [n, text] of ["Our budget is shared openly", "Approvals come back quickly"].entries()) {
+      await write([ben.page, grace.page][n], "right", text);
+      await until(async () => (await tvTexts("right")).includes(text), `a card is on the TV while AI fails`, 2500);
     }
     await until(async () => (await notice()).includes("AI isn't responding."), "the control surface says AI isn't responding", 25000);
     await calm("fold failing");
     await shot(control, "fail-09-m6-fold-failing-control"); await shot(tv, "fail-09-m6-fold-failing-tv");
     // By hand: hide a card from the control surface, bring it back, and agree from a phone. None of it needs AI.
-    await cardOf("Nobody knows who approves things").getByRole("button", { name: "Hide" }).click();
-    await until(async () => !(await tvTexts("confused")).includes("Nobody knows who approves things"), "a hidden card leaves the TV", 6000);
-    await control.locator("[data-fl-card].is-hidden").filter({ hasText: "Nobody knows who approves things" }).getByRole("button", { name: "Unhide" }).click();
-    await until(async () => (await tvTexts("confused")).includes("Nobody knows who approves things"), "and comes back", 6000);
-    await pick(ruth.page, "confused");
-    const row = ruth.page.locator(".fl-arow", { hasText: "The budget is unclear to us" });
+    await cardOf("Approvals come back quickly").getByRole("button", { name: "Hide" }).click();
+    await until(async () => !(await tvTexts("right")).includes("Approvals come back quickly"), "a hidden card leaves the TV", 6000);
+    await control.locator("[data-fl-card].is-hidden").filter({ hasText: "Approvals come back quickly" }).getByRole("button", { name: "Unhide" }).click();
+    await until(async () => (await tvTexts("right")).includes("Approvals come back quickly"), "and comes back", 6000);
+    await pick(ruth.page, "right");
+    const row = ruth.page.locator(".fl-arow", { hasText: "Our budget is shared openly" });
     await until(async () => await row.isVisible(), "a card to agree with on Ruth's phone", 8000);
     await row.getByRole("button", { name: "Agree" }).click();
-    await until(async () => (await slots("confused").evaluateAll(els => els.filter(e => e.textContent!.includes("The budget is unclear to us")).map(e => Number(e.querySelector(".fl-agree b")!.textContent)))).includes(1), "the agree ticks on the TV while AI fails", 6000);
+    await until(async () => (await slots("right").evaluateAll(els => els.filter(e => e.textContent!.includes("Our budget is shared openly")).map(e => Number(e.querySelector(".fl-agree b")!.textContent)))).includes(1), "the agree ticks on the TV while AI fails", 6000);
     fake({});
     assert.ok(await unchanged(), "the TV page never reloaded");
   });
