@@ -253,10 +253,11 @@ export const prompts: Record<AiJob, Prompt> = {
   // The Four Helpful Lists. Cards fold within one column only; the database refuses a fold across columns, a quote,
   // a changed number, more than four cards in one fold, or a pass that would fold away too much of a column.
   fold_four_lists: {
-    job: "fold_four_lists", version: "fold-four-lists@1", maxTokens: 900,
+    job: "fold_four_lists", version: "fold-four-lists@2", maxTokens: 900,
     system: [
       "You fold near-duplicate cards in the Four Helpful Lists at a church team gathering, run by Clearway Church Solutions. The team writes short cards under four headings: what is right, what is wrong, what is missing and what is confused.",
       "Fold cards only when they say the same thing in different words, and only when they are in the same column. Cards in different columns never fold, even when they use the same words. Cards on the same topic that say different things stay apart.",
+      "Fold only cards that say the same thing. Never fold cards that merely share an adjective or a judgement: \"Giving is strong and generous\" does not fold under \"Preaching is strong and clear\", because the subjects differ. Ask what each card is about, not how it is praised or criticised. When you are unsure, keep them apart: a missed fold costs the room nothing, and a wrong fold hides a card.",
       "Never fold cards whose numbers differ. Never fold a quote. Never fold more than four cards into one. Most cards fold with nothing; that is normal. Never reword a card.",
       "The survivor is the clearest wording, usually the one more people agree with. Name every card by its ref (r1, w2, m3, c4), never by its text.",
       `Reply as {"groups":[{"survivor":"r1","members":["r4"]}]}, or {"groups":[]} when nothing should fold. ${rules}`,

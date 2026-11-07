@@ -63,14 +63,14 @@ export const isAgree = (r: SubmissionRequest): r is AgreeRequest =>
   Boolean(r.value && typeof r.value === "object" && (r.value as { four?: string }).four === "agree");
 
 export function agreeState(server: FourAgree[], outbox: OutboxEntry[]) {
-  const out = new Map<string, FourAgree & { pending: boolean; failed: boolean }>();
-  for (const v of server) out.set(v.card_id, { ...v, pending: false, failed: false });
+  const out = new Map<string, FourAgree & { pending: boolean; failed: boolean; saved: boolean }>();
+  for (const v of server) out.set(v.card_id, { ...v, pending: false, failed: false, saved: false });
   for (const e of outbox) {
     if (!isAgree(e.request)) continue;
     const q = e.request.value.card, before = out.get(q);
-    if (e.state === "failed") { if (!before || before.revision < e.request.revision) out.set(q, { ...(before ?? { id: e.request.id, card_id: q, agreed: false, revision: -1 }), pending: false, failed: true }); continue; }
+    if (e.state === "failed") { if (!before || before.revision < e.request.revision) out.set(q, { ...(before ?? { id: e.request.id, card_id: q, agreed: false, revision: -1 }), pending: false, failed: true, saved: false }); continue; }
     if (before && !before.pending && before.revision >= e.request.revision && before.id === e.request.id) continue;
-    out.set(q, { id: e.request.id, card_id: q, agreed: e.request.value.on, revision: e.request.revision, pending: true, failed: false });
+    out.set(q, { id: e.request.id, card_id: q, agreed: e.request.value.on, revision: e.request.revision, pending: true, failed: false, saved: e.state === "saved" && Boolean(e.request.queuedAt) });
   }
   return out;
 }

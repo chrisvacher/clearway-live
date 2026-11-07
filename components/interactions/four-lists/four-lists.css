@@ -51,6 +51,8 @@
 .fl-arow button svg { width: 14px; height: 14px; }
 .fl-arow.is-on button { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: none; }
 .fl-arow button:disabled { opacity: 0.6; }
+.fl-arow .fl-atext { flex: 1; min-width: 0; }
+.fl-arow .ph-answer-note { margin: var(--space-1) 0 0; }
 
 /* ---------- The control surface and SET-05 ---------- */
 .fl-ctl-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
