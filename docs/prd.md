@@ -171,7 +171,7 @@ Seed data includes the practice engagement and a fictional church, "Riverside Ch
 - The alignment signal (aligned, divergent, silent, thin data) shows only on the facilitator's private view, and notices direction rather than striking out ideas. (Oct 28)
 - The easel stays the primary record if the tech fails. (Oct 28)
 - People can change their answers (Synrg's model, which suits 100 points), and the facilitator can hide an answer from the TV. (Oct 28)
-- The communication plan is drafted by Clearway after the retreat and reviewed with the church on a call within two weeks. A draft Clearway Map is shown at the close. There are 30, 60 and 90-day check-ins on the same platform. Commander's Intent is a new report section. (Oct 28)
+- The communication plan (named the visibility plan from November 1, Brain ruling) is drafted by Clearway after the retreat and reviewed with the church on a call within two weeks. A draft Clearway Map is shown at the close. There are 30, 60 and 90-day check-ins on the same platform. Commander's Intent is a new report section. (Oct 28)
 - This PRD describes the new, app-facilitated process. The current Preparation Guide describes today's process and isn't a source for the new one. (Oct 29)
 
 **Access and data**
@@ -234,7 +234,7 @@ Numerals always, "year" lowercase and hyphenated, the noun capitalized, never mi
 
 **The Clearway Map** is the two-page artifact Wayfinding produces. Page 1, Identity and Direction: Mission, Purpose, Values, Strategy, 10-year Future, 3-year Vision Outcomes. Page 2, Action: This Year's Priorities (three to five Annual Initiators), This Season's Goals, Leadership Rhythms, Key Issues. Purpose comes from the Kingdom Assignment process. Mission, Values and Strategy usually exist before the retreat.
 
-**The report** follows this order: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions, the 10-year Future, the 3-year Vision, Risks and Roadblocks, the 1-year Outlook, Commander's Intent, Decisions, Communication, Closing.
+**The report** follows this order: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions, the 10-year Future, the 3-year Vision, Risks and Roadblocks, the 1-year Outlook, Commander's Intent, Decisions, Make the Vision Visible, Closing. (The section was "Communication" until November 7, when the app took the Brain's "visibility plan" ruling of November 1.)
 
 **Lessons the app must act on** (from past reports)
 
@@ -680,7 +680,7 @@ This is the Wayfinding template's run of show, built on the shape Chris set on O
 | 1-year goals | The 1-year Outlook (Map page 2 This Season's Goals) |
 | Commander's intent cards and first steps | Commander's Intent |
 | Facilitator decisions and scribe decision cards | Decisions |
-| Scribe actions, risks about who hears what | Communication (the communication plan) |
+| Scribe actions, risks about who hears what | Make the Vision Visible (the visibility plan) |
 | Scribe questions | Key Issues (Map page 2) |
 
 **Before the pre-call** (PRE-01 to PRE-05)
@@ -857,7 +857,7 @@ Claude does the AI work. It speeds the room up and never stands in its way.
 | Overnight drafts | Overnight | Lens input, scribe cards, easel photos | Present-tense paragraphs per lens with source links, tidied outcomes, flags | After review and publishing | 5 |
 | Fold read-back corrections | Live, Day 2 | Agreed corrections | Tracked changes | After the facilitator accepts each | 5 |
 | Report draft | After | The whole engagement record | Draft in Clearway's report order, with sources | Never (it's a document) | 7 |
-| Communication plan | After | Risks, key leaders, donors and actions named in the room | Draft plan | Never | 7 |
+| Visibility plan | After | Risks, key leaders, donors and actions named in the room | Draft plan | Never | 7 |
 
 **Rules**
 
@@ -956,11 +956,11 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 - Chris edits, adds his own read of the team, and signs off.
 - Export as a Clearway-branded Word document following Clearway's document standard, and as PDF.
 
-**Communication plan** (AFT-02): drafted from what the room said about key leaders, major donors and the risk of anyone hearing the plan from the stage first. Rows: who, when, who tells them, what they hear, the risk it answers. Chris reviews it with the church on a follow-up call within two weeks.
+**Visibility plan** (AFT-02, Decided November 7: "visibility plan", following the Brain's ruling of November 1): drafted from what the room said about key leaders, major donors and the risk of anyone hearing the plan from the stage first. Rows: who, when, who tells them, what they hear, the risk it answers. It works back from the most public moment (usually Vision Sunday): the lead pastor, the retreat participants, the board, the staff, members and key leaders, then the congregation. Chris reviews it with the church on a follow-up call within two weeks.
 
-**Read-only copy** (AFT-03): available once Day 2 closes (Default). It shows the Clearway Map, the Vision Outcomes with their indicators, the 1-year goals with owners and dates, and the commander's intent cards. It's a link the facilitator creates and can revoke, and never shows raw answers, scribe cards or drafts. The report is added once Chris signs it off.
+**Read-only copy** (AFT-03): available once Day 2 closes (Default). It shows the Clearway Map, the Vision Outcomes with their indicators, the 1-year goals with owners and dates, and the commander's intent cards. It's a link the facilitator creates and can revoke, and never shows raw answers, scribe cards or drafts. The report is added once Chris signs it off, and a new sign-off replaces it; edits after sign-off stay off the link until signed off again (Decided November 7). Each goal shows the status its owner gave in their newest check-in, as a label and date, never the note (Decided November 7).
 
-**Check-ins** (AFT-04, AFT-05): at 30, 60 and 90 days, each participant gets an email with a link to a short self-paced pulse about their own first steps and goals: done, under way, stuck, and a note. Each owner reports where their own goals stand; nothing is read from CORE (Default). The facilitator sees results and follow-ups.
+**Check-ins** (AFT-04, AFT-05): at 30, 60 and 90 days, each owner of a first step, and each goal owner who owns no first step, gets one email with a link to a short pulse about their own first steps and goals (Decided November 7): done, under way, stuck, and a note. Each owner reports where their own goals stand; nothing is read from CORE (Default). The facilitator sees results and follow-ups.
 
 **Results recap** (Default): a facilitator page with one card per session (type, prompt, count, results as they appeared), which updates without re-animating, prints to PDF, and downloads as CSV.
 
@@ -1077,7 +1077,7 @@ Everything hangs off the engagement. These are the entities the screens need. Co
 | Celebration | Text and theme | Engagement |
 | Clearway Map draft | The assembled two pages | Engagement |
 | Report draft | Sections, text, sources, sign-off | Engagement |
-| Communication plan | Rows: who, when, who tells them, message, risk | Engagement |
+| Visibility plan | Rows: who, when, who tells them, message, risk, with sources | Engagement |
 | Check-in | 30, 60 or 90-day pulse answers | Engagement, attendee |
 | Read-only link | Token, created by, revoked flag | Engagement |
 | AI run | Job, model, prompt version, inputs, output, cost, time | Whatever it produced |
@@ -1180,7 +1180,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 | 4 | Lens colors, Wayfinding components (lens wall, cluster and rename, outcome rows, pre-mortem grid, goal builder, intent card, draft Map), Scripture and prayer screens | Milestone 4 | Delivered November 3 (PR #34) |
 | 5 | Scribe console, overnight review, read-back | Milestone 5 | Delivered November 3 (PR #39) |
 | 6 | Discover setup screens, Four Helpful Lists, signal cards | Milestone 6 | Delivered November 3 (PR #45). Its survey screens (SET-04, SET-10) are shelved (November 5) |
-| 7 | Report, communication plan, read-only copy, check-ins | Milestone 7 | Delivered November 4 (PR #61). Its Publish to CORE screens are shelved (November 4) |
+| 7 | Report, visibility plan, read-only copy, check-ins | Milestone 7 | Delivered November 4 (PR #61). Its Publish to CORE screens are shelved (November 4) |
 | Interaction refresh | The 2x2 grid, scale, Q&A and private form count, reworked as one family (see "The interaction library") | Before the first retreat | In progress (November 3) |
 
 **Done when**
@@ -1374,7 +1374,7 @@ Screens: SET-05, SET-06, FAC-02, INT-11, PRE-08.
 User stories
 
 - As Chris, I edit an AI report draft in Clearway's report order, sign it off, and export it.
-- As Chris, I review an AI-drafted communication plan built from what the room said.
+- As Chris, I review an AI-drafted visibility plan built from what the room said.
 - As a participant, I answer a short 30, 60 and 90-day check-in about my own first steps.
 - As an elder, I open a read-only copy of the plan and its status.
 
@@ -1492,7 +1492,7 @@ These keep the build moving. Chris can change any of them. Until he does, build 
 | Discover | Thin data under 10 responses, under 10 percent of respondents, or one interview. Survey findings added by hand from Team Hub's report |
 | Team Hub | Read only, never written to |
 | Read-only copy | Available once Day 2 closes. The report added after sign-off |
-| Check-ins | Each owner reports where their own goals stand. Nothing is read from CORE |
+| Check-ins | Each owner of a first step, and each goal owner with no first step, reports where their own goals and steps stand. Nothing is read from CORE (Decided November 7) |
 | Realtime | Supabase Realtime broadcast with the snapshot check, and snapshot fallback when a venue blocks realtime |
 | Devices | Current and previous iPhone Safari and Android Chrome. The reference TV device is a laptop on HDMI |
 | Environments | Local, a preview per pull request on a Supabase branch or staging project, and production |
