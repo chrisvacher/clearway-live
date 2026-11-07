@@ -18,6 +18,6 @@ export function usePoll(refresh: () => void | Promise<void>, ms: number, enabled
   }, [ms, enabled]);
 }
 
-// The page's rhythm: every 4 seconds, every 3 while a draft is running.
-export const POLL_MS = 4000;
+// The page's rhythm: every 6 seconds, every 3 while a draft is running.
+export const POLL_MS = 6000;
 export const POLL_ACTIVE_MS = 3000;

@@ -93,18 +93,21 @@ insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,pho
  (tests.id(923),'90000000-0000-4000-8000-000000000010',tests.id(330),tests.id(506),'three','[]',now());
 insert into private.discover_themes(id,engagement_id,source,label,status,ai_run) select tests.id(930+n),'90000000-0000-4000-8000-000000000010','conversations','Test theme '||n,'draft',tests.id(950) from generate_series(1,4) n;
 insert into private.signals(engagement_id,session_id,kind) values('90000000-0000-4000-8000-000000000010',tests.id(330),'thin'),('90000000-0000-4000-8000-000000000010',tests.id(330),'silent');
+-- Other test items: a What We Heard draft and a read-back item that is not settled.
+insert into private.heard_drafts(engagement_id,source_key,line,test) values('90000000-0000-4000-8000-000000000010','survey','said **who decides** is unclear',true);
+insert into private.read_back_items(engagement_id,session_id,kind,lens,test) values('90000000-0000-4000-8000-000000000010',tests.id(330),'lens',1,true);
 select is((select count(*)::integer from public.submissions where engagement_id='90000000-0000-4000-8000-000000000010' and test and not deleted),3,'Three answers are test rows');
 select is((select count(*)::integer from private.discover_themes where engagement_id='90000000-0000-4000-8000-000000000010' and test and not deleted),4,'four drafted themes');
 select is((select count(*)::integer from private.signals where engagement_id='90000000-0000-4000-8000-000000000010' and test and not deleted),2,'and two signals');
 set local role authenticated;
 select tests.login(1);
-select is((tests.status('90000000-0000-4000-8000-000000000010')->>'test_answers')::integer,9,'The control surface counts 9 test items');
-select is(tests.status('90000000-0000-4000-8000-000000000010')->'test_counts','{"answers":3,"themes":4,"signals":2,"other":0,"total":9}'::jsonb,'with the parts beside the total');
+select is((tests.status('90000000-0000-4000-8000-000000000010')->>'test_answers')::integer,11,'The control surface counts 11 test items');
+select is(tests.status('90000000-0000-4000-8000-000000000010')->'test_counts','{"answers":3,"themes":4,"signals":2,"other":2,"total":11}'::jsonb,'with the parts beside the total');
 select is(public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.id(852),'end')->>'status','ok','The rehearsal ends');
 create temp table cleared as select public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.id(853),'clear') as j;
 select is((select j->>'status' from cleared),'ok','Clear test answers runs');
-select is((select (j->>'answers')||' '||(j->>'themes')||' '||(j->>'signals')||' '||(j->>'other') from cleared),'3 4 2 0','and says what it cleared: 3 answers, 4 drafted themes, 2 signals');
-select is((select (j->>'items')::integer from cleared),9,'The parts add up to the 9 test items the label showed');
+select is((select (j->>'answers')||' '||(j->>'themes')||' '||(j->>'signals')||' '||(j->>'other') from cleared),'3 4 2 2','and says what it cleared: 3 answers, 4 drafted themes, 2 signals and 2 other test items (a draft headline and an unsettled item)');
+select is((select (j->>'items')::integer from cleared),11,'The parts add up to the 11 test items the label showed');
 select is((select (j->>'answers')::integer+(j->>'themes')::integer+(j->>'signals')::integer+(j->>'other')::integer from cleared),(select (j->>'items')::integer from cleared),'items is the sum of its parts');
 select is((tests.status('90000000-0000-4000-8000-000000000010')->>'test_answers')::integer,0,'and nothing is left to count afterwards');
 select is(tests.status('90000000-0000-4000-8000-000000000010')->'last_clear'->>'themes','4','The last clear remembers its drafted themes');

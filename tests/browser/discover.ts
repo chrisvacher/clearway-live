@@ -133,6 +133,27 @@ async function main() {
       await until(async () => (await page.getByLabel("People who answered").inputValue().catch(() => "")) === total0, "and the total returns", 15000);
     });
 
+    await step("A read that was in flight before a save never flips the page back to the old data", async () => {
+      const total0 = Number((await sql.query("select survey_respondents from public.engagements where id=$1", [room.id])).rows[0].survey_respondents), total1 = total0 + 7;
+      const field = page.getByLabel("People who answered");
+      let hold = true;
+      await page.route(`**/api/discover/${room.id}`, async route => {
+        if (route.request().method() !== "GET" || !hold) return route.continue();
+        hold = false; const old = await route.fetch(); await delay(3000); await route.fulfill({ response: old });
+      });
+      await page.evaluate(() => window.dispatchEvent(new Event("focus"))); // a read starts now and answers late, with the old total
+      await delay(400);
+      await field.fill(String(total1));
+      await page.getByRole("button", { name: "Save total" }).click();
+      await page.getByText("Saved.").first().waitFor({ timeout: 10000 });
+      await delay(4500); // the late, old answer has arrived by now
+      assert.equal(await field.inputValue(), String(total1), "the saved total stays on the page");
+      assert.equal(Number((await sql.query("select survey_respondents from public.engagements where id=$1", [room.id])).rows[0].survey_respondents), total1);
+      await page.unroute(`**/api/discover/${room.id}`);
+      await field.fill(String(total0)); await page.getByRole("button", { name: "Save total" }).click();
+      await until(async () => Number((await sql.query("select survey_respondents from public.engagements where id=$1", [room.id])).rows[0].survey_respondents) === total0, "the total is put back");
+    });
+
     await step("Nobody else reaches Discover, and nothing reaches the room state", async () => {
       const anon = await fetch(`${app.origin}/api/discover/${room.id}`);
       assert.ok([401, 403].includes(anon.status), `anonymous request refused, got ${anon.status}`);

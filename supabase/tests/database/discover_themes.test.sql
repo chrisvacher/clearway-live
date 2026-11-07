@@ -352,21 +352,33 @@ select set_config('tests.out2',$j${"themes":[
  {"source":"conversations","label":"Volunteers are stretched","detail":"Rejected earlier","sources":["n1"]},
  {"source":"conversations","label":"Roles of staff are unclear","detail":"Says what the accepted theme says, in other words.","sources":["n3"]},
  {"source":"conversations","label":"Volunteers are very stretched","detail":"Says what the rejected theme says, in other words.","sources":["n3"]},
+ {"source":"four_lists","label":"Roles of staff are unclear","detail":"The same words, from the cards: a different source, so it stands.","sources":["f1"]},
+ {"source":"conversations","label":"Newcomers do not feel welcome","detail":"The opposite of an accepted theme, not a repeat.","sources":["n1"]},
  {"source":"conversations","label":"The next step is unclear","detail":"Warm welcome, then no clear step.","sources":["n1","n2"],"quote":{"text":"the next step is unclear","source":"n1"}}
 ]}$j$,false);
 -- An accepted theme already on the page: an offer that says the same in other words must be dropped, whatever the order of its words.
-insert into private.discover_themes(id,engagement_id,source,label,detail,status) values(tests.id(990),tests.id(100),'conversations','Staff roles have blurred and are unclear','','accepted');
+insert into private.discover_themes(id,engagement_id,source,label,detail,status) values(tests.id(990),tests.id(100),'conversations','Staff roles have blurred and are unclear','','accepted'),(tests.id(991),tests.id(100),'conversations','Newcomers feel welcome','','accepted');
 set local role service_role;
 select is(public.discover_theme_apply((select lease_run from private.discover_theme_rounds where engagement_id=tests.id(100)),tests.id(620),current_setting('tests.out2')::jsonb,'{}')->>'status','ok','Applying the redraft');
 reset role;
-select is((select count(*)::integer from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100) and output->>'offered'='1'),1,'One new theme is offered');
+select is((select count(*)::integer from private.ai_runs where job='draft_discover_themes' and engagement_id=tests.id(100) and output->>'offered'='3'),1,'Three new themes are offered: the new one, the cards'' wording of a conversation theme, and an opposite');
 select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label in('Small groups are hard to find','Volunteers are stretched') and not deleted),2,'and the accepted and the rejected ones are not offered a second time');
 select is(tests.field('The next step is unclear','status'),'draft','The new theme is a draft beside them');
-select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Roles of staff are unclear' and not deleted),0,'A theme whose meaningful words match an accepted theme''s is dropped ("Roles of staff are unclear" beside "Staff roles have blurred and are unclear")');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Roles of staff are unclear' and source='conversations' and not deleted),0,'A theme whose meaningful words match an accepted theme''s is dropped ("Roles of staff are unclear" beside "Staff roles have blurred and are unclear")');
 select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Volunteers are very stretched' and not deleted),0,'and so is one that says what a rejected theme said');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Roles of staff are unclear' and source='four_lists' and not deleted),1,'The near-repeat check is within a source: the same words from the Four Helpful Lists cards stand');
+select is((select count(*)::integer from private.discover_themes where engagement_id=tests.id(100) and label='Newcomers do not feel welcome' and not deleted),1,'and a negated label stands beside the accepted one it contradicts');
+select is((select count(*)::integer from private.ai_runs r,jsonb_array_elements(r.output->'refused') x where r.job='draft_discover_themes' and r.engagement_id=tests.id(100) and x->>'reason'='repeat'),2,'Each drop is written to the run''s refused output with the reason repeat');
+select is(private.discover_label_alike('Newcomers do not feel welcome',array['newcomers feel welcome']),false,'Negation: "do not feel welcome" is not "feel welcome"');
+select is(private.discover_label_alike('There is no clear way into groups',array['there is a clear way into groups']),false,'"no clear way" is not "a clear way"');
+select is(private.discover_label_alike('More young families',array['fewer young families']),false,'More is not fewer');
+select is(private.discover_label_alike('Small groups are hard to find',array['small groups are easy to find']),false,'Hard is not easy');
+select is(private.discover_label_alike('Our leaders are strong in vision',array['our leaders are weak in vision']),false,'Strong is not weak');
+select is(private.discover_label_alike('The way into groups is clear',array['the way into groups is unclear']),false,'Clear is not unclear');
+select is(private.discover_label_alike('Newcomers do not feel welcome',array['newcomers do not feel welcome here']),true,'but two negated wordings of the same thing are a repeat');
 select is(private.discover_label_alike('Roles of staff are unclear',array['staff roles have blurred and are unclear']),true,'The check: three of three meaningful words shared');
 select is(private.discover_label_alike('Giving is generous',array['giving is down this year']),false,'The check keeps a theme that shares only one word');
-select is(private.discover_label_alike('Newcomers cannot find a small group',array['small groups are hard to find']),true,'and drops a longer wording of the same thing');
+select is(private.discover_label_alike('Newcomers struggle to find a small group',array['small groups are hard to find']),true,'and drops a longer wording of the same thing');
 select is(private.discover_label_alike('Worship is a strength',array['staff roles are unclear','volunteers are stretched']),false,'and keeps a plainly different one');
 select is(private.discover_label_alike('Music',array['music']),false,'A one-word label is left to the exact-repeat check');
 select is(tests.field('Small groups are hard to find','status'),'accepted','and the accepted one is still accepted');

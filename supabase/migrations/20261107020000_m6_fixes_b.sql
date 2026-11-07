@@ -18,39 +18,53 @@ begin;
 -- It was the strong accepted themes minus the themes that have an aligned or divergent card. A divergent card is often on a thin theme (young families),
 -- so the subtraction took one off a strong theme the room had never spoken of, and the panel said 1 where 2 could still come. It is now the strong accepted
 -- themes with no card in this step at all (any kind, dismissed or not: a dismissed card stays dismissed, and a theme the room has spoken of or that is already up
--- is not waiting). That is exactly the set a silent card can still come for.
+-- is not waiting). Strong is read from private.discover_accepted_themes, the rule the signal's apply step uses, so the count is exactly the set a silent card can still come for.
 do $patch$
 declare def text; patched text;
 begin
  def:=pg_get_functiondef('private.signal_state(uuid,uuid)'::regprocedure);
  patched:=replace(def,'greatest(0,v_held-(select count(distinct g.theme_id) from private.signals g where g.session_id=s.id and not g.deleted and g.dismissed_at is null and g.kind in (''aligned'',''divergent''))::integer)',
-  '(select count(*) from private.discover_themes th where th.engagement_id=p_engagement and th.status=''accepted'' and th.merged_into is null and not th.deleted'||chr(10)||
-  '     and private.discover_is_strong(th.source,th.rests_on,th.out_of) and not exists(select 1 from private.signals g where g.session_id=s.id and g.theme_id=th.id and not g.deleted))::integer');
+  '(select count(*) from private.discover_accepted_themes(p_engagement) q where q.strong'||chr(10)||
+  '     and not exists(select 1 from private.signals g where g.session_id=s.id and g.theme_id=q.theme_id and not g.deleted))::integer');
  if patched=def then raise exception 'The held count in signal_state did not patch cleanly'; end if;
  execute patched;
 end $patch$;
 
 -- ---------- A theme that says what one on the page already says ----------
--- The meaningful words of a label: lower case, no short or filler words, plurals and -ed and -ing endings trimmed.
+-- The meaningful words of a label: lower case, no short or filler words, plurals and -ed and -ing endings trimmed. Negations (not, no, never, without,
+-- cannot, cant, dont and the like) and the comparatives more, fewer and less are kept: they change what a label says.
 create function private.discover_words(p_text text) returns text[]
 language sql immutable security invoker set search_path='' as $$
  select coalesce(array_agg(distinct w),array[]::text[]) from (
-  select case when length(x)>5 and x like '%ing' then left(x,-3) when length(x)>4 and x like '%ed' then left(x,-2) when length(x)>3 and x like '%s' and x not like '%ss' then left(x,-1) else x end as w
-  from unnest(regexp_split_to_array(lower(translate(coalesce(p_text,''),'‘’','''''')),'[^a-z0-9'']+')) x
-  where length(x)>=3 and x<>all(array['the','and','are','was','were','have','has','had','for','with','that','this','from','not','our','their','they','them','but','can','too','very',
-   'more','most','some','any','all','who','what','when','where','how','why','its','into','about','there','here','been','being','will','would','should','could','you','your','also','than','then','just'])) s
+  select case when x=any(array['not','no','never','without','cannot','cant','dont','wont','isnt','arent','doesnt','didnt','nothing','none','fewer','less','more']) then x
+   when length(x)>5 and x like '%ing' then left(x,-3) when length(x)>4 and x like '%ed' then left(x,-2) when length(x)>3 and x like '%s' and x not like '%ss' then left(x,-1) else x end as w
+  from unnest(regexp_split_to_array(lower(translate(coalesce(p_text,''),'‘’''','')),'[^a-z0-9]+')) x
+  where (length(x)>=3 and x<>all(array['the','and','are','was','were','have','has','had','for','with','that','this','from','our','their','they','them','but','can','too','very',
+   'most','some','any','all','who','what','when','where','how','why','its','into','about','there','here','been','being','will','would','should','could','you','your','also','than','then','just']))
+   or x=any(array['not','no'])) s
 $$;
 
 -- True when a label says the same as one already there: it shares at least two meaningful words, and at least three quarters of the shorter label's words.
 -- "Roles of staff are unclear" against "Staff roles have blurred and are unclear" shares role, staff and unclear: all of the shorter one.
+-- Two labels are different, whatever they share, when only one of them carries a negation ("Newcomers do not feel welcome" against "Newcomers feel
+-- welcome") or when they differ by an opposite (hard and easy, more and fewer or less, strong and weak, clear and unclear).
 create function private.discover_label_alike(p_label text,p_seen text[]) returns boolean
 language plpgsql immutable security invoker set search_path='' as $$
 declare a text[]:=private.discover_words(p_label); b text[]; s text; shared integer; smaller integer;
+ neg text[]:=array['not','no','never','without','cannot','cant','dont','wont','isnt','arent','doesnt','didnt','nothing','none'];
+ opp text[]:=array['hard','easy','more','fewer','more','less','strong','weak','clear','unclear'];
+ differs boolean;
 begin
  if cardinality(a)<2 then return false; end if;
  foreach s in array coalesce(p_seen,array[]::text[]) loop
   b:=private.discover_words(s);
   if cardinality(b)<2 then continue; end if;
+  if (a&&neg)<>(b&&neg) then continue; end if;
+  differs:=false;
+  for i in 1..cardinality(opp)/2 loop
+   if (opp[2*i-1]=any(a) and opp[2*i]=any(b) and not opp[2*i-1]=any(b)) or (opp[2*i]=any(a) and opp[2*i-1]=any(b) and not opp[2*i]=any(b)) then differs:=true; end if;
+  end loop;
+  if differs then continue; end if;
   select count(*) into shared from unnest(a) x where x=any(b);
   smaller:=least(cardinality(a),cardinality(b));
   if shared>=2 and shared::numeric/smaller>=0.75 then return true; end if;
@@ -58,13 +72,18 @@ begin
  return false;
 end $$;
 
--- The apply keeps every check it has. The one line that dropped an exact repeat of a label now also drops a near repeat, against every label on the page
--- (accepted, offered or rejected, and a renamed theme's old name) and every theme kept earlier in the same run.
+-- The apply keeps every check it has. The exact-repeat check stays as it was, across every source. A near repeat is dropped only against labels of the same source
+-- (accepted, offered or rejected, a renamed theme's old name, and the themes kept earlier in the same run), and the drop is written to the run's refused
+-- output with the reason 'repeat'.
 do $patch$
 declare def text; patched text;
 begin
  def:=pg_get_functiondef('private.discover_theme_apply(uuid,uuid,jsonb,jsonb)'::regprocedure);
- patched:=replace(def,'if private.ov_norm(v_label)=any(seen) then continue; end if;','if private.ov_norm(v_label)=any(seen) or private.discover_label_alike(v_label,seen) then continue; end if;');
+ patched:=replace(def,'if private.ov_norm(v_label)=any(seen) then continue; end if;',
+  'if private.ov_norm(v_label)=any(seen) then continue; end if;'||chr(10)||
+  '  if private.discover_label_alike(v_label,(select coalesce(array_agg(private.ov_norm(l)),array[]::text[]) from private.discover_themes x cross join lateral unnest(array[x.label,x.original_label]) l'||chr(10)||
+  '   where x.engagement_id=run.engagement_id and x.source=kind and not x.deleted and l is not null)) then'||chr(10)||
+  '   refused:=refused||jsonb_build_array(jsonb_build_object(''label'',left(v_label,60),''reason'',''repeat'')); continue; end if;');
  if patched=def then raise exception 'The repeat check in discover_theme_apply did not patch cleanly'; end if;
  execute patched;
 end $patch$;
@@ -75,7 +94,7 @@ alter table private.rehearsal_log add column signals integer not null default 0 
 alter table private.rehearsal_log add column other integer not null default 0 check(other>=0);
 
 -- Every test item Clear test answers removes, counted once, with the parts the app names: answers, drafted themes, signals and the rest (votes, agrees,
--- suggestions, scribe cards and files, read-back corrections and settled items). total is the sum, and is the number on the control surface.
+-- suggestions, scribe cards and files, read-back corrections and items, What We Heard drafts). total is the sum, and is the number on the control surface.
 create function private.rehearsal_counts(p_engagement uuid) returns jsonb
 language sql stable security definer set search_path='' as $$
  with c as (select
@@ -88,7 +107,8 @@ language sql stable security definer set search_path='' as $$
     +(select count(*) from private.scribe_cards y where y.engagement_id=p_engagement and y.test and not y.deleted)
     +(select count(*) from private.scribe_files y where y.engagement_id=p_engagement and y.test and not y.deleted)
     +(select count(*) from private.read_back_corrections y where y.engagement_id=p_engagement and y.test and not y.deleted)
-    +(select count(*) from private.read_back_items y where y.engagement_id=p_engagement and y.test and y.state='settled' and not y.deleted)
+    +(select count(*) from private.read_back_items y where y.engagement_id=p_engagement and y.test and not y.deleted)
+    +(select count(*) from private.heard_drafts y where y.engagement_id=p_engagement and y.test and not y.deleted)
     +(select count(*) from private.four_list_agrees y where y.engagement_id=p_engagement and y.test and not y.deleted))::integer as other)
  select jsonb_build_object('answers',answers,'themes',themes,'signals',signals,'other',other,'total',answers+themes+signals+other) from c
 $$;
@@ -102,7 +122,11 @@ begin
  a:=position('''test_answers'',' in def);
  b:=position(E',\n   ''last_clear''' in def);
  if a=0 or b=0 or b<a then raise exception 'The rehearsal count in control_status did not find its place'; end if;
- patched:=substr(def,1,a-1)||'''test_answers'',(private.rehearsal_counts(p_engagement)->>''total'')::integer,''test_counts'',private.rehearsal_counts(p_engagement)'||substr(def,b);
+ patched:=substr(def,1,a-1)||'''test_answers'',(tcounts->>''total'')::integer,''test_counts'',tcounts'||substr(def,b);
+ def:=patched;
+ -- The counts are read once for the whole status.
+ patched:=replace(def,'declare r public.room_states;','declare tcounts jsonb:=private.rehearsal_counts(p_engagement); r public.room_states;');
+ if patched=def then raise exception 'The declare block in control_status did not patch cleanly'; end if;
  def:=patched;
  patched:=replace(def,'''answers'',last_clear.answers,','''answers'',last_clear.answers,''themes'',last_clear.themes,''signals'',last_clear.signals,''other'',last_clear.other,');
  if patched=def then raise exception 'The last clear in control_status did not patch cleanly'; end if;
