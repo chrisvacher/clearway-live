@@ -70,7 +70,7 @@ export function agreeState(server: FourAgree[], outbox: OutboxEntry[]) {
     const q = e.request.value.card, before = out.get(q);
     if (e.state === "failed") { if (!before || before.revision < e.request.revision) out.set(q, { ...(before ?? { id: e.request.id, card_id: q, agreed: false, revision: -1 }), pending: false, failed: true, saved: false }); continue; }
     if (before && !before.pending && before.revision >= e.request.revision && before.id === e.request.id) continue;
-    out.set(q, { id: e.request.id, card_id: q, agreed: e.request.value.on, revision: e.request.revision, pending: true, failed: false, saved: e.state === "saved" });
+    out.set(q, { id: e.request.id, card_id: q, agreed: e.request.value.on, revision: e.request.revision, pending: true, failed: false, saved: e.state === "saved" && Boolean(e.request.queuedAt) });
   }
   return out;
 }

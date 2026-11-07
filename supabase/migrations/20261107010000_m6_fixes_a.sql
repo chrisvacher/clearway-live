@@ -17,8 +17,8 @@
 begin;
 
 -- The words that carry what a card is about: lower case, apostrophes dropped, split on anything that is not a letter or digit, stop words
--- and generic praise or judgement words removed, then a simple stem: -ies to -y or a plural -s off, then -ing off (a doubled last letter
--- undone), then a final -e off ("giving", "gives" and "give" meet; "roles" and "role" meet).
+-- and generic praise or judgement words removed (contractions count as stop words), then a simple stem: -ies to -y or a plural -s off, then -ing or -ed off,
+-- a doubled last consonant undone, then a final -e off ("giving", "gives" and "give" meet; "roles" and "role" meet).
 create or replace function private.four_lists_stems(p_text text) returns text[]
 language plpgsql immutable security invoker set search_path='' as $$
 declare w text; s text; out text[]:=array[]::text[];
@@ -29,7 +29,9 @@ declare w text; s text; out text[]:=array[]::text[];
   'more','less','most','least','very','really','much','many','lot','lots','enough','still','always','never','often','sometimes','now','today',
   'strong','stronger','strongest','strength','strengths','good','great','nice','fine','best','better','worse','worst','bad','poor','weak','weakness','big','small','real','clear','unclear',
   'confusing','confused','confusion','important','needs','need','needed','lack','lacking','lacks','missing','wrong','right','issue','issues','problem','problems','thing','things','way',
-  'church','churches','people','person','everyone','someone','anyone','feel','feels','seem','seems','get','gets','make','makes'];
+  'church','churches','people','person','everyone','someone','anyone','feel','feels','seem','seems','get','gets','make','makes',
+  'dont','doesnt','didnt','isnt','arent','wasnt','werent','cant','couldnt','wont','wouldnt','shouldnt','havent','hasnt','hadnt','theres','theyre','youre','weve','ive','im','whats','lets','nobody','nothing',
+  'amazing','excellent','awesome','wonderful','healthy','solid','positive','negative','hard','easy','well','high','low','team','time'];
 begin
  for w in select x from regexp_split_to_table(lower(replace(replace(coalesce(p_text,''),chr(39),''),chr(8217),'')),'[^[:alnum:]]+') x loop
   continue when w='' or w=any(skip);
@@ -37,10 +39,13 @@ begin
   if s ~ '^.{3,}ies$' then s:=regexp_replace(s,'ies$','y');
   elsif length(s)>3 and s ~ 's$' and s !~ '(ss|us|is)$' then s:=left(s,-1);
   end if;
-  if s ~ '^.{3,}ing$' then
-   s:=regexp_replace(s,'ing$','');
-   if s ~ '([b-df-hj-np-tv-z])\1$' then s:=left(s,-1); end if;
+  -- The stop list again after the plural: "whats" is "what", "times" is "time".
+  continue when s=any(skip);
+  if s ~ '^.{3,}ing$' then s:=regexp_replace(s,'ing$','');
+  elsif s ~ '^.{3,}ed$' then s:=regexp_replace(s,'ed$','');
   end if;
+  -- A doubled last consonant goes whatever stripped it: "staffing" and "staff" meet, "planned" and "plan" meet.
+  if s ~ '([b-df-hj-np-tv-z])\1$' then s:=left(s,-1); end if;
   if length(s)>3 and s ~ 'e$' then s:=left(s,-1); end if;
   out:=out||s;
  end loop;

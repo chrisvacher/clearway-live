@@ -86,6 +86,11 @@ select is(private.four_lists_share_word('It is good','Very good'),false,'Cards w
 select is(private.four_lists_share_word('Parking is full','Giving is generous'),false,'Unrelated cards share nothing');
 select is(private.four_lists_share_word('The church is really good','Our people are great'),false,'"church", "people" and the praise words are all dropped');
 select is(private.four_lists_share_word(null,'Giving is generous'),false,'No text, no match');
+select is(private.four_lists_share_word('We don''t pray enough','Leaders don''t communicate'),false,'A contraction is a stop word: "don''t" is no shared word');
+select is(private.four_lists_share_word('What''s wrong with parking','What''s next for youth'),false,'"what''s" is a stop word, also after stemming');
+select is(private.four_lists_share_word('Preaching is excellent','Giving is excellent'),false,'"excellent" is generic praise: refused');
+select is(private.four_lists_share_word('Staffing is too thin','Not enough staff'),true,'staffing and staff meet through the doubled letter');
+select is(private.four_lists_share_word('Guests feel welcome','Newcomers are welcomed'),true,'welcome and welcomed meet through -ed');
 
 -- ---------- The room: Riverside ----------
 set local role authenticated;
