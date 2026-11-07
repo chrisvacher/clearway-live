@@ -41,6 +41,16 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
       { id, frame, leaving: false, entering: layers.length > 0 }]);
   }
   useEffect(() => { if (frame && id) last.current = frame; }, [frame, id]);
+  // Nothing is live (Nothing live, or the practice room reset): once the scene has faded out, the last picture is put away. The
+  // old layer used to stay mounted, hidden, with its last frame, so a screen that missed or stalled the fade could keep showing the
+  // old session's words until the page was reloaded, and the old view's timers kept running. A step that goes live again starts a layer afresh.
+  const nothingLive = frame !== null && frame.state.live_session_id === null;
+  useEffect(() => {
+    if (!nothingLive || !layers.length) return;
+    const wait = (box.current ? tokenMs(box.current, "cwl-dur-make-room") : 700) + 150;
+    const timer = setTimeout(() => { last.current = null; setLayers([]); }, wait);
+    return () => clearTimeout(timer);
+  }, [nothingLive, layers.length]);
   useEffect(() => {
     if (!layers.some(layer => layer.leaving || layer.entering)) return;
     const raf = requestAnimationFrame(() => requestAnimationFrame(() => setLayers(current => current.map(layer => layer.entering ? { ...layer, entering: false } : layer))));

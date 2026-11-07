@@ -357,11 +357,53 @@ async function main() {
         await shot(tv, "tv-outcome");
       });
 
-      // The practice-room run of November 6 found the read-back text at 40 px at every room size, and only 2 of the "What's missing?" answers
-      // on the TV with "+ 6 more on phones" where the Default is up to six that fit whole. Item 4 (Operations) has three short lines and
-      // no answers yet, so the text is free to follow the room size and the missing cards are short enough for six to fit.
-      await step("The read-back text follows the room size, and What's missing shows up to six answers that fit whole, at 1920 by 1080", async () => {
+      // The practice-room runs of November 6 found the read-back TV showing 1 or 2 of the "What's missing?" answers, with "+ 6 more", where
+      // the Default is up to six that fit whole, and a count that moved from 2 to 1 with no new input. The first kit step used eight answers of
+      // 12 to 20 characters on a screen with no other traffic, measured once; the practice room's answers run to 30 or 40 characters, the room size
+      // changes while the room is live, and phones keep answering. So this step uses both kinds of answer, changes the room size live,
+      // samples the count while the room version moves, and asks of every count that it is the most whole answers the space allows.
+      const geometry = () => layer().evaluate(el => {
+        const stage = el.closest(".tv-stage")!.getBoundingClientRect(), box = (e: Element) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; };
+        const lines = [...el.querySelectorAll<HTMLElement>(".lsm-line:not(.is-gone)")].map(l => parseFloat(getComputedStyle(l).fontSize));
+        const all = [...el.querySelectorAll<HTMLElement>("[data-missing]")].map(c => ({ ...box(c), out: c.classList.contains("is-out"), text: (c.textContent ?? "").trim(), height: c.getBoundingClientRect().height,
+          rows: (() => { const clip = c.querySelector<HTMLElement>(".rbk-clip")!; return clip.clientHeight / (parseFloat(getComputedStyle(clip).lineHeight) || 1); })() }));
+        const more = el.querySelector("[data-more-missing]"), list = el.querySelector(".rbk-missing")!;
+        return { stage: { top: Math.max(0, stage.top), bottom: Math.min(innerHeight, stage.bottom) }, lines, cards: all.filter(c => !c.out), hidden: all.filter(c => c.out), gap: parseFloat(getComputedStyle(list).rowGap) || 0,
+          more: more ? { ...box(more), text: (more.textContent ?? "").trim() } : null, list: box(list), type: parseFloat(getComputedStyle(el.querySelector(".lsm-card, .rbk-missing-h")!).fontSize) };
+      });
+      const wholeAndFull = (g: Awaited<ReturnType<typeof geometry>>, total: number, size: string) => {
+        for (const c of g.cards) {
+          // Two lines at most, each whole: an answer longer than that ends after its second line, never half a line.
+          assert.ok(c.rows <= 2.05 && Math.abs(c.rows - Math.round(c.rows)) < 0.1, `${size}: a missing answer shows whole lines, two at most: ${c.rows} lines: ${c.text}`);
+          assert.ok(c.top >= g.list.top - 0.5 && c.bottom <= g.list.bottom + 0.5, `${size}: a missing answer sits inside its list: ${JSON.stringify(c)}`);
+          assert.ok(c.bottom <= g.stage.bottom + 0.5, `${size}: a missing answer is on the screen`);
+        }
+        if (g.more) assert.ok(g.more.bottom <= g.stage.bottom + 0.5 && g.more.top >= g.cards[g.cards.length - 1].bottom - 0.5, `${size}: the "+ n more" line sits under the cards and on the screen: ${JSON.stringify(g.more)}`);
+        assert.equal(g.cards.length + Number(g.more?.text.match(/\d+/)?.[0] ?? 0), total, `${size}: shown plus "+ n more on phones" is all ${total}: ${g.more?.text}`);
+        // As many whole answers as fit, up to six: when one is held back, there was no room for it under the last one shown.
+        if (g.cards.length < Math.min(6, total) && g.hidden.length) {
+          const free = g.list.bottom - g.cards[g.cards.length - 1].bottom - g.gap;
+          assert.ok(free + 0.5 < g.hidden[0].height, `${size}: ${g.cards.length} shown, yet ${Math.round(free)}px was free for an answer that needs ${Math.round(g.hidden[0].height)}px`);
+        }
+      };
+      // The count for one room size, sampled for a few seconds while the room version moves (a phone changes its answer twice): it must not move.
+      const settled = async (size: string, total: number, churn: () => Promise<unknown>) => {
+        await press(fac, sql, room, "room_size", { size });
+        await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
+        await until(async () => (await geometry()).cards.length + Number((await geometry()).more?.text.match(/\d+/)?.[0] ?? 0) === total, `every answer is on the TV at ${size}`, 8000);
+        await delay(600);
+        const counts: number[] = [], first = await geometry(); counts.push(first.cards.length);
+        for (let t = 0; t < 12; t++) { if (t === 3 || t === 7) await churn(); await delay(400); counts.push((await geometry()).cards.length); }
+        assert.equal(new Set(counts).size, 1, `${size}: the count does not move with no new answers: ${counts.join(",")}`);
+        const g = await geometry(); wholeAndFull(g, total, size);
+        return g;
+      };
+      let flip = 0;
+      const churn = async () => { flip++; await phones[10].sendValue(room, rb, { version: (await info()).item!.version_id, response: flip % 2 ? "yes" : "change" }, flip % 2 ? "Yes, that's us" : "It needs a change"); };
+      const fontsLoaded = async () => tv.evaluate(async () => { await document.fonts.ready; return ["600 36px \"Plus Jakarta Sans\"", "700 36px \"Plus Jakarta Sans\""].every(f => document.fonts.check(f)); });
+      await step("The read-back text follows the room size, and What's missing shows up to six short answers whole at every size, 1920 by 1080, with no drift", async () => {
         await tv.evaluate("window.__name = f => f"); // the test runner's transpiler names inner functions
+        assert.ok(await fontsLoaded(), "the TV's real type face is loaded, as on the live screen");
         const i = await info();
         assert.equal((await ctl("show", { to: i.items[3].id })).status, "ok");
         await until(async () => (await layer().locator("[data-read-back]").getAttribute("data-item")) === i.items[3].id, "Operations on the TV", 8000);
@@ -372,30 +414,39 @@ async function main() {
         const sizeBefore = (await sql.query("select settings->>'room_size' as s from public.engagements where id=$1", [room])).rows[0].s as string | null;
         const px: Record<string, number> = {}, shownAt: Record<string, number> = {};
         for (const size of ["very_small", "medium", "very_large"]) {
-          await press(fac, sql, room, "room_size", { size });
-          await until(async () => (await tv.locator("main[data-room]").getAttribute("data-room")) === size, `room size ${size}`, 8000);
-          let miss: unknown;
-          await until(async () => {
-            try {
-              const g = await layer().evaluate(el => {
-                const stage = el.closest(".tv-stage")!.getBoundingClientRect(), box = (e: Element) => { const r = e.getBoundingClientRect(); return { top: r.top, bottom: r.bottom, left: r.left, right: r.right }; };
-                const lines = [...el.querySelectorAll<HTMLElement>(".lsm-line:not(.is-gone)")].map(l => parseFloat(getComputedStyle(l).fontSize));
-                const cards = [...el.querySelectorAll<HTMLElement>("[data-missing]:not(.is-out)")].map(c => ({ ...box(c), text: (c.textContent ?? "").trim(), clipped: c.querySelector<HTMLElement>(".rbk-clip")!.scrollHeight > c.querySelector<HTMLElement>(".rbk-clip")!.clientHeight + 1 }));
-                const more = el.querySelector("[data-more-missing]");
-                return { stage: { top: Math.max(0, stage.top), bottom: Math.min(innerHeight, stage.bottom) }, lines, cards, more: more ? { ...box(more), text: (more.textContent ?? "").trim() } : null, side: box(el.querySelector(".rbk-side")!), list: box(el.querySelector(".rbk-missing")!) };
-              });
-              assert.ok(g.lines.length === 3, `Operations has three lines on the TV: ${g.lines.length}`);
-              px[size] = g.lines[0]; shownAt[size] = g.cards.length;
-              for (const c of g.cards) { assert.ok(!c.clipped, `a missing answer is never clipped: ${c.text}`); assert.ok(c.top >= g.list.top - 0.5 && c.bottom <= g.list.bottom + 0.5, `a missing answer sits inside its list: ${JSON.stringify(c)}`); assert.ok(c.bottom <= g.stage.bottom + 0.5, "a missing answer is on the screen"); }
-              if (g.more) assert.ok(g.more.bottom <= g.stage.bottom + 0.5 && g.more.top >= g.cards[g.cards.length - 1].bottom - 0.5, `the "+ n more" line sits under the cards and on the screen: ${JSON.stringify(g.more)}`);
-              assert.equal(g.cards.length + Number(g.more?.text.match(/\d+/)?.[0] ?? 0), answers.length, `shown plus "+ n more on phones" is all ${answers.length}: ${g.more?.text}`);
-              return true;
-            } catch (error) { miss = error; return false; }
-          }, `the read-back fits at ${size}`, 6000).catch(() => { throw miss; });
+          const g = await settled(size, answers.length, churn);
+          assert.ok(g.lines.length === 3, `Operations has three lines on the TV: ${g.lines.length}`);
+          px[size] = g.lines[0]; shownAt[size] = g.cards.length;
           await shot(tv, `tv-missing-${size}`);
         }
-        console.log(`Read-back line size by room size: ${JSON.stringify(px)}; missing answers shown: ${JSON.stringify(shownAt)}`);
-        // The longest item (8 lines) gives way only as far as it must to stay on one screen; it still never gets smaller than the shorter ones' floor.
+        console.log(`Read-back line size by room size: ${JSON.stringify(px)}; short answers shown: ${JSON.stringify(shownAt)}`);
+        assert.deepEqual(shownAt, { very_small: 6, medium: 6, very_large: 6 }, "six short answers show at every room size");
+        assert.ok(px.very_small > px.medium && px.medium > px.very_large, `the line text follows the room size (very small ${px.very_small}px, medium ${px.medium}px, very large ${px.very_large}px)`);
+        await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [room, sizeBefore]);
+      });
+
+      await step("What's missing with one- and two-line answers, and answers longer than a line: as many whole answers as fit at every size, none clipped, none moving", async () => {
+        const i = await info();
+        assert.equal((await ctl("show", { to: i.items[1].id })).status, "ok");
+        await until(async () => (await layer().locator("[data-read-back]").getAttribute("data-item")) === i.items[1].id, "Community on the TV", 8000);
+        const version = (await info()).item!.version_id;
+        const answers = ["Child care for babies during the service", "Rides for older members", "Coffee first", "A quiet place to pray before we start", "More parking", "Names on a board at the entrance",
+          "A way to give online that works on a phone and does not ask for a long form every time", "Open the doors early"];
+        const sent = await Promise.all(answers.map((a, n) => phones[n].sendValue(room, rb, { version, response: "missing" }, a)));
+        assert.ok(sent.every(a => a === "accepted"), `every missing answer accepted: ${[...new Set(sent)].join(",")}`);
+        const shownAt: Record<string, number> = {}, type: Record<string, number> = {};
+        for (const size of ["very_small", "medium", "very_large"]) {
+          const g = await settled(size, answers.length, churn);
+          shownAt[size] = g.cards.length; type[size] = g.type;
+          await shot(tv, `tv-missing-mixed-${size}`);
+        }
+        console.log(`Mixed answers shown by room size: ${JSON.stringify(shownAt)}; answer type px: ${JSON.stringify(type)}`);
+        assert.ok(shownAt.very_small >= 4 && shownAt.medium >= 4 && shownAt.very_large >= 4, `at least four whole answers at every size: ${JSON.stringify(shownAt)}`);
+        await sql.query("update public.engagements set settings=settings-'room_size' where id=$1", [room]);
+      });
+
+      await step("The longest item stays at its one-screen size (about 43 px) at every room size", async () => {
+        const i = await info();
         assert.equal((await ctl("show", { to: i.items[4].id })).status, "ok");
         await until(async () => (await layer().locator("[data-read-back]").getAttribute("data-item")) === i.items[4].id, "Learning on the TV", 8000);
         const longest: Record<string, number> = {};
@@ -407,10 +458,7 @@ async function main() {
         }
         console.log(`Read-back longest item line size by room size: ${JSON.stringify(longest)}`);
         assert.ok(longest.very_small >= longest.medium && longest.medium >= longest.very_large && longest.very_large >= 36, `the longest item never grows as the room size shrinks the type: ${JSON.stringify(longest)}`);
-        assert.ok(px.very_small > px.medium && px.medium > px.very_large, `the line text follows the room size (very small ${px.very_small}px, medium ${px.medium}px, very large ${px.very_large}px)`);
-        assert.equal(shownAt.very_large, 6, `up to six answers show at Very large when they fit: ${shownAt.very_large}`);
-        assert.ok(shownAt.medium >= 4 && shownAt.very_small >= 3, `more than two show at Medium and Very small: ${JSON.stringify(shownAt)}`);
-        await sql.query("update public.engagements set settings=case when $2::text is null then settings-'room_size' else settings||jsonb_build_object('room_size',$2::text) end where id=$1", [room, sizeBefore]);
+        await sql.query("update public.engagements set settings=settings-'room_size' where id=$1", [room]);
         assert.equal((await ctl("show", { to: i.items[3].id })).status, "ok"); // the next step moves to the longest item itself
       });
 
@@ -455,6 +503,56 @@ async function main() {
       await step("No name or email reached the TV or an AI input", async () => {
         const runs = (await sql.query("select inputs::text as inputs from private.ai_runs where session_id=$1", [rb])).rows as { inputs: string }[];
         assert.ok(runs.length >= 1 && runs.every(r => !r.inputs.includes("@example.org") && !r.inputs.includes("Readback phone") && !r.inputs.includes(scribeWords)));
+      });
+
+      // ---------- Reset practice room: the paired TV follows it, and Remove works on a step that has been live ----------
+      await step("Reset practice room: the paired TV moves to the waiting screen without a reload, and nothing of the old read-back stays in its page", async () => {
+        assert.equal(await layer().locator("[data-read-back]").count(), 1, "a read-back is on the TV");
+        await tv.evaluate(() => { (window as unknown as { __rbkSamePage: boolean }).__rbkSamePage = true; });
+        const out = await fac.client.rpc("reset_practice_room"); assert.equal(out.error, null); assert.equal(out.data, true);
+        await until(async () => (await tv.locator(".tv-holding.is-active").count()) === 1, "the waiting screen is up", 6000);
+        await until(async () => (await tv.locator("[data-read-back]").count()) === 0, "no part of the old read-back is left in the TV's page", 4000);
+        assert.equal(await tv.evaluate(() => (window as unknown as { __rbkSamePage?: boolean }).__rbkSamePage === true), true, "the page was not reloaded");
+        await shot(tv, "tv-after-reset");
+      });
+
+      await step("Remove on a step that has been live, after Reset practice room, asks in the panel and takes the step out (no browser confirm box)", async () => {
+        const dialogs: string[] = [];
+        laptop.on("dialog", d => { dialogs.push(d.message()); void d.dismiss(); }); // what some browsers and tools do to a native confirm
+        const started = new Date(Date.now() - 1000).toISOString();
+        await laptop.goto(`${app.origin}/setup/${room}/run-of-show`);
+        await laptop.locator(".rb-tile", { hasText: "Read-back" }).click();
+        await laptop.locator(".rb-row.is-open #session-title").waitFor();
+        const added = await until(async () => (await sql.query("select id from public.sessions where engagement_id=$1 and interaction='read_back' and title='Read-back' and not deleted and created_at>$2", [room, started])).rows[0]?.id as string, "the palette step is saved", 8000);
+        const stateOf = async () => (await sql.query("select state,deleted from public.sessions where id=$1", [added])).rows[0] as { state: string; deleted: boolean };
+        await laptop.locator(".rb-row.is-open").getByRole("button", { name: "Done" }).click();
+        await until(async () => (await stateOf()).state === "ready", "marked ready", 8000);
+        const row = laptop.locator(`[data-row="${added}"]`);
+        // On air: Remove is not offered, and the panel says why.
+        await press(fac, sql, room, "go_live", { session: added });
+        await until(async () => (await sql.query("select live_session_id from public.room_states where engagement_id=$1", [room])).rows[0].live_session_id === added, "live", 8000);
+        await laptop.reload();
+        await row.getByRole("button", { name: /Open options/ }).click();
+        await row.locator("[data-remove-note]").waitFor({ timeout: 8000 });
+        assert.equal(await row.getByRole("button", { name: "Remove", exact: true }).count(), 0, "no Remove button while the step is on air");
+        assert.match(await row.locator("[data-remove-note]").innerText(), /Nothing live/);
+        // After the reset it is Ready again, and Remove works.
+        const reset = await fac.client.rpc("reset_practice_room"); assert.equal(reset.error, null); assert.equal(reset.data, true);
+        await laptop.reload();
+        await row.getByRole("button", { name: /Open options/ }).click();
+        await row.getByRole("button", { name: "Remove", exact: true }).click();
+        await row.locator("[data-remove-confirm]").waitFor({ timeout: 8000 });
+        assert.match(await row.locator("[data-remove-confirm]").innerText(), /Remove Read-back from the run of show\?/);
+        await row.getByRole("button", { name: "Keep it" }).click();
+        assert.equal((await stateOf()).deleted, false, "Keep it leaves the step");
+        await row.getByRole("button", { name: "Remove", exact: true }).click();
+        await row.getByRole("button", { name: "Remove session" }).click();
+        await until(async () => (await stateOf()).deleted, "removed in the database", 8000);
+        await until(async () => (await laptop.locator(`[data-row="${added}"]`).count()) === 0, "gone from the run of show", 8000);
+        await laptop.getByText("Session removed.").waitFor({ timeout: 8000 });
+        assert.deepEqual(dialogs, [], "no native confirm box was used");
+        await laptop.reload();
+        assert.equal(await laptop.locator(`[data-row="${added}"]`).count(), 0, "still gone after a reload");
       });
       await press(fac, sql, room, "nothing_live");
     } finally {

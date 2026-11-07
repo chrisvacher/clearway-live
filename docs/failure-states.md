@@ -50,3 +50,7 @@ On loopback, 50 phones in three 10-second bursts: 150 of 150 under one second, 9
 - Unit tests: the rotated-channel race, catch-up receipts, the report's verdict, window and percentiles.
 
 These are not venue acceptance. Chris's practice-room run, on venue wifi and real devices, is.
+
+## After Reset practice room or Nothing live
+
+The TV follows a reset like any other room change (a room version, with the snapshot every 5 seconds as the fallback). Once nothing is live and the scene has faded to the waiting screen, the TV also puts away the old session's last picture (`SessionLayers`): a screen that missed or stalled the fade can no longer sit on the old read-back's words until the page is reloaded, and the old view's timers stop. A step that goes live again starts a layer afresh.
