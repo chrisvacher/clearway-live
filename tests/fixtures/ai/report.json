@@ -1,0 +1,188 @@
+{
+ "names": [
+  "Sarah",
+  "Priya",
+  "Daniel",
+  "Elena",
+  "Michael",
+  "Jordan",
+  "Grace",
+  "Thomas",
+  "Ellis",
+  "Shah",
+  "Brooks",
+  "Cruz",
+  "Reed",
+  "Parker",
+  "Chen",
+  "Bennett"
+ ],
+ "cases": [
+  {
+   "name": "heard",
+   "inputs": {
+    "section": "heard",
+    "heading": "What We Heard",
+    "refs": [
+     {
+      "ref": "f1",
+      "group": "Survey finding",
+      "text": "A clear way into groups: 31%",
+      "thin": false
+     },
+     {
+      "ref": "f2",
+      "group": "Survey finding",
+      "text": "Respondents under 30: 6",
+      "thin": true,
+      "thin_text": "Thin data: 6 of 87 respondents"
+     },
+     {
+      "ref": "t1",
+      "group": "Accepted board and staff input theme",
+      "text": "Volunteers are stretched thin. The same few people carry the volunteer load. (2 of 2 conversations)",
+      "thin": false
+     },
+     {
+      "ref": "q1",
+      "group": "Quote from a board or staff conversation",
+      "text": "Volunteers are stretched thin, the same few people every week.",
+      "thin": false
+     },
+     {
+      "ref": "c1",
+      "group": "Four Helpful Lists card in what is wrong, 9 people agree",
+      "text": "Newcomers cannot find a small group.",
+      "thin": false
+     },
+     {
+      "ref": "g1",
+      "group": "Aligned signal the facilitator saved as a citation",
+      "text": "What the room said about finding a group matches what the interviews said.",
+      "thin": false
+     }
+    ]
+   },
+   "reply": "{\"sentences\": [{\"text\": \"31% of respondents named a clear way into groups as what to improve.\", \"refs\": [\"f1\"]}, {\"text\": \"Respondents under 30 are few in the survey, so this reads as a signal to watch, not a finding.\", \"refs\": [\"f2\"]}, {\"text\": \"Board and staff conversations said \\\"Volunteers are stretched thin, the same few people every week.\\\"\", \"refs\": [\"q1\", \"t1\"]}, {\"text\": \"The room's own words on finding a group match what the interviews said.\", \"refs\": [\"g1\"]}]}"
+  },
+  {
+   "name": "tensions",
+   "inputs": {
+    "section": "tensions",
+    "heading": "Tensions we worked through",
+    "refs": [
+     {
+      "ref": "s1",
+      "group": "Scribe tension card",
+      "text": "Growing the staff team first or growing volunteer leadership first.",
+      "thin": false
+     },
+     {
+      "ref": "s2",
+      "group": "Scribe tension card",
+      "text": "Opening the building seven days a week or keeping a rhythm of rest for staff.",
+      "thin": false
+     },
+     {
+      "ref": "d1",
+      "group": "Decision about an outcome the room challenged",
+      "text": "We will launch the five outcomes a season apart. Trying all five at once is the risk the room feared most.",
+      "thin": false
+     }
+    ]
+   },
+   "reply": "{\"sentences\": [{\"text\": \"The team weighed growing the staff team first against growing volunteer leadership first.\", \"refs\": [\"s1\"]}, {\"text\": \"The room also held opening the building seven days a week against a rhythm of rest for staff.\", \"refs\": [\"s2\"]}, {\"text\": \"They chose to launch the five outcomes a season apart.\", \"refs\": [\"d1\"]}]}"
+  },
+  {
+   "name": "future lead",
+   "inputs": {
+    "section": "future",
+    "heading": "The 10-year Future",
+    "refs": [
+     {
+      "ref": "b1",
+      "group": "Congregation",
+      "text": "Every ministry has an apprentice leader ready to step in.",
+      "thin": false
+     },
+     {
+      "ref": "b2",
+      "group": "Community",
+      "text": "Neighbours call Riverside first when someone on the street needs help.",
+      "thin": false
+     }
+    ]
+   },
+   "reply": "{\"sentences\": [{\"text\": \"This is the team's picture of the church, written as true today and set out by lens below.\", \"refs\": [\"b1\", \"b2\"]}]}"
+  },
+  {
+   "name": "overview",
+   "inputs": {
+    "section": "overview",
+    "heading": "Overview",
+    "refs": [
+     {
+      "ref": "z1",
+      "group": "What We Heard",
+      "text": "A clear way into groups: 31%.",
+      "thin": false
+     },
+     {
+      "ref": "z2",
+      "group": "Tensions we worked through",
+      "text": "We will launch the five outcomes a season apart.",
+      "thin": false
+     }
+    ]
+   },
+   "reply": "{\"sentences\": [{\"text\": \"The survey showed 31% naming a clear way into groups.\", \"refs\": [\"z1\"]}, {\"text\": \"The team decided to launch the five outcomes a season apart.\", \"refs\": [\"z2\"]}]}"
+  },
+  {
+   "name": "messy reply",
+   "inputs": {
+    "section": "heard",
+    "heading": "What We Heard",
+    "refs": [
+     {
+      "ref": "f1",
+      "group": "Survey finding",
+      "text": "A clear way into groups: 31%",
+      "thin": false
+     },
+     {
+      "ref": "f2",
+      "group": "Survey finding",
+      "text": "Respondents under 30: 6",
+      "thin": true,
+      "thin_text": "Thin data: 6 of 87 respondents"
+     },
+     {
+      "ref": "t1",
+      "group": "Accepted board and staff input theme",
+      "text": "Volunteers are stretched thin. The same few people carry the volunteer load. (2 of 2 conversations)",
+      "thin": false
+     },
+     {
+      "ref": "q1",
+      "group": "Quote from a board or staff conversation",
+      "text": "Volunteers are stretched thin, the same few people every week.",
+      "thin": false
+     },
+     {
+      "ref": "c1",
+      "group": "Four Helpful Lists card in what is wrong, 9 people agree",
+      "text": "Newcomers cannot find a small group.",
+      "thin": false
+     },
+     {
+      "ref": "g1",
+      "group": "Aligned signal the facilitator saved as a citation",
+      "text": "What the room said about finding a group matches what the interviews said.",
+      "thin": false
+     }
+    ]
+   },
+   "reply": "{\"sentences\": [{\"text\": \"Kept: cites a real ref in capitals.\", \"refs\": [\"F1\"]}, {\"text\": \"Dropped: cites a ref it was never given.\", \"refs\": [\"x9\"]}, {\"text\": \"Dropped: cites nothing.\", \"refs\": []}, {\"text\": \"\", \"refs\": [\"f1\"]}, {\"text\": \"Kept: a bare number ref is not a ref here, so only t1 stays.\", \"refs\": [3, \"t1\"]}]}"
+  }
+ ]
+}
