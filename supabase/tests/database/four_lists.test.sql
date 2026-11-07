@@ -128,7 +128,7 @@ select tests.login(5);
 select is(tests.card(910,310,'right','Our people care for each other!')->>'status','accepted','Ben writes the same words');
 select is(tests.g(910)->>'id',tests.id(901)::text,'and it folds beneath the first card as it arrives');
 select is((tests.g(901)->>'folded')::integer,1,'one card folded');
-select is((tests.g(901)->>'agree')::integer,1,'Its writer counts as one person agreeing');
+select is((tests.g(901)->>'agree')::integer,0,'Its writer is not an agree: nobody has pressed Agree');
 select ok(not (tests.g(901) ? 'ai'),'A fold by the same words is not marked AI');
 select is(tests.card(911,310,'wrong','Our people care for each other')->>'status','accepted','The same words in another column');
 select is(tests.g(911)->>'id',tests.id(911)::text,'stay in their own column: nothing folds across columns');
@@ -167,7 +167,7 @@ select is(tests.agree(953,910,0,true)->>'status','own','by either id');
 select is(tests.agree(954,911,0,true)->>'status','accepted','Priya agrees with a card in another column');
 select tests.login(7);
 select is(tests.agree(955,910,0,true)->>'status','accepted','Sam agrees with the card folded beneath the first');
-select is((tests.g(901)->>'agree')::integer,2,'It counts for the group: Ben who wrote it and Sam who agreed');
+select is((tests.g(901)->>'agree')::integer,1,'It counts for the group: Sam who agreed, not Ben who wrote the folded card');
 select tests.login(8);
 select is(tests.agree(956,911,0,true)->>'status','accepted','A scribe is a person in the room and can agree');
 select tests.login(4);
@@ -183,6 +183,7 @@ select tests.login(7);
 select is(tests.agree(958,908,0,true)->>'status','accepted','Sam agrees with the second card');
 select tests.login(6);
 select is(tests.agree(959,908,0,true)->>'status','accepted','and so does Ruth');
+select is(tests.agree(964,901,0,true)->>'status','accepted','Ruth also agrees with the first card, which holds a folded card and Sam''s agree on it');
 select is((select string_agg(e->>'text','|' order by (e->>'rank')::integer) from jsonb_array_elements(tests.results()->'cards') e where e->>'column'='right'),'Our people care for each other|Welcome for newcomers','Two people each: ties go to the card that arrived first');
 
 -- Phones down: agrees wait.
@@ -284,7 +285,7 @@ set local role authenticated;
 select tests.login(1);
 select is(tests.fl(980,'pin',jsonb_build_object('card',tests.id(926)))->>'status','ok','Pin a card');
 select tests.login(6);
-select tests.card(930,310,'right','Prayer matters to our people');
+select tests.card(930,310,'right','We pray for our people');
 select tests.card(931,310,'right','Prayer is strong here');
 reset role;
 set local role service_role;
@@ -292,7 +293,7 @@ select is(tests.claim('second',310,904)->>'status','claimed','New cards bring a 
 reset role;
 select ok(not exists(select 1 from jsonb_array_elements(tests.cl('second')->'inputs'->'columns') col cross join lateral jsonb_array_elements(col->'cards') c where c->>'text'='A real heart for prayer'),'The pinned card is left out of what the model sees');
 select is((tests.apply('second',904,jsonb_build_object('groups',jsonb_build_array(
-  jsonb_build_object('survivor',tests.ref('second','People pray for one another'),'members',jsonb_build_array(tests.ref('second','Prayer matters to our people'))))))->>'status'),'ok','The worker applies a fold of two unpinned cards');
+  jsonb_build_object('survivor',tests.ref('second','People pray for one another'),'members',jsonb_build_array(tests.ref('second','We pray for our people'))))))->>'status'),'ok','The worker applies a fold of two unpinned cards');
 select is((tests.g(927)->>'folded')::integer,1,'It stands');
 -- Standing: at least 60 percent of the cards stay standing.
 set local role authenticated;
@@ -420,21 +421,21 @@ select is(tests.save(315,'four_lists','{}')->>'status','ok','A step for the limi
 select is(tests.ctl(1010,'go_live',jsonb_build_object('session',tests.id(315)))->>'status','ok','Go live on it');
 select tests.login(3);
 select tests.card(1011,315,'confused','Roles are unclear for staff');
-select tests.card(1012,315,'confused','Nobody knows who decides');
+select tests.card(1012,315,'confused','Nobody knows who decides about roles');
 select tests.login(5);
-select tests.card(1013,315,'confused','Decisions are slow to reach us');
+select tests.card(1013,315,'confused','Decisions about roles are slow to reach us');
 select tests.login(6);
-select tests.card(1014,315,'confused','Unsure who owns volunteers');
+select tests.card(1014,315,'confused','Unsure who owns roles for volunteers');
 select tests.login(7);
-select tests.card(1015,315,'confused','Confusing talk between teams');
+select tests.card(1015,315,'confused','Confusing talk about roles between teams');
 reset role;
 set local role service_role;
 select is(tests.claim('limits',315,910)->>'status','claimed','A claim on five cards');
 reset role;
 select is((tests.apply('limits',910,jsonb_build_object('groups',jsonb_build_array(
-  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides'),tests.ref('limits','Decisions are slow to reach us'),tests.ref('limits','Unsure who owns volunteers'),tests.ref('limits','Confusing talk between teams'))),
-  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides'),tests.ref('limits','Decisions are slow to reach us'),tests.ref('limits','Unsure who owns volunteers'))),
-  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides'),tests.ref('limits','Decisions are slow to reach us')))
+  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides about roles'),tests.ref('limits','Decisions about roles are slow to reach us'),tests.ref('limits','Unsure who owns roles for volunteers'),tests.ref('limits','Confusing talk about roles between teams'))),
+  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides about roles'),tests.ref('limits','Decisions about roles are slow to reach us'),tests.ref('limits','Unsure who owns roles for volunteers'))),
+  jsonb_build_object('survivor',tests.ref('limits','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits','Nobody knows who decides about roles'),tests.ref('limits','Decisions about roles are slow to reach us')))
  )))->>'status'),'ok','The worker applies what the limits allow');
 select is((select string_agg(r->>'reason',',' order by ord) from private.ai_runs x cross join lateral jsonb_array_elements(x.output->'refused') with ordinality t(r,ord) where x.id=(tests.cl('limits')->>'run')::uuid),'too_many,standing','Refused: five cards to a fold, then a fold that would leave under 60 percent standing');
 select is((select jsonb_array_length(output->'applied') from private.ai_runs where id=(tests.cl('limits')->>'run')::uuid),1,'One fold applied: three cards, two of five folded, 60 percent still standing');
@@ -450,8 +451,8 @@ set local role service_role;
 select is(tests.claim('limits2',315,911)->>'status','claimed','A later claim');
 reset role;
 select is((tests.apply('limits2',911,jsonb_build_object('groups',jsonb_build_array(
-  jsonb_build_object('survivor',tests.ref('limits2','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits2','Nobody knows who decides'))),
-  jsonb_build_object('survivor',tests.ref('limits2','Nobody knows who decides'),'members',jsonb_build_array(tests.ref('limits2','Roles are unclear for staff')))
+  jsonb_build_object('survivor',tests.ref('limits2','Roles are unclear for staff'),'members',jsonb_build_array(tests.ref('limits2','Nobody knows who decides about roles'))),
+  jsonb_build_object('survivor',tests.ref('limits2','Nobody knows who decides about roles'),'members',jsonb_build_array(tests.ref('limits2','Roles are unclear for staff')))
  )))->>'status'),'ok','The worker tries to fold them again, in both directions');
 select is((select string_agg(r->>'reason',',' order by ord) from private.ai_runs x cross join lateral jsonb_array_elements(x.output->'refused') with ordinality t(r,ord) where x.id=(tests.cl('limits2')->>'run')::uuid),'kept_apart,kept_apart','Both are refused: the undo sticks whichever card is the survivor');
 set local role authenticated;
