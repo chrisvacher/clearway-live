@@ -62,10 +62,14 @@ test("An agree is one row per card: the same id and the next revision, on then o
   assert.deepEqual(first, { id: id(50), revision: 0, on: true });
   const settled = { id: id(50), card_id: id(1), agreed: true, revision: 0 };
   assert.deepEqual(nextAgree(settled, () => "unused"), { id: id(50), revision: 1, on: false });
-  const state = agreeState([settled], [{ state: "saved", request: { id: id(50), session: id(9), revision: 1, action: "change", text: "", value: { four: "agree", card: id(1), on: false }, sentAt: "2026-11-05T10:00:00Z" } }]);
+  const state = agreeState([settled], [{ state: "saved", request: { id: id(50), session: id(9), revision: 1, action: "change", text: "", value: { four: "agree", card: id(1), on: false }, sentAt: "2026-11-05T10:00:00Z", queuedAt: "2026-11-05T10:00:00Z" } }]);
   assert.equal(state.get(id(1))!.agreed, false);
   assert.equal(state.get(id(1))!.pending, true, "still waiting on this phone");
+  assert.equal(state.get(id(1))!.saved, true, "an agree waiting offline is saved on this phone");
+  const sending = agreeState([settled], [{ state: "sending", request: { id: id(50), session: id(9), revision: 1, action: "change", text: "", value: { four: "agree", card: id(1), on: false }, sentAt: "2026-11-05T10:00:00Z" } }]);
+  assert.equal(sending.get(id(1))!.saved, false, "once it is sending the mark goes");
   assert.equal(agreeState([settled], []).get(id(1))!.pending, false);
+  assert.equal(agreeState([settled], []).get(id(1))!.saved, false);
   // A request that is not an agree never changes the agrees.
   assert.equal(agreeState([], [{ state: "saved", request: { id: id(51), session: id(9), revision: 0, action: "submit", text: "A card", value: { column: "right" }, sentAt: "2026-11-05T10:00:00Z" } }]).size, 0);
 });

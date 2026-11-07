@@ -324,6 +324,13 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     await pick(page, "missing");
     await page.locator(".fl-arow", { hasText: "A clear way to join a group" }).getByRole("button", { name: "Agree" }).click();
     assert.equal(await page.locator(".fl-arow", { hasText: "A clear way to join a group" }).getByRole("button", { name: "Take back" }).getAttribute("aria-pressed"), "true", "the agree shows as taken on the phone");
+    // An agree made offline says so, in the same words as a card, until it sends.
+    // (Only the picked list's cards show, so the two saved cards and this list's agree make three.)
+    await until(async () => (await page.getByText("Saved on this phone").count()) === 3, "two cards and the agree saved on this phone", 5000);
+    assert.equal(await page.locator(".fl-arow", { hasText: "A clear way to join a group" }).getByText("Saved on this phone").count(), 1, "the agree carries its own mark");
+    await pick(page, "wrong");
+    assert.equal(await page.locator(".fl-arow", { hasText: "Parking is full by nine" }).getByText("Saved on this phone").count(), 1, "in the other list too");
+    await pick(page, "missing");
     await shot(page, "fail-01-m6-four-lists-offline-phone");
     await delay(1500);
     assert.equal((await every(room.attendees[0].email)).length, 0, "no card reaches the server while the phone is offline");
@@ -342,7 +349,8 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
       const agree = await layer().locator(".fl-slot").evaluateAll(els => Object.fromEntries(els.map(e => [e.querySelector(".fl-tx")!.textContent!, Number(e.querySelector(".fl-agree b")!.textContent)])));
       return agree["Parking is full by nine"] === 1 && agree["A clear way to join a group"] === 1;
     }, "both agreements tick on the TV", 8000);
-    await until(async () => (await page.getByText("Saved on this phone").count()) === 0, "nothing left saved on the phone", 8000);
+    await until(async () => (await page.getByText("Saved on this phone").count()) === 0, "nothing left saved on the phone, cards and agrees alike", 8000);
+    assert.equal(await page.locator(".fl-arow", { hasText: "A clear way to join a group" }).getByText("Saved on this phone").count(), 0, "the agree's mark clears once it sends");
     assert.ok(await unchanged(), "the TV page never reloaded");
   });
   await press(fac, sql, room.id, "nothing_live");

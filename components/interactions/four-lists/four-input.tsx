@@ -61,7 +61,7 @@ export function FourListsComposer({ step, mine, open, send, change, withdraw, en
       <p className="fl-section">Agree with others · {columnLabels[column]}</p>
       <ul className="fl-agrees" aria-label={`Cards to agree with in ${columnLabels[column]}`}>
         {others.map(c => { const a = four.agrees.get(c.id), on = Boolean(a?.agreed);
-          return <li key={c.id} className={`fl-arow${on ? " is-on" : ""}`}><p>{c.text}</p>
+          return <li key={c.id} className={`fl-arow${on ? " is-on" : ""}`}><div className="fl-atext"><p>{c.text}</p>{a?.saved && <Status status="saved" />}</div>
             <button type="button" aria-pressed={on} disabled={!open || Boolean(a?.pending)} onClick={() => four.agree(c.id, step.id)}>
               {on ? <Check aria-hidden="true" /> : <ArrowUp aria-hidden="true" />}{on ? "Take back" : "Agree"}</button></li>; })}
       </ul></>}
