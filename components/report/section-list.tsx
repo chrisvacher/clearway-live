@@ -8,8 +8,8 @@ export function SectionList({ sections, current, pick }: { sections: ReportSecti
     <div className="ovr-list-h"><span>Sections</span><span>{sections.filter(s => s.status === "reviewed").length} of {sections.length || 14} reviewed</span></div>
     {sections.map(s => <button key={s.key} type="button" className="rpt-li" aria-current={s.key === current} onClick={() => pick(s.key)} data-testid={`rpt-section-${s.key}`} data-status={s.status}>
       <span className="n">{s.position}</span>
-      <span className="h"><span>{s.heading}</span><small className="ovr-muted" data-testid={`rpt-status-${s.key}`} style={{ display: "block" }}>{statusNames[s.status]}</small></span>
-      {s.status === "reviewed" ? <BadgeCheck aria-hidden="true" style={{ width: 16, height: 16, color: "var(--cwl-app-success)" }} /> : <span className={`rpt-dot is-${s.status}`} aria-hidden="true" />}
+      <span className="h"><span>{s.heading}</span><small className="ovr-muted" data-testid={`rpt-status-${s.key}`}>{statusNames[s.status]}</small></span>
+      {s.status === "reviewed" ? <BadgeCheck aria-hidden="true" className="rpt-done" /> : <span className={`rpt-dot is-${s.status}`} aria-hidden="true" />}
     </button>)}
   </nav>;
 }

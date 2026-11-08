@@ -10,7 +10,7 @@ const stamp = (iso: string, zone: string) => new Intl.DateTimeFormat("en-US", { 
 function Tags({ s }: { s: ReportSentence }) {
   const m = markOf(s);
   return <>
-    {s.origin === "room" && <span className="rpt-tag is-room"><Quote aria-hidden="true" style={{ width: 11, height: 11 }} />{originNames.room}</span>}
+    {s.origin === "room" && <span className="rpt-tag is-room"><Quote aria-hidden="true" className="rpt-ico" />{originNames.room}</span>}
     {s.origin === "facilitator" && <span className="rpt-tag">{originNames.facilitator}</span>}
     {s.thin_label && <span className="rpt-tag is-thin" data-testid="rpt-thin">{s.thin_label}</span>}
     <span className="rpt-tag" data-testid="rpt-mark" data-kind={m.kind} title={m.kind === "none" ? "No source" : undefined}>{m.kind === "none" ? "No source" : m.kind === "yours" ? "Yours" : plural(m.n, "source")}</span>
@@ -52,7 +52,7 @@ function Table({ section, sentences, selected, select }: { section: ReportSectio
     <tbody>{rows.map((row, i) => {
       const lead = first(row), isSel = row.parts.some(p => p.sentence_id === selected);
       if (!row.cells.length) return <tr key={i} className={isSel ? "is-selected" : ""} data-testid="rpt-row"><td colSpan={Math.max(columns.length, 1)}><b>{row.title}</b>
-        <div className="rpt-parts" style={{ borderTop: 0, padding: "6px 0 0" }}>{row.parts.map(p => { const s = sentences.get(p.sentence_id); return s && <button key={p.sentence_id} type="button" className="ovr-btn is-ghost is-sm" style={{ justifyContent: "flex-start", whiteSpace: "normal", textAlign: "left", height: "auto", padding: "4px 0" }} onClick={() => select(p.sentence_id === selected ? null : p.sentence_id)} data-testid="rpt-part">
+        <div className="rpt-parts is-flat">{row.parts.map(p => { const s = sentences.get(p.sentence_id); return s && <button key={p.sentence_id} type="button" className="ovr-btn is-ghost is-sm rpt-part" onClick={() => select(p.sentence_id === selected ? null : p.sentence_id)} data-testid="rpt-part">
           <span className="rpt-role">{p.role.replace("_", " ")}</span> {s.text}{p.owner ? <span className="rpt-owner"> · {p.owner}</span> : null}{p.due ? <span className="rpt-owner"> · {p.due}</span> : null}</button>; })}</div></td></tr>;
       return <tr key={i} className={isSel ? "is-selected" : ""} data-testid="rpt-row" data-group={grouped ? row.group ?? "" : undefined}>{row.cells.map((cell, c) => {
         const p = matched(row, cell), s = p ? sentences.get(p.sentence_id) : undefined;
@@ -105,7 +105,7 @@ export function SectionBody({ section, api, selected, select, ai, locked, zone }
     {!prose.length && !record && !drafting && section.status !== "needs_attention" && <p className="ovr-muted" data-testid="rpt-empty">{section.status === "thin" ? "Nothing to draft from yet." : ai ? "Not drafted yet. Draft the report, or this section on its own." : "Write this section by hand, or turn AI on to draft it."}</p>}
     {!locked && !drafting && <div className="rpt-add">
       {adding === null ? <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy} onClick={() => setAdding("")} data-testid="rpt-add-own"><Plus aria-hidden="true" />Add your own read</button></div>
-        : <div className="ovr-edit" style={{ padding: 0 }}><textarea className="ovr-input" aria-label="Your own read" placeholder="Write it in your own words. It needs no source." value={adding} maxLength={1200} rows={3} autoFocus onChange={e => setAdding(e.target.value)} data-testid="rpt-add-text" />
+        : <div className="ovr-edit is-flat"><textarea className="ovr-input" aria-label="Your own read" placeholder="Write it in your own words. It needs no source." value={adding} maxLength={1200} rows={3} autoFocus onChange={e => setAdding(e.target.value)} data-testid="rpt-add-text" />
           <div className="ovr-row"><span className="ovr-muted">{1200 - adding.length} left</span><span className="grow" />
             <button type="button" className="ovr-btn is-primary is-sm" disabled={!adding.trim() || api.busy} onClick={() => void addOwn()} data-testid="rpt-add-save">Add it</button>
             <button type="button" className="ovr-btn is-sm" onClick={() => setAdding(null)}>Cancel</button></div></div>}</div>}

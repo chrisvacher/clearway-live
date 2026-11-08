@@ -547,9 +547,9 @@ end $$;
 -- The records a facilitator can add as a source to a sentence in a section: the section's own refs' sources, and for Overview and Closing every source in the report.
 create function private.report_candidates(p_engagement uuid,p_section uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
-declare sec private.report_sections; v jsonb;
+declare v jsonb;
 begin
- select * into sec from private.report_sections where id=p_section and engagement_id=p_engagement and not deleted;
+ perform 1 from private.report_sections where id=p_section and engagement_id=p_engagement and not deleted;
  if not found then return '[]'::jsonb; end if;
  select coalesce(jsonb_agg(jsonb_build_object('kind',z.kind,'ref_id',z.ref_id,'excerpt',z.excerpt,'room',z.room,'label',z.grp) order by z.ord),'[]'::jsonb) into v from (
   select distinct on (s.value->>'kind',s.value->>'ref_id',s.value->>'excerpt') s.value->>'kind' as kind,s.value->>'ref_id' as ref_id,s.value->>'excerpt' as excerpt,(s.value->>'room')::boolean as room,r.value->>'group' as grp,r.ord*10+s.ord as ord
@@ -601,7 +601,7 @@ end $$;
 create function private.report_start(p_engagement uuid,p_id uuid,p_scope text,p_section text,p_confirm boolean) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare guard text:=private.report_guard(p_engagement,true); d private.report_drafts; r private.report_rounds; t timestamptz:=clock_timestamp(); ai boolean; x record; sec private.report_sections;
- q text[]:=array[]::text[]; k text; v_touched integer; v_blocks jsonb; has_round boolean;
+ q text[]:=array[]::text[]; v_touched integer; v_blocks jsonb; has_round boolean;
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_id is null or p_scope is null or p_scope not in ('all','section') or (p_scope='section' and (p_section is null or p_section not in (select f.key from private.report_defs() f)))
@@ -733,8 +733,8 @@ end $$;
 create function private.report_apply(p_run uuid,p_lease uuid,p_output jsonb,p_usage jsonb) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; r private.report_rounds; sec private.report_sections; t timestamptz:=clock_timestamp(); in_ jsonb; v_ms integer; sn record; v_text text; v_refs text[]; cited jsonb;
- names text[]; n_kept integer:=0; n_dropped integer:=0; reasons jsonb:='[]'::jsonb; why text; good jsonb:='[]'::jsonb; g record; v_norm text; v_quote boolean; v_thin text; srcs jsonb; seg text; v_have text;
- v_live integer; v_touched integer; v_status text; v_all_thin boolean; v_left text[];
+ names text[]; n_kept integer:=0; n_dropped integer:=0; reasons jsonb:='[]'::jsonb; why text; good jsonb:='[]'::jsonb; g record; v_norm text; v_quote boolean; v_thin text; srcs jsonb; seg text;
+ v_live integer; v_touched integer; v_status text; v_all_thin boolean;
 begin
  if p_run is null or p_lease is null or jsonb_typeof(p_output) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  select * into run from private.ai_runs where id=p_run and job='draft_report';

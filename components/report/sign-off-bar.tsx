@@ -18,7 +18,7 @@ export function SignOffBar({ state, api, zone, jump }: { state: Ok; api: Api; zo
       {(!signed || stale) && <button type="button" className="ovr-btn is-confirm" disabled={!ready || api.busy} onClick={() => void api.act({ action: "sign_off", id: crypto.randomUUID() })} data-testid="rpt-sign-off"><BadgeCheck aria-hidden="true" />{signed ? `Sign off version ${signed.n + 1}` : "Sign off the report"}</button>}
       {signed && !stale && <span className="ovr-st is-reviewed" data-testid="rpt-signed"><BadgeCheck aria-hidden="true" />Signed off</span>}
     </div>
-    {(!signed || stale) && blockers.length > 0 && <ul data-testid="rpt-blockers">{blockers.map(b => <li key={b.kind}><TriangleAlert aria-hidden="true" style={{ width: 14, height: 14, verticalAlign: "middle", marginRight: 6 }} />{blockerText(b)}
+    {(!signed || stale) && blockers.length > 0 && <ul data-testid="rpt-blockers">{blockers.map(b => <li key={b.kind}><TriangleAlert aria-hidden="true" className="rpt-ico" />{blockerText(b)}
       {b.sections.length > 0 && b.kind !== "drafting" && <> {b.sections.slice(0, 4).map(k => <button key={k} type="button" className="ovr-btn is-ghost is-sm" onClick={() => jump(k)}>{state.sections.find(s => s.key === k)?.heading ?? k}</button>)}{b.sections.length > 4 ? ` and ${plural(b.sections.length - 4, "more")}` : ""}</>}</li>)}</ul>}
     {signed && stale && <p className="ovr-muted" role="status">The report has changed since version {signed.n} was signed. Version {signed.n} is kept as it was signed.</p>}
   </div>;

@@ -50,6 +50,13 @@
 .rpt-bar { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px; background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
 .rpt-bar.is-signed { background: var(--cwl-app-success-bg); }
 .rpt-bar ul { margin: 0; padding-left: 18px; line-height: 1.5; }
+.rpt-ico { width: 13px; height: 13px; vertical-align: middle; margin-right: 6px; }
+.rpt-done { width: 16px; height: 16px; color: var(--cwl-app-success); flex: none; }
+.rpt-li .h small { display: block; }
+.ovr-progress.is-flat { border: 0; padding: 0; }
+.rpt-parts.is-flat { border-top: 0; padding: 6px 0 0; }
+.ovr-edit.is-flat { padding: 0; }
+.ovr-btn.rpt-part { justify-content: flex-start; white-space: normal; text-align: left; height: auto; padding: 4px 0; }
 .rpt-src-pick { display: flex; flex-direction: column; gap: 4px; }
 .rpt-soon { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px dashed var(--cwl-app-border-strong); border-radius: var(--cwl-radius-card); color: var(--cwl-app-text-muted); font-weight: 600; }
 .rpt-hub { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }

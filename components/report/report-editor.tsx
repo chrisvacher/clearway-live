@@ -46,7 +46,7 @@ export function ReportEditor({ engagement, church, title, timezone }: { engageme
         {(state?.status === "unavailable" || state?.status === "missing") && <p className="ovr-banner is-warning" role="alert"><TriangleAlert aria-hidden="true" />The report isn’t available right now. It tries again on its own.</p>}
         {ok && <>
           <div className="rpt-bar" data-testid="rpt-draft-bar">
-            {working && <div className="ovr-progress" data-testid="rpt-progress" style={{ border: 0, padding: 0 }}><div className="row"><span><b>Drafting the report</b> · {plural(drafted, "section")} of {sections.length} done</span>
+            {working && <div className="ovr-progress is-flat" data-testid="rpt-progress"><div className="row"><span><b>Drafting the report</b> · {plural(drafted, "section")} of {sections.length} done</span>
               <span className="ovr-muted">Every section appears as soon as it is drafted</span></div>
               <progress className="ovr-bar" value={drafted} max={Math.max(sections.length, 1)} aria-label="Progress" /></div>}
             {view?.kind === "working" && view.slow && <div className="ovr-banner is-warning" role="status" data-testid="rpt-slow"><TriangleAlert aria-hidden="true" /><div><strong>Drafting is taking longer than usual.</strong> You can read and edit the sections that are done while the rest finish.</div></div>}

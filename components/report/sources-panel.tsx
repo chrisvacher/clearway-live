@@ -45,7 +45,7 @@ export function SourcesPanel({ section, sentence, api, locked }: { section: Repo
         <label className="ovr-field">Add a source<select className="ovr-input" value="" disabled={api.busy} onChange={e => add(e.target.value)} data-testid="rpt-add-source" aria-label="Add a source">
           <option value="">{pool === null ? "Choose a record" : choices.length ? "Choose a record" : "No other record to cite"}</option>
           {choices.map((c, i) => <option key={`${c.kind}:${c.ref_id}:${i}`} value={i}>{`${c.label}: ${c.excerpt}`.slice(0, 96)}</option>)}</select></label>
-        <span className="ovr-muted"><Plus aria-hidden="true" style={{ width: 12, height: 12, verticalAlign: "middle" }} /> A signal can be cited only when it is aligned and saved as a citation.</span></div>}
+        <span className="ovr-muted"><Plus aria-hidden="true" className="rpt-ico" /> A signal can be cited only when it is aligned and saved as a citation.</span></div>}
     </>}
   </aside>;
 }
