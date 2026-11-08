@@ -1,0 +1,95 @@
+import { CircleDashed, Eye, FileText } from "lucide-react";
+import { LiveWordmark } from "@/components/brand/live-wordmark";
+import { mapDate } from "@/lib/wayfinding/map";
+import { goalStatusLine, type RoField, type RoGoal, type RoSection, type RoView } from "@/lib/read-only/policy";
+import { PrintButton } from "./print-button";
+
+const Field = ({ label, f }: { label: string; f: RoField }) => <div className={`ro-mf${f.empty ? " is-empty" : ""}`}>
+  <span className="ro-eyebrow">{label}</span>
+  {f.empty ? <p><CircleDashed size={14} aria-hidden="true" /> {f.why}</p> : f.items ? <ul>{f.items.map(i => <li key={i}>{i}</li>)}</ul> : <p>{f.text}</p>}
+</div>;
+
+// What the owner said in their newest check-in: a label and the day, never the note. Nothing before the first check-in.
+const Status = ({ goal }: { goal: RoGoal }) => {
+  const s = goalStatusLine(goal);
+  return s ? <span className={`ro-status is-${goal.status}`} data-testid="ro-goal-status"><b>{s.label}</b>{s.on ? <span>, {s.on}</span> : null}</span> : null;
+};
+
+function Report({ report }: { report: NonNullable<RoView["report"]> }) {
+  const Section = ({ s }: { s: RoSection }) => <section className="ro-rsec" data-key={s.key}>
+    <h3>{s.heading}</h3>
+    {s.sentences.map((x, i) => x.quote
+      ? <blockquote key={i} className="ro-quote">{x.text}{x.thin ? <span className="ro-thin">{x.thin}</span> : null}</blockquote>
+      : <p key={i}>{x.text}{x.thin ? <span className="ro-thin">{x.thin}</span> : null}</p>)}
+    {s.table && <div className="ro-scroll"><table className="ro-table">
+      {s.table.columns.length > 0 && <thead><tr>{s.table.columns.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>}
+      <tbody>{s.table.rows.map((r, i) => r.cells.length
+        ? <tr key={i}>{r.cells.map((c, j) => <td key={j}>{c.split("\n").map((line, k) => <span key={k} className="ro-line">{line}</span>)}</td>)}</tr>
+        : <tr key={i}><td colSpan={Math.max(s.table!.columns.length, 1)}>{r.title ? <b>{r.title}</b> : null}
+            {r.parts.map((p, k) => <span key={k} className="ro-line"><span className="ro-role">{p.role.replace("_", " ")}</span> {p.text}{p.owner ? ` (${p.owner}${p.due ? `, ${mapDate(p.due)}` : ""})` : p.due ? ` (${mapDate(p.due)})` : ""}</span>)}</td></tr>)}</tbody></table></div>}
+  </section>;
+  return <section className="ro-sec" id="report" data-testid="ro-report">
+    <h2>The report</h2>
+    <p className="ro-note">Signed off on {mapDate(report.signed_at.slice(0, 10))}. This is the version as it was signed.</p>
+    <div className="ro-report">{report.sections.map(s => <Section key={s.key} s={s} />)}</div>
+  </section>;
+}
+
+// The read-only copy: reading only. No inputs, no edit links. The one button prints.
+export function ReadOnlyCopy({ view }: { view: RoView }) {
+  const a = view.map.page1, b = view.map.page2;
+  return <div className="ro" data-surface="setup" data-theme="light" data-testid="ro-page">
+    <header className="ro-head"><LiveWordmark theme="light" /><span className="ro-badge"><Eye size={14} aria-hidden="true" />Read-only</span></header>
+    <main id="main" className="ro-main">
+      <div className="ro-title"><span className="ro-eyebrow">{view.church} · {view.title}</span>
+        <h1>The plan for {view.years.outlook} to {view.years.vision}</h1>
+        <PrintButton /></div>
+      <nav className="ro-jump" aria-label="On this page"><a href="#map">The Map</a><a href="#outcomes">Vision Outcomes</a><a href="#intent">Commander&rsquo;s intent</a>{view.report ? <a href="#report">Report</a> : null}</nav>
+
+      <section className="ro-sec" id="map"><h2>The Clearway Map</h2>
+        <div className="ro-page" aria-label="Page 1, Identity and direction"><h3>Identity and direction</h3>
+          <div className="ro-map"><Field label="Mission" f={a.mission} /><Field label="Purpose" f={a.purpose} /><Field label="Values" f={a.values} /><Field label="Strategy" f={a.strategy} /></div>
+          <div className="ro-mf is-wide"><span className="ro-eyebrow">10-year Future · {a.future.year}</span>
+            {a.future.lenses.map(l => <div key={l.lens} className={`ro-lens${l.state === "signed_off" ? "" : " is-empty"}`}><h4>{l.name}</h4>
+              {l.state === "signed_off" ? <ul>{l.lines.map(x => <li key={x}>{x}</li>)}</ul> : <p><CircleDashed size={14} aria-hidden="true" /> {l.why}</p>}</div>)}</div>
+          <div className="ro-mf is-wide"><span className="ro-eyebrow">3-year Vision · {a.vision.year}</span>
+            {a.vision.empty ? <p><CircleDashed size={14} aria-hidden="true" /> {a.vision.why}</p>
+              : <ol>{a.vision.outcomes.map(o => <li key={o.n}>{o.title}{o.status !== "confirmed" ? <span className="ro-tag">Provisional</span> : null}</li>)}</ol>}</div></div>
+        <div className="ro-page" aria-label="Page 2, Action"><h3>Action</h3>
+          <div className="ro-mf is-wide is-empty"><span className="ro-eyebrow">This Year&rsquo;s Priorities</span><p><CircleDashed size={14} aria-hidden="true" /> {b.priorities.why}</p></div>
+          <div className="ro-mf is-wide"><span className="ro-eyebrow">1-year Outlook · {b.outlook.year}</span><p>The goals are listed under each Vision Outcome below.</p></div>
+          <div className="ro-map">
+            <div className="ro-mf"><span className="ro-eyebrow">Key metrics</span>{b.outlook.metrics.empty ? <p>{b.outlook.metrics.why}</p> : <ol>{b.outlook.metrics.items?.map(m => <li key={m.text}>{m.text}</li>)}</ol>}</div>
+            <div className="ro-mf"><span className="ro-eyebrow">Celebrations</span>{b.outlook.celebrations.empty ? <p>{b.outlook.celebrations.why}</p> : <ul>{b.outlook.celebrations.items?.map(m => <li key={m.text}>{m.text}</li>)}</ul>}</div>
+            <Field label="Leadership Rhythms" f={b.rhythms} />
+            <div className="ro-mf"><span className="ro-eyebrow">Key Issues</span>{b.issues.empty ? <p>{b.issues.why}</p>
+              : <ul>{b.issues.items?.map((i, n) => <li key={n}><span className="ro-tag">Risk</span>{i.text}{i.mitigations?.length ? <small>{i.mitigations.join(", ")}</small> : null}</li>)}</ul>}</div></div></div>
+      </section>
+
+      <section className="ro-sec" id="outcomes"><h2>Vision Outcomes and 1-year goals</h2>
+        {view.outcomes.length === 0 ? <p className="ro-note">No Vision Outcomes have been recorded yet.</p> : view.outcomes.map(o => <article key={o.n} className="ro-card" data-testid="ro-outcome">
+          <h3>{o.n}. {o.title}{o.status !== "confirmed" ? <span className="ro-tag">Provisional</span> : null}</h3>
+          {o.description ? <p className="ro-muted">{o.description}</p> : null}
+          {o.indicators.length > 0 && <><span className="ro-eyebrow">Indicators</span><ul className="ro-list">{o.indicators.map(i => <li key={i}>{i}</li>)}</ul></>}
+          {o.stop ? <><span className="ro-eyebrow">What we&rsquo;ll stop</span><p>{o.stop}</p></> : null}
+          {o.goals.length > 0 && <><span className="ro-eyebrow">1-year goals</span>
+            {o.goals.map((g, i) => <div key={i} className="ro-goal" data-testid="ro-goal"><div className="t"><b>{g.title}</b>{g.result ? <span>{g.result}</span> : null}
+              <small>{[g.owner, g.end_date ? `ends ${mapDate(g.end_date)}` : ""].filter(Boolean).join(" · ")}</small></div><Status goal={g} /></div>)}</>}
+        </article>)}
+      </section>
+
+      <section className="ro-sec" id="intent"><h2>Commander&rsquo;s intent</h2>
+        {view.intents.length === 0 ? <p className="ro-note">No commander&rsquo;s intent cards have been recorded yet.</p> : view.intents.map(c => <article key={c.n} className="ro-card" data-testid="ro-intent">
+          <h3>{c.outcome}</h3>
+          <dl>{c.intent ? <><dt>Commander&rsquo;s intent</dt><dd>{c.intent}</dd></> : null}{c.must_do ? <><dt>The must-do</dt><dd>{c.must_do}</dd></> : null}{c.stop ? <><dt>What we&rsquo;ll stop</dt><dd>{c.stop}</dd></> : null}
+            {c.steps.length > 0 && <><dt>First steps</dt><dd><ul>{c.steps.map((s, i) => <li key={i}>{s.text} <span>{[s.owner, s.due ? mapDate(s.due) : ""].filter(Boolean).join(", ")}</span></li>)}</ul></dd></>}</dl>
+        </article>)}
+      </section>
+
+      {view.report ? <Report report={view.report} />
+        : <section className="ro-sec" id="report"><h2>The report</h2><p className="ro-note" data-testid="ro-no-report"><FileText size={14} aria-hidden="true" /> The report will appear here once Clearway has signed it off.</p></section>}
+
+      <footer className="ro-foot"><Eye size={14} aria-hidden="true" /><span>This copy can&rsquo;t be edited. It shows the plan as Clearway has it, and each goal&rsquo;s status as its owner last reported it. The link can be turned off at any time.</span></footer>
+    </main>
+  </div>;
+}
