@@ -3,14 +3,18 @@
 -- F7. The name check refused ordinary sentences because ordinary words got into the name-word list ("member" from a note's person "A staff member", "One" from an
 -- attendee "Phone One"), and a person called Will, Grace, Faith or Hope would have blocked every "will", "grace", "faith" and "hope". The report and the plan must
 -- still never name a person, and a mistake falls the safe way (a dropped sentence, never a missed name), so the rule is:
---   1. A name word is a word of three letters or more taken from an attendee, a facilitator, a note's person, a scribe speaker or an owner.
---   2. Number words and "phone" are never name words. In the free-text fields (a note's person, a speaker, an owner) role and description words are never name
---      words either (private.name_stoplist: member, volunteer, parent, pastor ...). An attendee's or a facilitator's name is a name: "Ann Bishop" keeps Bishop.
+--   1. A name word is a word of two letters or more taken from an attendee, a facilitator, a note's person, a scribe speaker or an owner. Accents are folded on
+--      both sides (Jose matches Jose with an acute accent and the reverse), and a word ends at any character that is not a letter, so "_Lee_" and "Grace2" match.
+--   2. Number words, "phone" and little words (of, to, tv, av ...) are never name words. In the free-text fields (a note's person, a speaker, an owner) function
+--      words, days of the week and role and description words are never name words either (private.name_stoplist: member, volunteer, school, office, notes,
+--      years ...). An attendee's or a facilitator's name is a name: "Ann Bishop" keeps Bishop. A two-letter word from a free-text field counts only when it is
+--      capitalised there.
 --   3. A name word that is not also an ordinary English word is matched in any case, wherever it sits.
---   4. A name word that is also an ordinary English word (private.name_common: will, grace, faith, hope, joy, mark, may, rose, young, king, bishop ...) is kept as
---      '*Word' and matched when it is written with a capital (Grace) or in capitals (GRACE), anywhere: the start of a sentence, after punctuation, in quotes or
---      brackets, as a possessive, after a new line. Only the lowercase word ("will", "grace") is clear. A month name that is also a given name (march, april, may,
---      june, august) is not a name when it sits in a date ("June 14", "14 June", "June 2027").
+--   4. A name word that is also an ordinary English word (private.name_common: will, grace, faith, hope, joy, mark, may, rose, young, king, bishop ...), and any
+--      two-letter name word (Wu, Ng, Ed), is kept as '*Word' and matched when it is written with a capital (Grace) or in capitals (GRACE), anywhere: the start of a
+--      sentence, after punctuation, in quotes or brackets, as a possessive, after a new line. Only the lowercase word ("will", "grace") is clear.
+--   5. A month name that is also a given name (march, april, may, june, august) is not a name when it sits in a date: followed by a day or a year ("June 14",
+--      "June 2027"), after a day ("14 June"), or after in, by, until, before, after, early, mid, late, since, during or through ("in June", "mid-June").
 -- Signatures are unchanged (names stay a text[]), so every caller of discover_names, report_names and discover_has_name keeps working as it is: the discover
 -- themes and read-back checks, the report's check and inputs, and the visibility plan's inputs and row checks.
 --
@@ -20,10 +24,13 @@
 -- F9 is the prompt (visibility-plan@2) and the page; nothing here.
 begin;
 
+create extension if not exists unaccent with schema extensions;
+
 -- ---------- Words that are never a name ----------
 -- Number words and "phone" (a placeholder such as "Phone One"), plus the little words a typed entry can carry. Never a name, in any field.
 create function private.name_stoplist_base() returns text[] language sql immutable set search_path='' as $$
- select array['the','and','for','with','phone','zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve']
+ select array['the','and','for','with','phone','zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve',
+  'of','to','in','on','at','is','it','we','my','an','as','by','do','go','he','if','me','no','or','so','up','us','am','be','ok','tv','av','hr','pa','dj']
 $$;
 
 -- Role and description words. Never a name in a free-text field (a note's person, a speaker, an owner), where a person is described as often as named.
@@ -37,7 +44,17 @@ create function private.name_stoplist() returns text[] language sql immutable se
   'anonymous','unnamed','unknown','staffer','employee','employees','coach','facilitator','scribe','speaker','neighbor','neighbour','friend','friends','newcomer','newcomers',
   'regular','longtime','former','current','prospective','potential','head','vice','chief','overseer','warden','trustee','steward','bishop','rector','vicar','priest','father','mother',
   'sister','brother','son','daughter','husband','wife','spouse','doctor','another','other','others','someone','somebody','anyone','anybody','everyone','from','who','whom','whose','that','this','these','those',
-  'first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','last','next','half','both','each','every']
+  'first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','last','next','half','both','each','every',
+  'our','your','his','her','hers','their','its','who','which','that','this','these','those','some','several','many','all','any','new','old','years','year','months','month','weeks','week','days','day',
+  'notes','note','runs','run','about','part','time','full','not','but','are','was','were','has','had','have','you','she','him','they','them','out','over','can','also','than','then','too','very',
+  'monday','tuesday','wednesday','thursday','friday','saturday','sunday','school','office','administrator','outreach','believer','sound','tech','media','music','nursery','hospitality','finance',
+  'care','prayer','missions','mission','small','groups','mens','womens','young','seniors','intern','resident','apprentice','long','worker','workers','helper','helpers','lead','leads','leading',
+  'head','assistant','deputy','communications','communication','events','event','building','facilities','youth','students','kids','children','childrens','pastoral','discipleship','creative',
+  'production','video','audio','lighting','band','choir','singer','singers','musician','musicians','lay','local','core','key','general','active','retired','married','single','recent','early','late','mid',
+  'with','without','into','onto','over','under','between','after','before','during','until','since','while','where','when','what','why','how','there','here','just','only','still','even','much','more','most','less','least',
+  'works','work','working','worked','serves','serve','serving','served','attends','attend','attending','attended','helps','help','helping','leads','coordinates','manages','oversees','teaches','plays','sings',
+  'tells','said','says','spoke','speaks','talked','talks','wants','wanted','needs','needed','knows','knew','thinks','thought','feels','felt','sees','saw','asked','asks','likes','liked','joined','joins',
+  'new','newer','older','oldest','youngest','younger','younger','elderly','retiree','retirees','professional','professionals','business','owner','owners','farmer','farmers','nurse','nurses','doctors','lawyer','engineer']
 $$;
 
 -- Ordinary English words that are also given names or surnames. Kept in the list, but matched only when written with a capital (see the rule above).
@@ -49,14 +66,16 @@ create function private.name_common() returns text[] language sql immutable set 
   'bishop','guest','head','steward','warden','priest','coach','usher','host','friend','father','mother','carpenter','fisher','baker','cook','miller','porter','taylor','parker','cooper']
 $$;
 
--- The name words of a list of entries (one entry is one person's name or one description), as a text[]. An ordinary-word name is '*Word'.
--- p_free is true for a free-text field, where the role and description words are left out too.
+-- The name words of a list of entries (one entry is one person's name or one description), as a text[]. Accents are folded. An ordinary-word name, and any
+-- two-letter name, is '*Word'. p_free is true for a free-text field, where the role and description words are left out too and a two-letter word counts only
+-- when it is capitalised.
 create function private.name_words(p_entries text[],p_free boolean) returns text[]
-language sql immutable security invoker set search_path='' as $$
- select coalesce(array_agg(distinct case when lower(w.w)=any(private.name_common()) then '*'||initcap(lower(w.w)) else w.w end),array[]::text[])
+language sql stable security invoker set search_path='' as $$
+ select coalesce(array_agg(distinct case when length(w.w)<=2 or lower(w.w)=any(private.name_common()) then '*'||initcap(lower(w.w)) else w.w end),array[]::text[])
  from unnest(coalesce(p_entries,array[]::text[])) e(t)
- cross join lateral regexp_split_to_table(coalesce(e.t,''),'[^[:alpha:]]+') w(w)
- where length(w.w)>=3 and not (lower(w.w)=any(case when coalesce(p_free,false) then private.name_stoplist() else private.name_stoplist_base() end))
+ cross join lateral regexp_split_to_table(extensions.unaccent('extensions.unaccent'::regdictionary,coalesce(e.t,'')),'[^[:alpha:]]+') w(w)
+ where length(w.w)>=2 and not (lower(w.w)=any(case when coalesce(p_free,false) then private.name_stoplist() else private.name_stoplist_base() end))
+  and (length(w.w)>2 or not coalesce(p_free,false) or w.w ~ '^[[:upper:]]')
 $$;
 
 create or replace function private.discover_names(p_engagement uuid) returns text[]
@@ -70,20 +89,22 @@ language sql stable security definer set search_path='' as $$
 $$;
 
 create or replace function private.discover_has_name(p_text text,p_names text[]) returns boolean
-language plpgsql immutable security invoker set search_path='' as $$
-declare n text; w text;
+language plpgsql stable security invoker set search_path='' as $$
+declare n text; w text; t text; tm text; v text; b constant text:='(?<![[:alpha:]])'; e constant text:='(?![[:alpha:]])'; m constant text:='(?:march|april|may|june|august)';
 begin
  if p_text is null then return false; end if;
+ t:=extensions.unaccent('extensions.unaccent'::regdictionary,p_text);
+ -- The text with its dates taken out, for the months that are also names: "June 14", "June 2027", "14 June", "in June", "mid-June".
+ tm:=regexp_replace(t,'(?<![0-9])(?:3[01]|[12][0-9]|[1-9])[ \t]+'||m||e||'|'||b||m||'[ \t]+(?:(?:3[01]|[12][0-9]|[1-9])(?![0-9])|[12][0-9]{3}(?![0-9]))|'
+  ||b||'(?:in|by|until|before|after|early|mid|late|since|during|through)[ \t-]+'||m||e,' ','gi');
  foreach n in array coalesce(p_names,array[]::text[]) loop
   if left(n,1)<>'*' then
-   if p_text ~* ('\m'||n||'\M') then return true; end if;
+   if t ~* (b||n||e) then return true; end if;
   else
+   -- Written with a capital or in capitals, wherever it sits.
    w:=substr(n,2);
-   -- Written with a capital or in capitals, wherever it sits. A month that is also a name is not one inside a date.
-   if lower(w)=any(array['march','april','may','june','august']) then
-    if p_text ~ ('(?<![0-9][ \t])\m('||w||'|'||upper(w)||')\M(?![ \t]+[0-9])') then return true; end if;
-   elsif p_text ~ ('\m('||w||'|'||upper(w)||')\M') then return true;
-   end if;
+   if lower(w)=any(array['march','april','may','june','august']) then v:=tm; else v:=t; end if;
+   if v ~ (b||'('||w||'|'||upper(w)||')'||e) then return true; end if;
   end if;
  end loop;
  return false;
