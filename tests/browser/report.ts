@@ -91,6 +91,8 @@ async function main() {
 
     await step("Draft the report: fourteen sections arrive, Overview and Closing last, the model failing once on one section", async () => {
       fake({ failSection: "interviews" });
+      // Earlier kits (read-only) draft in this room too; only this kit's runs count.
+      const since = (await sql.query("select now() as t")).rows[0].t as Date;
       await page.getByTestId("rpt-draft").click();
       await page.getByTestId("rpt-grid").waitFor({ timeout: 30000 });
       assert.deepEqual((await page.locator('[data-testid^="rpt-section-"]').evaluateAll(els => els.map(e => e.getAttribute("data-testid")!.replace("rpt-section-", "")))), order, "fourteen sections, in the report's order");
@@ -99,7 +101,7 @@ async function main() {
       await until(async () => { const r = (await sql.query("select attempts from private.report_rounds where engagement_id=$1 and not deleted and status='pending'", [room])).rows[0]; return r && r.attempts >= 1; }, "the first failure", 40000);
       await sql.query("update private.report_rounds set last_failed_at=now()-interval '5 minutes' where engagement_id=$1 and not deleted", [room]);
       await until(async () => (await secs()).every(s => s.status !== "drafting"), "every section is done", 60000);
-      const runs = (await sql.query("select output->>'section' as section, status from private.ai_runs where engagement_id=$1 and job='draft_report' and session_id is null order by created_at", [room])).rows as { section: string | null; status: string }[];
+      const runs = (await sql.query("select output->>'section' as section, status from private.ai_runs where engagement_id=$1 and job='draft_report' and session_id is null and created_at >= $2 order by created_at", [room, since])).rows as { section: string | null; status: string }[];
       const drafted = runs.filter(r => r.status === "ok").map(r => r.section);
       assert.ok(drafted.indexOf("overview") > drafted.indexOf("tensions") && drafted.indexOf("closing") === drafted.length - 1, "Overview and Closing are drafted last");
       assert.equal(runs.filter(r => r.status === "failed").length, 2, "the failure was tried twice");
@@ -243,7 +245,7 @@ async function main() {
       const grid = body.getByTestId("rpt-table");
       const rowsBefore = await grid.locator("tbody tr").count();
       assert.ok(rowsBefore >= 1, "the decisions are rows");
-      assert.ok(await body.getByTestId("rpt-refresh").isEnabled(), "and Refresh from the records is there");
+      await until(async () => body.getByTestId("rpt-refresh").isEnabled(), "and Refresh from the records is there", 15000);
       // A cell reads the live sentence: an edit shows in the table, a removal takes the row away, and Refresh brings the row back.
       await grid.getByTestId("rpt-cell-sentence").first().click();
       await body.getByTestId("rpt-picked").getByTestId("rpt-edit").click();
