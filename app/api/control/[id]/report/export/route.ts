@@ -15,6 +15,9 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const json = (data: Record<string, unknown>, status = 200) => privateResponse(NextResponse.json(data, { status }));
+// A function that is not in the database yet is "missing" (the page stays quiet). Any other failure is "unavailable", which the page says plainly.
+const absent = (e: { code?: string; message?: string }) => e.code === "PGRST202" || e.code === "42883" || /could not find the function/i.test(e.message ?? "");
+const fail = (e: { code?: string; message?: string }) => absent(e) ? json({ status: "missing" }, 404) : json({ status: "unavailable", message: "Export isn’t available right now. Try again." }, 503);
 const types = { docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", pdf: "application/pdf" } as const;
 
 // GET /api/control/<engagement>/report/export?format=docx|pdf|model&version=signed|draft
@@ -29,21 +32,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (!["docx", "pdf", "model"].includes(format) || !["signed", "draft"].includes(version)) return json({ status: "invalid_request", message: "Choose Word or PDF, and the signed off report or the draft." }, 422);
   try {
     const pulse = await fac.client.rpc("report_pulse", { p_engagement: id });
-    if (pulse.error) return json({ status: "missing" }, 404);
+    if (pulse.error) return fail(pulse.error);
     const guard = (pulse.data as { status?: string } | null)?.status;
     if (guard !== "ok") return json({ status: guard === "not_found" ? "missing" : "denied" }, guard === "not_found" ? 404 : 403);
 
     let sections: unknown, number: number | null = null;
     if (version === "signed") {
       const r = await serviceClient().rpc("report_export_signed", { p_engagement: id });
-      if (r.error) return json({ status: "missing" }, 404);
+      if (r.error) return fail(r.error);
       const signed = r.data as { n?: number; sections?: unknown } | null;
       if (!signed?.sections) return json({ status: "not_signed", message: "The report isn't signed off yet. Export the draft, or sign off first." }, 409);
       sections = signed.sections; number = signed.n ?? null;
     } else {
       const r = await fac.client.rpc("report_state", { p_engagement: id });
       const state = r.data as { status?: string; draft?: boolean; sections?: unknown } | null;
-      if (r.error || state?.status !== "ok") return json({ status: "missing" }, 404);
+      if (r.error) return fail(r.error);
+      if (state?.status !== "ok") return json({ status: "denied" }, 403);
       if (!state.draft) return json({ status: "no_draft", message: "There is no draft yet. Draft the report first." }, 409);
       sections = state.sections;
     }

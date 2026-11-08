@@ -15,7 +15,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
 import JSZip from "jszip";
 import { extractText, getDocumentProxy } from "unpdf";
-import { db, engagement, facilitator, localEnv, startApp, until } from "./harness";
+import { createClient } from "@supabase/supabase-js";
+import { db, engagement, facilitator, localEnv, sessionCookies, startApp, until } from "./harness";
 
 const controlDir = join(tmpdir(), `clearway-report-kit-${randomUUID().slice(0, 8)}`), controlFile = join(controlDir, "fake.json");
 mkdirSync(controlDir, { recursive: true });
@@ -377,6 +378,35 @@ async function main() {
       assert.equal((await other.request.get(`${app.origin}/api/control/${room}/report/export?format=docx&version=signed`)).status(), 403, "another engagement's facilitator is denied");
       await other.close();
       assert.ok([401, 403].includes((await fetch(`${app.origin}/api/control/${room}/report/export?format=pdf&version=signed`)).status), "and so is an anonymous browser");
+    });
+
+    await step("Export: a co-facilitator can export, a participant, the scribe and a TV cannot, and an edit after sign-off is in the draft file but not the signed one", async () => {
+      const url = (query: string) => `${app.origin}/api/control/${room}/report/export?${query}`;
+      const coContext = await browser!.newContext(); await coContext.addCookies(co.cookies(app.origin));
+      assert.equal((await coContext.request.get(url("format=docx&version=signed"))).status(), 200, "a co-facilitator exports the signed report");
+      assert.equal((await coContext.request.get(url("format=pdf&version=draft"))).status(), 200, "and the draft");
+      await coContext.close();
+      // Room roles hold sessions that are not Clearway facilitators' (a participant's phone, the scribe's console, a paired TV): none reaches the export.
+      const admin = createClient(env.API_URL, env.SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      for (const role of ["participant", "scribe", "tv"]) {
+        const link = await admin.auth.admin.generateLink({ type: "magiclink", email: `${role}-${randomUUID().slice(0, 8)}@example.org` }); assert.equal(link.error, null);
+        const anon = createClient(env.API_URL, env.ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+        const verified = await anon.auth.verifyOtp({ token_hash: link.data.properties!.hashed_token, type: link.data.properties!.verification_type as "magiclink" }); assert.equal(verified.error, null);
+        const ctx = await browser!.newContext(); await ctx.addCookies(sessionCookies(verified.data.session!, app.origin));
+        for (const q of ["format=docx&version=signed", "format=pdf&version=draft", "format=model&version=draft"]) assert.ok([401, 403].includes((await ctx.request.get(url(q))).status()), `${role} refused for ${q}`);
+        await ctx.close();
+      }
+      // An edit after sign-off reaches the draft file and not the signed one.
+      const edited = "Edited after the sign-off, for the draft only.";
+      const sentence = (await sql.query("select x.id from private.report_sentences x join private.report_sections s on s.id=x.section_id where x.engagement_id=$1 and s.key='closing' and not x.deleted order by x.position limit 1", [room])).rows[0].id as string;
+      const saved = await context.request.post(`${app.origin}/api/control/${room}/report`, { headers: { Origin: app.origin }, data: { action: "edit", sentence, text: edited } });
+      assert.equal(saved.status(), 200);
+      const signed = await docxText(await (await context.request.get(url("format=docx&version=signed"))).body());
+      assert.ok(!signed.texts.join("\n").includes(edited), "the signed Word file lacks the edit");
+      assert.ok(!(await pdfText(await (await context.request.get(url("format=pdf&version=signed"))).body())).includes(edited), "and so does the signed PDF");
+      const draft = await docxText(await (await context.request.get(url("format=docx&version=draft"))).body());
+      assert.ok(draft.texts.join("\n").includes(edited), "the draft Word file has it");
+      assert.ok((await pdfText(await (await context.request.get(url("format=pdf&version=draft"))).body())).includes(edited), "and so does the draft PDF");
     });
 
     await step("The page offers the downloads and a preview, and the Word button saves the file", async () => {

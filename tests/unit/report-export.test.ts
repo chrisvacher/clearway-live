@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import JSZip from "jszip";
+import { openSync } from "fontkit";
+import { fontFile } from "../../lib/export/assets";
 import { extractText, getDocumentProxy } from "unpdf";
 import { buildReportModel, cleanText, hasBannedMarks, modelText, retreatDates, verbatimText, type ReportModel } from "../../lib/export/report-model";
 import { buildDocx } from "../../lib/export/report-docx";
@@ -44,11 +46,13 @@ test("the model holds the 14 sections in Clearway's order with eyebrows, and no 
   const m = buildReportModel(input(false));
   assert.deepEqual(m.sections.map(s => s.heading), headings);
   assert.deepEqual(m.sections.map(s => s.key), sectionKeys);
-  assert.equal(m.sections[6].eyebrow, "07 / THE 10-YEAR FUTURE");
+  assert.deepEqual(m.sections.map(s => s.eyebrow.replace(/^\d+ \/ /, "")), ["THE CHURCH", "THE CHURCH", "THE CHURCH", "THE CHURCH", "THE CHURCH", "THE CHURCH", "THE DIRECTION", "THE DIRECTION", "THE PLAN", "THE PLAN", "THE PLAN", "WHAT HAPPENS NEXT", "WHAT HAPPENS NEXT", "WHAT HAPPENS NEXT"]);
+  assert.equal(m.sections[6].eyebrow, "07 / THE DIRECTION");
+  assert.ok(m.sections.every(s => s.eyebrow.toLowerCase() !== `${String(s.number).padStart(2, "0")} / ${s.heading.toLowerCase()}`), "an eyebrow is never its heading");
   assert.equal(m.fileName, "Riverside Church Wayfinding Report");
   assert.equal(buildReportModel(input(true)).fileName, "Riverside Church Wayfinding Report (Draft)");
   assert.equal(m.dates, "November 3 to 4, 2026");
-  for (const t of modelText(m)) assert.equal(hasBannedMarks(t.replace(/\b\d+ - \d+\b/g, "")) && !/ - /.test(t), false, t);
+  for (const t of modelText(m)) { assert.ok(!/[\u2013\u2014\u2015]/.test(t), `no dash in: ${t}`); assert.ok(!t.includes(";"), `no semicolon in: ${t}`); }
   const heard = m.sections[3].blocks;
   assert.ok(heard.some(b => b.type === "callout" && b.text.includes("6 of 87")));
   const q = heard.find(b => b.type === "quote");
@@ -57,7 +61,7 @@ test("the model holds the 14 sections in Clearway's order with eyebrows, and no 
   assert.ok(outlook.type === "table" && outlook.columns.join() === "Goal,Vision Outcome,Owner,End date,Season" && outlook.widths.reduce((a, b) => a + b) === 9360);
   assert.ok(outlook.type === "table" && outlook.rows[0][1] === "Known in small groups" && outlook.rows[0][0].startsWith("Launch twelve"));
   const risks = m.sections[8].blocks.find(b => b.type === "table");
-  assert.ok(risks && risks.type === "table" && risks.columns.join() === "Risk,Likelihood,Impact,Mitigations" && risks.rows[0][3].includes("\n"));
+  assert.ok(risks && risks.type === "table" && risks.columns.join() === "Risk,Likelihood,Impact,Mitigations" && risks.widths.join() === "2560,1500,1300,4000" && risks.rows[0][3].includes("\n"));
   const own = m.sections[6].blocks.at(-1);
   assert.ok(own && own.type === "paragraph" && own.text.startsWith("Chris's own read"));
 });
@@ -119,4 +123,30 @@ test("the snapshot's sources never reach the model", () => {
   const sections = fixtureSections().map(s => ({ ...s, sentences: s.sentences.map(x => ({ ...x, sources: [{ kind: "theme", ref_id: "x", excerpt: "SECRET-SOURCE-TEXT" }] })) }));
   const m = buildReportModel({ church: "Riverside Church", sections, draft: false });
   assert.ok(!JSON.stringify(m).includes("SECRET-SOURCE-TEXT"));
+});
+
+test("a Vision Outcome with nothing under it still shows, and a draft says which lens is not signed off", () => {
+  const secs = JSON.parse(JSON.stringify(fixtureSections())) as { key: string; blocks: { rows: { parts: unknown[]; title: string }[] } }[];
+  secs.find(s => s.key === "vision")!.blocks.rows.push({ title: "An empty outcome", parts: [] });
+  secs.find(s => s.key === "future")!.blocks.rows[2].parts = [];
+  const draft = buildReportModel({ church: "R", sections: secs, draft: true }), signed = buildReportModel({ church: "R", sections: secs, draft: false });
+  const texts = (m: ReportModel, k: string) => m.sections.find(s => s.key === k)!.blocks.map(b => "text" in b ? b.text : "title" in b ? b.title : "").join("|");
+  assert.ok(texts(draft, "vision").includes("An empty outcome") && texts(signed, "vision").includes("An empty outcome"));
+  assert.ok(texts(draft, "future").includes("Leadership|Not signed off yet."));
+  assert.ok(!texts(signed, "future").includes("Not signed off yet."));
+});
+
+test("a name with Latin Extended letters draws in the PDF's own font", async () => {
+  const name = "\u0141\u00f3d\u017a \u0151 \u1ec5 \u0160mid";
+  for (const weight of [400, 700] as const) for (const style of ["normal", "italic"] as const) {
+    const font = openSync(fontFile(weight, style)) as unknown as { hasGlyphForCodePoint(c: number): boolean };
+    for (const ch of "\u0141\u0151\u1ec5\u0160\u017a") assert.ok(font.hasGlyphForCodePoint(ch.codePointAt(0)!), `${weight} ${style} has ${ch}`);
+  }
+  const model = buildReportModel({ ...input(false), church: name });
+  assert.equal(model.church, name);
+  assert.ok((await pdfText(model)).includes(name), "the name reads back from the PDF");
+  const bytes = Buffer.from(await buildPdf(model)).toString("latin1");
+  assert.ok(/PlusJakartaSans/.test(bytes), "the font is embedded");
+  assert.ok(!/Helvetica/.test(bytes), "with no fallback font");
+  assert.ok(textOf((await docxParts(model)).xml).includes(name));
 });

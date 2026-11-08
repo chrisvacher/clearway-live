@@ -7,7 +7,7 @@ import {
   TableRow, TextRun, WidthType, type FileChild, type ParagraphChild,
 } from "docx";
 import { logoPng, logoSize } from "./assets";
-import { DRAFT_MARK, FIRM, type Block, type ReportModel } from "./report-model";
+import { CONFIDENTIAL, COVER_LABELS, DRAFT_MARK, FIRM, type Block, type ReportModel } from "./report-model";
 
 export const FONT = "Plus Jakarta Sans";
 const NAVY = "03294e", ROYAL = "3f72de", SKY = "99c5fe", GRAY100 = "f3f4f6", GRAY200 = "e5e7eb", GRAY400 = "9ca3af", GRAY500 = "6b7280", WHITE = "FFFFFF", INSIGHT = "EBF0FF";
@@ -53,7 +53,7 @@ const cellParas = (text: string, o: { color?: string; size?: number } = {}) =>
 function dataTable(columns: string[], widths: number[], rows: string[][]): Table {
   const head = new TableRow({ tableHeader: true, cantSplit: true, children: columns.map((c, i) => new TableCell({
     width: { size: widths[i], type: WidthType.DXA }, shading: { fill: NAVY, type: ShadingType.CLEAR },
-    borders: { top: none, left: none, right: none, bottom: { style: BorderStyle.SINGLE, size: 24, color: ROYAL } },
+    borders: { top: none, left: none, right: none, bottom: { style: BorderStyle.SINGLE, size: 32, color: ROYAL } },
     margins: { top: 80, bottom: 80, left: 140, right: 140 }, children: cellParas(c, { color: WHITE }),
   })) });
   const body = rows.map((r, n) => new TableRow({ cantSplit: true, children: columns.map((_, i) => new TableCell({
@@ -97,14 +97,25 @@ function cover(model: ReportModel, logo: Buffer): FileChild[] {
     new Paragraph({ spacing: { after: 0 }, children: [run(model.church, { size: 56 })] }),
     new Paragraph({ spacing: { after: 160 }, children: [run(model.title, { size: 56, bold: true })] }),
   ];
-  if (model.dates) out.push(new Paragraph({ spacing: { after: 240 }, children: [run(model.dates, { size: 24, color: GRAY500 })] }));
   out.push(new Paragraph({ spacing: { after: 240 }, border: { bottom: { style: BorderStyle.SINGLE, size: 96, color: ROYAL, space: 4 } }, children: [] }));
+  const meta = (label: string, value: string, w: number) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: noBorders, margins: { top: 0, bottom: 0, left: 0, right: 120 },
+    children: [new Paragraph({ spacing: { after: 40 }, children: [run(label, { size: 18, color: GRAY400, spacing: 120 })] }), new Paragraph({ spacing: { after: 0 }, children: [run(value)] })] });
+  const widths = model.dates ? [4680, 4680] : [9360];
+  out.push(new Table({ layout: TableLayoutType.FIXED, width: { size: W, type: WidthType.DXA }, columnWidths: widths, borders: noBorders,
+    rows: [new TableRow({ cantSplit: true, children: [meta(COVER_LABELS.prepared_for, model.church, widths[0]), ...(model.dates ? [meta(COVER_LABELS.date, model.dates, widths[1])] : [])] })] }), gap());
   out.push(new Paragraph({ spacing: { after: 120 }, children: [run(model.preparedBy, { size: 22, color: GRAY500 })] }));
   if (model.draft) out.push(new Paragraph({ spacing: { after: 0 }, children: [run(`${DRAFT_MARK}. This report has not been signed off.`, { size: 22, color: GRAY500 })] }));
   return out;
 }
 
-function footer(logo: Buffer): Footer {
+function coverFooter(): Footer {
+  return new Footer({ children: [
+    new Paragraph({ spacing: { before: 0, after: 40 }, border: { top: { style: BorderStyle.SINGLE, size: 1, color: GRAY200, space: 6 } }, children: [run(CONFIDENTIAL.head, { size: 14, color: GRAY400, spacing: 60 })] }),
+    new Paragraph({ spacing: { before: 0, after: 0 }, children: [run(CONFIDENTIAL.body, { size: 14, color: GRAY400 })] }),
+  ] });
+}
+
+function footer(logo: Buffer, title: string): Footer {
   const cell = (children: ParagraphChild[], align: (typeof AlignmentType)[keyof typeof AlignmentType]) => new TableCell({
     width: { size: 3120, type: WidthType.DXA }, borders: noBorders, margins: { top: 0, bottom: 0, left: 0, right: 0 }, verticalAlign: "center",
     children: [new Paragraph({ spacing: { after: 0 }, alignment: align, children })],
@@ -113,7 +124,7 @@ function footer(logo: Buffer): Footer {
     new Paragraph({ spacing: { after: 240 }, border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: GRAY200, space: 1 } }, children: [] }),
     new Table({ layout: TableLayoutType.FIXED, width: { size: W, type: WidthType.DXA }, columnWidths: [3120, 3120, 3120], borders: noBorders, rows: [new TableRow({ children: [
       cell([new ImageRun({ type: "png", data: logo, transformation: logoSize(100), altText: { title: "Clearway", description: "Clearway Church Solutions logo", name: "footer-logo" } })], AlignmentType.LEFT),
-      cell([run(FIRM, { size: 18, color: GRAY400 })], AlignmentType.CENTER),
+      cell([run(title, { size: 18, color: GRAY400 })], AlignmentType.CENTER),
       cell([run("Page ", { size: 18, color: GRAY400 }), new TextRun({ children: [PageNumber.CURRENT], font: FONT, size: 18, color: GRAY400 })], AlignmentType.RIGHT),
     ] })] }),
   ] });
@@ -130,8 +141,8 @@ export async function buildDocx(model: ReportModel): Promise<Buffer> {
     if (i > 0) content.push(new Paragraph({ spacing: { before: 120, after: 0 }, border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: GRAY200, space: 1 } }, children: [] }));
     content.push(eyebrow(s.eyebrow), h1(s.heading), ...s.blocks.flatMap(blockChildren));
   });
-  const sections = [{ properties: { page }, headers: header(model), children: cover(model, logo) }];
-  if (model.contents) sections.push({ properties: { page }, headers: header(model), children: [
+  const sections = [{ properties: { page }, headers: header(model), footers: { default: coverFooter() }, children: cover(model, logo) }];
+  if (model.contents) sections.push({ properties: { page }, headers: header(model), footers: { default: footer(logo, model.title) }, children: [
     new Paragraph({ spacing: { after: 300 }, children: [run("Contents", { size: 44, bold: true })] }),
     new Paragraph({ spacing: { after: 400 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ROYAL, space: 8 } }, children: [] }),
     new TableOfContents("Contents", { hyperlink: true, headingStyleRange: "1-1" }),
@@ -144,13 +155,13 @@ export async function buildDocx(model: ReportModel): Promise<Buffer> {
       paragraphStyles: [
         { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 44, bold: true, font: FONT, color: NAVY },
           paragraph: { spacing: { before: 200, after: 200 }, outlineLevel: 0, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ROYAL, space: 8 } } } },
-        { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 28, bold: true, font: FONT, color: NAVY }, paragraph: { spacing: { before: 280, after: 140 }, outlineLevel: 1 } },
+        { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 32, bold: true, font: FONT, color: NAVY }, paragraph: { spacing: { before: 280, after: 140 }, outlineLevel: 1 } },
       ],
     },
     numbering: { config: [{ reference: "bullets", levels: [{ level: 0, format: LevelFormat.BULLET, text: "•", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 720, hanging: 360 } } } }] }] },
     sections: [
       ...sections,
-      { properties: { page: { ...page, pageNumbers: { start: 1 } } }, headers: header(model), footers: { default: footer(logo) }, children: content },
+      { properties: { page: { ...page, pageNumbers: { start: 1 } } }, headers: header(model), footers: { default: footer(logo, model.title) }, children: content },
     ],
   });
   return Packer.toBuffer(doc);

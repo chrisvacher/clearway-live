@@ -12,12 +12,23 @@ export const COVER_TITLE = "Wayfinding Report";
 export const PREPARED_BY = "Prepared by Clearway Church Solutions";
 export const FIRM = "Clearway Church Solutions";
 export const DRAFT_MARK = "Draft";
+export const COVER_LABELS = { prepared_for: "PREPARED FOR", date: "DATE" } as const;
+// The standard cover's confidentiality notice, in the cover's footer.
+export const CONFIDENTIAL = { head: "CONFIDENTIAL", body: "This document is prepared exclusively for the named recipient. It contains information belonging to Clearway Church Solutions. Please do not distribute without permission." };
 const CONTENT_WIDTH = 9360;
 
 export const defaultHeadings: Record<SectionKey, string> = {
   overview: "Overview", church_today: "The Church Today", process: "The Process", heard: "What We Heard", interviews: "Leadership Interviews", tensions: "Strategic Tensions",
   future: "The 10-year Future", vision: "The 3-year Vision", risks: "Risks and Roadblocks", outlook: "The 1-year Outlook", intent: "Commander's Intent", decisions: "Decisions",
   visibility: "Make the Vision Visible", closing: "Closing",
+};
+
+// The part of the report each section belongs to. The eyebrow above a heading names the part in plain words, and the heading keeps Clearway's exact name
+// (so a horizon term is never set in capitals). Change the parts here.
+export const reportParts: Record<SectionKey, string> = {
+  overview: "The church", church_today: "The church", process: "The church", heard: "The church", interviews: "The church", tensions: "The church",
+  future: "The direction", vision: "The direction", risks: "The plan", outlook: "The plan", intent: "The plan",
+  decisions: "What happens next", visibility: "What happens next", closing: "What happens next",
 };
 
 export type CardLine = { label: string; text: string; meta: string };
@@ -51,11 +62,18 @@ export function cleanText(text: string): string {
   parts.push(plain(text.slice(last)));
   return squash(parts.join("").replace(/^[,\s]+/, "").replace(/,\s*,/g, ",").replace(/[,\s]+$/, (end) => (/[.!?]/.test(end) ? end : "")));
 }
+// A dash between two numbers, times, amounts, months or weekdays is a range and reads "to" (2026 to 27, 9am to 5pm, $5 to $10, Jan to Mar, Mon to Fri).
+const MONTH = "(?:January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept|Sep|Oct|Nov|Dec)\\b\\.?";
+const DAY = "(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|Mon|Tues|Tue|Wed|Thurs|Thur|Thu|Fri|Sat|Sun)\\b\\.?";
+const NUM = "[$\u20ac\u00a3]?\\d[\\d,.:]*(?:\\s?(?:%|[aApP]\\.?[mM]\\b\\.?|[kKmM]\\b))?";
+const TOKEN = `(?:${NUM}|${MONTH}|${DAY})`;
+const range = new RegExp(`(?<![\\w$])(${TOKEN})\\s*[\\u2013\\u2014\\u2015]\\s*(${TOKEN})(?![\\w])`, "g");
 function plain(t: string): string {
   return t
-    .replace(/(\d)\s*[–—―]\s*(\d)/g, "$1 to $2")
-    .replace(/([,.:!?])\s*(?:[–—―]|--+)\s*/g, "$1 ")
-    .replace(/\s*(?:[–—―]|--+)\s*/g, ", ")
+    .replace(range, "$1 to $2")
+    .replace(range, "$1 to $2")
+    .replace(/([,.:!?])\s*(?:[\u2013\u2014\u2015]|--+)\s*/g, "$1 ")
+    .replace(/\s*(?:[\u2013\u2014\u2015]|--+)\s*/g, ", ")
     .replace(/\s*;\s*/g, ", ");
 }
 export const hasBannedMarks = (text: string) => dashes.test(text) || text.includes(";");
@@ -110,12 +128,12 @@ const roleLabels: Record<string, string> = { description: "Outcome", indicator: 
 const nice = (role: string) => roleLabels[role] ?? (role ? role[0].toUpperCase() + role.slice(1).replace(/_/g, " ") : "");
 const metaOf = (p: RawPart) => [p.owner && `Owner: ${p.owner}`, p.due && `Due: ${p.due}`].filter(Boolean).map(x => cleanText(String(x))).join(". ");
 const widthsFor: Record<string, number[]> = {
-  outlook: [3000, 2000, 1500, 1400, 1460], risks: [3000, 1100, 1000, 4260], decisions: [4680, 4680], visibility: [1500, 1300, 1500, 3400, 1660],
+  outlook: [2800, 1900, 1500, 1700, 1460], risks: [2560, 1500, 1300, 4000], decisions: [4680, 4680], visibility: [1500, 1300, 1500, 3400, 1660],
 };
 export const evenWidths = (n: number): number[] => { const w = Math.floor(CONTENT_WIDTH / Math.max(n, 1)); const out = Array(n).fill(w) as number[]; out[n - 1] += CONTENT_WIDTH - w * n; return out; };
 const sumTo = (w: number[], n: number) => w.length === n && w.reduce((a, b) => a + b, 0) === CONTENT_WIDTH ? w : evenWidths(n);
 
-function recordBlocks(sec: RawSection): { lead: Block[]; body: Block[]; own: Block[] } {
+function recordBlocks(sec: RawSection, draft: boolean): { lead: Block[]; body: Block[]; own: Block[] } {
   const byId = new Map(sec.sentences.map(s => [s.id, s]));
   const inBlock = new Set(sec.rows.flatMap(r => r.parts.map(p => p.sentence_id)));
   const free = sec.sentences.filter(s => !inBlock.has(s.id));
@@ -136,13 +154,15 @@ function recordBlocks(sec: RawSection): { lead: Block[]; body: Block[]; own: Blo
     // The five lens summaries the room signed off, word for word: only a dash changes, to a spaced hyphen, and nothing else is touched.
     for (const r of rows) {
       const lines = r.parts.map(p => lineText(p.sentence_id, true)).filter(Boolean);
-      if (!lines.length) continue;
+      // A lens with no signed off summary still shows in a draft, and says so. A signed report cannot have one (sign-off checks the lens summaries).
+      if (!lines.length) { if (draft) body.push({ type: "subheading", text: cleanText(r.title) }, { type: "paragraph", text: "Not signed off yet." }); continue; }
       body.push({ type: "subheading", text: cleanText(r.title) }, ...lines.map((text): Block => ({ type: "paragraph", text })));
     }
   } else if (key === "vision" || key === "intent") {
     for (const r of rows) {
       const lines: CardLine[] = r.parts.map((p, i) => ({ label: r.group === "metrics" ? String(i + 1) : nice(p.role), text: lineText(p.sentence_id), meta: metaOf(p) })).filter(l => l.text);
-      if (lines.length) body.push({ type: "card", title: cleanText(r.title), lines });
+      // An outcome or card with nothing under it still shows, by its title.
+      body.push(lines.length ? { type: "card", title: cleanText(r.title), lines } : { type: "subheading", text: cleanText(r.title) });
     }
   } else if (key === "visibility") {
     const plan = rows.filter(r => r.group !== "actions"), actions = rows.filter(r => r.group === "actions");
@@ -199,9 +219,9 @@ export function buildReportModel(input: ModelInput): ReportModel {
     const sec = byKey.get(key); if (!sec) return;
     const heading = cleanText(sec.heading || defaultHeadings[key]), number = i + 1;
     let blocks: Block[];
-    if (sec.kind === "record" || sec.rows.length) { const r = recordBlocks(sec); blocks = [...r.lead, ...r.body, ...r.own]; } else blocks = proseBlocks(sec.sentences);
+    if (sec.kind === "record" || sec.rows.length) { const r = recordBlocks(sec, input.draft); blocks = [...r.lead, ...r.body, ...r.own]; } else blocks = proseBlocks(sec.sentences);
     if (!blocks.length) blocks = [{ type: "paragraph", text: sec.kind === "record" || sec.rows.length ? "Nothing has been recorded for this section yet." : "Nothing has been written for this section yet." }];
-    sections.push({ key, number, heading, eyebrow: `${String(number).padStart(2, "0")} / ${heading}`.toUpperCase(), blocks });
+    sections.push({ key, number, heading, eyebrow: `${String(number).padStart(2, "0")} / ${reportParts[key]}`.toUpperCase(), blocks });
   });
   const estimatedPages = estimatePages(sections);
   return {
@@ -212,7 +232,7 @@ export function buildReportModel(input: ModelInput): ReportModel {
 
 // Every line of text the model carries, in reading order (the tests and the checks read this).
 export function modelText(model: ReportModel): string[] {
-  const out = [model.church, model.title, model.dates, model.preparedBy];
+  const out = [model.church, model.title, model.dates, model.preparedBy, COVER_LABELS.prepared_for, ...(model.dates ? [COVER_LABELS.date] : [])];
   for (const s of model.sections) {
     out.push(s.eyebrow, s.heading);
     for (const b of s.blocks) {
