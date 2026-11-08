@@ -14,14 +14,15 @@ export const maxDuration = 300;
 const answer = (data: unknown, status = 200) => privateResponse(NextResponse.json(data, { status }));
 const okay = ["ok", "duplicate", "unchanged"];
 const code = (status: string) => okay.includes(status) ? 200 : status === "denied" ? 403 : status === "not_found" ? 404 : ["invalid_request", "no_room_words", "not_a_source"].includes(status) ? 422 : 409;
-const reply = (data: { status: string } & Record<string, unknown>) => answer({ ...data, ...(okay.includes(data.status) ? {} : { message: reportMessage(data.status) }) }, code(data.status));
+const reply = (data: { status: string } & Record<string, unknown>) => answer({ ...data, ...(okay.includes(data.status) ? {} : { message: reportMessage(data.status, data as { count?: number; sections?: unknown }) }) }, code(data.status));
 // The kit shortens "taking longer than usual"; nothing else reads this.
 const slowAfter = () => { const n = Number(process.env.CLEARWAY_AI_REPORT_SLOW_MS); return Number.isFinite(n) && n >= 1000 && n <= 600000 ? n : SLOW_AFTER_MS; };
 
 // The report for one engagement: the lead and co-facilitators only, under their own sign-in. The functions check the role again.
 // If the functions are not in the database yet, this says "missing" and the control surface leaves the link out.
 //   GET                     the report's state (and runs the drafting worker if it is due)
-//   GET ?probe=1            whether the report is here at all (no work is started)
+//   GET ?probe=1            whether the report is here at all, by the light status call (no work is started)
+//   GET ?pulse=1            the light status call: a stamp that moves when anything in the report does, and whether a round is working
 //   GET ?candidates=<id>    the records a section can cite, for Add a source
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,9 +36,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       if (error) return answer({ status: "missing" });
       return data?.status === "ok" ? answer(data) : reply(data);
     }
+    // The link and the page's polling use the light call; the whole state is read only when the page needs it.
+    if (url.searchParams.get("probe") || url.searchParams.get("pulse")) {
+      const light = await fac.client.rpc("report_pulse", { p_engagement: id });
+      if (light.error) return answer({ status: "missing" });
+      const pulse = light.data as { status?: string; stamp?: string; working?: boolean } | null;
+      if (url.searchParams.get("probe")) return answer({ status: pulse?.status === "ok" ? "ok" : String(pulse?.status ?? "denied") });
+      if (pulse?.status === "ok" && pulse.working) kickReport(id);
+      return answer(pulse?.status === "ok" ? pulse : { status: String(pulse?.status ?? "denied") });
+    }
     const { data, error } = await fac.client.rpc("report_state", { p_engagement: id });
     if (error) return answer({ status: "missing" });
-    if (url.searchParams.get("probe")) return answer({ status: data?.status === "ok" ? "ok" : String(data?.status ?? "denied") });
     if (data?.status === "ok") kickReport(id);
     return data?.status === "ok" ? answer({ ...data, slow_after_ms: slowAfter() }) : reply(data);
   } catch { return answer({ status: "unavailable", message: "The report isn't available right now. Try again." }, 503); }

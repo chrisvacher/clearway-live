@@ -313,6 +313,125 @@ begin
  return coalesce(v,jsonb_build_object('label','Record','text',''));
 end $$;
 
+
+-- Every word of every name the report must never carry to the model or print back: the engagement's attendees, facilitators and interviewees, the scribe's speakers
+-- and the owners typed onto goals and first steps.
+create function private.report_names(p_engagement uuid) returns text[]
+language sql stable security definer set search_path='' as $$
+ select coalesce(array_agg(distinct z.w),array[]::text[]) from (
+  select unnest(private.discover_names(p_engagement)) as w
+  union
+  select y.w from (
+   select unnest(regexp_split_to_array(x.t,'[^[:alpha:]]+')) as w from (
+    select c.speaker as t from private.scribe_cards c where c.engagement_id=p_engagement and not c.deleted and c.speaker is not null
+    union all select g.owner_name from private.goals g where g.engagement_id=p_engagement and not g.deleted and g.owner_name is not null
+    union all select f.owner_name from private.first_steps f where f.engagement_id=p_engagement and not f.deleted and f.owner_name is not null
+    union all select a.name from public.attendees a where a.engagement_id=p_engagement and not a.deleted) x) y
+   where length(y.w)>=3 and lower(y.w)<>all(array['the','and','for','with','team','staff','board','elders','elder','pastor','pastors','rev','reverend','senior','lead','associate','executive',
+    'director','chair','deacon','deacons','church','youth','children','kids','worship','group','council','committee','leader','leaders','interview','input','conversation','mrs','miss','pastoral']) ) z
+$$;
+
+-- Is the record a source points at still there? A signal counts only while it is aligned and saved as a citation; a lens summary line only while it is in the
+-- version the room signed off; a theme only while it is accepted. The record kind has no record behind it and always stands.
+create function private.rp_source_live(p_engagement uuid,p_kind text,p_ref uuid) returns boolean
+language plpgsql stable security definer set search_path='' as $$
+begin
+ if p_kind='record' then return true; end if;
+ if p_ref is null then return false; end if;
+ return coalesce(case p_kind
+  when 'finding' then exists(select 1 from private.survey_findings f where f.id=p_ref and f.engagement_id=p_engagement and not f.deleted)
+  when 'theme' then exists(select 1 from private.discover_themes t where t.id=p_ref and t.engagement_id=p_engagement and not t.deleted and t.merged_into is null and t.status='accepted')
+  when 'four_lists_card' then exists(select 1 from private.four_lists_cards_for_themes(p_engagement) c where c.card_id=p_ref)
+  when 'scribe_card' then exists(select 1 from private.scribe_cards c where c.id=p_ref and c.engagement_id=p_engagement and not c.deleted)
+  when 'photo' then exists(select 1 from private.scribe_files f where f.id=p_ref and f.engagement_id=p_engagement and not f.deleted)
+  when 'lens_summary_sentence' then exists(select 1 from private.lens_summary_sentences x join private.lens_summaries l on l.signed_off_version_id=x.version_id and l.engagement_id=x.engagement_id and not l.deleted and l.state='signed_off'
+    where x.id=p_ref and x.engagement_id=p_engagement and not x.deleted)
+  when 'outcome' then exists(select 1 from private.vision_outcomes o where o.id=p_ref and o.engagement_id=p_engagement and not o.deleted)
+  when 'indicator' then exists(select 1 from private.outcome_indicators i where i.id=p_ref and i.engagement_id=p_engagement and not i.deleted)
+  when 'risk' then exists(select 1 from private.risks r where r.id=p_ref and r.engagement_id=p_engagement and not r.deleted and r.merged_into is null)
+  when 'mitigation' then exists(select 1 from private.risk_mitigations m where m.id=p_ref and m.engagement_id=p_engagement and not m.deleted)
+  when 'goal' then exists(select 1 from private.goals g where g.id=p_ref and g.engagement_id=p_engagement and not g.deleted)
+  when 'intent_card' then exists(select 1 from private.intent_cards c where c.id=p_ref and c.engagement_id=p_engagement and not c.deleted)
+  when 'first_step' then exists(select 1 from private.first_steps f where f.id=p_ref and f.engagement_id=p_engagement and not f.deleted)
+  when 'key_metric' then exists(select 1 from private.key_metrics k where k.id=p_ref and k.engagement_id=p_engagement and not k.deleted)
+  when 'celebration' then exists(select 1 from private.celebrations c where c.id=p_ref and c.engagement_id=p_engagement and not c.deleted)
+  when 'decision' then exists(select 1 from private.decisions d where d.id=p_ref and d.engagement_id=p_engagement and not d.deleted)
+  when 'signal' then exists(select 1 from private.signals g where g.id=p_ref and g.engagement_id=p_engagement and not g.deleted and g.kind='aligned' and g.saved_as_citation_at is not null)
+  when 'submission' then exists(select 1 from public.submissions x where x.id=p_ref and x.engagement_id=p_engagement and not x.deleted)
+ end,false);
+end $$;
+
+-- A section in Drafting that no live round holds (the round is over, or it never had the section) can never finish. The report treats it as Needs attention.
+create function private.rp_stranded(p_engagement uuid) returns text[]
+language sql stable security definer set search_path='' as $$
+ select coalesce(array_agg(s.key),array[]::text[]) from private.report_sections s join private.report_drafts d on d.id=s.draft_id and d.engagement_id=s.engagement_id and not d.deleted
+ where s.engagement_id=p_engagement and not s.deleted and s.status='drafting'
+  and not exists(select 1 from private.report_rounds r where r.engagement_id=p_engagement and not r.deleted and r.status in ('pending','drafting') and s.key=any(array[r.current]||r.queue))
+$$;
+create function private.rp_heal(p_engagement uuid) returns void
+language sql security definer set search_path='' as $$
+ update private.report_sections set status='needs_attention',error='AI could not draft this section',reviewed_by=null,reviewed_at=null
+ where engagement_id=p_engagement and not deleted and status='drafting' and key=any(private.rp_stranded(p_engagement))
+$$;
+
+-- Quotation: one kind of quotation mark, spaces collapsed, case kept (a quotation must match its source letter for letter).
+create function private.rp_qnorm(p text) returns text
+language sql immutable security invoker set search_path='' as $$
+ select btrim(regexp_replace(translate(coalesce(p,''),'’‘“”',E'\'\'""'),'\s+',' ','g'))
+$$;
+-- The words a sentence puts in quotation marks, double or single, straight or curly. A single quote counts only at the edge of a word, so an apostrophe is not one.
+create function private.rp_quoted(p_text text) returns text[]
+language sql immutable security invoker set search_path='' as $$
+ with n as (select translate(coalesce(p_text,''),'“”‘’',E'""\'\'') as t),
+  d as (select m.a[1] as q from n,regexp_matches(n.t,'"([^"]+)"','g') m(a)),
+  r as (select regexp_replace(n.t,'"[^"]*"',' ','g') as t from n),
+  s as (select m.a[2] as q from r,regexp_matches(r.t,'(^|[\s(])''(.+?)''(?=[\s.,;:!?)]|$)','g') m(a))
+ select coalesce(array_agg(z.q),array[]::text[]) from (select q from d union all select q from s) z
+$$;
+-- The excerpts of the cited refs' sources that are the room's own words (a phone answer, a scribe card, a Four Helpful Lists card, a theme's quote, a lens summary
+-- line), as one normalised text. A theme's label or detail, a count or a "Mission:" line is not the room's words, and a quotation can rest only on these.
+create function private.rp_room_text(p_cited jsonb) returns text
+language sql immutable security invoker set search_path='' as $$
+ select coalesce(string_agg(private.rp_qnorm(s.value->>'excerpt'),E'\n'),'')
+ from jsonb_array_elements(case when jsonb_typeof(p_cited)='array' then p_cited else '[]'::jsonb end) y cross join lateral jsonb_array_elements(coalesce(y.value->'sources','[]'::jsonb)) s
+ where coalesce((s.value->>'room')::boolean,false) or s.value->>'kind' in ('scribe_card','four_lists_card','submission','lens_summary_sentence')
+$$;
+
+-- The 10-year Future is the room's signed off lens summaries, word for word. True while the report's block says exactly that.
+create function private.rp_future_ok(p_engagement uuid) returns boolean
+language sql stable security definer set search_path='' as $$
+ select coalesce((select array_agg(s.text order by g.lens,s.position,s.id) from generate_series(1,5) g(lens)
+   join private.lens_summaries l on l.engagement_id=p_engagement and l.lens=g.lens and not l.deleted and l.state='signed_off' and l.signed_off_version_id is not null
+   join private.lens_summary_sentences s on s.version_id=l.signed_off_version_id and s.engagement_id=l.engagement_id and not s.deleted),array[]::text[])
+  = coalesce((select array_agg(x.text order by r.ord,p.ord) from private.report_sections sc join private.report_drafts d on d.id=sc.draft_id and d.engagement_id=sc.engagement_id and not d.deleted
+   cross join lateral jsonb_array_elements(coalesce(sc.blocks->'rows','[]'::jsonb)) with ordinality r(value,ord) cross join lateral jsonb_array_elements(coalesce(r.value->'parts','[]'::jsonb)) with ordinality p(value,ord)
+   join private.report_sentences x on x.id=(p.value->>'sentence_id')::uuid and not x.deleted where sc.engagement_id=p_engagement and sc.key='future' and not sc.deleted),array[]::text[])
+$$;
+
+-- The record lines of the 10-year Future are not the report's to change: they are what the room signed off.
+create function private.rp_locked(p_section uuid,p_origin text) returns boolean
+language sql stable security definer set search_path='' as $$
+ select p_origin='record' and exists(select 1 from private.report_sections sc where sc.id=p_section and sc.key='future')
+$$;
+
+-- A table's cells point at the live sentences: a cell is {"t": words} (a plain value from the record) or {"s": [sentence ids]} (those sentences' current wording, one a line).
+-- The snapshot resolves them to text and leaves out a row whose own sentence is gone, so it holds only the wording that stands.
+create function private.rp_block_resolved(p_blocks jsonb) returns jsonb
+language sql stable security definer set search_path='' as $$
+ select case when p_blocks is null or jsonb_typeof(p_blocks->'rows')<>'array' then p_blocks else p_blocks||jsonb_build_object('rows',coalesce((
+  select jsonb_agg(
+    (r.value-'title'-'cells'-'parts')||jsonb_build_object('title',case when jsonb_array_length(coalesce(r.value->'cells','[]'::jsonb))>0 then '' else coalesce(r.value->>'title','') end,
+     'cells',coalesce((select jsonb_agg(case when c.value ? 's' then to_jsonb(coalesce((select string_agg(x.text,E'\n' order by q.ord) from jsonb_array_elements_text(c.value->'s') with ordinality q(id,ord)
+        join private.report_sentences x on x.id=q.id::uuid and not x.deleted),'')) else to_jsonb(coalesce(c.value->>'t','')) end order by c.ord)
+       from jsonb_array_elements(coalesce(r.value->'cells','[]'::jsonb)) with ordinality c(value,ord)),'[]'::jsonb),
+     'parts',coalesce((select jsonb_agg(p.value order by p.ord) from jsonb_array_elements(coalesce(r.value->'parts','[]'::jsonb)) with ordinality p(value,ord)
+       where exists(select 1 from private.report_sentences x where x.id=(p.value->>'sentence_id')::uuid and not x.deleted)),'[]'::jsonb)) order by r.ord)
+  from jsonb_array_elements(p_blocks->'rows') with ordinality r(value,ord)
+  where jsonb_array_length(coalesce(r.value->'parts','[]'::jsonb))=0
+   or (jsonb_array_length(coalesce(r.value->'cells','[]'::jsonb))>0 and exists(select 1 from private.report_sentences x where x.id=((r.value->'parts'->0)->>'sentence_id')::uuid and not x.deleted))
+   or (jsonb_array_length(coalesce(r.value->'cells','[]'::jsonb))=0 and exists(select 1 from jsonb_array_elements(r.value->'parts') p2 join private.report_sentences x on x.id=(p2.value->>'sentence_id')::uuid and not x.deleted))),'[]'::jsonb)) end
+$$;
+
 -- ---------- The contract with the visibility plan (step 3 replaces this fixture) ----------
 -- Rows of the visibility plan for the report's Make the Vision Visible section. sources is [{kind, ref_id, excerpt, room}]. Step 1 has none.
 create function private.visibility_plan_for_report(p_engagement uuid)
@@ -326,7 +445,7 @@ $$;
 -- are put away first. Returns the blocks; the caller stores them.
 create function private.report_build_block(p_engagement uuid,p_section uuid,p_key text) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare old jsonb; x record; y record; rows jsonb:='[]'::jsonb; parts jsonb; sid uuid; sid2 uuid; v_text text; v_owner text; mit text; v_cols jsonb:='[]'::jsonb; v_kind text:=p_key;
+declare old jsonb; x record; y record; rows jsonb:='[]'::jsonb; parts jsonb; sid uuid; sid2 uuid; v_text text; v_owner text; mids jsonb; v_cols jsonb:='[]'::jsonb; v_kind text:=p_key;
  pt record;
 begin
  select s.blocks into old from private.report_sections s where s.id=p_section;
@@ -374,13 +493,14 @@ begin
   for x in select r.id,r.text,r.likelihood,r.impact from private.risks r where r.engagement_id=p_engagement and not r.deleted and r.merged_into is null
     order by coalesce(r.likelihood,0)*coalesce(r.impact,0) desc,r.created_at,r.id loop
    sid:=private.rp_put(p_engagement,p_section,x.text,'record',false,null,null,jsonb_build_array(jsonb_build_object('kind','risk','ref_id',x.id,'excerpt',x.text,'room',false)));
-   parts:=jsonb_build_array(jsonb_build_object('role','risk','sentence_id',sid)); mit:='';
+   parts:=jsonb_build_array(jsonb_build_object('role','risk','sentence_id',sid)); mids:='[]'::jsonb;
    for y in select m.id,m.text from private.risk_mitigations m where m.risk_id=x.id and m.engagement_id=p_engagement and not m.deleted order by m.created_at,m.id loop
     sid2:=private.rp_put(p_engagement,p_section,y.text,'record',false,null,null,jsonb_build_array(jsonb_build_object('kind','mitigation','ref_id',y.id,'excerpt',y.text,'room',false)));
     parts:=parts||jsonb_build_array(jsonb_build_object('role','mitigation','sentence_id',sid2));
-    mit:=mit||case when mit<>'' then E'\n' else '' end||y.text;
+    mids:=mids||to_jsonb(sid2);
    end loop;
-   rows:=rows||jsonb_build_array(jsonb_build_object('title',x.text,'cells',jsonb_build_array(x.text,private.rp_level(x.likelihood),private.rp_level(x.impact),mit),'parts',parts));
+   rows:=rows||jsonb_build_array(jsonb_build_object('title','','cells',jsonb_build_array(jsonb_build_object('s',jsonb_build_array(sid)),jsonb_build_object('t',private.rp_level(x.likelihood)),
+    jsonb_build_object('t',private.rp_level(x.impact)),jsonb_build_object('s',mids)),'parts',parts));
   end loop;
  elsif p_key='outlook' then
   v_cols:='["Vision Outcome","Goal","Owner","Ends","Season"]'::jsonb;
@@ -390,7 +510,8 @@ begin
    v_owner:=private.rp_owner(p_engagement,x.owner_attendee_id,x.owner_name);
    v_text:=x.title||case when btrim(x.result)<>'' then ': '||x.result else '' end;
    sid:=private.rp_put(p_engagement,p_section,v_text,'record',false,null,null,jsonb_build_array(jsonb_build_object('kind','goal','ref_id',x.id,'excerpt',v_text,'room',false)));
-   rows:=rows||jsonb_build_array(jsonb_build_object('title',x.title,'cells',jsonb_build_array(x.otitle,v_text,coalesce(v_owner,'Not set yet'),coalesce(private.rp_date(x.end_date),'Not set yet'),coalesce(nullif(btrim(coalesce(x.season,'')),''),'Not set yet')),
+   rows:=rows||jsonb_build_array(jsonb_build_object('title','','cells',jsonb_build_array(jsonb_build_object('t',x.otitle),jsonb_build_object('s',jsonb_build_array(sid)),jsonb_build_object('t',coalesce(v_owner,'Not set yet')),
+    jsonb_build_object('t',coalesce(private.rp_date(x.end_date),'Not set yet')),jsonb_build_object('t',coalesce(nullif(btrim(coalesce(x.season,'')),''),'Not set yet'))),
     'parts',jsonb_build_array(jsonb_build_object('role','goal','sentence_id',sid,'owner',v_owner,'due',private.rp_date(x.end_date)))));
   end loop;
  elsif p_key='intent' then
@@ -412,11 +533,11 @@ begin
   for x in select d.id,d.subject_label,d.decision,d.reasons from private.decisions d where d.engagement_id=p_engagement and not d.deleted order by d.marked_at,d.id loop
    v_text:=case when btrim(x.subject_label)<>'' then x.subject_label||': ' else '' end||x.decision;
    sid:=private.rp_put(p_engagement,p_section,v_text,'record',false,null,null,jsonb_build_array(jsonb_build_object('kind','decision','ref_id',x.id,'excerpt',v_text,'room',false)));
-   rows:=rows||jsonb_build_array(jsonb_build_object('title',v_text,'cells',jsonb_build_array(v_text,x.reasons),'parts',jsonb_build_array(jsonb_build_object('role','decision','sentence_id',sid))));
+   rows:=rows||jsonb_build_array(jsonb_build_object('title','','cells',jsonb_build_array(jsonb_build_object('s',jsonb_build_array(sid)),jsonb_build_object('t',x.reasons)),'parts',jsonb_build_array(jsonb_build_object('role','decision','sentence_id',sid))));
   end loop;
   for x in select c.id,c.text,c.detail from private.scribe_cards c where c.engagement_id=p_engagement and not c.deleted and c.kind='decision' order by c.captured_at,c.seq loop
    sid:=private.rp_put(p_engagement,p_section,x.text,'record',false,null,null,jsonb_build_array(jsonb_build_object('kind','scribe_card','ref_id',x.id,'excerpt',x.text,'room',false)));
-   rows:=rows||jsonb_build_array(jsonb_build_object('title',x.text,'cells',jsonb_build_array(x.text,coalesce(x.detail->>'why','')),'parts',jsonb_build_array(jsonb_build_object('role','decision','sentence_id',sid))));
+   rows:=rows||jsonb_build_array(jsonb_build_object('title','','cells',jsonb_build_array(jsonb_build_object('s',jsonb_build_array(sid)),jsonb_build_object('t',coalesce(x.detail->>'why',''))),'parts',jsonb_build_array(jsonb_build_object('role','decision','sentence_id',sid))));
   end loop;
  elsif p_key='visibility' then
   v_cols:='["Who","When","Who tells them","What they hear","The risk it answers"]'::jsonb;
@@ -424,12 +545,13 @@ begin
    v_text:=coalesce(nullif(btrim(coalesce(x.what_they_hear,'')),''),coalesce(x.who,'The visibility plan'));
    sid:=private.rp_put(p_engagement,p_section,v_text,'record',false,null,null,
     case when jsonb_typeof(x.sources)='array' and jsonb_array_length(x.sources)>0 then x.sources else jsonb_build_array(jsonb_build_object('kind','record','excerpt','Visibility plan row')) end);
-   rows:=rows||jsonb_build_array(jsonb_build_object('title',coalesce(x.who,''),'cells',jsonb_build_array(coalesce(x.who,''),coalesce(x.when_text,''),coalesce(x.by_whom,''),coalesce(x.what_they_hear,''),coalesce(x.risk,'')),
+   rows:=rows||jsonb_build_array(jsonb_build_object('title','','cells',jsonb_build_array(case when btrim(coalesce(x.what_they_hear,''))='' then jsonb_build_object('s',jsonb_build_array(sid)) else jsonb_build_object('t',coalesce(x.who,'')) end,
+    jsonb_build_object('t',coalesce(x.when_text,'')),jsonb_build_object('t',coalesce(x.by_whom,'')),case when btrim(coalesce(x.what_they_hear,''))='' then jsonb_build_object('t','') else jsonb_build_object('s',jsonb_build_array(sid)) end,jsonb_build_object('t',coalesce(x.risk,''))),
     'reviewed',coalesce(x.reviewed,false),'parts',jsonb_build_array(jsonb_build_object('role','plan','sentence_id',sid))));
   end loop;
   for x in select c.id,c.text from private.scribe_cards c where c.engagement_id=p_engagement and not c.deleted and c.kind='action' order by c.captured_at,c.seq loop
    sid:=private.rp_put(p_engagement,p_section,x.text,'record',false,null,null,jsonb_build_array(jsonb_build_object('kind','scribe_card','ref_id',x.id,'excerpt',x.text,'room',false)));
-   rows:=rows||jsonb_build_array(jsonb_build_object('title',x.text,'cells',jsonb_build_array('','','',x.text,''),'group','actions','parts',jsonb_build_array(jsonb_build_object('role','action','sentence_id',sid))));
+   rows:=rows||jsonb_build_array(jsonb_build_object('title','','cells',jsonb_build_array(jsonb_build_object('t',''),jsonb_build_object('t',''),jsonb_build_object('t',''),jsonb_build_object('s',jsonb_build_array(sid)),jsonb_build_object('t','')),'group','actions','parts',jsonb_build_array(jsonb_build_object('role','action','sentence_id',sid))));
   end loop;
  end if;
  return jsonb_build_object('kind',v_kind,'columns',v_cols,'rows',rows);
@@ -447,14 +569,14 @@ begin
  if not found then return jsonb_build_object('refs','[]'::jsonb); end if;
  select * into e from public.engagements where id=p_engagement;
  select * into ch from public.churches where id=e.church_id;
- names:=private.discover_names(p_engagement); resp:=e.survey_respondents;
+ names:=private.report_names(p_engagement); resp:=e.survey_respondents;
  if sec.kind='record' then
   -- The record sentences the block holds, in order, with their own sources.
   for x in select s.id,s.text,s.thin_label,r.title,private.rp_sources(s.id) as sources from private.report_sentences s
     left join lateral (select coalesce(rw.value->>'title','') as title from private.report_sections sc cross join lateral jsonb_array_elements(coalesce(sc.blocks->'rows','[]'::jsonb)) rw
       cross join lateral jsonb_array_elements(coalesce(rw.value->'parts','[]'::jsonb)) pt where sc.id=sec.id and (pt.value->>'sentence_id')::uuid=s.id limit 1) r on true
     where s.section_id=sec.id and not s.deleted and s.origin='record' order by s.position,s.id limit 40 loop
-   refs:=refs||jsonb_build_array(jsonb_build_object('ref','b'||(jsonb_array_length(refs)+1),'group',x.title,'text',left(x.text,700),'thin',x.thin_label is not null,'thin_text',x.thin_label,'sources',x.sources));
+   refs:=refs||jsonb_build_array(jsonb_build_object('ref','b'||(jsonb_array_length(refs)+1),'group',case when btrim(coalesce(x.title,''))='' or private.discover_has_name(x.title,names) then sec.heading else x.title end,'text',left(x.text,700),'thin',x.thin_label is not null,'thin_text',x.thin_label,'sources',x.sources));
   end loop;
  elsif sec.key in ('overview','closing') then
   for x in select s.id,s.text,s.thin_label,sc.heading,private.rp_sources(s.id) as sources from private.report_sentences s join private.report_sections sc on sc.id=s.section_id
@@ -511,7 +633,7 @@ begin
    refs:=private.rp_add(refs,'t',case x.source_key when 'four_lists' then 'Accepted Four Helpful Lists theme' when 'input' then 'Accepted board and staff input theme' else 'Accepted leadership interview theme' end,
     x.label||case when btrim(x.detail)<>'' then '. '||x.detail else '' end||' ('||x.count_text||')','theme',x.theme_id,x.label||case when btrim(x.detail)<>'' then '. '||x.detail else '' end,x.thin,'Thin data: '||x.count_text,false);
    for q in select z.value->>'text' as t from jsonb_array_elements(x.quotes) z where length(btrim(coalesce(z.value->>'text','')))>0 loop
-    refs:=private.rp_add(refs,'q','Quote from '||case x.source_key when 'four_lists' then 'a Four Helpful Lists card' when 'input' then 'a board or staff conversation' else 'a leadership interview' end,q.t,'theme',x.theme_id,q.t,false,null,true);
+    refs:=private.rp_add(refs,'q','Quote from '||case x.source_key when 'four_lists' then 'a Four Helpful Lists card' when 'input' then 'a board or staff conversation' else 'a leadership interview' end,q.t,'theme',x.theme_id,q.t,x.thin,'Thin data: '||x.count_text,true);
    end loop;
   end loop;
   if sec.key='heard' then
@@ -541,6 +663,10 @@ begin
    refs:=private.rp_add(refs,'d','Decision about an outcome the room challenged',v,'decision',x.id,x.decision,false,null,false);
   end loop;
  end if;
+ -- Nothing that carries a name goes to the model, whatever its section: every ref and every source's words pass the same check.
+ select coalesce(jsonb_agg(r.value order by r.ord),'[]'::jsonb) into refs from jsonb_array_elements(refs) with ordinality r(value,ord)
+  where not private.discover_has_name(r.value->>'text',names)
+   and not exists(select 1 from jsonb_array_elements(coalesce(r.value->'sources','[]'::jsonb)) z where private.discover_has_name(z.value->>'excerpt',names));
  return jsonb_build_object('section',sec.key,'heading',sec.heading,'refs',refs);
 end $$;
 
@@ -572,26 +698,27 @@ $$;
 -- p_cited is the refs the sentence cites; p_names the words of every name in the engagement.
 create function private.report_check(p_text text,p_cited jsonb,p_names text[]) returns text
 language plpgsql immutable security invoker set search_path='' as $$
-declare v_have text; v_digits text[]; v_norm text; v_marks integer; seg text; stripped text;
+declare v_have text; v_digits text[]; v_marks integer; seg text; stripped text; v_room text;
 begin
  if length(p_text) not between 1 and 600 then return 'text'; end if;
  if p_cited is null or jsonb_typeof(p_cited)<>'array' or jsonb_array_length(p_cited)=0 then return 'unsourced'; end if;
  if private.screen_text(p_text) then return 'text'; end if;
  if private.discover_has_name(p_text,p_names) then return 'name'; end if;
- select string_agg(x.value->>'text',E'\n')||E'\n'||coalesce((select string_agg(s.value->>'excerpt',E'\n') from jsonb_array_elements(p_cited) y cross join lateral jsonb_array_elements(y.value->'sources') s),'')
+ select string_agg(x.value->>'text',E'\n')||E'\n'||coalesce((select string_agg(s.value->>'excerpt',E'\n') from jsonb_array_elements(p_cited) y cross join lateral jsonb_array_elements(coalesce(y.value->'sources','[]'::jsonb)) s),'')
   into v_have from jsonb_array_elements(p_cited) x;
+ -- The three horizon terms (and "1-year goals", the PRD's own words) are exact wording, not numbers: they are taken out before the numbers are read and the terms checked.
+ stripped:=regexp_replace(p_text,'10-year Future|3-year Vision|1-year Outlook|1-year goals?','','g');
  v_digits:=private.ai_numbers(v_have);
- if not private.ai_numbers(p_text)<@v_digits or not private.rp_words_ok(p_text,v_have,v_digits) then return 'number'; end if;
- stripped:=replace(replace(replace(p_text,'10-year Future',''),'3-year Vision',''),'1-year Outlook','');
+ if not private.ai_numbers(stripped)<@v_digits or not private.rp_words_ok(stripped,v_have,v_digits) then return 'number'; end if;
  if stripped ~* '\m(10|ten|3|three|1|one)[ -]year\M' or p_text ~* 'communications? plan' then return 'term'; end if;
  v_marks:=length(translate(p_text,'“”','""'))-length(replace(translate(p_text,'“”','""'),'"',''));
  if v_marks%2<>0 then return 'quote'; end if;
- if v_marks>0 then
-  v_norm:=private.rp_norm(v_have);
-  for seg in select m.a[1] from regexp_matches(translate(p_text,'“”','""'),'"([^"]+)"','g') m(a) loop
-   if length(btrim(seg))>280 or position(regexp_replace(private.rp_norm(seg),'[.,!?…]+$','') in v_norm)=0 then return 'quote'; end if;
-  end loop;
- end if;
+ -- Words in quotation marks must be word for word, letter for letter, in the room's own words among the cited sources.
+ v_room:=private.rp_room_text(p_cited);
+ foreach seg in array private.rp_quoted(p_text) loop
+  if length(btrim(seg))>280 or length(btrim(regexp_replace(seg,'[.,!?…]+$','')))=0
+   or position(private.rp_qnorm(regexp_replace(seg,'[.,!?…]+$','')) in v_room)=0 then return 'quote'; end if;
+ end loop;
  return null;
 end $$;
 
@@ -601,7 +728,7 @@ end $$;
 create function private.report_start(p_engagement uuid,p_id uuid,p_scope text,p_section text,p_confirm boolean) returns jsonb
 language plpgsql security definer set search_path='' as $$
 declare guard text:=private.report_guard(p_engagement,true); d private.report_drafts; r private.report_rounds; t timestamptz:=clock_timestamp(); ai boolean; x record; sec private.report_sections;
- q text[]:=array[]::text[]; v_touched integer; v_blocks jsonb; has_round boolean;
+ q text[]:=array[]::text[]; v_touched integer; v_blocks jsonb; has_round boolean; active boolean; nq text[]; k text;
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_id is null or p_scope is null or p_scope not in ('all','section') or (p_scope='section' and (p_section is null or p_section not in (select f.key from private.report_defs() f)))
@@ -611,7 +738,6 @@ begin
  select * into r from private.report_rounds where engagement_id=p_engagement and not deleted for update;
  has_round:=found;
  if has_round and r.request_id=p_id then return jsonb_build_object('status','duplicate','round',r.status); end if;
- if has_round and r.status in ('pending','drafting') and r.requested_at>t-interval '5 minutes' then return jsonb_build_object('status','busy'); end if;
  select * into d from private.report_drafts where engagement_id=p_engagement and not deleted;
  if not found then insert into private.report_drafts(engagement_id,created_by) values(p_engagement,private.clearway_user_id()) returning * into d; end if;
  -- Every section exists; a record section's blocks are built the first time.
@@ -624,8 +750,11 @@ begin
    end if;
   end if;
  end loop;
+ -- A section left in Drafting by a round that is over can never finish: it becomes Needs attention, and Draft what is missing picks it up.
+ perform private.rp_heal(p_engagement);
  if p_scope='section' then
   select * into sec from private.report_sections s where s.draft_id=d.id and s.key=p_section and not s.deleted for update;
+  if sec.status='drafting' then return jsonb_build_object('status','busy'); end if;
   select count(*)::integer into v_touched from private.report_sentences s where s.section_id=sec.id and not s.deleted and s.origin in ('ai','room','facilitator') and (s.touched or s.origin<>'ai');
   if v_touched>0 and not coalesce(p_confirm,false) then return jsonb_build_object('status','confirm','kept',v_touched); end if;
   if not ai then return jsonb_build_object('status','ai_off'); end if;
@@ -644,9 +773,18 @@ begin
   end if;
   if cardinality(q)=0 then return jsonb_build_object('status','nothing'); end if;
  end if;
- update private.report_sections set status='drafting',error=null,reviewed_by=null,reviewed_at=null where draft_id=d.id and not deleted and key=any(q);
- if has_round then
-  if r.lease_run is not null then update private.ai_runs set status='stale',finished_at=t where id=r.lease_run and status='running'; end if;
+ active:=has_round and r.status in ('pending','drafting');
+ update private.report_sections set status='drafting',error=null,reviewed_by=null,reviewed_at=null where draft_id=d.id and not deleted and key=any(q) and (not active or key is distinct from r.current);
+ if active then
+  -- A round is running or waiting, however long ago it began: the section joins its queue. The section being drafted, its lease and its run are left alone.
+  nq:=r.queue;
+  foreach k in array q loop
+   if k is distinct from r.current and not k=any(nq) then nq:=nq||k; end if;
+  end loop;
+  select coalesce(array_agg(f.key order by (case when f.key in ('overview','closing') then 1 else 0 end),(case f.key when 'closing' then 1 else 0 end),f.pos),array[]::text[]) into nq
+   from private.report_defs() f where f.key=any(nq);
+  update private.report_rounds set request_id=p_id,queue=nq where id=r.id;
+ elsif has_round then
   update private.report_rounds set status='pending',request_id=p_id,requested_at=t,requested_by=private.clearway_user_id(),queue=q,current=null,attempts=0,
    lease_id=null,lease_run=null,lease_until=null,last_failed_at=null,last_error=null,last_kept=0,last_dropped=0 where id=r.id;
  else
@@ -663,6 +801,7 @@ begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_section is null or p_section not in (select f.key from private.report_defs() f where f.kind='record') then return jsonb_build_object('status','invalid_request'); end if;
  perform private.discover_lock(p_engagement);
+ perform private.rp_heal(p_engagement);
  select s.* into sec from private.report_sections s join private.report_drafts d on d.id=s.draft_id and d.engagement_id=s.engagement_id and not d.deleted
   where s.engagement_id=p_engagement and s.key=p_section and not s.deleted;
  if not found then return jsonb_build_object('status','not_found'); end if;
@@ -755,7 +894,7 @@ begin
   update private.report_rounds set status='idle',queue=array[]::text[],current=null,lease_id=null,lease_run=null,lease_until=null where id=r.id;
   return jsonb_build_object('status','discarded');
  end if;
- names:=private.discover_names(run.engagement_id);
+ names:=private.report_names(run.engagement_id);
  for sn in select e.value as v,e.ord from jsonb_array_elements(case when jsonb_typeof(p_output->'sentences')='array' then p_output->'sentences' else '[]'::jsonb end) with ordinality e(value,ord) where e.ord<=12 loop
   if jsonb_typeof(sn.v)<>'object' then continue; end if;
   v_text:=private.rp_clean(sn.v->>'text');
@@ -767,10 +906,10 @@ begin
   select coalesce(jsonb_agg(s.value order by x.ord,s.ord),'[]'::jsonb) into srcs from jsonb_array_elements(cited) with ordinality x(value,ord) cross join lateral jsonb_array_elements(x.value->'sources') with ordinality s(value,ord);
   v_norm:=private.rp_norm(translate(v_text,'“”','""'));
   v_quote:=v_norm ~ '^"[^"]+"[.!?]?$';
-  if position('"' in v_norm)>0 then
-   select m.a[1] into seg from regexp_matches(translate(v_text,'“”','""'),'"([^"]+)"') m(a) limit 1;
-   select coalesce(jsonb_agg(case when position(regexp_replace(private.rp_norm(seg),'[.,!?…]+$','') in private.rp_norm(x.value->>'text'||' '||(s.value->>'excerpt')))>0
-     then jsonb_set(s.value,'{excerpt}',to_jsonb(left(regexp_replace(seg,'[.,!?…]+$',''),280))) else s.value end order by x.ord,s.ord),'[]'::jsonb) into srcs
+  if cardinality(private.rp_quoted(v_text))>0 then
+   seg:=regexp_replace((private.rp_quoted(v_text))[1],'[.,!?…]+$','');
+   select coalesce(jsonb_agg(case when (coalesce((s.value->>'room')::boolean,false) or s.value->>'kind' in ('scribe_card','four_lists_card','submission','lens_summary_sentence'))
+      and position(private.rp_qnorm(seg) in private.rp_qnorm(s.value->>'excerpt'))>0 then jsonb_set(s.value,'{excerpt}',to_jsonb(left(seg,280))) else s.value end order by x.ord,s.ord),'[]'::jsonb) into srcs
     from jsonb_array_elements(cited) with ordinality x(value,ord) cross join lateral jsonb_array_elements(x.value->'sources') with ordinality s(value,ord);
   end if;
   select x.value->>'thin_text' into v_thin from jsonb_array_elements(cited) x where coalesce((x.value->>'thin')::boolean,false) limit 1;
@@ -824,11 +963,12 @@ language sql security definer set search_path='' as $$
  update private.report_sections set status=case when status='drafting' then status else 'edited' end,reviewed_by=null,reviewed_at=null where id=p_section
 $$;
 
--- Does a sentence rest on a source? A signal counts only while it is still aligned and saved as a citation.
+-- Does a sentence rest on a source that still stands? It needs at least one, and every record it points at must still be there and not put away (a signal
+-- still aligned and saved as a citation). A source whose record is gone has to be taken off, or the sentence rewritten, before sign-off.
 create function private.rp_sentence_sourced(p_sentence uuid) returns boolean
 language sql stable security definer set search_path='' as $$
- select exists(select 1 from private.report_sources r where r.sentence_id=p_sentence and not r.deleted and (r.kind<>'signal'
-  or exists(select 1 from private.signals g where g.id=r.ref_id and g.engagement_id=r.engagement_id and not g.deleted and g.kind='aligned' and g.saved_as_citation_at is not null)))
+ select exists(select 1 from private.report_sources r where r.sentence_id=p_sentence and not r.deleted)
+  and not exists(select 1 from private.report_sources r where r.sentence_id=p_sentence and not r.deleted and not private.rp_source_live(r.engagement_id,r.kind,r.ref_id))
 $$;
 
 create function private.report_edit(p_engagement uuid,p_sentence uuid,p_text text) returns jsonb
@@ -840,6 +980,7 @@ begin
  perform private.discover_lock(p_engagement);
  select * into s from private.report_sentences where id=p_sentence and engagement_id=p_engagement and not deleted for update;
  if not found then return jsonb_build_object('status','not_found'); end if;
+ if private.rp_locked(s.section_id,s.origin) then return jsonb_build_object('status','locked'); end if;
  if s.text=v_text then return jsonb_build_object('status','unchanged'); end if;
  -- Edited AI wording still rests on its sources. A room's words or a record line, once changed, are the facilitator's own.
  v_origin:=case when s.origin in ('room','record') then 'facilitator' else s.origin end;
@@ -863,13 +1004,20 @@ end $$;
 
 create function private.report_remove(p_engagement uuid,p_sentence uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare guard text:=private.report_guard(p_engagement,true); s private.report_sentences;
+declare guard text:=private.report_guard(p_engagement,true); s private.report_sentences; sec private.report_sections; w record;
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_sentence is null then return jsonb_build_object('status','invalid_request'); end if;
  perform private.discover_lock(p_engagement);
  select * into s from private.report_sentences where id=p_sentence and engagement_id=p_engagement and not deleted for update;
  if not found then return jsonb_build_object('status','not_found'); end if;
+ if private.rp_locked(s.section_id,s.origin) then return jsonb_build_object('status','locked'); end if;
+ -- A table row stands on its first sentence: take that away and what hung from it (a risk's answers) goes too.
+ select * into sec from private.report_sections where id=s.section_id;
+ for w in select r.value as rw from jsonb_array_elements(coalesce(sec.blocks->'rows','[]'::jsonb)) r
+   where jsonb_array_length(coalesce(r.value->'cells','[]'::jsonb))>0 and (r.value->'parts'->0)->>'sentence_id'=s.id::text loop
+  perform private.rp_drop((p.value->>'sentence_id')::uuid) from jsonb_array_elements(w.rw->'parts') p where (p.value->>'sentence_id')::uuid<>s.id;
+ end loop;
  perform private.rp_drop(s.id);
  perform private.rp_touch_section(s.section_id);
  return jsonb_build_object('status','ok');
@@ -885,6 +1033,7 @@ begin
  perform private.discover_lock(p_engagement);
  select * into s from private.report_sentences where id=p_sentence and engagement_id=p_engagement and not deleted for update;
  if not found then return jsonb_build_object('status','not_found'); end if;
+ if private.rp_locked(s.section_id,s.origin) then return jsonb_build_object('status','locked'); end if;
  select * into src from private.report_sources where sentence_id=s.id and not deleted and room_words order by position,id limit 1;
  if not found then return jsonb_build_object('status','no_room_words'); end if;
  v_words:=case when src.excerpt ~ '[.!?…]$' then src.excerpt else src.excerpt||'.' end;
@@ -933,6 +1082,7 @@ begin
   update private.report_sources set deleted=true where sentence_id=s.id and not deleted and kind=p_kind and ref_id is not distinct from p_ref and (p_kind<>'record' or excerpt=p_excerpt);
   if not found then return jsonb_build_object('status','not_found'); end if;
  end if;
+ update private.report_sentences set touched=true where id=s.id;
  perform private.rp_touch_section(s.section_id);
  return jsonb_build_object('status','ok');
 end $$;
@@ -944,6 +1094,7 @@ begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_section is null or p_reviewed is null then return jsonb_build_object('status','invalid_request'); end if;
  perform private.discover_lock(p_engagement);
+ perform private.rp_heal(p_engagement);
  select * into sec from private.report_sections where id=p_section and engagement_id=p_engagement and not deleted for update;
  if not found then return jsonb_build_object('status','not_found'); end if;
  if not p_reviewed then
@@ -963,7 +1114,7 @@ end $$;
 -- Every section's heading, sentences (origin, quote, thin label), blocks and sources, all as text, so later edits cannot change what was signed off.
 create function private.report_snapshot(p_engagement uuid) returns jsonb
 language sql stable security definer set search_path='' as $$
- select jsonb_build_object('sections',coalesce(jsonb_agg(jsonb_build_object('key',s.key,'position',s.position,'heading',s.heading,'kind',s.kind,'blocks',s.blocks,
+ select jsonb_build_object('sections',coalesce(jsonb_agg(jsonb_build_object('key',s.key,'position',s.position,'heading',s.heading,'kind',s.kind,'blocks',private.rp_block_resolved(s.blocks),
   'sentences',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'position',x.position,'text',x.text,'origin',x.origin,'quote',x.quote,'thin_label',x.thin_label,
     'sources',coalesce((select jsonb_agg(jsonb_build_object('kind',r.kind,'ref_id',r.ref_id,'excerpt',r.excerpt) order by r.position,r.id) from private.report_sources r where r.sentence_id=x.id and not r.deleted),'[]'::jsonb)) order by x.position,x.id)
    from private.report_sentences x where x.section_id=s.id and not x.deleted),'[]'::jsonb)) order by s.position),'[]'::jsonb))
@@ -972,7 +1123,7 @@ $$;
 
 create function private.report_sign_off(p_engagement uuid,p_id uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare guard text:=private.report_guard(p_engagement,true); last private.report_sign_offs; snap jsonb; n integer; v_unrev integer; v_unsrc integer; v_sections integer;
+declare guard text:=private.report_guard(p_engagement,true); last private.report_sign_offs; snap jsonb; n integer; v_unrev integer; v_unsrc integer; v_sections integer; v_heads text[];
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_id is null then return jsonb_build_object('status','invalid_request'); end if;
@@ -984,9 +1135,11 @@ begin
   where s.engagement_id=p_engagement and not s.deleted;
  if v_sections<14 then return jsonb_build_object('status','no_draft'); end if;
  if v_unrev>0 then return jsonb_build_object('status','not_reviewed','count',v_unrev); end if;
- select count(*)::integer into v_unsrc from private.report_sentences x join private.report_sections s on s.id=x.section_id and not s.deleted
+ -- The 10-year Future is what the room signed off, word for word: it is checked against the signed off lens summaries again here.
+ if not private.rp_future_ok(p_engagement) then return jsonb_build_object('status','future_changed'); end if;
+ select count(*)::integer,coalesce(array_agg(distinct s.heading),array[]::text[]) into v_unsrc,v_heads from private.report_sentences x join private.report_sections s on s.id=x.section_id and not s.deleted
   where x.engagement_id=p_engagement and not x.deleted and x.origin<>'facilitator' and not private.rp_sentence_sourced(x.id);
- if v_unsrc>0 then return jsonb_build_object('status','unsourced','count',v_unsrc); end if;
+ if v_unsrc>0 then return jsonb_build_object('status','unsourced','count',v_unsrc,'sections',to_jsonb(v_heads)); end if;
  snap:=private.report_snapshot(p_engagement);
  if last.id is not null and last.snapshot=snap then return jsonb_build_object('status','unchanged','n',last.n); end if;
  select coalesce(max(o.n),0)+1 into n from private.report_sign_offs o where o.engagement_id=p_engagement;
@@ -1006,7 +1159,7 @@ $$;
 -- ---------- The page's state ----------
 create function private.report_state(p_engagement uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
-declare guard text:=private.report_guard(p_engagement,false); d private.report_drafts; rd private.report_rounds; so private.report_sign_offs; snap jsonb; ai boolean; out jsonb;
+declare guard text:=private.report_guard(p_engagement,false); d private.report_drafts; rd private.report_rounds; so private.report_sign_offs; snap jsonb; ai boolean; out jsonb; strand text[]:=private.rp_stranded(p_engagement);
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  select * into d from private.report_drafts where engagement_id=p_engagement and not deleted;
@@ -1014,19 +1167,38 @@ begin
  select * into so from private.report_sign_offs where engagement_id=p_engagement and not deleted order by n desc limit 1;
  select coalesce(e.settings->>'ai_enabled','false')='true' into ai from public.engagements e where e.id=p_engagement;
  if d.id is not null then snap:=private.report_snapshot(p_engagement); end if;
- select jsonb_build_object('status','ok','server_time',clock_timestamp(),'ai',coalesce(ai,false),'lead',coalesce(private.is_lead(p_engagement),false),'draft',d.id is not null,
+ select jsonb_build_object('status','ok','server_time',clock_timestamp(),'ai',coalesce(ai,false),'lead',coalesce(private.is_lead(p_engagement),false),'draft',d.id is not null,'stamp',private.report_pulse(p_engagement)->>'stamp','future_ok',case when d.id is not null then private.rp_future_ok(p_engagement) end,
   'round',case when rd.id is not null then jsonb_build_object('status',rd.status,'requested_at',rd.requested_at,'queue',to_jsonb(rd.queue),'current',rd.current,'attempts',rd.attempts,'error',rd.last_error,'ok_at',rd.last_ok_at,'kept',rd.last_kept,'dropped',rd.last_dropped) end,
   'signed',case when so.id is not null then jsonb_build_object('n',so.n,'signed_at',so.signed_at,'by',(select u.name from public.clearway_users u where u.id=so.signed_by),'stale',snap is distinct from so.snapshot) end,
-  'sections',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'key',s.key,'position',s.position,'heading',s.heading,'kind',s.kind,'status',s.status,'error',s.error,'dropped',s.dropped,
+  'sections',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'key',s.key,'position',s.position,'heading',s.heading,'kind',s.kind,'status',case when s.key=any(strand) then 'needs_attention' else s.status end,'error',case when s.key=any(strand) then 'AI could not draft this section' else s.error end,'dropped',s.dropped,
     'reviewed',case when s.reviewed_at is not null then jsonb_build_object('at',s.reviewed_at,'by',(select u.name from public.clearway_users u where u.id=s.reviewed_by)) end,'blocks',s.blocks,
     'sentences',coalesce((select jsonb_agg(jsonb_build_object('id',x.id,'position',x.position,'text',x.text,'origin',x.origin,'quote',x.quote,'thin_label',x.thin_label,'touched',x.touched,'can_undo',x.origin='room' and x.ai_text is not null,
       'needs_source',x.origin<>'facilitator' and not private.rp_sentence_sourced(x.id),
-      'sources',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'kind',r.kind,'ref_id',r.ref_id,'excerpt',r.excerpt,'room',r.room_words,'info',
+      'sources',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'kind',r.kind,'ref_id',r.ref_id,'excerpt',r.excerpt,'room',r.room_words,'broken',not private.rp_source_live(p_engagement,r.kind,r.ref_id),'info',
         case when r.kind='record' then jsonb_build_object('label','Record','text',r.excerpt) else private.rp_source_info(p_engagement,r.kind,r.ref_id) end) order by r.position,r.id)
         from private.report_sources r where r.sentence_id=x.id and not r.deleted),'[]'::jsonb)) order by x.position,x.id)
      from private.report_sentences x where x.section_id=s.id and not x.deleted),'[]'::jsonb)) order by s.position)
     from private.report_sections s where s.draft_id=d.id and not s.deleted),'[]'::jsonb)) into out;
  return out;
+end $$;
+
+
+-- A light look at the report for the page's polling and the control surface's link: whether it is here, whether a round is working, and a stamp that changes whenever
+-- anything in the report does. The page loads the whole state only when the stamp moves.
+create function private.report_pulse(p_engagement uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare guard text:=private.report_guard(p_engagement,false); v_stamp text; v_round text;
+begin
+ if guard is not null then return jsonb_build_object('status',guard); end if;
+ select coalesce(max(z.u)::text,'')||'/'||coalesce(sum(z.n),0)::text into v_stamp from (
+  select max(updated_at) u,count(*) n from private.report_drafts where engagement_id=p_engagement
+  union all select max(updated_at),count(*) from private.report_sections where engagement_id=p_engagement
+  union all select max(updated_at),count(*) from private.report_sentences where engagement_id=p_engagement
+  union all select max(updated_at),count(*) from private.report_sources where engagement_id=p_engagement
+  union all select max(updated_at),count(*) from private.report_rounds where engagement_id=p_engagement
+  union all select max(updated_at),count(*) from private.report_sign_offs where engagement_id=p_engagement) z;
+ select r.status into v_round from private.report_rounds r where r.engagement_id=p_engagement and not r.deleted;
+ return jsonb_build_object('status','ok','stamp',v_stamp,'working',coalesce(v_round in ('pending','drafting'),false));
 end $$;
 
 -- The records a sentence's section can cite, for the Add a source picker.
@@ -1040,6 +1212,7 @@ end $$;
 
 -- ---------- Public entry points (invokers; every check is in the private functions) ----------
 create function public.report_state(p_engagement uuid) returns jsonb language sql stable security invoker set search_path='' as $$ select private.report_state(p_engagement) $$;
+create function public.report_pulse(p_engagement uuid) returns jsonb language sql stable security invoker set search_path='' as $$ select private.report_pulse(p_engagement) $$;
 create function public.report_candidates(p_engagement uuid,p_section uuid) returns jsonb language sql stable security invoker set search_path='' as $$ select private.report_candidates_for(p_engagement,p_section) $$;
 create function public.report_start(p_engagement uuid,p_id uuid,p_scope text,p_section text,p_confirm boolean) returns jsonb language sql security invoker set search_path='' as $$ select private.report_start(p_engagement,p_id,p_scope,p_section,p_confirm) $$;
 create function public.report_refresh(p_engagement uuid,p_section text,p_confirm boolean) returns jsonb language sql security invoker set search_path='' as $$ select private.report_refresh(p_engagement,p_section,p_confirm) $$;
@@ -1069,8 +1242,8 @@ begin
 end $grants$;
 grant execute on function private.report_state(uuid),private.report_start(uuid,uuid,text,text,boolean),private.report_refresh(uuid,text,boolean),private.report_edit(uuid,uuid,text),private.report_add(uuid,uuid,text),
  private.report_remove(uuid,uuid),private.report_room_words(uuid,uuid),private.report_undo_room_words(uuid,uuid),private.report_source_set(uuid,uuid,text,uuid,text,boolean),
- private.report_mark_reviewed(uuid,uuid,boolean),private.report_sign_off(uuid,uuid),private.report_candidates_for(uuid,uuid),
- public.report_state(uuid),public.report_candidates(uuid,uuid),public.report_start(uuid,uuid,text,text,boolean),public.report_refresh(uuid,text,boolean),public.report_edit(uuid,uuid,text),public.report_add(uuid,uuid,text),
+ private.report_mark_reviewed(uuid,uuid,boolean),private.report_sign_off(uuid,uuid),private.report_candidates_for(uuid,uuid),private.report_pulse(uuid),
+ public.report_state(uuid),public.report_pulse(uuid),public.report_candidates(uuid,uuid),public.report_start(uuid,uuid,text,text,boolean),public.report_refresh(uuid,text,boolean),public.report_edit(uuid,uuid,text),public.report_add(uuid,uuid,text),
  public.report_remove(uuid,uuid),public.report_room_words(uuid,uuid),public.report_undo_room_words(uuid,uuid),public.report_source_set(uuid,uuid,text,uuid,text,boolean),
  public.report_mark_reviewed(uuid,uuid,boolean),public.report_sign_off(uuid,uuid) to authenticated;
 grant execute on function private.report_due(uuid),private.report_claim(uuid,uuid,text,jsonb),private.report_apply(uuid,uuid,jsonb,jsonb),private.report_fail(uuid,uuid,text,jsonb),

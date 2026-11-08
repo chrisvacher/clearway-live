@@ -69,7 +69,7 @@
    "name": "tensions",
    "inputs": {
     "section": "tensions",
-    "heading": "Tensions we worked through",
+    "heading": "Strategic Tensions",
     "refs": [
      {
       "ref": "s1",
@@ -129,7 +129,7 @@
      },
      {
       "ref": "z2",
-      "group": "Tensions we worked through",
+      "group": "Strategic Tensions",
       "text": "We will launch the five outcomes a season apart.",
       "thin": false
      }

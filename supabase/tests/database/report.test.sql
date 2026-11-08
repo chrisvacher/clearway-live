@@ -68,6 +68,7 @@ insert into sessions(id,engagement_id,title,part,position,state,interaction,prom
  (tests.id(311),tests.id(100),'Tensions and decisions','Day 2',1,'closed','content','');
 -- What the report reads: a survey finding, two input conversations and the theme they share, scribe cards, and three signals.
 insert into private.survey_findings(id,engagement_id,title,figure,rests_on) values(tests.id(601),tests.id(100),'A clear way into groups','31%',27);
+insert into private.survey_findings(id,engagement_id,title,figure,rests_on) values(tests.id(602),tests.id(100),'Respondents under 30','6',6);
 insert into private.conversation_notes(id,engagement_id,kind,person,title,body,source_kind,word_count) values
  (tests.id(611),tests.id(100),'input','A board member','Board conversation','Volunteers are stretched thin, the same few people every week.','paste',10),
  (tests.id(612),tests.id(100),'input','A staff member','Staff conversation','Volunteers are tired. A handful of people do everything.','paste',9);
@@ -131,6 +132,7 @@ select is(current_setting('tests.denied_3'),'12','The scribe is denied all twelv
 select is(current_setting('tests.denied_4'),'12','A team facilitator holding the remote is denied all twelve');
 select is(current_setting('tests.denied_5'),'12','A TV is denied all twelve');
 select is(current_setting('tests.denied_6'),'12','Someone with no place is denied all twelve');
+select is(public.report_pulse(tests.id(100))->>'status','denied','A person with no place in this engagement gets nothing from the light status call');
 select throws_ok($$select count(*) from private.report_drafts$$,'42501',null,'No signed-in role reads the draft record directly');
 select throws_ok($$select count(*) from private.report_sentences$$,'42501',null,'or the sentences');
 select throws_ok($$select count(*) from private.report_sources$$,'42501',null,'or the sources');
@@ -145,6 +147,7 @@ select throws_ok($$select private.report_section_inputs(tests.id(100),tests.id(1
 reset role;
 set local role anon;
 select throws_ok($$select public.report_state(tests.id(100))$$,'42501',null,'An unsigned browser cannot read the state');
+select throws_ok($$select public.report_pulse(tests.id(100))$$,'42501',null,'or the light status call');
 select throws_ok($$select public.report_start(tests.id(100),tests.id(1),'all',null,false)$$,'42501',null,'or start a draft');
 select throws_ok($$select public.report_edit(tests.id(100),tests.id(1),'x')$$,'42501',null,'or edit a sentence');
 select throws_ok($$select public.report_sign_off(tests.id(100),tests.id(1))$$,'42501',null,'or sign off');
@@ -176,7 +179,7 @@ set local role authenticated;
 select tests.login(1);
 select is(public.report_start(tests.id(100),tests.id(501),'all',null,false)->>'status','ok','The lead drafts the report');
 select is(public.report_start(tests.id(100),tests.id(501),'all',null,false)->>'status','duplicate','the same press again is a duplicate');
-select is(public.report_start(tests.id(100),tests.id(502),'all',null,false)->>'status','busy','and another press while it runs says busy');
+select is(public.report_start(tests.id(100),tests.id(502),'all',null,false)->>'status','nothing','and another press while it runs finds nothing missing to add');
 reset role;
 select is((select queue from private.report_rounds where engagement_id=tests.id(100)),array['church_today','process','heard','interviews','tensions','future','vision','risks','outlook','intent','decisions','visibility','overview','closing'],'The queue runs the prose sections, then the record leads, and Overview and Closing last');
 select is((select count(*)::integer from private.report_sections where engagement_id=tests.id(100) and status='drafting'),14,'Every section reads Drafting');
@@ -196,9 +199,11 @@ select is((select v->>'status' from claimed),'claimed','and it is claimed');
 select is((select count(*)::integer from private.ai_runs where engagement_id=tests.id(100) and job='draft_report' and session_id is null and status='running'),1,'One run is logged with no session');
 select is((select (v->'inputs'->'refs'->0->>'ref') from claimed),'f1','The first ref is the survey finding');
 select ok((select (v->'inputs')::text !~* '(Jordan|Michael|Parker|Reed|Sarah|Priya|Shah|Krista|Scribe|Ortiz|Ben)' from claimed),'No attendee name is in what the model reads');
-select is(tests.apply((select v from claimed),'[{"text":"31% of respondents named a clear way into groups.","refs":["f1"]}]')->>'status','ok','A sentence that cites a ref and uses its number is kept');
+select is(tests.apply((select v from claimed),'[{"text":"31% of respondents named a clear way into groups.","refs":["f1"]},{"text":"Only 6 respondents were under 30.","refs":["f2"]}]')->>'status','ok','A sentence that cites a ref and uses its number is kept');
+select is((select x.thin_label from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.key='church_today' and s.engagement_id=tests.id(100) and not x.deleted and x.text like 'Only 6%'),'Thin data: 6 of 87 respondents','A sentence resting on the thin finding carries the label Thin data: 6 of 87 respondents');
+select is((select x.thin_label from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.key='church_today' and s.engagement_id=tests.id(100) and not x.deleted and x.text like '31%'),null,'and the sentence on the firm one carries none');
 select is(tests.status('church_today'),'drafted','The section reads Drafted');
-select is((select count(*)::integer from private.report_sources r join private.report_sentences x on x.id=r.sentence_id join private.report_sections s on s.id=x.section_id where s.key='church_today' and s.engagement_id=tests.id(100) and r.kind='finding'),1,'and its sentence rests on the finding');
+select is((select count(*)::integer from private.report_sources r join private.report_sentences x on x.id=r.sentence_id join private.report_sections s on s.id=x.section_id where s.key='church_today' and s.engagement_id=tests.id(100) and r.kind='finding' and r.ref_id=tests.id(601)),1,'and its sentence rests on the finding');
 
 -- Every check the code makes on a reply.
 drop table claimed;
@@ -401,6 +406,240 @@ reset role;
 select is((select count(*)::integer from private.report_sign_offs where engagement_id=tests.id(100) and not deleted),2,'Version 1 is kept as it was signed');
 select ok((select snapshot::text like '%The retreat ran over two days%' from private.report_sign_offs where engagement_id=tests.id(100) and n=1) and not (select snapshot::text like '%Changed after it was signed.%' from private.report_sign_offs where engagement_id=tests.id(100) and n=1),'and does not change when the report does');
 
+
+-- ---------- A redraft while a long round runs ----------
+create function tests.review_all() returns void language sql security definer set search_path='' as $$
+ update private.report_sections set status='reviewed',reviewed_at=now() where engagement_id='ae070000-0000-4000-8000-000000000100' and not deleted $$;
+create function tests.future_ok() returns boolean language sql security definer set search_path='' as $$ select private.rp_future_ok('ae070000-0000-4000-8000-000000000100') $$;
+grant execute on function tests.review_all(),tests.future_ok() to authenticated,anon,service_role;
+set local role authenticated;
+select tests.login(1);
+select is(public.report_start(tests.id(100),tests.id(520),'section','church_today',true)->>'status','ok','A section is redrafted and a round starts');
+reset role;
+drop table if exists claimed;
+create temp table claimed as select tests.claim() as v;
+grant all on claimed to public;
+select is((select v->>'section' from claimed),'church_today','and its run is in flight');
+update private.report_rounds set requested_at=now()-interval '10 minutes' where engagement_id=tests.id(100);
+create temp table inflight as select lease_run as run from private.report_rounds where engagement_id=tests.id(100);
+grant all on inflight to public;
+set local role authenticated;
+select tests.login(1);
+select is(public.report_start(tests.id(100),tests.id(521),'section','heard',true)->>'status','ok','A redraft pressed when the round began more than five minutes ago joins its queue');
+select is(public.report_start(tests.id(100),tests.id(522),'section','heard',true)->>'status','busy','a section already waiting says busy');
+select is(public.report_start(tests.id(100),tests.id(523),'section','church_today',true)->>'status','busy','and so does the one being drafted');
+reset role;
+select is((select queue from private.report_rounds where engagement_id=tests.id(100)),array['heard'],'The queue holds the waiting section, with no duplicates');
+select is((select current from private.report_rounds where engagement_id=tests.id(100)),'church_today','the section in hand stays in hand');
+select is((select lease_run from private.report_rounds where engagement_id=tests.id(100)),(select run from inflight),'the in-flight run is still the round''s');
+select is((select status from private.ai_runs where id=(select run from inflight)),'running','and still running');
+select is(tests.status('heard')||'/'||tests.status('church_today'),'drafting/drafting','Both sections read Drafting');
+select is(tests.apply((select v from claimed),'[{"text":"31% of respondents named a clear way into groups.","refs":["f1"]}]')->>'status','ok','The in-flight run is still accepted');
+select is(tests.work(5,'Aligned%'),1,'and the queued section is drafted after it');
+select is((select status from private.report_rounds where engagement_id=tests.id(100)),'ready','The round finishes');
+select is((select count(*)::integer from private.report_sections where engagement_id=tests.id(100) and status='drafting'),0,'and no section is left Drafting');
+drop table claimed;
+drop table inflight;
+
+-- A section left in Drafting that no round holds recovers.
+update private.report_sections set status='drafting',reviewed_at=null,reviewed_by=null where id in(tests.sec('closing'),tests.sec('vision'));
+set local role authenticated;
+select tests.login(1);
+select is((select s->>'status' from jsonb_array_elements(public.report_state(tests.id(100))->'sections') s where s->>'key'='closing'),'needs_attention','A stranded section reads Needs attention');
+select isnt(public.report_refresh(tests.id(100),'vision',true)->>'status','busy','and a stranded record section can be refreshed, not told it is busy');
+select is(tests.status('closing'),'needs_attention','Refreshing put the stranded sections out of Drafting');
+select is(public.report_start(tests.id(100),tests.id(524),'all',null,false)->>'status','ok','Draft what is missing picks it up');
+reset role;
+select ok((select 'closing'=any(queue) from private.report_rounds where engagement_id=tests.id(100)),'the stranded section is in the queue');
+select is((select queue[array_length(queue,1)] from private.report_rounds where engagement_id=tests.id(100)),'closing','with Closing still last');
+select ok(tests.work(30)>=1,'and the worker drafts them');
+select is((select count(*)::integer from private.report_sections where engagement_id=tests.id(100) and status='drafting'),0,'Nothing is left Drafting');
+select is((select status from private.report_rounds where engagement_id=tests.id(100)),'ready','and the round is ready');
+-- A press that finds a round with other sections waiting adds to it, and never drops what is waiting.
+update private.report_sections set status='needs_attention',reviewed_at=null,reviewed_by=null where id=tests.sec('process');
+set local role authenticated;
+select tests.login(1);
+select is(public.report_start(tests.id(100),tests.id(525),'section','tensions',true)->>'status','ok','A round starts for one section');
+select is(public.report_start(tests.id(100),tests.id(526),'all',null,false)->>'status','ok','and Draft what is missing adds the rest');
+reset role;
+select ok((select queue @> array['tensions','process'] from private.report_rounds where engagement_id=tests.id(100)),'to the queue that was there');
+select is((select count(*)::integer from private.report_sections where engagement_id=tests.id(100) and status='drafting') = (select cardinality(queue)::integer from private.report_rounds where engagement_id=tests.id(100)),true,'Every section reading Drafting is in the queue');
+select ok(tests.work(30)>=2,'and all of them are drafted');
+select is((select count(*)::integer from private.report_sections where engagement_id=tests.id(100) and status='drafting'),0,'with none stranded');
+
+-- ---------- No name reaches the model, in any section ----------
+insert into private.scribe_cards(id,engagement_id,session_id,kind,text,detail,speaker,attendee_id,captured_at) values
+ (tests.id(643),tests.id(100),tests.id(311),'decision','Priya will chair the volunteer team.','{}','Jordan Parker',tests.id(504),'2026-11-04 15:10:00+00'),
+ (tests.id(644),tests.id(100),tests.id(311),'action','Call the volunteers this week.','{}','Jordan Parker',tests.id(504),'2026-11-04 15:11:00+00');
+insert into private.vision_outcomes(id,engagement_id,title,description,status,position,confirmed_at) values(tests.id(670),tests.id(100),'Every newcomer is known by name','Newcomers are known within a month.','confirmed',1,now());
+insert into private.goals(id,engagement_id,outcome_id,title,result,owner_name,owner_email,end_date,season,position) values(tests.id(671),tests.id(100),tests.id(670),'Start ten new groups','Ten groups are meeting.','Dana Whitfield','dana@example.org','2027-06-30','MAY_AUG',1);
+insert into private.intent_cards(id,engagement_id,outcome_id,intent,must_do,what_we_stop) values(tests.id(672),tests.id(100),tests.id(670),'Newcomers are known.','Greet every newcomer.','Stop counting only attendance.');
+insert into private.first_steps(id,engagement_id,card_id,text,owner_name,owner_email,due_date,position) values(tests.id(673),tests.id(100),tests.id(672),'Ask each host to learn three names.','Elena Brooks','elena@example.org','2026-12-01',1);
+set local role authenticated;
+select tests.login(1);
+select is(public.report_refresh(tests.id(100),'decisions',true)->>'status','ok','The decisions table is refreshed from the records');
+select is(public.report_refresh(tests.id(100),'outlook',true)->>'status','ok','and so is the 1-year Outlook');
+select is(public.report_refresh(tests.id(100),'intent',true)->>'status','ok','and Commander''s Intent');
+select is(public.report_edit(tests.id(100),tests.sent('heard',1),'Priya felt 31% was too low a figure.')->>'status','ok','A facilitator edits an AI sentence so that it names a person');
+reset role;
+select ok(tests.val($$select (jsonb_array_length(blocks->'rows'))::text from private.report_sections where id='$$||tests.sec('decisions')||$$'$$)::integer=2,'The decisions table holds the new record (it names a person)');
+select ok(private.report_section_inputs(tests.id(100),tests.sec('decisions'))::text like '%five outcomes%','A record section''s lead reads the record lines that name no one');
+select ok(private.report_section_inputs(tests.id(100),tests.sec('decisions'))::text !~* 'Priya|Shah|Jordan|Parker','but not the line that names someone');
+select ok(private.report_section_inputs(tests.id(100),tests.sec('overview'))::text !~* 'Priya','Overview does not read an edited sentence that names someone');
+select ok(jsonb_array_length(private.report_section_inputs(tests.id(100),tests.sec('overview'))->'refs')>0,'but reads the others');
+select ok(private.report_section_inputs(tests.id(100),tests.sec('closing'))::text !~* 'Priya','nor does Closing');
+select ok(private.report_section_inputs(tests.id(100),tests.sec('outlook'))::text !~* 'Dana|Whitfield|Elena|Brooks','and a goal''s owner never reaches the model');
+select ok(not private.discover_has_name('Jordan said so.',private.discover_names(tests.id(100))),'A scribe''s speaker is not in the Discover names (control)');
+select ok(private.discover_has_name('Jordan said so.',private.report_names(tests.id(100))),'but is in the report''s names');
+select is(private.report_check('Dana will start the groups.','[{"ref":"z1","text":"Start ten new groups","sources":[]}]'::jsonb,private.report_names(tests.id(100))),'name','A goal''s owner named in a reply is refused');
+select is(private.report_check('Elena asked each host.','[{"ref":"z1","text":"Ask each host","sources":[]}]'::jsonb,private.report_names(tests.id(100))),'name','as is a first step''s owner');
+select is(private.report_check('Jordan raised it.','[{"ref":"z1","text":"It was raised","sources":[]}]'::jsonb,private.report_names(tests.id(100))),'name','and a scribe''s speaker');
+select is(private.report_check('Groups start in homes.','[{"ref":"z1","text":"Groups start in homes","sources":[]}]'::jsonb,private.report_names(tests.id(100))),null,'while a reply with no name stands');
+
+-- ---------- The checks themselves: horizon terms and quotations ----------
+select is(private.report_check('The 10-year Future starts with ten leaders.','[{"ref":"z1","text":"We have ten leaders and 5 groups.","sources":[]}]'::jsonb,array[]::text[]),null,'The 10-year Future is kept: its digits are the term, not a number');
+select is(private.report_check('The 3-year Vision names 5 groups.','[{"ref":"z1","text":"We have ten leaders and 5 groups.","sources":[]}]'::jsonb,array[]::text[]),null,'so is the 3-year Vision');
+select is(private.report_check('The 1-year Outlook holds the first steps.','[{"ref":"z1","text":"First steps","sources":[]}]'::jsonb,array[]::text[]),null,'and the 1-year Outlook');
+select is(private.report_check('Each 1-year goal has an owner, and the 1-year goals end on a date.','[{"ref":"z1","text":"Goals have owners","sources":[]}]'::jsonb,array[]::text[]),null,'and 1-year goal and 1-year goals, the PRD''s own words');
+select is(private.report_check('The ten-year view starts with ten leaders.','[{"ref":"z1","text":"We have ten leaders","sources":[]}]'::jsonb,array[]::text[]),'term','A horizon written another way is refused');
+select is(private.report_check('The 3-year goals are clear.','[{"ref":"z1","text":"Goals are clear for 3 groups","sources":[]}]'::jsonb,array[]::text[]),'term','and so are 3-year goals');
+select is(private.report_check('The 2-year Vision is clear.','[{"ref":"z1","text":"Vision is clear","sources":[]}]'::jsonb,array[]::text[]),'number','A number the refs do not carry is still refused beside a term');
+select is(private.report_check('We have 12 groups.','[{"ref":"z1","text":"The 10-year Future holds 10 groups","sources":[]}]'::jsonb,array[]::text[]),'number','and so is a plain number');
+create temp table qcited as select '[{"ref":"t1","text":"Volunteers are stretched thin. The same few people carry the load.","sources":[{"kind":"theme","excerpt":"Volunteers are stretched thin. The same few people carry the load.","room":false}]},
+ {"ref":"q1","text":"Volunteers are stretched thin, the same few people every week.","sources":[{"kind":"theme","excerpt":"Volunteers are stretched thin, the same few people every week.","room":true}]},
+ {"ref":"s1","text":"Growing the staff team first or growing volunteer leadership first.","sources":[{"kind":"scribe_card","excerpt":"Growing the staff team first or growing volunteer leadership first.","room":false}]},
+ {"ref":"h1","text":"Mission: Help people follow Jesus","sources":[{"kind":"record","excerpt":"Mission: Help people follow Jesus","room":false}]},
+ {"ref":"z1","text":"The team weighed growing the staff team.","sources":[]}]'::jsonb as c;
+grant all on qcited to public;
+select is(private.report_check('They said "Volunteers are stretched thin, the same few people every week."',(select c from qcited),array[]::text[]),null,'A quotation of the room''s own words is kept');
+select is(private.report_check('They said “Volunteers are stretched thin, the same few people every week.”',(select c from qcited),array[]::text[]),null,'in curly marks too');
+select is(private.report_check('They said ‘Volunteers are stretched thin, the same few people every week’ again.',(select c from qcited),array[]::text[]),null,'and curly single marks');
+select is(private.report_check('They said ''Volunteers are stretched thin, the same few people every week'' again.',(select c from qcited),array[]::text[]),null,'and single marks');
+select is(private.report_check('They said ''we are lost'' again.',(select c from qcited),array[]::text[]),'quote','but single marks around words no source holds are refused');
+select is(private.report_check('They said ‘we are lost’ again.',(select c from qcited),array[]::text[]),'quote','as are curly single ones');
+select is(private.report_check('The room''s own words matter, and the team''s too.',(select c from qcited),array[]::text[]),null,'An apostrophe is not a quotation');
+select is(private.report_check('They said "volunteers are stretched thin, the same few people every week."',(select c from qcited),array[]::text[]),'quote','A quotation must match the case of its source');
+select is(private.report_check('They said "Volunteers are stretched thin. The same few people carry the load."',(select c from qcited),array[]::text[]),'quote','A theme''s label and detail are not the room''s words');
+select is(private.report_check('They said "The team weighed growing the staff team."',(select c from qcited),array[]::text[]),'quote','and neither is an earlier AI sentence');
+select is(private.report_check('They said "Help people follow Jesus".',(select c from qcited),array[]::text[]),'quote','nor a Mission line from the church record');
+select is(private.report_check('The card said "Growing the staff team first or growing volunteer leadership first."',(select c from qcited),array[]::text[]),null,'A scribe card''s words can be quoted');
+select is(private.report_check('They said "the same few people',(select c from qcited),array[]::text[]),'quote','An unclosed quotation is refused');
+drop table qcited;
+
+-- ---------- The tables read the live sentences ----------
+insert into private.risks(id,engagement_id,text,likelihood,impact) values(tests.id(674),tests.id(100),'Volunteers burn out before the groups start.',0.8,0.9),(tests.id(677),tests.id(100),'The building is not ready for the crowd.',0.4,0.4);
+insert into private.risk_mitigations(id,engagement_id,risk_id,text) values(tests.id(675),tests.id(100),tests.id(674),'Rest every sixth week.'),(tests.id(676),tests.id(100),tests.id(674),'Share the load across three hosts.'),(tests.id(678),tests.id(100),tests.id(677),'Book the hall early.');
+set local role authenticated;
+select tests.login(1);
+select is(public.report_refresh(tests.id(100),'risks',true)->>'status','ok','The risks table is refreshed');
+reset role;
+select is(tests.val($$select (blocks->'rows'->0->'cells'->0->'s'->>0)||'' from private.report_sections where id='$$||tests.sec('risks')||$$'$$),tests.val($$select (blocks->'rows'->0->'parts'->0->>'sentence_id') from private.report_sections where id='$$||tests.sec('risks')||$$'$$),'A risk''s cell points at its sentence');
+select is(tests.val($$select jsonb_array_length(blocks->'rows'->0->'cells'->3->'s')::text from private.report_sections where id='$$||tests.sec('risks')||$$'$$),'2','and the answers cell at its two mitigation sentences');
+create temp table rk as select (blocks->'rows'->0->'parts'->0->>'sentence_id')::uuid as risk, (blocks->'rows'->1->'parts'->0->>'sentence_id')::uuid as risk2, (blocks->'rows'->1->'parts'->1->>'sentence_id')::uuid as mit2 from private.report_sections where id=tests.sec('risks');
+grant all on rk to public;
+set local role authenticated;
+select tests.login(1);
+select is(public.report_edit(tests.id(100),(select risk from rk),'Our volunteers burn out well before the groups begin.')->>'status','ok','The facilitator edits a risk in the table');
+select is((select e->>'text' from jsonb_array_elements(public.report_state(tests.id(100))->'sections') s, jsonb_array_elements(s->'sentences') e where s->>'key'='risks' and e->>'id'=(select risk::text from rk)),'Our volunteers burn out well before the groups begin.','and the sentence the cell points at carries the new words');
+select is(public.report_remove(tests.id(100),(select risk2 from rk))->>'status','ok','A risk row is removed with its sentence');
+reset role;
+select is((select count(*)::integer from private.report_sentences where id in((select risk2 from rk),(select mit2 from rk)) and not deleted),0,'and the answers that hung from it go too');
+select is((select count(*)::integer from private.report_sources where sentence_id in((select risk2 from rk),(select mit2 from rk)) and not deleted),0,'with their sources');
+drop table rk;
+
+-- ---------- The 10-year Future is the signed off summaries, word for word ----------
+insert into private.lens_summaries(id,engagement_id,lens,state) values(tests.id(680),tests.id(100),1,'on_screen'),(tests.id(681),tests.id(100),2,'on_screen');
+insert into private.lens_summary_versions(id,engagement_id,summary_id,version,author) values(tests.id(682),tests.id(100),tests.id(680),1,'ai'),(tests.id(683),tests.id(100),tests.id(681),1,'ai');
+insert into private.lens_summary_sentences(id,engagement_id,version_id,position,text) values
+ (tests.id(684),tests.id(100),tests.id(682),1,'Every Sunday the room holds people who found Riverside through a friend.'),
+ (tests.id(685),tests.id(100),tests.id(682),2,'Groups in homes are where people are cared for first.'),
+ (tests.id(686),tests.id(100),tests.id(683),1,'Neighbours call Riverside first when someone needs help.');
+update private.lens_summaries set current_version_id=(select v.id from private.lens_summary_versions v where v.summary_id=lens_summaries.id),
+ signed_off_version_id=(select v.id from private.lens_summary_versions v where v.summary_id=lens_summaries.id),state='signed_off' where id in(tests.id(680),tests.id(681));
+select is(tests.future_ok(),false,'A lens summary signed off after the draft is not in the Future block: they differ');
+select tests.review_all();
+set local role authenticated;
+select tests.login(1);
+select is((public.report_state(tests.id(100))->>'future_ok'),'false','The page is told the Future is out of date');
+select is(public.report_sign_off(tests.id(100),tests.id(610))->>'status','future_changed','Sign-off is refused until the Future is the signed off summaries');
+select is(public.report_refresh(tests.id(100),'future',true)->>'status','ok','Refreshing the Future from the records');
+select is(tests.future_ok(),true,'builds exactly the signed off lines');
+select is(tests.val($$select string_agg(x.text,'|' order by r.ord,p.ord) from private.report_sections sc cross join lateral jsonb_array_elements(sc.blocks->'rows') with ordinality r(value,ord) cross join lateral jsonb_array_elements(r.value->'parts') with ordinality p(value,ord)
+  join private.report_sentences x on x.id=(p.value->>'sentence_id')::uuid where sc.id='$$||tests.sec('future')||$$'$$),'Every Sunday the room holds people who found Riverside through a friend.|Groups in homes are where people are cared for first.|Neighbours call Riverside first when someone needs help.','word for word, lens by lens');
+select is(public.report_edit(tests.id(100),tests.sent('future',1),'A friendlier line.')->>'status','locked','A line of the Future cannot be edited');
+select is(public.report_remove(tests.id(100),tests.sent('future',1))->>'status','locked','removed');
+select is(public.report_room_words(tests.id(100),tests.sent('future',1))->>'status','locked','or swapped for other words');
+select is(public.report_add(tests.id(100),tests.sec('future'),'Our own read of the Future.')->>'status','ok','but the facilitator can add their own read beside it');
+select is(public.report_edit(tests.id(100),tests.own('future'),'Our own read of the Future, again.')->>'status','ok','and edit that');
+select is(public.report_remove(tests.id(100),tests.own('future'))->>'status','ok','and remove it');
+reset role;
+select tests.review_all();
+update private.report_sentences set text='Tampered line.' where id=tests.sent('future',2);
+select is(tests.future_ok(),false,'A line changed behind the editor''s back shows');
+set local role authenticated;
+select tests.login(1);
+select is(public.report_sign_off(tests.id(100),tests.id(611))->>'status','future_changed','and sign-off refuses it');
+reset role;
+update private.report_sentences set text='Groups in homes are where people are cared for first.' where id=tests.sent('future',2);
+select is(tests.future_ok(),true,'Put back, it matches again');
+
+-- ---------- A source whose record is gone blocks sign-off ----------
+set local role authenticated;
+select tests.login(1);
+select is(public.report_source_set(tests.id(100),tests.sent('heard',1),'theme',tests.id(621),'',true)->>'status','ok','A sentence rests on a theme');
+reset role;
+select tests.review_all();
+update private.discover_themes set deleted=true where id=tests.id(621);
+select is(private.rp_source_live(tests.id(100),'theme',tests.id(621)),false,'A theme that is put away is not a live source');
+select is((select (e->>'needs_source')::boolean from jsonb_array_elements(public.report_state(tests.id(100))->'sections') s, jsonb_array_elements(s->'sentences') e where e->>'id'=tests.sent('heard',1)::text),true,'The page marks the sentence as lacking a source');
+select is((select (src->>'broken')::boolean from jsonb_array_elements(public.report_state(tests.id(100))->'sections') s, jsonb_array_elements(s->'sentences') e, jsonb_array_elements(e->'sources') src where e->>'id'=tests.sent('heard',1)::text and src->>'kind'='theme'),true,'and the source as broken');
+set local role authenticated;
+select tests.login(1);
+select is(public.report_sign_off(tests.id(100),tests.id(612))->>'status','unsourced','Sign-off is refused');
+select ok((public.report_sign_off(tests.id(100),tests.id(612))->'sections') @> '["What We Heard"]'::jsonb,'and names the section');
+reset role;
+update private.discover_themes set deleted=false where id=tests.id(621);
+update private.vision_outcomes set deleted=true where id=tests.id(670);
+select is(private.rp_source_live(tests.id(100),'outcome',tests.id(670)),false,'A put away outcome is not a live source either');
+select is(private.rp_source_live(tests.id(100),'goal',tests.id(671)),true,'while a goal that stands is');
+select is(private.rp_source_live(tests.id(100),'signal',tests.id(653)),false,'A signal that is not aligned and saved is never one');
+update private.vision_outcomes set deleted=false where id=tests.id(670);
+select is(private.rp_source_live(tests.id(100),'finding',tests.id(1)),false,'A record that was never there is not live');
+select is(private.rp_source_live(tests.id(100),'record',null),true,'and a record line with no record behind it stands');
+
+-- ---------- Sign-off holds only the wording that stands ----------
+select tests.review_all();
+set local role authenticated;
+select tests.login(1);
+select is(public.report_sign_off(tests.id(100),tests.id(613))->>'status','ok','With the Future current and every source standing, the lead signs off again');
+reset role;
+select is((select n from private.report_sign_offs where engagement_id=tests.id(100) order by n desc limit 1),3,'as version 3');
+create temp table snap as select snapshot as s from private.report_sign_offs where engagement_id=tests.id(100) and n=3;
+grant all on snap to public;
+select ok((select (s::text) like '%Our volunteers burn out well before the groups begin.%' from snap),'The snapshot holds the edited risk');
+select ok((select (private.report_signed_for_view(tests.id(100)))::text not like '%Volunteers burn out before the groups start.%'),'and not its old wording, in what the report shows');
+select ok((select (private.report_signed_for_view(tests.id(100)))::text not like '%The building is not ready for the crowd.%'),'The removed risk row is not in it');
+select ok((select (private.report_signed_for_view(tests.id(100)))::text not like '%Book the hall early.%'),'nor the answer that hung from it');
+select is((select jsonb_array_length(q->'blocks'->'rows') from snap, jsonb_array_elements(s->'sections') q where q->>'key'='risks'),1,'so the risks table has the one row');
+select is((select q->'blocks'->'rows'->0->'cells'->>0 from snap, jsonb_array_elements(s->'sections') q where q->>'key'='risks'),'Our volunteers burn out well before the groups begin.','whose first cell is the live sentence');
+select is((select q->'blocks'->'rows'->0->'cells'->>3 from snap, jsonb_array_elements(s->'sections') q where q->>'key'='risks'),E'Rest every sixth week.\nShare the load across three hosts.','and whose answers are the mitigation sentences');
+select is((select jsonb_typeof(q->'blocks'->'rows'->0->'cells'->0) from snap, jsonb_array_elements(s->'sections') q where q->>'key'='risks'),'string','Cells in the snapshot are plain text');
+select is((select q->'blocks'->'rows'->0->'cells'->>2 from snap, jsonb_array_elements(s->'sections') q where q->>'key'='outlook'),'Dana Whitfield','The Outlook''s owner is in the signed report, added by code');
+select is((select count(*)::integer from snap, jsonb_array_elements(s->'sections') q, jsonb_array_elements(q->'sentences') x where q->>'key'='future' and x->>'origin'='record'),3,'The Future holds the three signed off lines');
+drop table snap;
+
+-- The light status call.
+set local role authenticated;
+select tests.login(1);
+create temp table pulse as select public.report_pulse(tests.id(100)) as v;
+grant all on pulse to public;
+select is((select v->>'status' from pulse),'ok','The lead''s light status call answers');
+select is((select v->>'working' from pulse),'false','and says no round is working');
+select is(public.report_edit(tests.id(100),tests.sent('church_today',1),'31% of respondents named a clear way into groups, once more.')->>'status','ok','A change');
+select isnt(public.report_pulse(tests.id(100))->>'stamp',(select v->>'stamp' from pulse),'moves the stamp');
+drop table pulse;
+reset role;
+
 -- ---------- A closed engagement ----------
 update engagements set status='closed' where id=tests.id(100);
 set local role authenticated;
@@ -442,7 +681,7 @@ select is((select count(*)::integer from private.report_sections where engagemen
 select is((select count(*)::integer from private.report_sentences where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'no sentence');
 select is((select count(*)::integer from private.report_sources where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'no source');
 select is((select count(*)::integer from private.report_drafts where engagement_id=tests.id(100) and not deleted),1,'The first engagement keeps its report');
-select is((select count(*)::integer from private.report_sign_offs where engagement_id=tests.id(100) and not deleted),2,'and both its sign-offs');
+select is((select count(*)::integer from private.report_sign_offs where engagement_id=tests.id(100) and not deleted),3,'and all its sign-offs');
 select is((select count(*)::integer from public.submissions where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'and the base reset still runs: the practice room''s answer is put away');
 
 select * from finish();

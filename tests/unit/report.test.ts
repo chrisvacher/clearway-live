@@ -19,20 +19,29 @@ const id = (n: number) => `86500000-0000-4000-8000-${String(n).padStart(12, "0")
 // The same rules the database applies to every sentence (report_check), so a recorded reply can be checked without a database.
 const words = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"];
 const digits = (t: string) => [...new Set(t.match(/[0-9]+/g) ?? [])];
-const norm = (t: string) => t.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
+// A quotation is compared letter for letter once the marks are one kind and the spaces collapse (the database's rp_qnorm).
+const qnorm = (t: string) => t.replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"').replace(/\s+/g, " ").trim();
+// Where the database reads source flags, this reads the ref's group: a quote, a Four Helpful Lists card, a scribe card or a signed off lens line is the room's own words.
+const roomRef = (r: ReportInputs["refs"][number]) => /^(Quote|Four Helpful Lists card|Scribe|Signed off lens)/.test(r.group);
+const quoted = (t: string): string[] => {
+  const n = qnorm(t), doubles = [...n.matchAll(/"([^"]+)"/g)].map(m => m[1]), rest = n.replace(/"[^"]*"/g, " ");
+  return [...doubles, ...[...rest.matchAll(/(^|[\s(])'(.+?)'(?=[\s.,;:!?)]|$)/g)].map(m => m[2])];
+};
 function refuses(text: string, cited: ReportInputs["refs"], names: string[]): string | null {
   if (!text || text.length > 600) return "text";
   if (!cited.length) return "unsourced";
   if (named(text).length && names.length) return "name";
   const have = cited.map(r => r.text).join("\n");
-  const ok = digits(text).every(d => digits(have).includes(d));
-  const spelled = (text.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
+  // The three horizon terms and "1-year goals" are exact wording, not numbers: they come out before the numbers are read.
+  const stripped = text.replace(/10-year Future|3-year Vision|1-year Outlook|1-year goals?/g, "");
+  const ok = digits(stripped).every(d => digits(have).includes(d));
+  const spelled = (stripped.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
     .every(w => new RegExp(`\\b${w}\\b`, "i").test(have) || digits(have).includes(String(words.indexOf(w) + 1)));
   if (!ok || !spelled) return "number";
-  const stripped = text.replace(/10-year Future|3-year Vision|1-year Outlook/g, "");
   if (/\b(10|ten|3|three|1|one)[ -]year\b/i.test(stripped) || /communications? plan/i.test(text)) return "term";
-  for (const m of text.matchAll(/"([^"]+)"/g)) if (!norm(have).includes(norm(m[1]).replace(/[.,!?…]+$/, ""))) return "quote";
-  if ((text.match(/"/g) ?? []).length % 2) return "quote";
+  if ((qnorm(text).match(/"/g) ?? []).length % 2) return "quote";
+  const room = qnorm(cited.filter(roomRef).map(r => r.text).join("\n"));
+  for (const q of quoted(text)) { const body = q.replace(/[.,!?…]+$/, ""); if (!body.trim() || q.length > 280 || !room.includes(body)) return "quote"; }
   return null;
 }
 const cited = (inputs: ReportInputs, refs: string[]) => inputs.refs.filter(r => refs.includes(r.ref));
@@ -75,7 +84,9 @@ test("Each prompt is Clearway's voice, JSON only, keeps horizons exact, never in
   assert.match(reportPrompts.overview.system, /drafted last/);
   assert.match(reportPrompts.closing.system, /drafted last/);
   assert.match(reportPrompts.tensions.system, /both sides/);
-  assert.match(reportPrompts.future.system, /Write no number at all/);
+  assert.match(reportPrompts.future.system, /may use the horizon terms, written exactly/);
+  assert.ok(!/no horizon term|no number at all/i.test(reportPrompts.future.system), "a lead may carry a horizon term, and a number a ref carries");
+  assert.match(reportPrompts.future.system, /one to three short sentences/);
 });
 
 test("The model reads refs only: no ids, names, speakers or sources reach it", () => {
@@ -117,7 +128,11 @@ test("The checks refuse what the database refuses: a number no ref carries, a qu
   assert.equal(refuses("Sarah named a way into groups.", f1, fixtures.names), "name");
   const ten = [{ ref: "z1", group: "g", text: "We have ten leaders.", thin: false }];
   assert.equal(refuses("The ten-year view starts with ten leaders.", ten, fixtures.names), "term");
-  assert.equal(refuses("The 10-year Future starts with ten leaders.", ten, fixtures.names), "number", "10 is not in the ref");
+  assert.equal(refuses("The 10-year Future starts with ten leaders.", ten, fixtures.names), null, "the term is wording, not a number");
+  assert.equal(refuses("The 3-year Vision and the 1-year Outlook follow.", ten, fixtures.names), null);
+  assert.equal(refuses("Each 1-year goal has an owner, and the 1-year goals have an end date.", ten, fixtures.names), null, "the PRD's own words");
+  assert.equal(refuses("The 3-year goals are clear.", [{ ref: "z1", group: "g", text: "We have 3 groups.", thin: false }], fixtures.names), "term", "a horizon not written as a term");
+  assert.equal(refuses("The 2-year Vision starts with ten leaders.", ten, fixtures.names), "number", "a digit that is not a term is still a number");
   assert.equal(refuses("A communication plan is needed.", f1, fixtures.names), "term");
   assert.equal(refuses("A clear way in.", [], fixtures.names), "unsourced");
 });
@@ -149,13 +164,13 @@ test("The scripted stand-in writes sentences from the refs it was given, citing 
       assert.equal(refuses(s.text, cited(inputs, s.refs), fixtures.names), null, `${key}: "${s.text}"`);
       assert.ok(s.refs.every(r => ["f1", "q1", "t1"].includes(r)));
     }
-    if (reportRecordKeys.includes(key)) assert.ok(out.sentences.length === 1 && !/\d/.test(out.sentences[0].text), "a lead writes one line and no number");
+    if (reportRecordKeys.includes(key)) assert.ok(out.sentences.length >= 1 && out.sentences.length <= 3 && !/\d/.test(out.sentences[0].text), "a lead writes one to three lines, and the stand-in no number");
   }
   assert.equal(isHeard({ system: reportPrompts.heard.system }), false);
 });
 
 test("The stand-in quotes a quote ref in the room's own words and reads across the groups first", async () => {
-  const inputs: ReportInputs = { section: "interviews", heading: "Leadership interviews", refs: [
+  const inputs: ReportInputs = { section: "interviews", heading: "Leadership Interviews", refs: [
     { ref: "t1", group: "Theme", text: "Newcomers cannot find a group.", thin: false }, { ref: "t2", group: "Theme", text: "Staff are stretched.", thin: false },
     { ref: "q1", group: "Quote from a leadership interview", text: "Newcomers cannot find a small group to join.", thin: false }] };
   const text = (await fakeClient("script").complete({ system: reportPrompts.interviews.system, user: reportPrompts.interviews.user(inputs), maxTokens: 400, timeoutMs: 1000 }, aiConfig({}))).text;
@@ -304,4 +319,28 @@ test("Every status the database can answer has a plain sentence, with no dashes"
     assert.ok(m.length > 8 && !/[–—]/.test(m), s);
   }
   assert.notEqual(reportMessage("denied"), reportMessage("whatever"));
+});
+
+test("The headings are the brief's fourteen, the same in the prompts, the policy and the database", () => {
+  const brief = ["Overview", "The Church Today", "The Process", "What We Heard", "Leadership Interviews", "Strategic Tensions", "The 10-year Future", "The 3-year Vision", "Risks and Roadblocks", "The 1-year Outlook", "Commander's Intent", "Decisions", "Make the Vision Visible", "Closing"];
+  assert.deepEqual(reportKeys.map(k => reportHeadings[k]), brief);
+  const sql = readFileSync(new URL("../../supabase/migrations/20261108010000_report.sql", import.meta.url), "utf8");
+  const defs = [...sql.slice(sql.indexOf("create function private.report_defs()")).split("$$")[1].matchAll(/\('([a-z_]+)',(\d+),'((?:[^']|'')+)','(prose|record)'\)/g)];
+  assert.deepEqual(defs.map(m => m[3].replace(/''/g, "'")), brief, "the database's names are the same");
+  assert.deepEqual(defs.map(m => m[1]), [...reportKeys]);
+  for (const key of ["church_today", "process", "interviews", "tensions"] as const) assert.ok(reportPrompts[key].system.includes(`This is ${reportHeadings[key]}.`), `${key}'s guide names its heading`);
+  for (const wrong of ["The church today", "The Wayfinding process", "Leadership interviews", "Tensions we worked through", "Risks and how we answer them", "Decisions made", "The visibility plan"]) {
+    for (const p of reportPromptList) assert.ok(!p.system.includes(wrong), `${p.version} does not say "${wrong}"`);
+  }
+});
+
+test("A table cell is a plain value or the live sentences it points at, and a blocker says when the Future has moved", () => {
+  const state = (future_ok: boolean | null): Extract<ReportState, { status: "ok" }> => ({ status: "ok", server_time: "2026-11-08T00:00:00Z", future_ok, ai: true, lead: true, draft: true, round: null, signed: null,
+    sections: Array.from({ length: 14 }, (_, i) => ({ id: `s${i}`, key: "overview", position: i + 1, heading: "x", kind: "prose", status: "reviewed", error: null, dropped: 0, reviewed: { at: "2026-11-08T00:00:00Z", by: null }, blocks: null, sentences: [] })) as ReportSection[] });
+  assert.deepEqual(signOffBlockers(state(true)), []);
+  assert.deepEqual(signOffBlockers(state(false)).map(b => b.kind), ["future_changed"]);
+  assert.match(blockerText({ kind: "future_changed", count: 1, sections: ["future"] }), /Refresh it from the records/);
+  assert.match(reportMessage("locked"), /word for word/);
+  assert.match(reportMessage("unsourced", { count: 2, sections: ["What We Heard", "Decisions"] }), /2 sentences in What We Heard, Decisions have no source, or rest on a record that is gone/);
+  assert.match(reportMessage("unsourced", { count: 1, sections: ["Closing"] }), /1 sentence in Closing has no source/);
 });
