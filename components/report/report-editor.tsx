@@ -59,7 +59,7 @@ export function ReportEditor({ engagement, church, title, timezone }: { engageme
           {ok.draft && <SignOffBar state={ok} api={api} zone={timezone} jump={k => { setKey(k); setSentence(null); }} />}
           {ok.draft && <div className="rpt-grid" data-testid="rpt-grid">
             <SectionList sections={sections} current={section?.key ?? null} pick={k => { setKey(k); setSentence(null); }} />
-            <div className="rpt-col">{section && <SectionBody key={section.key} section={section} api={api} selected={sentence} select={setSentence} ai={ok.ai} locked={locked} zone={timezone} />}</div>
+            <div className="rpt-col">{section && <SectionBody key={section.key} section={section} api={api} selected={sentence} select={setSentence} ai={ok.ai} locked={locked} zone={timezone} planStale={ok.plan_stale === true} />}</div>
             <SourcesPanel section={section} sentence={picked} api={api} locked={locked || section?.status === "drafting"} />
           </div>}
           {ok.draft && <ExportPanel />}

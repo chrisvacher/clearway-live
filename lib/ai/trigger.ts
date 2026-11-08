@@ -8,6 +8,7 @@ import { workOvernight } from "./overnight";
 import { workThemes } from "./themes";
 import { workHeard } from "./heard";
 import { workReport } from "./report";
+import { workPlan } from "./plan";
 
 // Schedules AI work to run after the response has been sent (Vercel keeps the function
 // alive for it with waitUntil), so it can never delay an answer reaching the TV. With no
@@ -130,6 +131,29 @@ export function kickReport(engagement: string, force = false) {
         await workReport(db, ai, engagement, aiConfig());
       } catch (error) {
         console.error("Report draft unavailable", { code: error instanceof Error ? error.name : "failed" });
+      }
+    });
+  } catch { /* Outside a request (tests): nothing to schedule. */ }
+}
+
+// The visibility plan: a press on Draft the plan makes a pending round; this runs it after the response, and the plan page's own poll asks again, so a
+// first try that failed is retried after its pause with nobody pressing anything.
+const lastPlan = new Map<string, number>();
+export function kickPlan(engagement: string, force = false) {
+  const ai = aiClient();
+  if (!ai) return;
+  const now = Date.now();
+  if (!force && now - (lastPlan.get(engagement) ?? 0) < 4000) return;
+  lastPlan.set(engagement, now);
+  try {
+    after(async () => {
+      try {
+        const db = serviceClient();
+        const { data, error } = await db.rpc("visibility_plan_due", { p_engagement: engagement });
+        if (error || data !== true) return;
+        await workPlan(db, ai, engagement, aiConfig());
+      } catch (error) {
+        console.error("Visibility plan unavailable", { code: error instanceof Error ? error.name : "failed" });
       }
     });
   } catch { /* Outside a request (tests): nothing to schedule. */ }
