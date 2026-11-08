@@ -26,7 +26,7 @@ function Report({ report }: { report: NonNullable<RoView["report"]> }) {
       <tbody>{s.table.rows.map((r, i) => r.cells.length
         ? <tr key={i}>{r.cells.map((c, j) => <td key={j}>{c.split("\n").map((line, k) => <span key={k} className="ro-line">{line}</span>)}</td>)}</tr>
         : <tr key={i}><td colSpan={Math.max(s.table!.columns.length, 1)}>{r.title ? <b>{r.title}</b> : null}
-            {r.parts.map((p, k) => <span key={k} className="ro-line"><span className="ro-role">{p.role.replace("_", " ")}</span> {p.text}{p.owner ? ` (${p.owner}${p.due ? `, ${mapDate(p.due)}` : ""})` : p.due ? ` (${mapDate(p.due)})` : ""}</span>)}</td></tr>)}</tbody></table></div>}
+            {r.parts.map((p, k) => <span key={k} className="ro-line">{p.text}{p.owner ? ` (${p.owner}${p.due ? `, ${mapDate(p.due)}` : ""})` : p.due ? ` (${mapDate(p.due)})` : ""}</span>)}</td></tr>)}</tbody></table></div>}
   </section>;
   return <section className="ro-sec" id="report" data-testid="ro-report">
     <h2>The report</h2>
@@ -74,7 +74,7 @@ export function ReadOnlyCopy({ view }: { view: RoView }) {
           {o.stop ? <><span className="ro-eyebrow">What we&rsquo;ll stop</span><p>{o.stop}</p></> : null}
           {o.goals.length > 0 && <><span className="ro-eyebrow">1-year goals</span>
             {o.goals.map((g, i) => <div key={i} className="ro-goal" data-testid="ro-goal"><div className="t"><b>{g.title}</b>{g.result ? <span>{g.result}</span> : null}
-              <small>{[g.owner, g.end_date ? `ends ${mapDate(g.end_date)}` : ""].filter(Boolean).join(" · ")}</small></div><Status goal={g} /></div>)}</>}
+              <small>{[g.owner ?? "No owner yet", g.end_date ? `ends ${mapDate(g.end_date)}` : "No end date yet"].join(" · ")}</small></div><Status goal={g} /></div>)}</>}
         </article>)}
       </section>
 

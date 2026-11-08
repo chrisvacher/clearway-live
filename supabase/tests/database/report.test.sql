@@ -155,7 +155,7 @@ select throws_ok($$select public.report_source_set(tests.id(100),tests.id(1),'th
 reset role;
 set local role service_role;
 select is(private.report_signed_for_view(tests.id(100)),null::jsonb,'The service role reads no signed copy before anything is signed');
-select is((select count(*) from private.visibility_plan_for_report(tests.id(100))),0::bigint,'and the visibility plan contract returns no rows until step 3');
+select is((select count(*) from private.visibility_plan_for_report(tests.id(100))),0::bigint,'and the visibility plan contract returns no rows while there is no plan');
 reset role;
 select is((select pg_get_function_result(p.oid) from pg_proc p where p.proname='visibility_plan_for_report' and p.pronamespace='private'::regnamespace),
  'TABLE(row_id uuid, "position" integer, who text, when_text text, by_whom text, what_they_hear text, risk text, reviewed boolean, sources jsonb)','The visibility plan contract has exactly the columns step 3 fills');

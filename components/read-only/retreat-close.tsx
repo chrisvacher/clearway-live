@@ -14,7 +14,7 @@ export function RetreatClose({ engagement, closed, closedOn, canReopen, onChange
       const response = await fetch(`/api/control/${engagement}/share`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
       const out = await response.json().catch(() => ({ status: "unavailable" })) as { status: string };
       if (out.status === "ok" || out.status === "already") { setAsking(false); await onChange?.(); router.refresh(); }
-      else setSay(out.status === "checkins_started" ? "A check-in has already gone out, so this can't be undone." : out.status === "too_late" ? "It's been more than an hour, so this can't be undone here." : out.status === "not_available" ? "This kind of engagement has no retreat to close." : "That didn't work. Nothing changed, so try again.");
+      else setSay(out.status === "checkins_started" ? "A check-in has already gone out, so this can't be undone." : out.status === "too_late" ? "It's been more than an hour, so this can't be undone here." : out.status === "too_early" ? "The retreat isn't under way yet. Set the engagement to Retreat, or set its start date, then mark it closed." : out.status === "not_available" ? "This kind of engagement has no retreat to close." : "That didn't work. Nothing changed, so try again.");
     } finally { setBusy(false); }
   };
   return <div className="shr-row" data-testid="retreat-close">

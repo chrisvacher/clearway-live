@@ -6,7 +6,7 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { heardPrompt, overnightPrompt, prompts, replyJson, reportPromptList, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type ReportOutput, type OvernightOutput, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
+import { heardPrompt, overnightPrompt, planPrompt, planStages, prompts, replyJson, reportPromptList, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type ReportOutput, type OvernightOutput, type PlanInputs, type PlanOutput, type PlanRow, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
   return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
@@ -15,13 +15,13 @@ const tokens = (text: string) => Math.ceil(text.length / 4);
 const reply = (call: AiCall, text: string): AiReply => ({ text, inputTokens: tokens(call.system + call.user), outputTokens: tokens(text) });
 
 // A recorded reply per job and user message.
-export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes" | "draft_what_we_heard" | "draft_report"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
+export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes" | "draft_what_we_heard" | "draft_report" | "draft_visibility_plan"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
   const calls: AiCall[] = [];
   return {
     calls, model: () => "recorded-fixture",
     async complete(call) {
       calls.push(call);
-      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : isHeard(call) ? "draft_what_we_heard" : isReport(call) ? "draft_report" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
+      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : isHeard(call) ? "draft_what_we_heard" : isReport(call) ? "draft_report" : isPlan(call) ? "draft_visibility_plan" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
       if (!hit) throw new Error(`No recorded reply for ${job}`);
       return reply(call, hit.reply);
     },
@@ -165,6 +165,36 @@ function scriptedReport(call: AiCall): string {
   return JSON.stringify(out);
 }
 
+// The visibility plan stand-in: works back from the public moment in the outward order, one row for each stage the refs give a reason for, each citing
+// the refs it rests on. It copies words from the refs, writes no number of its own, and leaves when and when_date empty (it never invents a date: with a
+// public date it names the moment, never a day).
+export const isPlan = (call: Pick<AiCall, "system">) => call.system === planPrompt.system;
+const planPicks: { stage: typeof planStages[number]; who: string; groups: RegExp; risk: RegExp | null }[] = [
+  { stage: "lead_pastor", who: "The lead pastor", groups: /intent card/i, risk: /^risk from/i },
+  { stage: "participants", who: "The retreat participants", groups: /action card/i, risk: null },
+  { stage: "board", who: "The board and elders", groups: /decision/i, risk: /^mitigation for/i },
+  { stage: "staff", who: "The staff team", groups: /first step/i, risk: /mitigation card/i },
+  { stage: "key_leaders", who: "Members and key leaders", groups: /goal|success measure/i, risk: null },
+  { stage: "congregation", who: "The congregation", groups: /intent card|goal/i, risk: null },
+];
+function scriptedPlan(call: AiCall): string {
+  const input = replyJson(call.user) as { public?: PlanInputs["public"]; kept_stages?: string[]; refs?: { ref: string; group: string; text: string }[] };
+  const refs = input.refs ?? [], kept = new Set(input.kept_stages ?? []), moment = input.public?.moment ?? "the public moment", out: PlanOutput = { rows: [] };
+  const taken = new Set<string>();
+  const sentence = (text: string) => { const t = text.replace(/\s+/g, " ").trim().slice(0, 200); return /[.!?]$/.test(t) ? t : `${t}.`; };
+  for (const p of planPicks) {
+    if (kept.has(p.stage)) continue;
+    const main = refs.find(r => p.groups.test(r.group) && !taken.has(r.ref)) ?? refs.find(r => !taken.has(r.ref));
+    if (!main) continue;
+    taken.add(main.ref);
+    const risk = p.risk ? refs.find(r => p.risk!.test(r.group)) : undefined;
+    const row: PlanRow = { stage: p.stage, who: p.who, when: "", when_date: "", by: "", hear: sentence(main.text), risk: risk ? sentence(risk.text) : "", refs: [main.ref, ...(risk ? [risk.ref] : [])] };
+    if (p.stage === "congregation") row.hear = sentence(`On ${moment}, ${main.text.charAt(0).toLowerCase()}${main.text.slice(1)}`);
+    out.rows.push(row);
+  }
+  return JSON.stringify(out);
+}
+
 // The lens summary's stand-in. The draft makes one line per cluster, in the room's own words (the cluster's
 // first sentence), then the sentences no cluster holds, within 8 lines and 420 characters. The fold follows the
 // prompt's rules: "Add ..." adds a line, "Remove ..." removes the line it shares most words with, anything else
@@ -247,6 +277,7 @@ export function scripted(call: AiCall): string {
   if (isThemes(call)) return scriptedThemes(call);
   if (isHeard(call)) return scriptedHeard(call);
   if (isReport(call)) return scriptedReport(call);
+  if (isPlan(call)) return scriptedPlan(call);
   const job = jobOf(call), input = replyJson(call.user);
   if (job === "combine_words") {
     const list = (input.words ?? []) as { ref: string; text: string; count: number }[], groups: { survivor: string; members: string[] }[] = [];
@@ -315,7 +346,7 @@ export function scripted(call: AiCall): string {
   return "{}";
 }
 
-type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string };
+type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string; failPlan?: boolean };
 function control(path?: string): Control {
   if (!path) return {};
   try { const value: unknown = JSON.parse(readFileSync(path, "utf8")); return value && typeof value === "object" ? value as Control : {}; } catch { return {}; }
@@ -329,6 +360,7 @@ export function fakeClient(mode: string, controlPath?: string): AiClient {
       if (wait >= call.timeoutMs) throw new Error("timeout");
       if (c.fail) throw new Error("unavailable");
       if (typeof c.failSection === "string" && isReport(call) && reportSection(call) === c.failSection) throw new Error("unavailable");
+      if (c.failPlan === true && isPlan(call)) throw new Error("unavailable");
       if (typeof c.summary === "string" && jobOf(call) === "summarize_wall") return reply(call, JSON.stringify({ summary: c.summary.slice(0, 1000) }));
       return reply(call, scripted(call));
     },

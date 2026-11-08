@@ -6,7 +6,7 @@ export const tokenShape = (value: unknown): value is string => typeof value === 
 
 export type ShareLink = { id: string; name: string; made_by: string | null; created_at: string; opens: number; last_opened_at: string | null; revoked_at: string | null; revoked_by: string | null; state: "active" | "revoked" };
 export type ShareState =
-  | { status: "ok"; server_time: string; type: string; engagement_status: string; eligible: boolean; practice: boolean; closed: boolean; closed_at: string | null; closed_on: string | null; can_reopen: boolean;
+  | { status: "ok"; server_time: string; type: string; engagement_status: string; timezone: string; eligible: boolean; practice: boolean; closed: boolean; closed_at: string | null; closed_on: string | null; can_reopen: boolean;
       report: { n: number; signed_at: string; stale: boolean } | null; links: ShareLink[] }
   | { status: "denied" | "closed" | "unavailable" };
 

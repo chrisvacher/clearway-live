@@ -362,6 +362,19 @@ jobs:
           path: report-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the visibility plan (draft in the outward order, sources, edit, review, the public date, add and move and remove, redraft keeps what was touched, a model failure, the report's table, who can reach it) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p plan-shots && npm run test:visibility-plan
+        env:
+          KIT_SHOTS: plan-shots
+      - name: Upload the visibility plan screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plan-screens
+          path: plan-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)
         if: ${{ !cancelled() }}
         run: mkdir -p acceptance-m5-shots && npm run test:acceptance-m5

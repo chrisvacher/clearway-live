@@ -36,7 +36,7 @@ export function ShareLinks({ engagement, church, title, initial }: { engagement:
     const label = name.trim();
     const out = await post({ action: "create", name: label });
     if (out.status === "ok" && typeof out.link === "string") { setFresh({ name: label, link: out.link }); setCopied(false); setName(""); setSay(null); }
-    else setSay(out.status === "not_closed" ? "Links are available once Day 2 closes." : out.status === "too_many" ? "There are 25 links on. Turn one off first." : out.status === "invalid_request" ? "Give the link a name of up to 80 characters." : "The link could not be made. Nothing was lost, so try again.");
+    else setSay(out.status === "not_closed" ? "Links are available once Day 2 closes." : out.status === "invalid_request" ? "Give the link a name of up to 80 characters." : "The link could not be made. Nothing was lost, so try again.");
   };
   const copy = async (text: string) => { try { await navigator.clipboard.writeText(text); setCopied(true); } catch { setSay("Copying didn't work here. Select the link and copy it."); } };
   const revoke = async (l: ShareLink) => { const out = await post({ action: "revoke", link: l.id }); setAsking(null); setSay(out.status === "ok" || out.status === "already" ? `${l.name} is turned off. It no longer opens.` : "That link could not be turned off. Try again."); };
@@ -58,9 +58,9 @@ export function ShareLinks({ engagement, church, title, initial }: { engagement:
           {fresh && <div className="shr-new" role="status" data-testid="share-new"><p><strong>{fresh.name} is ready.</strong> Copy the link now. It is shown only this once, and you can make another if you lose it.</p>
             <code className="shr-url" data-testid="share-url">{fresh.link}</code>
             <div className="shr-row"><button type="button" className="show-button is-primary" onClick={() => void copy(fresh.link)} data-testid="share-copy">{copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}{copied ? "Copied" : "Copy link"}</button>
-              <button type="button" className="show-button" onClick={() => setFresh(null)}>Done</button></div></div>}
+              <button type="button" className="show-button" onClick={() => setFresh(null)}>Hide the link</button></div></div>}
           <div className="shr-row"><label className="shr-field">Name this link<input value={name} maxLength={80} placeholder="Elders, board or a person" onChange={e => setName(e.target.value)} data-testid="share-name" /></label>
-            <button type="button" className="show-button is-primary" disabled={busy || !name.trim()} onClick={() => void make()} data-testid="share-make"><Plus size={16} aria-hidden="true" />New link</button></div>
+            <button type="button" className="show-button is-primary" disabled={busy || !name.trim()} onClick={() => void make()} data-testid="share-make"><Plus size={16} aria-hidden="true" />Make a link</button></div>
           <div className="shr-quiet"><p>The copy shows the Clearway Map, the Vision Outcomes with their indicators, the 1-year goals with owners, dates and the status each owner last gave, and the commander&rsquo;s intent cards. Never raw answers, scribe cards or drafts. {state.report
             ? <>The report is on it as version {state.report.n}.{state.report.stale ? " You've changed the report since. The link keeps showing version " + state.report.n + " until you sign it off again." : ""}</>
             : "The report is added once you sign it off."}</p></div>
@@ -69,9 +69,9 @@ export function ShareLinks({ engagement, church, title, initial }: { engagement:
           {state.links.map(l => <div key={l.id}>
             <div className={`shr-link${l.state === "revoked" ? " is-revoked" : ""}`} data-testid="share-link" data-state={l.state}>
               <div className="t"><b>{l.name}</b>
-                <span>Made by {l.made_by ?? "a facilitator"} on {stamp(l.created_at)}</span>
-                <span>{l.opens === 0 ? "Not opened yet" : `Opened ${l.opens} ${l.opens === 1 ? "time" : "times"}, last ${stamp(l.last_opened_at)}`}</span>
-                {l.state === "revoked" && <span>Turned off {stamp(l.revoked_at)}. It no longer opens.</span>}</div>
+                <span>Made by {l.made_by ?? "a facilitator"} on {stamp(l.created_at, state.timezone)}</span>
+                <span>{l.opens === 0 ? "Not opened yet" : `Opened ${l.opens} ${l.opens === 1 ? "time" : "times"}, last ${stamp(l.last_opened_at, state.timezone)}`}</span>
+                {l.state === "revoked" && <span>Turned off {stamp(l.revoked_at, state.timezone)}. It no longer opens.</span>}</div>
               {l.state === "revoked" ? <span className="shr-chip"><Link2Off size={14} aria-hidden="true" />Turned off</span>
                 : <div className="shr-row"><span className="shr-chip is-on"><Link2 size={14} aria-hidden="true" />On</span>
                   {asking !== l.id && <button type="button" className="show-button" disabled={busy} onClick={() => setAsking(l.id)} data-testid="share-revoke"><Link2Off size={16} aria-hidden="true" />Turn it off</button>}</div>}

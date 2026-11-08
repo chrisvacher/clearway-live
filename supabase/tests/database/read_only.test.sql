@@ -17,6 +17,8 @@ grant execute on all functions in schema tests to authenticated,anon,service_rol
 insert into churches(id,name,timezone) values(tests.id(200),'Riverside Church','America/Toronto'),(tests.id(201),'Lakeside Church','America/Toronto');
 insert into engagements(id,church_id,title,base_year) values(tests.id(100),tests.id(200),'Wayfinding room',2026),(tests.id(101),tests.id(201),'Another room',2026);
 insert into engagements(id,church_id,title,type) values(tests.id(102),tests.id(200),'A team workshop','team_workshop'),(tests.id(103),tests.id(200),'Second wayfinding','wayfinding'),(tests.id(104),tests.id(200),'Half day','day_and_a_half');
+insert into engagements(id,church_id,title,type) values(tests.id(105),tests.id(200),'Day 1 closes later','wayfinding'),(tests.id(106),tests.id(200),'Rehearsing','wayfinding'),(tests.id(107),tests.id(200),'Not started','wayfinding');
+update engagements set status='retreat' where id in(tests.id(100),tests.id(103),tests.id(104),tests.id(105),tests.id(106));
 insert into engagements(id,church_id,title,type) values('90000000-0000-4000-8000-000000000010',tests.id(200),'Permanent practice','practice');
 insert into auth.users(id,email,email_confirmed_at)
 select tests.id(n),case when n in(1,2,7) then 'fac'||n||'@clearway.co' else 'person'||n||'@example.org' end,now() from generate_series(1,10)n;
@@ -28,7 +30,7 @@ insert into clearway_users(id,auth_user_id,name,email,is_admin,team_hub_team_mem
  (tests.id(702),tests.id(2),'Jaisy Tam','fac2@clearway.co',false,tests.id(802)),
  (tests.id(707),tests.id(7),'Other Facilitator','fac7@clearway.co',false,tests.id(807));
 insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(100),tests.id(701),'lead'),(tests.id(100),tests.id(702),'co_facilitator'),(tests.id(101),tests.id(707),'lead'),
- (tests.id(102),tests.id(701),'lead'),(tests.id(103),tests.id(701),'lead'),(tests.id(104),tests.id(701),'lead'),('90000000-0000-4000-8000-000000000010',tests.id(701),'lead');
+ (tests.id(102),tests.id(701),'lead'),(tests.id(103),tests.id(701),'lead'),(tests.id(104),tests.id(701),'lead'),(tests.id(107),tests.id(701),'lead'),('90000000-0000-4000-8000-000000000010',tests.id(701),'lead');
 insert into attendees(id,engagement_id,auth_user_id,name,email,verified_at,room_role) values
  (tests.id(503),tests.id(100),tests.id(3),'Krista Scribe','person3@example.org',now(),'scribe'),
  (tests.id(504),tests.id(100),tests.id(4),'Priya Shah','priya@riverside.org',now(),'participant'),
@@ -51,11 +53,15 @@ insert into private.first_steps(id,engagement_id,card_id,text,owner_attendee_id,
 insert into private.goals(id,engagement_id,outcome_id,title,result,result_clear,owner_attendee_id,end_date,season,position) values
  (tests.id(630),tests.id(100),tests.id(600),'Launch the apprentice pathway','Twelve apprentices in place',true,tests.id(504),'2027-04-30','JAN_APR',0),
  (tests.id(631),tests.id(100),tests.id(601),'Greet every guest by name','Every guest greeted',true,tests.id(510),'2027-08-31','MAY_AUG',1);
+insert into private.goals(id,engagement_id,outcome_id,title,result,position) values(tests.id(632),tests.id(100),tests.id(600),'Not ready for CORE','',2);
 insert into sessions(id,engagement_id,title,part,position,state,interaction) values(tests.id(300),tests.id(100),'Day 1 step','Day 1',0,'closed','wall');
 insert into sessions(id,engagement_id,title,part,position,state,interaction,closed_at) values(tests.id(301),tests.id(100),'Day 2 step one','Day 2',0,'live','wall',null);
 insert into sessions(id,engagement_id,title,part,position,state,interaction) values(tests.id(302),tests.id(100),'Day 2 step two','Day 2',1,'draft','wall');
 insert into private.scribe_cards(id,engagement_id,session_id,kind,text,speaker,attendee_id,captured_at) values
- (tests.id(640),tests.id(100),tests.id(300),'tension','SCRIBE-ONLY tension that nobody outside should read','Ben Ortiz',tests.id(503),now());
+ (tests.id(640),tests.id(100),tests.id(300),'tension','SCRIBE-ONLY tension that nobody outside should read','Ben Ortiz',tests.id(503),now()),
+ (tests.id(641),tests.id(100),tests.id(300),'question','SCRIBE-QUESTION not quoted anywhere in the report','Ben Ortiz',tests.id(503),now());
+insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at,server_received_at) values
+ (tests.id(642),tests.id(100),tests.id(300),tests.id(504),'SUBMISSION-ONLY a word from a phone',jsonb_build_array(jsonb_build_object('text','SUBMISSION-ONLY a word from a phone','key','w1')),now(),now());
 
 -- ---------- Records and functions: forced row-level security, no browser grant, the right kinds ----------
 select is((select count(*) from pg_class where oid='private.read_only_links'::regclass and relrowsecurity and relforcerowsecurity),1::bigint,'The links table forces row-level security');
@@ -82,6 +88,12 @@ select ok(not private.retreat_close(tests.id(100),now()),'Closing again changes 
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),3::bigint,'and makes no more rounds');
 update engagements set day2_closed_at='2026-11-05 03:30+00' where id=tests.id(100);
 select is(private.retreat_closed_on(tests.id(100)),date '2026-11-04','Half past ten at night in Toronto is still that day');
+update churches set timezone='America/Vancouver' where id=tests.id(200);
+update engagements set day2_closed_at='2026-11-05 06:30+00' where id=tests.id(100);
+select is(private.retreat_closed_on(tests.id(100)),date '2026-11-04','The church''s own time zone decides the day (11:30 at night in Vancouver)');
+update churches set timezone='America/Toronto' where id=tests.id(200);
+select is(private.retreat_closed_on(tests.id(100)),date '2026-11-05','and the same moment is the next day in Toronto');
+update engagements set day2_closed_at='2026-11-05 03:30+00' where id=tests.id(100);
 update engagements set retreat_end_date='2026-11-06' where id=tests.id(100);
 select is(private.retreat_closed_on(tests.id(100)),date '2026-11-06','The retreat end date wins when it is set');
 update engagements set retreat_end_date=null,day2_closed_at=now() where id=tests.id(100);
@@ -91,6 +103,20 @@ insert into sessions(id,engagement_id,title,part,position,state,interaction,clos
 insert into private.room_controls(id,engagement_id,action,room_version) values(tests.id(903),tests.id(104),'close_part',1);
 select isnt((select day2_closed_at from engagements where id=tests.id(104)),null,'Closing the half day closes the retreat');
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(104)),3::bigint,'and makes its rounds');
+-- Closing Day 1 while a Day 2 step was already closed earlier does not close the retreat; only a call that itself closes a Day 2 step does.
+insert into sessions(id,engagement_id,title,part,position,state,interaction,closed_at) values(tests.id(312),tests.id(105),'Day 1','Day 1',0,'closed','wall',now()),(tests.id(313),tests.id(105),'Day 2 closed yesterday','Day 2',0,'closed','wall',now()-interval '1 day');
+insert into private.room_controls(id,engagement_id,action,room_version) values(tests.id(905),tests.id(105),'close_part',1);
+select is((select day2_closed_at from engagements where id=tests.id(105)),null,'Closing Day 1 with a Day 2 step already closed does not close the retreat');
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(105)),0::bigint,'and makes no rounds');
+-- A rehearsal on a real engagement never closes the retreat.
+insert into private.rehearsal_log(id,engagement_id,action,created_at) values(tests.id(906),tests.id(106),'start',now()-interval '1 hour');
+insert into sessions(id,engagement_id,title,part,position,state,interaction,closed_at) values(tests.id(314),tests.id(106),'Rehearsed Day 2','Day 2',0,'closed','wall',now());
+insert into private.room_controls(id,engagement_id,action,room_version) values(tests.id(907),tests.id(106),'close_part',1);
+select is((select day2_closed_at from engagements where id=tests.id(106)),null,'Closing Day 2 in a rehearsal does not close the retreat');
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(106)),0::bigint,'or make rounds');
+insert into private.rehearsal_log(id,engagement_id,action) values(tests.id(908),tests.id(106),'end');
+insert into private.room_controls(id,engagement_id,action,room_version) values(tests.id(909),tests.id(106),'close_part',2);
+select isnt((select day2_closed_at from engagements where id=tests.id(106)),null,'Once the rehearsal has ended the same close does');
 -- A close of Day 1 alone, or a status change, closes nothing.
 insert into sessions(id,engagement_id,title,part,position,state,interaction,closed_at) values(tests.id(311),tests.id(103),'Day 1 only','Day 1',0,'closed','wall',now());
 insert into private.room_controls(id,engagement_id,action,room_version) values(tests.id(904),tests.id(103),'close_part',1);
@@ -131,6 +157,18 @@ select throws_ok($$select public.read_only_view(repeat('a',64))$$,'42501',null,'
 select throws_ok($$select private.read_only_view(repeat('a',64))$$,'42501',null,'even through the private function');
 reset role;
 
+-- The public view is the server's alone: no signed-in role, not even the lead, can call it.
+create function tests.opens(n integer) returns void language plpgsql as $$ begin perform tests.login(n); perform public.read_only_view(repeat('a',64)); end $$;
+grant execute on function tests.opens(integer) to authenticated;
+set local role authenticated;
+select throws_ok($$select tests.opens(4)$$,'42501',null,'A participant cannot open the public view');
+select throws_ok($$select tests.opens(3)$$,'42501',null,'The scribe cannot');
+select throws_ok($$select tests.opens(10)$$,'42501',null,'A team facilitator cannot');
+select throws_ok($$select tests.opens(5)$$,'42501',null,'A TV cannot');
+select throws_ok($$select tests.opens(7)$$,'42501',null,'Another engagement''s facilitator cannot');
+select throws_ok($$select tests.opens(1)$$,'42501',null,'and the lead cannot call it from a browser either');
+reset role;
+
 -- ---------- Who may act ----------
 create function tests.acts(n integer) returns text language plpgsql as $$
 declare out text:='';
@@ -148,6 +186,15 @@ select is(tests.acts(7),'denied,denied,denied,denied','Another engagement''s fac
 select is(tests.acts(4),'denied,denied,denied,denied','A participant cannot');
 select is(tests.acts(3),'denied,denied,denied,denied','The scribe cannot');
 select is(tests.acts(10),'denied,denied,denied,denied','A team facilitator cannot');
+select tests.login(1);
+select is(public.retreat_mark_closed(tests.id(107))->>'status','too_early','Marking before the retreat is under way says so');
+reset role;
+update engagements set retreat_start_date=(now() at time zone 'America/Toronto')::date where id=tests.id(107);
+set local role authenticated;
+select tests.login(1);
+select is(public.retreat_mark_closed(tests.id(107))->>'status','ok','Once the retreat start date has come it can be marked');
+reset role;
+set local role authenticated;
 select is(tests.acts(5),'denied,denied,denied,denied','A TV cannot');
 select is(tests.acts(9),'denied,denied,denied,denied','Someone with no place cannot');
 reset role;
@@ -192,6 +239,11 @@ select is(tests.view('a')#>>'{intents,0,steps,0,due}','2027-02-01','and dates');
 
 -- What the payload never holds.
 select is(tests.view('a')::text like '%SCRIBE-ONLY%',false,'No scribe card text, not even in the Map''s Key Issues');
+select is(tests.view('a')::text like '%SCRIBE-QUESTION%',false,'not a scribe question either, with no report quoting it');
+select is(tests.view('a')::text like '%SUBMISSION-ONLY%',false,'and no submission');
+select is(tests.view('a')#>>'{outcomes,0,goals,1,title}','Not ready for CORE','Every 1-year goal is shown, not only those that meet CORE');
+select is(tests.view('a')#>'{outcomes,0,goals,1,owner}',null,'an empty owner stays empty');
+select is(tests.view('a')#>'{outcomes,0,goals,1,end_date}',null,'and an empty date');
 select is(tests.view('a')::text like '%@%',false,'no email address');
 select is(tests.view('a')::text like '%secret%',false,'including a first step owner''s typed email');
 select is(tests.view('a')::text like '%'||tests.id(504)::text||'%' or tests.view('a')::text like '%'||tests.id(610)::text||'%' or tests.view('a')::text like '%'||tests.id(630)::text||'%',false,'and no attendee or record id');
@@ -205,7 +257,9 @@ insert into private.check_in_rounds(id,engagement_id,day,due_on,status) values(t
 insert into private.check_in_recipients(id,round_id,engagement_id,email,name,token_hash,items,send_result) select tests.id(951),r.id,tests.id(100),'priya@riverside.org','Priya Shah',tests.hash('7'),'{"steps":[],"goals":[]}','sent' from private.check_in_rounds r where r.engagement_id=tests.id(100) and r.day=30;
 insert into private.check_in_answers(recipient_id,engagement_id,goal_id,answer,note) values(tests.id(951),tests.id(100),tests.id(630),'at_risk','NOTE-ONLY we lost our coordinator');
 select is(tests.view('a')#>>'{outcomes,0,goals,0,status}','at_risk','Each goal shows the status its owner gave');
-select is(tests.view('a')#>>'{outcomes,0,goals,0,status_on}',(now()::date)::text,'and the day they gave it');
+select is(tests.view('a')#>>'{outcomes,0,goals,0,status_on}',((now() at time zone 'America/Toronto')::date)::text,'and the church''s day they gave it');
+update private.check_in_answers set updated_at='2026-11-05 03:30+00' where engagement_id=tests.id(100);
+select is(tests.view('a')#>>'{outcomes,0,goals,0,status_on}','2026-11-04','The day is the church''s, not UTC''s');
 select is(tests.view('a')::text like '%NOTE-ONLY%',false,'never the note');
 select is(tests.view('a')#>'{outcomes,1,goals,0,status}',null,'A goal nobody has answered shows nothing');
 
@@ -265,6 +319,9 @@ reset role;
 delete from private.check_in_answers where engagement_id=tests.id(100);
 delete from private.check_in_recipients where engagement_id=tests.id(100);
 update private.check_in_rounds set status='scheduled' where engagement_id=tests.id(100);
+-- Day 60's round is the facilitator's own (made by hand), and day 90's was switched off: Undo leaves both.
+update private.check_in_rounds set made_by_close=false where engagement_id=tests.id(100) and day=60;
+update private.check_in_rounds set status='off' where engagement_id=tests.id(100) and day=90;
 set local role authenticated;
 select tests.login(2);
 select is(public.retreat_reopen(tests.id(100))->>'status','ok','A co-facilitator undoes a mistaken mark');
@@ -273,7 +330,7 @@ select is(public.retreat_reopen(tests.id(100))->>'status','not_closed','Undo twi
 select is(public.share_link_create(tests.id(100),'Late',tests.hash('c'))->>'status','not_closed','and a new link waits again');
 reset role;
 select is((select count(*) from private.read_only_links),2::bigint,'The links stay');
-select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),0::bigint,'The rounds made by the close went with it');
+select is((select array_agg(day order by day) from private.check_in_rounds where engagement_id=tests.id(100)),array[60,90]::smallint[],'The round the close made went with it; a hand-made and a switched-off round stay');
 select is(tests.view('a'),jsonb_build_object('status','unavailable'),'Before Day 2 closes an active link gives the plain answer');
 set local role authenticated;
 select tests.login(2);
@@ -309,6 +366,17 @@ update engagements set day2_closed_at=now() where id='90000000-0000-4000-8000-00
 insert into private.read_only_links(engagement_id,name,token_hash) values('90000000-0000-4000-8000-000000000010','Again',tests.hash('6'));
 select lives_ok($$select private.ro_clear('90000000-0000-4000-8000-000000000010')$$,'Clearing runs');
 select is((select count(*) from private.read_only_links where engagement_id='90000000-0000-4000-8000-000000000010')+(select count(*) from engagements where id='90000000-0000-4000-8000-000000000010' and day2_closed_at is not null),0::bigint,'and leaves nothing of the practice room''s');
-select is(position('rehearsal_control_pre_read_only' in pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure))>0 and to_regprocedure('private.reset_practice_room_pre_read_only()') is not null,true,'Both shared wrappers sit over the definition that was newest');
+-- Clear test answers on the practice room does the same, as the lead presses it; on a real engagement it leaves the links and the close alone.
+update engagements set day2_closed_at=now() where id='90000000-0000-4000-8000-000000000010';
+insert into private.read_only_links(engagement_id,name,token_hash) values('90000000-0000-4000-8000-000000000010','Practice again',tests.hash('5'));
+set local role authenticated;
+select tests.login(1);
+select is(public.rehearsal_control(tests.id(100),tests.id(990),'clear')->>'status','ok','Clear test answers runs on a real engagement');
+select is(public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.id(991),'clear')->>'status','ok','and on the practice room');
+reset role;
+select is((select count(*) from private.read_only_links where engagement_id='90000000-0000-4000-8000-000000000010'),0::bigint,'The practice room''s links are gone after Clear test answers');
+select is((select day2_closed_at from engagements where id='90000000-0000-4000-8000-000000000010'),null,'and its Day 2 is open again');
+select is((select count(*) from private.read_only_links where engagement_id=tests.id(100)),3::bigint,'while a real engagement keeps its links');
+select isnt((select day2_closed_at from engagements where id=tests.id(100)),null,'and its close');
 select * from finish();
 rollback;

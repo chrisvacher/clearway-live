@@ -14,7 +14,11 @@ export const metadata: Metadata = { title: "The plan", robots: { index: false, f
 export default async function ReadOnlyPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   let answer: RoAnswer = { status: "unavailable" };
-  if (tokenShape(token)) answer = await readView(serviceClient(), token).catch(() => ({ status: "unavailable" } as RoAnswer));
+  if (tokenShape(token)) {
+    // A missing setting or a failed read shows the same plain page. The log names what failed, never the token.
+    try { answer = await readView(serviceClient(), token); }
+    catch (error) { console.error("read-only view failed", (error as { code?: string })?.code ?? (error as Error)?.name ?? "unknown"); }
+  }
   if (answer.status !== "ok") return <div className="ro" data-surface="setup" data-theme="light" data-testid="ro-gone">
     <header className="ro-head"><LiveWordmark theme="light" /></header>
     <main id="main" className="ro-main"><div className="ro-gone"><h1>This link isn&rsquo;t available</h1>

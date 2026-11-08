@@ -6,7 +6,7 @@ Migration: `supabase/migrations/20261108010000_report.sql`. Prompts: `report-<se
 
 ## What the facilitator sees
 
-- **After the retreat** in the control surface's header (only when the report's functions are in the database; it fails quietly otherwise, by the light status call `report_pulse`). It opens the hub: Report, Visibility plan, Share and Check-ins. The last three say "Coming in this milestone".
+- **After the retreat** in the control surface's header (only when the report's functions are in the database; it fails quietly otherwise, by the light status call `report_pulse`). It opens the hub: Report, Visibility plan, Share and Check-ins. Visibility plan opens `/control/[id]/plan` (step 3). Share and Check-ins say "Coming in this milestone".
 - **Draft the report** builds all 14 sections in order: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions, The 10-year Future, The 3-year Vision, Risks and Roadblocks, The 1-year Outlook, Commander's Intent, Decisions, Make the Vision Visible, Closing. Each section shows Drafting, Drafted, Edited, Reviewed, Needs attention or Thin data, and appears on the page as soon as it is ready.
 - Seven sections are prose, drafted by the model: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions and Closing. Overview and Closing are drafted last, from the other sections' own sentences. Seven are tables built by code from the records (the 10-year Future, 3-year Vision, Risks and Roadblocks, 1-year Outlook, Commander's Intent, Decisions, Make the Vision Visible); the model writes only a lead of one to three sentences above each. Owners and dates in a table come from the records, never from the model.
 - A table's cells point at the live sentences (`{"s": [sentence ids]}`) or hold a plain value from the record (`{"t": words}`), so an edit or a removal shows in the table and a row whose own sentence is gone is left out. Remove on a row's first sentence takes its answers with it. The sign-off snapshot resolves the cells to text, so it holds only the wording that stands.
@@ -34,7 +34,7 @@ The worker (service role only): `report_due`, `report_claim`, `report_apply`, `r
 Contract functions for the later steps (service role only):
 
 - `private.report_signed_for_view(p_engagement uuid) returns jsonb`: the newest signed version as `{ n, signed_at, sections }`, every sentence as text with its origin, quote and thin label, and the sources stripped out. Null before the first sign-off.
-- `private.visibility_plan_for_report(p_engagement uuid) returns table(row_id uuid, position int, who text, when_text text, by_whom text, what_they_hear text, risk text, reviewed boolean, sources jsonb)`: a fixture that returns no rows. Step 3 replaces it. The report's visibility section reads it, and each row's `sources` is `[{ kind, ref_id, excerpt, room }]`.
+- `private.visibility_plan_for_report(p_engagement uuid) returns table(row_id uuid, position int, who text, when_text text, by_whom text, what_they_hear text, risk text, reviewed boolean, sources jsonb)`: step 3 replaced the fixture with the real function (`docs/visibility-plan.md`): the plan's rows that are not deleted, in position order. The report's visibility section reads it, and each row's `sources` is `[{ kind, ref_id, excerpt, room }]`.
 
 ## What the model is given and what the code decides
 

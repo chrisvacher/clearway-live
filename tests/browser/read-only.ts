@@ -22,6 +22,7 @@ Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTRO
 const room = "90000000-0000-4000-8000-000000000011";
 const SCRIBE_ONLY = "SCRIBE-ONLY tension nobody outside should read";
 const SCRIBE_LATE = "SCRIBE-LATE tension added after sign-off";
+const SUBMISSION_LATE = "SUBMISSION-LATE a word typed on a phone";
 const NOTE_ONLY = "NOTE-ONLY we lost our coordinator";
 
 async function main() {
@@ -36,6 +37,7 @@ async function main() {
     await sql.query("delete from private.report_sign_offs where engagement_id=$1", [room]);
     await sql.query("select private.check_in_clear($1::uuid)", [room]);
     await sql.query("delete from private.read_only_links where engagement_id=$1", [room]);
+    await sql.query("delete from public.submissions where text=$1", [SUBMISSION_LATE]);
     await sql.query("delete from private.scribe_cards where text in ($1,$2)", [SCRIBE_ONLY, SCRIBE_LATE]);
     await sql.query("update public.engagements set day2_closed_at=null,status='retreat' where id=$1", [room]);
   };
@@ -244,6 +246,7 @@ async function main() {
 
     await step("The page's HTML and the view's payload hold no email, scribe card text or source id", async () => {
       await sql.query("insert into private.scribe_cards(id,engagement_id,session_id,kind,text,speaker,attendee_id,captured_at) select gen_random_uuid(),$1,s.id,'tension',$2,'Ben Ortiz',(select id from public.attendees where engagement_id=$1 limit 1),now() from public.sessions s where s.engagement_id=$1 and not s.deleted limit 1", [room, SCRIBE_LATE]);
+      await sql.query("insert into public.submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at,server_received_at) select gen_random_uuid(),$1,s.id,(select id from public.attendees where engagement_id=$1 limit 1),$2,jsonb_build_array(jsonb_build_object('text',$2::text,'key','w1')),now(),now() from public.sessions s where s.engagement_id=$1 and not s.deleted limit 1", [room, SUBMISSION_LATE]);
       const v = await open(laptopLink);
       const html = await v.page.content();
       const view = (await createClient(env.API_URL, env.SERVICE_ROLE_KEY, { auth: { persistSession: false } }).rpc("read_only_view", { p_hash: (await sql.query("select token_hash from private.read_only_links where name='Elders'")).rows[0].token_hash })).data;
@@ -256,6 +259,7 @@ async function main() {
       for (const [name, haystack] of [["HTML", html], ["payload", payload]] as const) {
         for (const e of emails) assert.ok(!haystack.includes(e), `${name} holds no email: ${e}`);
         for (const r of [...refs, ...ids]) assert.ok(!haystack.includes(r), `${name} holds no record id: ${r}`);
+        assert.ok(!haystack.includes(SUBMISSION_LATE), `${name} holds no submission`);
         assert.ok(!haystack.includes(SCRIBE_LATE), `${name} holds no scribe card text that is not in the signed report`);
         assert.ok(!haystack.includes(NOTE_ONLY), `${name} holds no check-in note`);
         assert.ok(!/"(sources|excerpt|signal|submissions|drafts)"/.test(haystack), `${name} holds no sources or signals`);
@@ -271,12 +275,13 @@ async function main() {
       await shot(page, "share-confirm");
       await page.getByTestId("share-revoke-yes").click();
       await until(async () => (await links())[0].revoked_at, "turned off", 10000);
+      const opensBefore = (await links())[0].open_count;
       const v = await open(laptopLink);
       await v.page.getByTestId("ro-gone").waitFor();
       const revokedText = await v.page.locator("body").innerText();
       const unknown = await open(`${app.origin}/v/${"y".repeat(32)}`);
       assert.equal(revokedText, await unknown.page.locator("body").innerText(), "the same page as an unknown link");
-      assert.equal((await links())[0].open_count, 5 + 0 === 0 ? 0 : (await links())[0].open_count, "counted");
+      assert.equal((await links())[0].open_count, opensBefore, "a turned-off link's open adds nothing to the count");
       assert.ok(!revokedText.includes("Riverside"), "nothing about the plan");
       await page.goto(shareUrl); await page.getByTestId("share-link").first().waitFor();
       assert.match(await page.getByTestId("share-link").first().innerText(), /Turned off/);

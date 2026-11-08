@@ -15,7 +15,8 @@
 --   public wrappers (security invoker) for each of the above that a browser role or the server calls
 --
 -- Replaced, each a superset of what it was:
---   private.retreat_closed_on        step 2's fixture. The retreat's last day (the end date, else the day Day 2 closed in America/Toronto), null until Day 2 has closed
+--   private.retreat_closed_on        step 2's fixture. The retreat's last day (the end date, else the day Day 2 closed in the church's time zone), null until Day 2 has closed
+--   private.check_in_latest_for_view  step 2's contract: the same columns, with answered_on as the day in the church's time zone
 --   private.check_in_after_status    step 2's status trigger is dropped: a status change alone makes no rounds. Rounds are made when Day 2 closes
 -- Shared objects touched, each a superset of its newest definition at the time this migration runs:
 --   private.reset_practice_room      the newest wrapper, renamed reset_practice_room_pre_read_only and wrapped; clears the links and Day 2's close
@@ -24,33 +25,54 @@ begin;
 
 -- ---------- Day 2 ----------
 alter table public.engagements add column day2_closed_at timestamptz;
+-- The rounds a close made, so Undo takes away those and nothing else (a round made by hand, or switched off, is the facilitator's).
+alter table private.check_in_rounds add column made_by_close boolean not null default false;
 
--- The retreat's last day once Day 2 has closed, else null. The end date wins when it is set. Days are church days in America/Toronto.
+-- The retreat's last day once Day 2 has closed, else null. The end date wins when it is set. Days are church days in the church's time zone.
 create or replace function private.retreat_closed_on(p_engagement uuid) returns date
 language sql stable security definer set search_path='' as $$
- select case when e.day2_closed_at is null then null else coalesce(e.retreat_end_date,(e.day2_closed_at at time zone 'America/Toronto')::date) end
- from public.engagements e where e.id=p_engagement and not e.deleted
+ select case when e.day2_closed_at is null then null else coalesce(e.retreat_end_date,(e.day2_closed_at at time zone coalesce(nullif(c.timezone,''),'America/Toronto'))::date) end
+ from public.engagements e left join public.churches c on c.id=e.church_id where e.id=p_engagement and not e.deleted
 $$;
+
+-- Each goal's newest status as its owner reported it. Step 2's contract, the same columns; the date is the church's day, not UTC's.
+create or replace function private.check_in_latest_for_view(p_engagement uuid) returns table(goal_id uuid,status text,answered_on date)
+language sql stable security definer set search_path='' as $$
+ select distinct on(a.goal_id) a.goal_id,a.answer,
+   (a.updated_at at time zone coalesce((select nullif(c.timezone,'') from public.engagements e join public.churches c on c.id=e.church_id where e.id=p_engagement),'America/Toronto'))::date
+  from private.check_in_answers a join private.check_in_recipients r on r.id=a.recipient_id join private.check_in_rounds d on d.id=r.round_id
+  join private.goals g on g.id=a.goal_id and g.engagement_id=a.engagement_id and not g.deleted
+  where a.engagement_id=p_engagement and a.goal_id is not null and d.engagement_id=p_engagement
+  order by a.goal_id,d.day desc,a.updated_at desc
+$$;
+
+-- Engagements already in follow-up with a retreat end date: their retreat has closed, so sharing and the check-ins work for them too.
+update public.engagements e set day2_closed_at=(e.retreat_end_date::timestamp at time zone coalesce((select nullif(c.timezone,'') from public.churches c where c.id=e.church_id),'America/Toronto'))
+ where e.status='follow_up' and e.retreat_end_date is not null and not e.deleted and e.day2_closed_at is null;
 
 -- Closes the retreat: records when, and makes the 30, 60 and 90-day check-in rounds (existing rounds are left as they are). It does nothing for an
 -- engagement that is closed, deleted or already marked. Returns whether this call did it.
 create function private.retreat_close(p_engagement uuid,p_at timestamptz) returns boolean
 language plpgsql security definer set search_path='' as $$
+declare had uuid[];
 begin
  update public.engagements set day2_closed_at=p_at where id=p_engagement and not deleted and status<>'closed' and day2_closed_at is null;
  if not found then return false; end if;
+ had:=array(select r.id from private.check_in_rounds r where r.engagement_id=p_engagement);
  perform private.check_in_make_rounds(p_engagement,private.retreat_closed_on(p_engagement));
+ update private.check_in_rounds r set made_by_close=true where r.engagement_id=p_engagement and r.id<>all(had);
  return true;
 end $$;
 
--- Ending a day is the room control close_part. The retreat closes when that leaves Day 2 (the half day of a day-and-a-half engagement is its Day 2
--- too) with steps closed and none still open, as Day 1's close opens the overnight round. A step ending on its own, or the close of another part
--- before Day 2 has run, does not.
+-- Ending a day is the room control close_part. The retreat closes when that call itself closes a Day 2 step (the half day of a day-and-a-half
+-- engagement is its Day 2 too) and leaves none open. Closing Day 1 or another part, a step ending on its own, and a rehearsal on a real engagement
+-- do not. A step closed in this transaction is one whose closed_at is not before the transaction began.
 create function private.retreat_day2_closed() returns trigger
 language plpgsql security definer set search_path='' as $$
 begin
  if new.action='close_part'
-  and exists(select 1 from public.sessions x where x.engagement_id=new.engagement_id and x.part='Day 2' and not x.deleted and x.state='closed' and x.closed_at is not null)
+  and private.rehearsing(new.engagement_id) is null
+  and exists(select 1 from public.sessions x where x.engagement_id=new.engagement_id and x.part='Day 2' and not x.deleted and x.state='closed' and x.closed_at>=transaction_timestamp())
   and not exists(select 1 from public.sessions x where x.engagement_id=new.engagement_id and x.part='Day 2' and not x.deleted and x.mode='live' and x.state in ('live','phones_down','open'))
   and not exists(select 1 from public.sessions x where x.engagement_id=new.engagement_id and x.part='Day 2' and not x.deleted and x.mode='self_paced' and x.state<>'draft' and x.closes_at>clock_timestamp()) then
   perform private.retreat_close(new.engagement_id,clock_timestamp());
@@ -73,11 +95,16 @@ begin
  perform private.discover_lock(p_engagement);
  select * into e from public.engagements where id=p_engagement and not deleted;
  if e.day2_closed_at is not null then return jsonb_build_object('status','already','closed_at',e.day2_closed_at); end if;
+ -- Only once the retreat is under way or over: before that, neither the status nor the start date has got there.
+ if e.status not in ('retreat','follow_up') and e.type<>'practice' and not (e.retreat_start_date is not null
+  and e.retreat_start_date<=(clock_timestamp() at time zone coalesce((select nullif(c.timezone,'') from public.churches c where c.id=e.church_id),'America/Toronto'))::date) then
+  return jsonb_build_object('status','too_early');
+ end if;
  perform private.retreat_close(p_engagement,clock_timestamp());
  return jsonb_build_object('status','ok','closed_on',private.retreat_closed_on(p_engagement));
 end $$;
 
--- Undo a mistaken mark, within the hour and before any check-in has gone out. The rounds made by the close go with it, and every link stops opening
+-- Undo a mistaken mark, within the hour and before any check-in has gone out. The scheduled rounds this close made go with it (never one made by hand or switched off), and every link stops opening
 -- until the retreat is closed again.
 create function private.retreat_reopen(p_engagement uuid) returns jsonb
 language plpgsql security definer set search_path='' as $$
@@ -90,7 +117,7 @@ begin
  if e.day2_closed_at<clock_timestamp()-interval '1 hour' then return jsonb_build_object('status','too_late'); end if;
  if exists(select 1 from private.check_in_rounds r where r.engagement_id=p_engagement and r.status in ('sending','sent'))
   or exists(select 1 from private.check_in_recipients r where r.engagement_id=p_engagement) then return jsonb_build_object('status','checkins_started'); end if;
- delete from private.check_in_rounds where engagement_id=p_engagement;
+ delete from private.check_in_rounds where engagement_id=p_engagement and made_by_close and status='scheduled';
  update public.engagements set day2_closed_at=null where id=p_engagement;
  return jsonb_build_object('status','ok');
 end $$;
@@ -130,6 +157,7 @@ begin
  select * into e from public.engagements where id=p_engagement and not deleted;
  select * into so from private.report_sign_offs o where o.engagement_id=p_engagement and not o.deleted order by o.n desc limit 1;
  select jsonb_build_object('status','ok','server_time',clock_timestamp(),'type',e.type,'engagement_status',e.status,'eligible',private.check_in_eligible(p_engagement),'practice',e.type='practice',
+  'timezone',coalesce((select nullif(c.timezone,'') from public.churches c where c.id=e.church_id),'America/Toronto'),
   'closed',e.day2_closed_at is not null,'closed_at',e.day2_closed_at,'closed_on',private.retreat_closed_on(p_engagement),
   'can_reopen',e.day2_closed_at is not null and e.day2_closed_at>=clock_timestamp()-interval '1 hour' and e.status<>'closed'
     and not exists(select 1 from private.check_in_rounds r where r.engagement_id=p_engagement and r.status in ('sending','sent'))
@@ -153,7 +181,6 @@ begin
  perform private.discover_lock(p_engagement);
  select * into e from public.engagements where id=p_engagement and not deleted;
  if e.day2_closed_at is null then return jsonb_build_object('status','not_closed'); end if;
- if (select count(*) from private.read_only_links l where l.engagement_id=p_engagement and l.revoked_at is null)>=25 then return jsonb_build_object('status','too_many'); end if;
  insert into private.read_only_links(engagement_id,name,token_hash,created_by) values(p_engagement,v_name,p_hash,private.clearway_user_id()) returning id into v_id;
  return jsonb_build_object('status','ok','id',v_id);
 end $$;
@@ -219,14 +246,16 @@ begin
  m:=private.map_assemble(e.id);
  if m is null then return gone; end if;
 
- -- Vision Outcomes with their indicators, and under each the 1-year goals with the status the owner gave in their newest check-in (a label and a date).
+ -- Vision Outcomes with their indicators, and under each every 1-year goal (not only those that meet CORE; an empty owner or date stays empty) with the status the owner gave in their newest check-in (a label and a date).
  select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object('n',o.value->'n','title',o.value->'title','description',o.value->'description','status',o.value->'status','stop',o.value->'stop',
    'indicators',coalesce(o.value->'indicators','[]'::jsonb),
-   'goals',coalesce((select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('title',g.value->'title','result',g.value->'result','owner',g.value->'owner','end_date',g.value->'end_date','season',g.value->'season',
-        'status',s.status,'status_on',s.answered_on)) order by g.ord)
-      from jsonb_array_elements(coalesce(m->'page2'->'outlook'->'goals','[]'::jsonb)) with ordinality g(value,ord)
-      left join private.check_in_latest_for_view(e.id) s on s.goal_id=(g.value->>'id')::uuid
-      where g.value->>'outcome_n'=o.value->>'n'),'[]'::jsonb))) order by o.ord),'[]'::jsonb) into v_outcomes
+   'goals',coalesce((select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('title',g.title,'result',nullif(g.result,''),'owner',coalesce(a.name,nullif(g.owner_name,'')),'end_date',g.end_date,'season',g.season,
+        'status',s.status,'status_on',s.answered_on)) order by g.position,g.id)
+      from private.goals g
+       join (select y.id,row_number() over(order by y.position,y.id)::text as rn from private.vision_outcomes y where y.engagement_id=e.id and not y.deleted) r on r.id=g.outcome_id
+       left join public.attendees a on a.id=g.owner_attendee_id and a.engagement_id=g.engagement_id and not a.deleted
+       left join private.check_in_latest_for_view(e.id) s on s.goal_id=g.id
+      where g.engagement_id=e.id and not g.deleted and r.rn=o.value->>'n'),'[]'::jsonb))) order by o.ord),'[]'::jsonb) into v_outcomes
  from jsonb_array_elements(coalesce(m->'page1'->'vision'->'outcomes','[]'::jsonb)) with ordinality o(value,ord);
 
  -- The commander's intent cards with their first steps (owner and date). Numbered as the Vision Outcomes are.
