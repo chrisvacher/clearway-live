@@ -58,13 +58,14 @@ async function main() {
     const open = async (key: string) => { await page.getByTestId(`rpt-section-${key}`).click(); await page.locator(`[data-testid="rpt-body"][data-key="${key}"]`).waitFor(); };
     const body = page.getByTestId("rpt-body");
 
-    await step("After the retreat is on the control surface and the hub lists the report, with three tiles that say they are coming", async () => {
+    await step("After the retreat is on the control surface and the hub lists the report, with the visibility plan, and two tiles that say they are coming", async () => {
       await page.goto(`${app.origin}/control/${room}`);
       await page.getByTestId("after-link").waitFor({ timeout: 20000 });
       await page.getByTestId("after-link").click();
       await page.getByTestId("after-hub").waitFor({ timeout: 15000 });
       assert.match(await page.getByTestId("after-report").innerText(), /Not drafted yet/);
-      for (const t of ["visibility", "share", "checkins"]) assert.match(await page.getByTestId(`after-${t}`).innerText(), /Coming in this milestone/);
+      assert.match(await page.getByTestId("after-visibility").innerText(), /Not drafted yet/);
+      for (const t of ["share", "checkins"]) assert.match(await page.getByTestId(`after-${t}`).innerText(), /Coming in this milestone/);
       assert.ok(!/[–—]/.test(await page.locator("main").innerText()), "no dashes in the copy");
       await shot(page, "hub");
     });

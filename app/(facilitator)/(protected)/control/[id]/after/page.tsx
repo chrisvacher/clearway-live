@@ -4,6 +4,7 @@ import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
 import { AfterHub, type AfterSummary } from "@/components/report/after-hub";
 import type { ReportState } from "@/lib/report/policy";
+import type { PlanState } from "@/lib/plan/policy";
 
 export const metadata = { title: "After the retreat", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -19,5 +20,12 @@ export default async function AfterPage({ params }: { params: Promise<{ id: stri
     const state = data as ReportState | null;
     if (!error && state?.status === "ok") summary = { available: true, draft: state.draft, reviewed: state.sections.filter(s => s.status === "reviewed").length, total: state.sections.length || 14, signed: state.signed && !state.signed.stale ? state.signed.n : null };
   } catch { /* The report is not here yet. */ }
+  // The visibility plan tile, the same way: it says so quietly when the plan's functions are not in the database yet.
+  try {
+    const { data, error } = await client.rpc("visibility_plan_state", { p_engagement: id });
+    const plan = data as PlanState | null;
+    if (!error && plan?.status === "ok") summary.plan = { available: true, rows: plan.rows.length, reviewed: plan.rows.filter(r => r.reviewed).length, date: plan.plan?.public_date ?? null };
+    else summary.plan = { available: false, rows: 0, reviewed: 0, date: null };
+  } catch { summary.plan = { available: false, rows: 0, reviewed: 0, date: null }; }
   return <AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} />;
 }

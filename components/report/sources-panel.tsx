@@ -10,7 +10,7 @@ export function Lit({ text, part }: { text: string; part?: string | null }) {
   return p.lit ? <>{p.before}<span className="ovr-hl">{p.lit}</span>{p.after}</> : <>{text}</>;
 }
 
-function SourceCard({ source, onRemove }: { source: ReportSource; onRemove: (() => void) | null }) {
+export function SourceCard({ source, onRemove }: { source: ReportSource; onRemove: (() => void) | null }) {
   const info = source.info, speaker = typeof info?.speaker === "string" ? info.speaker : null, text = info?.text || source.excerpt;
   return <div className="ovr-scard is-lit" data-testid="rpt-source" data-kind={source.kind}>
     <div className="meta"><span className="ovr-meta-l">{info?.label ?? "Record"}{source.room ? " · the room's own words" : ""}</span>

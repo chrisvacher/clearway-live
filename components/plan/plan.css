@@ -1,0 +1,56 @@
+/* The visibility plan (AFT-02): the cwl-vp-* styles of design pass 7, ported to the app. A facilitator app surface, light, like the report and the
+   overnight review it borrows its parts from (ovr-*). Every color, size and duration is a Clearway Live token. */
+@import "../overnight/overnight.css";
+
+.cwl-vp { --cwl-ai-start: var(--cw-royal-blue); --cwl-ai-end: var(--cwl-bright-chartreuse); --cwl-ai-glint: var(--cw-sky-blue); display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cwl-vp .cwl-ai-mark { width: 16px; height: 16px; }
+.cwl-vp-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 340px); gap: 16px; align-items: start; }
+.cwl-vp-card { background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.cwl-vp-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cwl-vp-hd h2 { font-size: var(--cwl-fs-app-page-title); font-weight: 700; }
+.cwl-vp-eyebrow { font-size: var(--cwl-fs-app-micro); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
+.cwl-vp-ai { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 700; }
+.cwl-vp-moment { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.cwl-vp-moment label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text-muted); }
+.cwl-vp-moment .ovr-input { width: auto; min-width: 180px; }
+
+.cwl-vp-order { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: var(--cwl-fs-app-micro); font-weight: 600; color: var(--cwl-app-text-muted); }
+.cwl-vp-order span { display: inline-flex; gap: 6px; align-items: center; }
+.cwl-vp-order b { width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--cwl-app-text); color: var(--cwl-app-card); font-size: var(--cwl-fs-app-micro); }
+.cwl-vp-order > svg { width: 14px; height: 14px; }
+.cwl-vp-scroll { overflow: auto; min-height: 0; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
+.cwl-vp-table { width: 100%; border-collapse: collapse; font-size: var(--cwl-fs-app-table); }
+.cwl-vp-table th { text-align: left; padding: 6px 10px; background: var(--cwl-app-sunken); font-size: var(--cwl-fs-app-micro); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
+.cwl-vp-table td { padding: 12px; vertical-align: top; line-height: 1.5; border-top: 1px solid var(--cwl-app-border); }
+.cwl-vp-table td.who { min-width: 190px; }
+.cwl-vp-table td.risk { min-width: 200px; }
+.cwl-vp-table td.rv { white-space: nowrap; }
+.cwl-vp-row.is-selected td { background: var(--cwl-app-selected); }
+.cwl-vp-row.is-flag td { background: var(--cwl-app-warning-bg); }
+.cwl-vp-cell { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; line-height: inherit; text-align: left; cursor: text; white-space: pre-line; min-height: 24px; }
+.cwl-vp-cell:hover { background: var(--cwl-app-hover); }
+.cwl-vp-cell.is-empty { color: var(--cwl-app-text-muted); }
+.cwl-vp-marks { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.cwl-vp-chip { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; height: 18px; border-radius: 5px; font-size: 11px; font-weight: 700; background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); white-space: nowrap; }
+.cwl-vp-chip.is-edited { background: var(--cwl-app-selected); color: var(--cwl-app-text); }
+.cwl-vp-chip svg { width: 12px; height: 12px; }
+.cwl-vp-flag { display: flex; gap: 6px; margin-top: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 700; }
+.cwl-vp-flag svg { width: 14px; height: 14px; flex: none; color: var(--cwl-app-warning); }
+.cwl-vp-edit { display: flex; flex-direction: column; gap: 6px; }
+.cwl-vp-select { min-height: 32px; }
+.cwl-vp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.cwl-vp-foot svg { width: 14px; height: 14px; vertical-align: -2px; }
+.cwl-vp-ask { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-radius: var(--cwl-radius-button); background: var(--cwl-app-info-bg); }
+.cwl-vp-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; padding: 12px; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-page); }
+.cwl-vp-form label { display: flex; flex-direction: column; gap: 4px; font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text-muted); }
+.cwl-vp-form .is-wide { grid-column: 1 / -1; }
+.cwl-vp-empty { padding: 18px 14px; border: 1px dashed var(--cwl-app-border-strong); border-radius: var(--cwl-radius-card); color: var(--cwl-app-text-muted); }
+.cwl-vp-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cwl-vp-side { position: sticky; top: 12px; }
+
+@media (max-width: 1100px) {
+  .cwl-vp-grid { grid-template-columns: minmax(0, 1fr); }
+  .cwl-vp-side { position: static; }
+}
+.cwl-vp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ovr-progress.is-flat { border: 0; padding: 0; }

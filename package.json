@@ -59,6 +59,7 @@
     "test:what-we-heard": "node --import tsx tests/browser/what-we-heard.ts",
     "test:acceptance-m6": "node --import tsx tests/browser/acceptance-m6.ts",
     "test:report": "node --import tsx tests/browser/report.ts",
+    "test:visibility-plan": "node --import tsx tests/browser/visibility-plan.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },
   "dependencies": {

@@ -1,0 +1,38 @@
+{
+ "names": ["Sarah", "Priya", "Daniel", "Elena", "Michael", "Jordan", "Grace", "Thomas", "Ellis", "Shah", "Brooks", "Cruz", "Reed", "Parker", "Chen", "Bennett"],
+ "cases": [
+  {
+   "name": "no public date",
+   "inputs": {
+    "public": { "moment": "Vision Sunday", "date": null },
+    "kept_stages": [],
+    "refs": [
+     { "ref": "a1", "group": "Scribe action card", "text": "Brief the elders before the plan is shared with the church.", "thin": false },
+     { "ref": "a2", "group": "Scribe action card", "text": "Tell the congregation about the outcomes on a Sunday in January.", "thin": false },
+     { "ref": "m1", "group": "Scribe mitigation card", "text": "Name a back-up owner for every first step. (the risk it answers: No one knew who owned what)", "thin": false },
+     { "ref": "r1", "group": "Risk from the pre-mortem", "text": "Staff burned out by spring", "thin": false },
+     { "ref": "k1", "group": "Mitigation for the risk: Staff burned out by spring", "text": "One owner and a real end date per goal", "thin": false },
+     { "ref": "i1", "group": "Commander's Intent card for the Vision Outcome: Leaders raised from within", "text": "Intent: Every ministry is growing its own next leader. Must do: Name an apprentice in every ministry.", "thin": false },
+     { "ref": "s1", "group": "First step", "text": "List every ministry lead and a possible apprentice", "thin": false },
+     { "ref": "g1", "group": "1-year goal", "text": "Launch the apprentice pathway: 8 apprentices placed in ministries", "thin": false },
+     { "ref": "d1", "group": "Decision", "text": "Leaders raised from within: Confirmed. The whole room said this is the one that makes the rest possible.", "thin": false },
+     { "ref": "y1", "group": "Success measure the team ranked", "text": "Leaders in training", "thin": false }
+    ]
+   },
+   "reply": "{\"rows\":[{\"stage\":\"lead_pastor\",\"who\":\"The lead pastor\",\"when\":\"\",\"when_date\":\"\",\"by\":\"\",\"hear\":\"Hears the whole plan first. The room asked that the elders are briefed before the church hears it.\",\"risk\":\"Staff burned out by spring\",\"refs\":[\"a1\",\"r1\"]},{\"stage\":\"participants\",\"who\":\"The retreat participants\",\"when\":\"\",\"when_date\":\"\",\"by\":\"\",\"hear\":\"Hold the plan until the elders have been briefed. Every first step has a back-up owner.\",\"risk\":\"\",\"refs\":[\"a1\",\"m1\"]},{\"stage\":\"board\",\"who\":\"The elders\",\"when\":\"\",\"when_date\":\"\",\"by\":\"\",\"hear\":\"The plan before the church hears it, and the decision: \\\"Leaders raised from within\\\".\",\"risk\":\"Staff burned out by spring\",\"refs\":[\"a1\",\"d1\",\"r1\"]},{\"stage\":\"staff\",\"who\":\"The staff\",\"when\":\"\",\"when_date\":\"\",\"by\":\"\",\"hear\":\"Each goal has one owner and a real end date.\",\"risk\":\"Staff burned out by spring\",\"refs\":[\"k1\",\"r1\"]},{\"stage\":\"key_leaders\",\"who\":\"Members and key leaders\",\"when\":\"\",\"when_date\":\"\",\"by\":\"\",\"hear\":\"The 1-year Outlook starts with 8 apprentices placed in ministries.\",\"risk\":\"\",\"refs\":[\"g1\"]},{\"stage\":\"congregation\",\"who\":\"The congregation\",\"when\":\"\",\"when_date\":\"\",\"by\":\"\",\"hear\":\"On Vision Sunday the church hears that every ministry is growing its own next leader.\",\"risk\":\"\",\"refs\":[\"i1\",\"a2\"]}]}"
+  },
+  {
+   "name": "public date",
+   "inputs": {
+    "public": { "moment": "Vision Sunday", "date": "2027-01-31" },
+    "kept_stages": ["lead_pastor"],
+    "refs": [
+     { "ref": "a1", "group": "Scribe action card", "text": "Brief the elders before the plan is shared with the church.", "thin": false },
+     { "ref": "i1", "group": "Commander's Intent card for the Vision Outcome: Leaders raised from within", "text": "Intent: Every ministry is growing its own next leader.", "thin": false },
+     { "ref": "s1", "group": "First step", "text": "List every ministry lead and a possible apprentice", "thin": false }
+    ]
+   },
+   "reply": "{\"rows\":[{\"stage\":\"board\",\"who\":\"The elders\",\"when\":\"Two weeks before\",\"when_date\":\"2027-01-17\",\"by\":\"\",\"hear\":\"The plan, before the church hears it.\",\"risk\":\"\",\"refs\":[\"a1\"]},{\"stage\":\"staff\",\"who\":\"The staff\",\"when\":\"The week before\",\"when_date\":\"2027-01-24\",\"by\":\"\",\"hear\":\"The first step: \\\"List every ministry lead and a possible apprentice\\\".\",\"risk\":\"\",\"refs\":[\"s1\"]},{\"stage\":\"congregation\",\"who\":\"The congregation\",\"when\":\"Vision Sunday\",\"when_date\":\"2027-01-31\",\"by\":\"\",\"hear\":\"On Vision Sunday the church hears that every ministry is growing its own next leader.\",\"risk\":\"\",\"refs\":[\"i1\"]}]}"
+  }
+ ]
+}
