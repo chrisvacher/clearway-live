@@ -334,5 +334,29 @@ select is(tests.claim('ninth',909)->>'status','off','With AI off the worker is t
 select is((select count(*) from private.ai_runs where job='alignment_signal' and status='running')::integer,0,'and no signal run starts');
 update engagements set settings='{"ai_enabled":true}' where id=tests.id(100);
 
+-- ---------- The room window: the newest 120 of 125 inputs, and the seen set holds all of them ----------
+-- The claim builds its room inputs and its seen set from one scan. The window is the newest 120 (ties on arrival time broken by id),
+-- numbered oldest first; the seen set is every input.
+update submissions set deleted=true where session_id=tests.id(310);
+update private.scribe_cards set deleted=true where session_id=tests.id(310);
+update private.ai_sessions set signal_seen_at=null,signal_seen_ids=array[]::uuid[],signal_phones_seen=false,signal_failed_at=null,signal_lease_id=null,signal_lease_run=null,signal_lease_until=null,lease_id=null,lease_run=null,lease_until=null where session_id=tests.id(310);
+-- Inputs 5 and 6 arrived at the same moment, so the cut falls between two ties: the smaller id stays in the window, the larger one leaves it.
+insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at,server_received_at)
+select case g when 5 then '8d050000-0000-4000-8000-0000000fff01'::uuid when 6 then '8d050000-0000-4000-8000-0000000fff02'::uuid else gen_random_uuid() end,
+ tests.id(100),tests.id(310),tests.id(504),'in-'||lpad(g::text,3,'0'),'[]'::jsonb,now(),
+ now()-interval '1 day'+(case when g<=5 then least(g,5) else g-1 end)*interval '1 second'
+from generate_series(1,125) g;
+select is((select count(*)::integer from private.signal_input(tests.id(310))),125,'The step holds 125 inputs');
+select tests.age();
+select is(tests.claim('window',920)->>'status','claimed','125 new inputs make the run due');
+select is(jsonb_array_length(tests.c('window')->'inputs'->'room'),120,'The room is cut to the newest 120');
+select is((tests.c('window')->'inputs'->'room'->0)->>'ref','r1','and numbered from r1');
+select is((tests.c('window')->'inputs'->'room'->0)->>'text','in-005','r1 is the oldest of the newest 120: of two inputs that tie at the cut the smaller id stays');
+select is((tests.c('window')->'inputs'->'room'->119)->>'text','in-125','the last ref is the newest input');
+select is((select count(*)::integer from jsonb_array_elements(tests.c('window')->'inputs'->'room') x where x->>'text' in('in-001','in-002','in-003','in-004','in-006')),0,'The five oldest are not in the room');
+select is((select string_agg(x->>'ref',',' order by (x->>'ref')) from jsonb_array_elements(tests.c('window')->'inputs'->'room') x where x->>'text' in('in-005','in-006','in-007')),'r1,r2','and refs run oldest first');
+select is((select cardinality(signal_seen_ids) from private.ai_sessions where session_id=tests.id(310)),125,'The seen set holds all 125 inputs, those outside the window too');
+select is((select count(*)::integer from private.signal_input(tests.id(310)) i join private.ai_sessions a on a.session_id=tests.id(310) where i.id=any(a.signal_seen_ids)),125,'and they are the step''s inputs');
+
 select * from finish();
 rollback;
