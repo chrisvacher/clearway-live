@@ -93,8 +93,11 @@ async function main() {
       }
       assert.equal(phones.length, 8);
     });
+    // A phone's pooled connection can sit idle past the server's keep-alive and be closed
+    // just as it's reused (ECONNRESET before the request is read). Retry once on a fresh one.
     const post = async (i: number, path: string, data: unknown) => {
-      const r = await phones[i].ctx.request.post(`${app.origin}${path}`, { headers: origin, data });
+      const send = () => phones[i].ctx.request.post(`${app.origin}${path}`, { headers: { ...origin, connection: "close" }, data });
+      const r = await send().catch(async (e: Error) => { if (!/ECONNRESET|socket hang up/.test(String(e?.message))) throw e; return send(); });
       return (await r.json().catch(() => ({ status: `http_${r.status()}` }))) as { status: string };
     };
     const answer = async (i: number, session: string, text: string, value?: unknown) =>
