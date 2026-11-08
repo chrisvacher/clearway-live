@@ -30,6 +30,8 @@ async function main() {
     const response = await fetch(`${app!.origin}/api/cron/check-ins`, { headers: header ? { Authorization: header } : {}, cache: "no-store" });
     return { status: response.status, body: await response.json().catch(() => ({})) as Record<string, unknown> };
   };
+  // Rounds are made when Day 2 closes (step 4), so the kit closes the retreat the way the database does.
+  const closeRetreat = async (id: string, end: string) => { await sql.query("update public.engagements set status='follow_up',retreat_end_date=$2 where id=$1", [id, end]); await sql.query("select private.retreat_close($1::uuid,now())", [id]); };
   try {
     await sql.connect();
     const room = await engagement(sql, ["Priya", "Ben", "Ruth"]);
@@ -61,7 +63,7 @@ async function main() {
 
     await step("Rounds are made when the retreat closes, 30, 60 and 90 days after its last day", async () => {
       assert.equal((await rounds()).length, 0, "none before the retreat closes");
-      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [room.id]);
+      await closeRetreat(room.id, "2027-01-01");
       assert.deepEqual((await rounds()).map(r => [r.day, r.due_on, r.status]), [[30, D.r30, "scheduled"], [60, D.r60, "scheduled"], [90, D.r90, "scheduled"]]);
       // The scheduled run works on every engagement. Rounds left by an earlier run of this kit or another are put away so the counts here are this room's.
       await sql.query("update private.check_in_rounds set status='off' where engagement_id<>$1 and status in('scheduled','sending')", [room.id]);
@@ -367,7 +369,7 @@ async function main() {
 
     await step("A base date in the past sends only the latest round, and Switch check-ins on does not bring the earlier ones back", async () => {
       const r = await small([["Cleo", "Cleo Hart"]], ["Open the third door"]);
-      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2026-12-01' where id=$1", [r.id]);
+      await closeRetreat(r.id, "2026-12-01");
       await quiet(r.id); await start("2027-06-01");
       const before = mail.count, out = await cron(`Bearer ${secret}`);
       assert.equal(out.body.rounds, 1, JSON.stringify(out.body)); assert.equal(mail.count - before, 1, "one email, the 90-day check-in");
@@ -394,7 +396,7 @@ async function main() {
 
     await step("Send now on the 60-day round skips the 30-day round, which is refused and never goes out read-only", async () => {
       const r = await small([["Dex", "Dex Moran"]], ["Open the fourth door"]);
-      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await closeRetreat(r.id, "2027-01-01");
       await quiet(r.id); await start(null);
       const f = await facilitator(env, sql, r.id);
       const ctx = await browser!.newContext({ viewport: { width: 1440, height: 1000 } });
@@ -415,7 +417,7 @@ async function main() {
 
     await step("A practice engagement never emails, even a real-looking address", async () => {
       const r = await small([["Pia", "Pia Nash"]], ["Practise the pathway"]);
-      await sql.query("update public.engagements set type='practice',status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await sql.query("update public.engagements set type='practice' where id=$1", [r.id]); await closeRetreat(r.id, "2027-01-01");
       await quiet(r.id); await start(D.r30);
       const real = (await sql.query("select email from public.attendees where engagement_id=$1", [r.id])).rows[0].email as string;
       assert.ok(/@example\.org$/.test(real) && !/\.(example|invalid|test)$/.test(real), "the address looks real");
@@ -430,7 +432,7 @@ async function main() {
       const o = (await sql.query("insert into private.vision_outcomes(engagement_id,title,status,confirmed_at,position) values($1,'Outcome','confirmed',now(),0) returning id", [r.id])).rows[0].id;
       const c = (await sql.query("insert into private.intent_cards(engagement_id,outcome_id,intent) values($1,$2,'Intent') returning id", [r.id, o])).rows[0].id;
       const stepId = (await sql.query("insert into private.first_steps(engagement_id,card_id,text,owner_attendee_id,due_date,position) values($1,$2,'Write the welcome note',$3,'2027-02-01',0) returning id", [r.id, c, r.attendees[0].id])).rows[0].id;
-      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await closeRetreat(r.id, "2027-01-01");
       await sql.query("update private.first_steps set owner_attendee_id=$2 where id=$1", [stepId, r.attendees[1].id]);
       await quiet(r.id); await start(D.r30);
       const before = mail.count, out = await cron(`Bearer ${secret}`);
@@ -441,7 +443,7 @@ async function main() {
 
     await step("A resumed send emails only the people with no result, with the same link and the same email as the first try", async () => {
       const r = await small([["Eve", "Eve Park"], ["Fay", "Fay Ross"]], ["Open the fifth door", "Open the sixth door"]);
-      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await closeRetreat(r.id, "2027-01-01");
       await quiet(r.id); await start(D.r30);
       const fay = r.attendees[1];
       const first = mail.count, out = await cron(`Bearer ${secret}`);

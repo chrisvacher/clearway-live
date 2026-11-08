@@ -4,6 +4,7 @@ import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
 import { AfterHub, type AfterSummary } from "@/components/report/after-hub";
 import type { ReportState } from "@/lib/report/policy";
+import { shareLine, type ShareState } from "@/lib/read-only/policy";
 import type { PlanState } from "@/lib/plan/policy";
 import { checkInLine, type CheckInState } from "@/lib/check-ins/policy";
 
@@ -34,5 +35,11 @@ export default async function AfterPage({ params }: { params: Promise<{ id: stri
     const state = data as CheckInState | null;
     if (!error && state?.status === "ok") summary = { ...summary, checkIns: { available: true, line: checkInLine(state) } };
   } catch { /* The check-ins are not here yet. */ }
+  // The Share tile shows whether Day 2 has closed and how the links stand. Before this step's migration is applied the call fails and the tile says so, quietly.
+  try {
+    const { data, error } = await client.rpc("share_state", { p_engagement: id });
+    const state = data as ShareState | null;
+    if (!error && state?.status === "ok") summary = { ...summary, share: { available: true, line: shareLine(state), closed: state.closed, closedOn: state.closed_on, canReopen: state.can_reopen, eligible: state.eligible } };
+  } catch { /* Sharing is not here yet. */ }
   return <AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} />;
 }

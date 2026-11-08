@@ -338,6 +338,17 @@ jobs:
         with:
           name: check-ins-screens
           path: check-ins-shots/
+      - name: Test the read-only copy (sharing waits for Day 2, Close the day, a named link shown once, laptop and phone, no inputs, the report only after sign-off, owner status, revoke, nothing private in the page) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p read-only-shots && npm run test:read-only
+        env:
+          KIT_SHOTS: read-only-shots
+      - name: Upload the read-only screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: read-only-screens
+          path: read-only-shots/
       - name: Test the Wayfinding report (draft all 14 sections, sources and the lit words, the aligned signal as a source, edit, the room's words, redraft, a section the model fails on, sign-off, the Word and PDF export, who can reach it) in a real browser
         if: ${{ !cancelled() }}
         run: mkdir -p report-shots && npm run test:report

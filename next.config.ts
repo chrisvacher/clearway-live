@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ] }, { source: "/v/:path*", headers: [
+      { key: "Referrer-Policy", value: "no-referrer" },
+      { key: "Cache-Control", value: "private, no-store" },
     ] }, { source: "/auth/:path*", headers: [
       { key: "Referrer-Policy", value: "no-referrer" },
     ] }, { source: "/room/:id/confirm", headers: [

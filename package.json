@@ -60,6 +60,7 @@
     "test:acceptance-m6": "node --import tsx tests/browser/acceptance-m6.ts",
     "test:check-ins": "node --import tsx tests/browser/check-ins.ts",
     "test:report": "node --import tsx tests/browser/report.ts",
+    "test:read-only": "node --import tsx tests/browser/read-only.ts",
     "test:visibility-plan": "node --import tsx tests/browser/visibility-plan.ts",
     "load": "node --import tsx scripts/load-test.ts"
   },

@@ -18,7 +18,7 @@ Each recipient keeps a snapshot of their items (`check_in_recipients.items`), so
 
 ## Rounds
 
-- Made when the retreat closes, by `private.check_in_after_status` (a trigger when an engagement is in follow-up and has a retreat end date), reading the contract `private.retreat_closed_on(engagement)`. Step 2 ships a fixture: the retreat end date, only when the status is `follow_up`. Step 4 replaces it with `day2_closed_at` and the end date and must call `private.check_in_make_rounds(engagement, base)` when Day 2 closes.
+- Made when Day 2 closes, by `private.retreat_close` (called from the Day 2 trigger on `private.room_controls` and from Mark the retreat closed), which calls `private.check_in_make_rounds(engagement, base)` with `private.retreat_closed_on(engagement)`: the retreat end date if set, else the date Day 2 closed in the church's time zone. See `docs/read-only-copy.md`.
 - Or made by hand from the results page (Create check-ins), which asks for the retreat end date when the contract gives none.
 - Due 30, 60 and 90 days after that date. Only wayfinding, day-and-a-half and practice engagements have check-ins.
 - Status: `scheduled`, `sending`, `sent`, `off`. The facilitator can switch the unsent rounds off and on, and press Send now on a round (asked inside the panel; for a real engagement it says it emails real people).

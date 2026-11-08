@@ -64,16 +64,20 @@ select is(private.retreat_closed_on(tests.id(100)),null,'The contract says the r
 update engagements set retreat_end_date='2027-01-01' where id=tests.id(100);
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),0::bigint,'Setting the end date alone makes none');
 update engagements set status='follow_up' where id=tests.id(100);
-select is(private.retreat_closed_on(tests.id(100)),date '2027-01-01','In follow-up the contract gives the retreat''s last day');
-select is((select array_agg(day order by day) from private.check_in_rounds where engagement_id=tests.id(100)),array[30,60,90]::smallint[],'Moving to follow-up makes the 30, 60 and 90-day rounds');
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),0::bigint,'Moving to follow-up alone makes none either');
+select is(private.retreat_closed_on(tests.id(100)),null,'and the contract still says the retreat has not closed');
+select ok(private.retreat_close(tests.id(100),'2027-01-01 15:00+00'),'Closing the retreat');
+select is(private.retreat_closed_on(tests.id(100)),date '2027-01-01','gives the retreat''s last day');
+select is((select array_agg(day order by day) from private.check_in_rounds where engagement_id=tests.id(100)),array[30,60,90]::smallint[],'and makes the 30, 60 and 90-day rounds');
 select is((select array_agg(due_on order by day) from private.check_in_rounds where engagement_id=tests.id(100)),array[date '2027-01-31',date '2027-03-02',date '2027-04-01'],'due 30, 60 and 90 days after the last day');
 select is((select count(distinct status) from private.check_in_rounds where engagement_id=tests.id(100)),1::bigint,'all scheduled');
 update engagements set retreat_end_date='2027-01-02' where id=tests.id(100);
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),3::bigint,'A later change does not make them again');
 update engagements set status='follow_up',retreat_end_date='2027-01-05' where id=tests.id(102);
-select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(102)),0::bigint,'A team workshop gets no check-ins');
+select ok(private.retreat_close(tests.id(102),now()),'Closing a team workshop');
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(102)),0::bigint,'gets no check-ins');
 update engagements set status='follow_up' where id=tests.id(101);
-select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(101)),0::bigint,'Follow-up with no end date makes none');
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(101)),0::bigint,'Follow-up with Day 2 still open makes none');
 
 -- ---------- Who may read ----------
 set local role authenticated;
