@@ -4,6 +4,7 @@ import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
 import { AfterHub, type AfterSummary } from "@/components/report/after-hub";
 import type { ReportState } from "@/lib/report/policy";
+import { checkInLine, type CheckInState } from "@/lib/check-ins/policy";
 
 export const metadata = { title: "After the retreat", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -19,5 +20,11 @@ export default async function AfterPage({ params }: { params: Promise<{ id: stri
     const state = data as ReportState | null;
     if (!error && state?.status === "ok") summary = { available: true, draft: state.draft, reviewed: state.sections.filter(s => s.status === "reviewed").length, total: state.sections.length || 14, signed: state.signed && !state.signed.stale ? state.signed.n : null };
   } catch { /* The report is not here yet. */ }
+  // The check-ins tile shows the next round's status. Before the check-ins migration is applied the call fails and the tile says so, quietly.
+  try {
+    const { data, error } = await client.rpc("check_in_state", { p_engagement: id });
+    const state = data as CheckInState | null;
+    if (!error && state?.status === "ok") summary = { ...summary, checkIns: { available: true, line: checkInLine(state) } };
+  } catch { /* The check-ins are not here yet. */ }
   return <AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} />;
 }

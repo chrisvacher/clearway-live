@@ -2,9 +2,9 @@ import Link from "next/link";
 import { BadgeCheck, CalendarDays, EyeOff, FileText, ListOrdered, MessageSquareQuote, Radio, Send, UserCheck } from "lucide-react";
 import "./report.css";
 
-export type AfterSummary = { available: boolean; draft: boolean; reviewed: number; total: number; signed: number | null };
+export type AfterSummary = { available: boolean; draft: boolean; reviewed: number; total: number; signed: number | null; checkIns?: { available: boolean; line: string } };
 
-// After the retreat (milestone 7): the report, the visibility plan, what is shared with the church, and the check-ins. Only the report is here yet.
+// After the retreat (milestone 7): the report, the visibility plan, what is shared with the church, and the check-ins. The report and the check-ins are here.
 export function AfterHub({ engagement, church, title, summary }: { engagement: string; church: string; title: string; summary: AfterSummary }) {
   return <div className="ovr" data-surface="after" data-theme="light" data-testid="after-hub">
     <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
@@ -22,7 +22,9 @@ export function AfterHub({ engagement, church, title, summary }: { engagement: s
           : <div className="rpt-tile is-soon" data-testid="after-report"><h2><FileText aria-hidden="true" />Report</h2><span>The report isn’t available yet.</span></div>}
         <div className="rpt-tile is-soon" data-testid="after-visibility"><h2><UserCheck aria-hidden="true" />Visibility plan</h2><span>Coming in this milestone.</span></div>
         <div className="rpt-tile is-soon" data-testid="after-share"><h2><Send aria-hidden="true" />Share</h2><span>Coming in this milestone.</span></div>
-        <div className="rpt-tile is-soon" data-testid="after-checkins"><h2><MessageSquareQuote aria-hidden="true" />Check-ins</h2><span>Coming in this milestone.</span></div>
+        {summary.checkIns?.available
+          ? <Link className="rpt-tile" href={`/control/${engagement}/check-ins`} data-testid="after-checkins"><h2><MessageSquareQuote aria-hidden="true" />Check-ins</h2><span>{summary.checkIns.line}</span></Link>
+          : <div className="rpt-tile is-soon" data-testid="after-checkins"><h2><MessageSquareQuote aria-hidden="true" />Check-ins</h2><span>The check-ins aren’t available yet.</span></div>}
       </div></div>
     </main>
   </div>;
