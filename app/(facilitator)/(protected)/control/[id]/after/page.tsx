@@ -24,7 +24,7 @@ export default async function AfterPage({ params }: { params: Promise<{ id: stri
   try {
     const { data, error } = await client.rpc("visibility_plan_state", { p_engagement: id });
     const plan = data as PlanState | null;
-    if (!error && plan?.status === "ok") summary.plan = { available: true, rows: plan.rows.length, reviewed: plan.rows.filter(r => r.reviewed).length, date: plan.plan?.public_date ?? null };
+    if (!error && plan?.status === "ok") summary.plan = { available: true, rows: plan.rows.length, reviewed: plan.rows.filter(r => r.reviewed).length, date: plan.plan?.public_date ?? null, status: plan.plan?.status ?? null };
     else summary.plan = { available: false, rows: 0, reviewed: 0, date: null };
   } catch { summary.plan = { available: false, rows: 0, reviewed: 0, date: null }; }
   return <AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} />;

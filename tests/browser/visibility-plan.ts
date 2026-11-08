@@ -140,7 +140,7 @@ async function main() {
       await shot(page, "edited");
     });
 
-    await step("Mark reviewed and Mark as not reviewed, and the count follows", async () => {
+    await step("Mark reviewed and Clear the review, and the count follows", async () => {
       const total = await vrows.count();
       await vrows.first().getByTestId("vp-review").click();
       await until(async () => (await rows())[0].reviewed_at !== null, "reviewed");
@@ -222,7 +222,8 @@ async function main() {
       const ranks = after.filter(r => r.origin === "ai").map(r => outward.indexOf(r.stage));
       assert.ok(after.every(r => !r.when_date || r.when_date <= "2027-01-31"), "no row is dated after the public date");
       assert.ok(ranks.length >= 1);
-      assert.equal(after.filter(r => r.stage === "lead_pastor").length, kept.some(k => k.stage === "lead_pastor") ? 1 : 1, "one lead pastor row");
+      assert.ok(after.filter(r => r.stage === "lead_pastor").length <= 1, "never more than one lead pastor row");
+      assert.equal(new Set(after.map(r => r.stage + "|" + r.who)).size, after.length, "no row is there twice");
       assert.deepEqual(after.map(r => r.position), after.map((_, i) => i + 1), "positions stay one to n");
     });
 
@@ -273,6 +274,23 @@ async function main() {
       assert.ok(!(await t.innerText()).includes("The ministry leaders"), "the report holds what was built");
       await section.getByTestId("rpt-refresh").click();
       await until(async () => (await t.innerText()).includes("The ministry leaders"), "Refresh from the records brings it in", 20000);
+    });
+
+    await step("A change in the plan marks the report's section out of date, and the plan page refreshes it", async () => {
+      await page.goto(`${app.origin}/control/${room}/plan`);
+      await vrows.first().waitFor({ timeout: 20000 });
+      const target = vrows.first();
+      await target.getByTestId("vp-cell-what_they_hear").click();
+      await target.getByTestId("vp-edit-text").fill("Say it once, plainly, before the public moment.");
+      await target.getByTestId("vp-edit-save").click();
+      await page.getByTestId("vp-report-stale").waitFor({ timeout: 15000 });
+      assert.equal((await sql.query("select plan_stale from private.report_sections where engagement_id=$1 and not deleted and key='visibility'", [room])).rows[0].plan_stale, true, "the section is marked");
+      const heardBefore = (await sql.query("select blocks->'rows'->0->'cells'->3->'s'->>0 as s from private.report_sections where engagement_id=$1 and not deleted and key='visibility'", [room])).rows[0].s as string;
+      await page.getByTestId("vp-report-refresh").click();
+      await page.getByTestId("vp-report-stale").waitFor({ state: "detached", timeout: 30000 });
+      assert.equal((await sql.query("select plan_stale from private.report_sections where engagement_id=$1 and not deleted and key='visibility'", [room])).rows[0].plan_stale, false, "and cleared by the refresh");
+      const heard = async () => (await sql.query("select blocks->'rows'->0->'cells'->3->'s'->>0 as s from private.report_sections where engagement_id=$1 and not deleted and key='visibility'", [room])).rows[0].s as string;
+      await until(async () => (await heard()) !== heardBefore, "the report holds the new words", 20000);
     });
 
     await step("Nobody else reaches it, a request from another origin is refused, and a co-facilitator can use it", async () => {

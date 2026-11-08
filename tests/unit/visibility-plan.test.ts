@@ -8,6 +8,7 @@ import { aiConfig } from "../../lib/ai/config";
 import { fakeClient, isPlan, isReport, recordedClient } from "../../lib/ai/fake";
 import { heardPrompt, planPrompt, planStages, planVersion, prompts, replyJson, reportPromptList, themesPrompt, type PlanInputs, type PlanRow } from "../../lib/ai/prompts";
 import { planBudgetMs, planTimeoutMs, runPlan } from "../../lib/ai/plan";
+import { signOffBlockers, blockerText, type ReportState } from "../../lib/report/policy";
 import { afterPublic, cellsOf, inOutwardOrder, planBody, planMessage, plural, roundView, rowsLeft, stageOrder, stageNames, stageRank, statusNames, whenText, type PlanRowState } from "../../lib/plan/policy";
 
 type Case = { name: string; inputs: PlanInputs; reply: string };
@@ -26,7 +27,8 @@ function refuses(row: PlanRow, inputs: PlanInputs): string | null {
   if (!row.who || !row.hear) return "text";
   if (!cited.length) return "unsourced";
   if (!inputs.public.date && (row.when || row.when_date)) return "when";
-  if (inputs.public.date && row.when_date && row.when_date > inputs.public.date) return "when";
+  if (inputs.public.date && row.when_date && (row.when_date > inputs.public.date || row.when_date < "2020-01-01")) return "when";
+  if (inputs.public.date && /\b(after|following|afterwards|later|next|beyond|past)\b/i.test(row.when)) return "when";
   if (named(text + " " + row.when).length) return "name";
   const spelled = (text.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
     .every(w => new RegExp(`\\b${w}\\b`, "i").test(have) || digits(have).includes(String(words.indexOf(w) + 1)));
@@ -110,6 +112,9 @@ test("The checks refuse what the database refuses: a when with no public date, a
   const dated: PlanInputs = { ...base, public: { moment: "Vision Sunday", date: "2027-01-31" } };
   assert.equal(refuses(row({ when_date: "2027-01-10" }), dated), null);
   assert.equal(refuses(row({ when_date: "2027-02-01" }), dated), "when");
+  assert.equal(refuses(row({ when_date: "1999-01-01" }), dated), "when", "a date before the table's range drops its own row");
+  for (const w of ["The week after", "Following the vote", "Later that month", "Next Sunday"]) assert.equal(refuses(row({ when: w }), dated), "when", w);
+  assert.equal(refuses(row({ when: "The week before" }), dated), null);
   assert.equal(refuses(row({ hear: "Priya tells the staff first." }), base), "name");
   assert.equal(refuses(row({ by: "Daniel" }), base), "name");
   assert.equal(refuses(row({ hear: "42 people hear the plan." }), base), "number");
@@ -294,4 +299,12 @@ test("The drafting indicator is shown while the round runs, slow after 45 second
   assert.deepEqual(roundView(ok({ status: "pending", requested_at: at(5000), attempts: 1, error: "timeout" }), now), { kind: "retry" });
   assert.deepEqual(roundView(ok({ status: "failed", requested_at: at(5000), attempts: 2, error: "x" }, { plan: { status: "needs_attention", error: "AI could not draft the plan" } }), now), { kind: "failed" });
   assert.deepEqual(roundView(ok(null, { ai: false, plan: { status: "empty" } }), now), { kind: "off" });
+});
+
+test("A plan that changed after the report's section was built is a sign-off blocker with its own words", () => {
+  const state = { status: "ok", lead: true, draft: true, plan_stale: true, sections: Array.from({ length: 14 }, (_, i) => ({ key: i === 12 ? "visibility" : `s${i}`, status: "reviewed", sentences: [] })) } as unknown as Extract<ReportState, { status: "ok" }>;
+  const blockers = signOffBlockers(state);
+  assert.deepEqual(blockers.map(b => b.kind), ["plan_changed"]);
+  assert.equal(blockerText(blockers[0]), "The visibility plan changed since Make the Vision Visible was built. Refresh it from the records.");
+  assert.deepEqual(signOffBlockers({ ...state, plan_stale: false } as never), []);
 });

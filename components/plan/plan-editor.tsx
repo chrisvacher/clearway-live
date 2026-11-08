@@ -97,14 +97,26 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
   const api = usePlan(engagement), { state } = api;
   const ok = state?.status === "ok" ? state : null;
   const [selected, setSelected] = useState<string | null>(null), [editing, setEditing] = useState<Editing>(null), [adding, setAdding] = useState(false), [ask, setAsk] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now()), [reporting, setReporting] = useState(false), [reportNote, setReportNote] = useState("");
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
   const rows = useMemo(() => ok?.rows ?? [], [ok]);
   const picked = rows.find(r => r.id === selected) ?? null;
   useEffect(() => { if (selected && !picked) setSelected(null); }, [selected, picked]);
   const plan = ok?.plan ?? null, view = ok ? roundView(ok, now, ok.slow_after_ms) : null;
-  const drafting = plan?.status === "drafting" || view?.kind === "working" || view?.kind === "retry";
+  const working = plan?.status === "drafting" || view?.kind === "working" || view?.kind === "retry", closed = ok?.closed === true, drafting = working || closed;
   const left = rowsLeft(rows), publicDate = plan?.public_date ?? null;
+  // Rebuilds the report's Make the Vision Visible section from the plan as it is now. If sentences there were changed by hand, the report asks first, so the
+  // facilitator is sent to the report to decide.
+  const refreshReport = async () => {
+    setReporting(true); setReportNote("");
+    try {
+      const response = await fetch(`/api/control/${engagement}/report`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "refresh", section: "visibility", confirm: false }) });
+      const data = await response.json() as { status: string };
+      if (data.status === "confirm") setReportNote("Some sentences in that section were changed in the report. Open the report to choose whether to keep them.");
+      else if (data.status !== "ok" && data.status !== "unchanged") setReportNote("The report couldn’t refresh that section. Open the report and try again.");
+    } catch { setReportNote("The report couldn’t refresh that section. Open the report and try again."); }
+    setReporting(false); await api.load();
+  };
   const draft = async (confirm: boolean) => { const r = await api.act({ action: "draft", id: crypto.randomUUID(), confirm }); setAsk(r.status === "confirm" ? r.kept ?? 0 : null); };
   return <div className="ovr" data-surface="plan" data-theme="light" data-testid="plan-editor">
     <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
@@ -125,17 +137,18 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
           <section className="cwl-vp-card" data-testid="vp-card" data-status={plan?.status ?? "empty"}>
             <header className="cwl-vp-hd"><div><div className="cwl-vp-eyebrow">Make the Vision Visible</div><h2>Visibility plan</h2></div>
               <div className="ovr-row">
-                {rows.some(r => r.origin === "ai") && <span className="cwl-vp-ai" data-testid="vp-ai-note"><AiMark label="Drafted by AI" />{drafting ? "Drafting" : "Drafted from what the room said"}</span>}
+                {rows.some(r => r.origin === "ai") && <span className="cwl-vp-ai" data-testid="vp-ai-note"><AiMark label="Drafted by AI" />{working ? "Drafting" : "Drafted from what the room said"}</span>}
                 <span className={`ovr-st${plan?.status === "drafting" ? " is-drafting" : plan?.status === "reviewed" ? " is-reviewed" : plan?.status === "needs_attention" || plan?.status === "thin" ? " is-flag" : " is-ready"}`} data-testid="vp-status">
                   {plan?.status === "drafting" ? <Loader aria-hidden="true" /> : plan?.status === "reviewed" ? <BadgeCheck aria-hidden="true" /> : null}{statusNames[plan?.status ?? "empty"]}</span></div></header>
+            {closed && <div className="ovr-banner" role="status" data-testid="vp-closed"><CircleAlert aria-hidden="true" /><div><strong>This engagement is closed.</strong> The visibility plan is read only.</div></div>}
             <Moment moment={plan?.moment ?? "Vision Sunday"} date={publicDate} api={api} locked={drafting} />
-            <p className="ovr-muted" data-testid="vp-anchor">{publicDate ? `The plan works back from ${plan?.moment ?? "Vision Sunday"} on ${new Date(`${publicDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}.` : `There is no date for ${plan?.moment ?? "Vision Sunday"} yet, so no row has a when. Add the date and the plan can work back from it.`}</p>
+            <p className="ovr-muted" data-testid="vp-anchor">{publicDate ? `The plan works back from ${plan?.moment ?? "Vision Sunday"} on ${new Date(`${publicDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}.` : `There is no date for ${plan?.moment ?? "Vision Sunday"} yet. ${rows.some(r => r.when_text || r.when_date) ? "The rows the AI drafts have no when until there is a date, and the whens you gave are left as they are." : "No row has a when."} Add the date and the plan can work back from it.`}</p>
             <Order />
             {view?.kind === "working" && <div className="ovr-progress is-flat" data-testid="vp-progress"><div className="row"><span><b>Drafting the visibility plan</b></span><span className="ovr-muted">Rows appear as soon as they are ready</span></div><progress className="ovr-bar" aria-label="Progress" /></div>}
             {view?.kind === "working" && view.slow && <div className="ovr-banner is-warning" role="status" data-testid="vp-slow"><TriangleAlert aria-hidden="true" /><div><strong>Drafting is taking longer than usual.</strong> You can add rows by hand while it finishes.</div></div>}
             {view?.kind === "retry" && <div className="ovr-banner is-warning" role="status" data-testid="vp-retry"><TriangleAlert aria-hidden="true" /><div><strong>The draft hit a problem and is trying again.</strong></div></div>}
             {view?.kind === "failed" && <div className="ovr-banner is-warning" role="alert" data-testid="vp-failed"><TriangleAlert aria-hidden="true" /><div><strong>AI couldn’t draft the plan.</strong> Add the rows by hand, or try again. Nothing you have written is lost.
-              <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy || !ok.ai} onClick={() => void draft(false)} data-testid="vp-try-again"><RefreshCw aria-hidden="true" />Try again</button>
+              <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy || closed || !ok.ai} onClick={() => void draft(false)} data-testid="vp-try-again"><RefreshCw aria-hidden="true" />Try again</button>
                 <button type="button" className="ovr-btn is-sm" onClick={() => setAdding(true)} data-testid="vp-add-by-hand"><Plus aria-hidden="true" />Add a row</button></div></div></div>}
             {plan?.status === "needs_attention" && !plan.error && <div className="ovr-banner is-warning" role="status" data-testid="vp-attention"><TriangleAlert aria-hidden="true" /><div><strong>{plural(plan.dropped, "row")} didn’t meet the checks and {plan.dropped === 1 ? "was" : "were"} left out.</strong> Read what is here, add what is missing, or draft the plan again.</div></div>}
             {plan?.status === "thin" && <div className="ovr-banner" role="status" data-testid="vp-thin"><CircleAlert aria-hidden="true" /><div><strong>The room said little about who needs to hear the Vision.</strong> Start from the date of {plan.moment}, work back from it, and add the rows yourself.</div></div>}
@@ -158,9 +171,9 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
                   <td><Cell row={r} field="what_they_hear" editing={editing} setEditing={setEditing} api={api} locked={drafting} publicDate={publicDate} /></td>
                   <td className="risk"><Cell row={r} field="risk" editing={editing} setEditing={setEditing} api={api} locked={drafting} publicDate={publicDate} /></td>
                   <td className="rv">{r.reviewed
-                    ? <button type="button" className="ovr-st is-reviewed" disabled={drafting || api.busy} onClick={e => { e.stopPropagation(); void api.act({ action: "unreview", row: r.id }); }} data-testid="vp-unreview" aria-label="Reviewed. Mark as not reviewed"><BadgeCheck aria-hidden="true" />Reviewed</button>
+                    ? <button type="button" className="ovr-st is-reviewed" disabled={drafting || api.busy} onClick={e => { e.stopPropagation(); void api.act({ action: "unreview", row: r.id }); }} data-testid="vp-unreview" aria-label="Clear the review"><BadgeCheck aria-hidden="true" />Clear the review</button>
                     : <button type="button" className="ovr-btn is-confirm is-sm" disabled={drafting || api.busy} onClick={e => { e.stopPropagation(); void api.act({ action: "reviewed", row: r.id }); }} data-testid="vp-review"><BadgeCheck aria-hidden="true" />Mark reviewed</button>}</td></tr>)}</tbody></table>
-                : <p className="cwl-vp-empty" data-testid="vp-empty">{drafting ? "Drafting the plan. Rows appear here as soon as they are ready." : "No rows yet. Draft the plan from what the room said, or add a row by hand."}</p>}</div>
+                : <p className="cwl-vp-empty" data-testid="vp-empty">{working ? "Drafting the plan. Rows appear here as soon as they are ready." : "No rows yet. Draft the plan from what the room said, or add a row by hand."}</p>}</div>
               <Panel row={picked} api={api} locked={drafting} pos={picked ? rows.findIndex(r => r.id === picked.id) : -1} count={rows.length} />
             </div>
             {adding && <AddRow api={api} onDone={() => setAdding(false)} />}
@@ -169,7 +182,11 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
                 <button type="button" className="ovr-btn is-primary" disabled={api.busy || drafting || !ok.ai} title={ok.ai ? undefined : "AI is off for this engagement"} onClick={() => void draft(false)} data-testid="vp-draft"><RefreshCw aria-hidden="true" />{rows.some(r => r.origin === "ai") ? "Redraft the plan" : "Draft the plan"}</button>
                 <button type="button" className="ovr-btn" disabled={api.busy || drafting} onClick={() => setAdding(true)} data-testid="vp-add"><Plus aria-hidden="true" />Add a row</button>
                 <span className="ovr-muted" data-testid="vp-left">{rows.length ? (left ? `${left} of ${rows.length} rows still need review` : "Every row is reviewed") : "Nothing is reviewed yet"}</span></div>
-              <Link className="ovr-btn is-sm is-ghost" href={`/control/${engagement}/report`} data-testid="vp-report-link"><FileText aria-hidden="true" />{ok.report_draft ? "Refresh Make the Vision Visible in the report" : "Open the report"}</Link></div>
+              {ok.report_draft && ok.report_stale && !closed
+                ? <button type="button" className="ovr-btn is-sm" disabled={api.busy || reporting} onClick={() => void refreshReport()} data-testid="vp-report-refresh"><RefreshCw aria-hidden="true" />Refresh Make the Vision Visible in the report</button>
+                : <Link className="ovr-btn is-sm is-ghost" href={`/control/${engagement}/report`} data-testid="vp-report-link"><FileText aria-hidden="true" />{ok.report_draft ? "Open Make the Vision Visible in the report" : "Open the report"}</Link>}</div>
+            {ok.report_draft && ok.report_stale && <p className="ovr-muted" data-testid="vp-report-stale">The report’s Make the Vision Visible section no longer matches this plan, and it has to be reviewed again once it is refreshed.</p>}
+            {reportNote && <p className="ovr-muted" role="status" data-testid="vp-report-note">{reportNote}</p>}
             {rows.length > 0 && !inOutwardOrder(rows) && <p className="ovr-muted" data-testid="vp-order-note"><Undo2 aria-hidden="true" width={14} height={14} /> You moved rows out of the outward order. That is yours to decide.</p>}
           </section>
         </div>}
