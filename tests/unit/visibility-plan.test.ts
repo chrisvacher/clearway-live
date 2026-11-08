@@ -21,7 +21,7 @@ const words = ["one", "two", "three", "four", "five", "six", "seven", "eight", "
 const digits = (t: string) => [...new Set(t.match(/[0-9]+/g) ?? [])];
 const norm = (t: string) => t.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
 function refuses(row: PlanRow, inputs: PlanInputs): string | null {
-  const cited = inputs.refs.filter(r => row.refs.includes(r.ref)), have = cited.map(r => r.text).join("\n"), text = [row.who, row.by, row.hear, row.risk].join("\n");
+  const cited = inputs.refs.filter(r => row.refs.includes(r.ref)), have = cited.map(r => r.text).join("\n"), roomWords = norm(cited.filter(r => /^Scribe/.test(r.group)).map(r => r.text).join("\n")), text = [row.who, row.by, row.hear, row.risk].join("\n");
   if (!planStages.includes(row.stage)) return "stage";
   if (!row.who || !row.hear) return "text";
   if (!cited.length) return "unsourced";
@@ -33,7 +33,7 @@ function refuses(row: PlanRow, inputs: PlanInputs): string | null {
   const stripped = text.replace(/10-year Future|3-year Vision|1-year Outlook/g, "");
   if (!digits(stripped.replace(/1-year Outlook|3-year Vision|10-year Future/g, "")).every(d => digits(have).includes(d)) || !spelled) return "number";
   if (/\b(10|ten|3|three|1|one)[ -]year\b/i.test(stripped) || /communications? plan/i.test(text)) return "term";
-  for (const m of text.matchAll(/"([^"]+)"/g)) if (!norm(have).includes(norm(m[1]).replace(/[.,!?…]+$/, ""))) return "quote";
+  for (const m of text.matchAll(/"([^"]+)"/g)) if (!roomWords.includes(norm(m[1]).replace(/[.,!?…]+$/, ""))) return "quote";
   if ((text.match(/"/g) ?? []).length % 2) return "quote";
   return null;
 }
@@ -96,8 +96,8 @@ test("The recorded replies parse to rows in the outward order that cite only the
   const noDate = planPrompt.parse(byName("no public date").reply, base);
   assert.equal(noDate.rows.length, 6);
   assert.ok(noDate.rows.every(r => r.when === "" && r.when_date === ""), "no when without a public date");
-  assert.deepEqual(noDate.rows[2].refs, ["a1", "d1", "r1"]);
-  assert.match(noDate.rows[2].hear, /"Leaders raised from within"/);
+  assert.deepEqual(noDate.rows[2].refs, ["a1", "r1"]);
+  assert.match(noDate.rows[2].hear, /"Brief the elders before the plan is shared with the church"/);
   const dated = planPrompt.parse(byName("public date").reply, byName("public date").inputs);
   assert.ok(dated.rows.every(r => !r.when_date || r.when_date <= "2027-01-31"));
   assert.ok(!dated.rows.some(r => r.stage === "lead_pastor"), "a kept stage gets no row");
@@ -116,7 +116,8 @@ test("The checks refuse what the database refuses: a when with no public date, a
   assert.equal(refuses(row({ hear: "Three people hear the plan." }), base), "number");
   assert.equal(refuses(row({ hear: "The 1-year Outlook places 8 apprentices.", refs: ["g1"] }), base), null);
   assert.equal(refuses(row({ hear: "They hear \"we are all lost\"." }), base), "quote");
-  assert.equal(refuses(row({ hear: "They hear \"List every ministry lead\".", refs: ["s1"] }), base), null);
+  assert.equal(refuses(row({ hear: "They hear \"Brief the elders\"." }), base), null, "a scribe card's words can be quoted");
+  assert.equal(refuses(row({ hear: "They hear \"List every ministry lead\".", refs: ["s1"] }), base), "quote", "a first step is not the room's words");
   assert.equal(refuses(row({ hear: "The three-year view is shared." }), base), "number");
   assert.equal(refuses(row({ hear: "The ten-year view is shared." , refs: ["a1"] }), { ...base, refs: [...base.refs, { ref: "z1", group: "g", text: "ten leaders", thin: false }] }), "number");
   assert.equal(refuses(row({ hear: "The communication plan starts here." }), base), "term");

@@ -214,7 +214,8 @@ async function main() {
       assert.equal(await page.getByTestId("vp-ask").count(), 0, "cancel leaves it as it is");
       await page.getByTestId("vp-draft").click();
       await page.getByTestId("vp-ask-yes").click();
-      await until(async () => (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the redraft is done", 40000);
+      await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n >= 2
+        && (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the redraft is done", 40000);
       const after = await rows();
       for (const k of kept) assert.ok(after.some(r => r.id === k.id), `${k.who} is still there`);
       assert.equal(after.find(r => r.id === kept[0].id)?.what_they_hear, kept[0].what_they_hear, "as the facilitator left it");
@@ -233,17 +234,19 @@ async function main() {
       await until(async () => { const r = (await sql.query("select attempts,status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]; return r && r.attempts >= 1 && r.status === "pending"; }, "the first failure waits to be tried again", 40000);
       await page.getByTestId("vp-retry").waitFor({ timeout: 15000 });
       await sql.query("update private.visibility_plan_rounds set last_failed_at=now()-interval '5 minutes' where engagement_id=$1 and not deleted", [room]);
-      await until(async () => (await plan())?.status === "needs_attention", "the second failure gives up", 40000);
+      await until(async () => (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "failed", "the second failure gives up", 40000);
       await page.getByTestId("vp-failed").waitFor({ timeout: 15000 });
       assert.match(await page.getByTestId("vp-failed").innerText(), /couldn’t draft the plan/);
       assert.match(await page.getByTestId("vp-status").innerText(), /Needs attention/);
-      assert.equal((await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='failed'", [room])).rows[0].n, 2, "tried twice");
+      const failedRuns = (await sql.query("select created_at,error,status from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' order by created_at", [room])).rows;
+      assert.equal(failedRuns.filter(r => r.status === "failed").length, 2, `tried twice: ${JSON.stringify(failedRuns)}`);
       assert.equal((await rows()).filter(r => r.origin === "facilitator" || r.touched).length, writtenBefore, "nothing written is lost");
       await shot(page, "failed");
       fake({});
       await page.getByTestId("vp-try-again").click();
       await page.getByTestId("vp-ask-yes").click().catch(() => {});
-      await until(async () => (await plan())?.status !== "needs_attention" && (await plan())?.error === null, "the plan is drafted again", 40000);
+      await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n >= 3
+        && (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready" && (await plan())?.error === null, "the plan is drafted again", 40000);
       await page.getByTestId("vp-failed").waitFor({ state: "detached", timeout: 15000 });
     });
 
@@ -260,7 +263,7 @@ async function main() {
       await t.waitFor({ timeout: 15000 });
       const plans = await rows();
       const heads = await t.locator("thead th").allInnerTexts();
-      for (const h of ["Who", "When", "Who tells them", "What they hear", "The risk it answers"]) assert.ok(heads.some(x => x.includes(h)), h);
+      for (const h of ["Who", "When", "Who tells them", "What they hear", "The risk it answers"]) assert.ok(heads.some(x => x.toLowerCase().includes(h.toLowerCase())), `${h} in ${JSON.stringify(heads)}`);
       const planRows = (await t.locator("tbody tr").evaluateAll((els, n) => els.filter(e => (e.textContent ?? "").length > 0).map(e => e.querySelector("td")?.textContent ?? "").slice(0, n), 99)) as string[];
       for (const r of plans) assert.ok(planRows.some(x => x.includes(r.who)), `${r.who} is in the report`);
       assert.ok(plans.findIndex(r => r.who === plans[0].who) === 0 && planRows.findIndex(x => x.includes(plans[0].who)) <= planRows.findIndex(x => x.includes(plans.at(-1)!.who)), "in the plan's order");

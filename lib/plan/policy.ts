@@ -13,7 +13,7 @@ export const stageNames: Record<Stage, string> = { lead_pastor: "Lead pastor", p
 export const stageRank = (stage: string): number => { const i = stageOrder.indexOf(stage as Stage); return i < 0 ? stageOrder.length + 1 : i + 1; };
 export const statusNames: Record<PlanStatus, string> = { empty: "Not drafted", drafting: "Drafting", drafted: "Draft to review", edited: "Edited", reviewed: "Every row reviewed", needs_attention: "Needs attention", thin: "Nothing said about it" };
 
-export type PlanSource = { id: string; kind: string; ref_id: string | null; excerpt: string; info: SourceInfo | null };
+export type PlanSource = { id: string; kind: string; ref_id: string | null; excerpt: string; room?: boolean; broken?: boolean; info: SourceInfo | null };
 export type PlanRowState = {
   id: string; position: number; stage: Stage; who: string; when_text: string; when_date: string | null; by_whom: string; what_they_hear: string; risk: string;
   origin: "ai" | "facilitator"; touched: boolean; needs_source: boolean; reviewed: { at: string; by: string | null } | null; sources: PlanSource[];

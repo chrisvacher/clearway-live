@@ -1,0 +1,36 @@
+# The visibility plan (milestone 7, step 3)
+
+AFT-02. After the retreat, the facilitators draft a visibility plan from what the room said: who needs to hear the Vision, when, who tells them, what they hear and the risk each conversation answers. It is private to the facilitators and is the table in the report's Make the Vision Visible section. Nothing here reaches the room or the church.
+
+Migration: `supabase/migrations/20261108030000_visibility_plan.sql`. Prompt: `visibility-plan@1` in `lib/ai/prompts.ts`. Page: `/control/[id]/plan` (linked from the After hub's Visibility plan tile). Worker: `lib/ai/plan.ts`. Policy for the page: `lib/plan/policy.ts`. It builds on the report (step 1): the guard, the cleaners, the source kinds and the check helpers are the report's.
+
+## How a plan is built (the Brain's ruling)
+
+Start from the most public moment (Vision Sunday unless the facilitator names another) and work backwards. The plan moves outward in this order and no other: the lead pastor, the retreat participants, the board or elders, the staff, members and key leaders, the congregation. Commander's intent anchors on the public date: what the church must hear and understand on that day. A row the facilitator names for themselves (stage `other`) sorts after the six.
+
+## What the facilitator sees
+
+- The moment and its date at the top. Without a date no row has a when, and the page says so. With a date, a row may carry a short when ("The week before") and a date on or before it. A row dated after it is flagged, and the facilitator may keep it.
+- **Draft the plan** makes the rows. They arrive in the outward order, each with the number of sources it rests on, an AI mark, and the stage. Choosing a row shows its sources in the panel (the same cards as the report). A facilitator's own row says it needs no source.
+- Every cell can be edited in place. A row can be added, moved up or down, removed (after asking) and marked reviewed. Positions always run one to n. Editing a cell makes the row the facilitator's to keep: it is marked Edited and takes the review away.
+- **Redraft the plan** asks first when any row is the facilitator's (edited, added, moved or reviewed), keeps those rows where they are and replaces only the rest. New rows go after the last row that is not further out than they are.
+- The plan's status is Not drafted, Drafting, Draft to review, Edited, Every row reviewed, Needs attention or Nothing said about it.
+- Make the Vision Visible in the report is built from the plan when the report is first drafted and again on Refresh from the records. It does not follow the plan live.
+
+## What the model sees and what the database keeps
+
+The model reads refs only, never names: scribe action cards (a), scribe mitigation cards (m), risks (r), mitigations (k), commander's intent cards (i), first steps (s), 1-year goals (g), decisions (d) and ranked success measures (y), plus the public moment and date and the stages already kept. A ref that names a person (the report's `report_names`: attendees, scribe speakers, owners) is never sent. No id, owner, speaker, email or due date reaches it.
+
+A row is kept only when it passes the report's checks (`report_check`) and the plan's own: a known stage; a who and a hear; at least one ref it was given; a when only when there is a public date and a date on or before it; no name; no number or spelled-out number its refs do not carry; the horizon terms written exactly; no "communication plan"; a quotation word for word from a cited scribe card. A row that fails is left out and logged with its reason, and the plan reads Needs attention with how many were left out. Rows come back in the outward order whatever order the model wrote them. A signal is a source only when it is aligned and saved as a citation (a database trigger, whoever writes the row).
+
+## The round
+
+One engagement-level round for the plan, as for the report: the press makes it pending, the worker claims it with a six minute lease and makes one run on the deeper model, and the database applies or fails it. The first failure waits ten seconds and is tried again. The second gives up: the plan reads Needs attention with "AI could not draft the plan", nothing the facilitator wrote is lost, and Try again drafts once more. With AI off, Draft says so and the rows are added by hand. A room that said nothing about it reads Nothing said about it and no model call is made.
+
+## Database
+
+Tables in `private`: `visibility_plans`, `visibility_plan_rows`, `visibility_plan_sources`, `visibility_plan_rounds`. Each has row level security enabled and forced and no grant to a browser role. Functions (facilitators only, security definer in `private`, security invoker wrappers in `public`): `visibility_plan_state`, `_set`, `_start`, `_row_edit`, `_row_add`, `_row_remove`, `_row_move`, `_row_reviewed`, and for the worker (service role only) `_due`, `_claim`, `_apply`, `_fail`. `private.visibility_plan_for_report` replaces step 1's fixture with the same signature. `reset_practice_room` and `rehearsal_control` are wrapped (`_pre_visibility_plan`) so Clear test answers and the practice reset put the plan away.
+
+## Tests
+
+`supabase/tests/database/visibility_plan.test.sql` (roles for every table and function, the signal rule, the checks, the round, the contract and the report block), `tests/unit/visibility-plan.test.ts` with `tests/fixtures/ai/visibility-plan.json`, and `npm run test:visibility-plan` (the browser kit, in CI after `test:report`).

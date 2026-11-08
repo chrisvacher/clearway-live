@@ -216,23 +216,24 @@ create temp table a1 as select tests.papply((select v from c1),jsonb_build_array
  tests.prow('board','The elders','Hear the plan.','[]'),
  tests.prow('board','The elders','Hear the plan.','["zz9"]'),
  tests.prow('board','The elders','The communication plan starts here.',jsonb_build_array(tests.pref((select v from c1),'a'))),
- tests.prow('key_leaders','Key leaders','A three-year view is shared.',jsonb_build_array(tests.pref((select v from c1),'g')))
+ tests.prow('key_leaders','Key leaders','A three-year view is shared.',jsonb_build_array(tests.pref((select v from c1),'g'))),
+ tests.prow('board','The elders','They hear "List every ministry lead and a possible apprentice" from the room.',jsonb_build_array(tests.pref((select v from c1),'s')))
 )) as j;
 select is((select j->>'status' from a1),'ok','The reply is applied');
 select is((select (j->>'kept')::integer from a1),3,'Three rows pass every check');
-select is((select (j->>'dropped')::integer from a1),10,'and ten fail one each: a when with no public date (text, then date), a name, a number, a quote, a stage, no ref, an unknown ref, communication plan and a spelled-out number');
+select is((select (j->>'dropped')::integer from a1),11,'and eleven fail one each: a when with no public date (text, then date), a name, a number, a quote, a stage, no ref, an unknown ref, communication plan, a spelled-out number and a quotation from a first step, which is not the room''s words');
 select is(tests.stages(),'lead_pastor,participants,congregation','The rows are in the outward order, whatever order the model wrote them in');
 select is((select output->>'reordered' from private.ai_runs where id=(select (v->>'run')::uuid from c1)),'true','and the run log says it reordered them');
 select is((select string_agg(x->>'reason',',' order by ord) from private.ai_runs r,jsonb_array_elements(r.output->'refused') with ordinality t(x,ord) where r.id=(select (v->>'run')::uuid from c1)),
- 'when,when,name,number,quote,stage,unsourced,unsourced,term,number','Each refusal is logged with its reason');
+ 'when,when,name,number,quote,stage,unsourced,unsourced,term,number,quote','Each refusal is logged with its reason');
 select is((select count(*)::integer from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and not exists(select 1 from private.visibility_plan_sources s where s.row_id=r.id and not s.deleted)),0,'Every row that was kept has a source');
 select is((select count(*)::integer from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.origin='ai' and not r.touched and r.reviewed_at is null),3,'and is the AI''s, untouched');
 select is((select string_agg(r.who,' | ' order by r.position) from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.stage='lead_pastor'),'The lead pastor','The lead pastor row is there');
 select is((select what_they_hear from private.visibility_plan_rows where engagement_id=tests.id(100) and stage='lead_pastor' and not deleted),'Hears the whole plan first, and what is asked of the lead pastor, before anyone else, and before the stage.','Its dashes and semicolons were rewritten as commas');
 select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and when_text<>'' or when_date is not null),0,'No row has a when without a public date');
 select is((select status from private.visibility_plans where engagement_id=tests.id(100) and not deleted),'needs_attention','The plan is marked Needs attention');
-select is((select dropped from private.visibility_plans where engagement_id=tests.id(100) and not deleted),10,'and says how many rows were left out');
-select is((select status||':'||last_kept||':'||last_dropped from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'ready:3:10','The round is ready');
+select is((select dropped from private.visibility_plans where engagement_id=tests.id(100) and not deleted),11,'and says how many rows were left out');
+select is((select status||':'||last_kept||':'||last_dropped from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'ready:3:11','The round is ready');
 select is(tests.pclaim()->>'status','idle','There is nothing left to claim');
 select is(private.visibility_plan_due(tests.id(100)),false,'and nothing is due');
 
@@ -298,7 +299,7 @@ create temp table a2 as select tests.papply((select v from c2),jsonb_build_array
  tests.prow('lead_pastor','The lead pastor','Hears it again.',jsonb_build_array(tests.pref((select v from c2),'i'))),
  tests.prow('board','The elders','Hear it again.',jsonb_build_array(tests.pref((select v from c2),'a'))),
  tests.prow('staff','The staff','Hear what each person owns, and what the church is stopping.',jsonb_build_array(tests.pref((select v from c2),'s')),'{"when":"The week before","when_date":"2027-01-24","by":"The lead pastor"}'),
- tests.prow('staff','The staff, once more','Hear "List every ministry lead and a possible apprentice" from the room.',jsonb_build_array(tests.pref((select v from c2),'s')),'{"when_date":"2027-01-10"}'),
+ tests.prow('staff','The staff, once more','Hear "Tell the congregation about the outcomes on a Sunday in January" from the room.',jsonb_build_array(tests.pref((select v from c2),'a')),'{"when_date":"2027-01-10"}'),
  tests.prow('key_leaders','Key leaders','Hear why the plan is what it is.',jsonb_build_array(tests.pref((select v from c2),'g')),'{"when_date":"2027-02-01"}'),
  tests.prow('key_leaders','Key leaders','Hear why the plan is what it is.',jsonb_build_array(tests.pref((select v from c2),'g')),'{"when_date":"next Sunday"}'),
  tests.prow('key_leaders','Key leaders','Hear why the plan is what it is.',jsonb_build_array(tests.pref((select v from c2),'g')),'{"when":"Priya will call","when_date":"2027-01-12"}'),
@@ -315,7 +316,7 @@ select is((select array_agg(position order by position) from private.visibility_
 select is((select r.stage from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted order by r.position desc limit 1),'congregation','and the congregation last, as the public moment');
 select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and when_date>date '2027-01-31'),0,'No row is dated after the public date');
 select is((select when_date::text from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and who='The staff'),'2027-01-24','A row worked back from the date keeps its date');
-select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and origin='ai' and what_they_hear like '%"List every ministry lead and a possible apprentice"%'),1,'A quotation that is word for word in a first step is kept');
+select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and origin='ai' and what_they_hear like '%"Tell the congregation about the outcomes on a Sunday in January"%'),1,'A quotation that is word for word in a scribe card is kept');
 select is(tests.pstatus(),'needs_attention','The plan is marked Needs attention again for the rows left out');
 
 -- ---------- The contract the report reads ----------
@@ -337,7 +338,7 @@ select is(public.report_start(tests.id(100),tests.id(950),'all',null,false)->>'s
 reset role;
 select is((select count(*)::integer from private.report_sections s,jsonb_array_elements(s.blocks->'rows') r where s.engagement_id=tests.id(100) and s.key='visibility' and not s.deleted and r->'parts'->0->>'role'='plan'),6,'The report''s Make the Vision Visible section holds the plan''s six rows as a table');
 select is((select s.blocks->'columns' from private.report_sections s where s.engagement_id=tests.id(100) and s.key='visibility' and not s.deleted),'["Who","When","Who tells them","What they hear","The risk it answers"]'::jsonb,'with the columns who, when, who tells them, what they hear and the risk');
-select is((select s.blocks->'rows'->0->'cells'->>0 from private.report_sections s where s.engagement_id=tests.id(100) and s.key='visibility' and not s.deleted),'The lead pastor','and the first row first');
+select is((select s.blocks->'rows'->0->'cells'->0->>'t' from private.report_sections s where s.engagement_id=tests.id(100) and s.key='visibility' and not s.deleted),'The lead pastor','and the first row first');
 select is((select count(*)::integer from private.report_sections s,jsonb_array_elements(s.blocks->'rows') r where s.engagement_id=tests.id(100) and s.key='visibility' and not s.deleted and r->>'group'='actions'),3,'beside the scribe''s action cards');
 delete from private.ai_runs where engagement_id=tests.id(100) and job='draft_report';
 

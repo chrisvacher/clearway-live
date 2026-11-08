@@ -158,11 +158,11 @@ language sql immutable security invoker set search_path='' as $$
  select case p_stage when 'lead_pastor' then 1 when 'participants' then 2 when 'board' then 3 when 'staff' then 4 when 'key_leaders' then 5 when 'congregation' then 6 else 7 end
 $$;
 
--- Does a row still rest on a source? A signal counts only while it is still aligned and saved as a citation.
+-- Does a row still rest on a source? The report's rule decides whether a source still stands (rp_source_live): a signal only while it is aligned and saved
+-- as a citation, a record only while it is there.
 create function private.vp_row_sourced(p_row uuid) returns boolean
 language sql stable security definer set search_path='' as $$
- select exists(select 1 from private.visibility_plan_sources r where r.row_id=p_row and not r.deleted and (r.kind<>'signal'
-  or exists(select 1 from private.signals g where g.id=r.ref_id and g.engagement_id=r.engagement_id and not g.deleted and g.kind='aligned' and g.saved_as_citation_at is not null)))
+ select exists(select 1 from private.visibility_plan_sources r where r.row_id=p_row and not r.deleted and private.rp_source_live(r.engagement_id,r.kind,r.ref_id))
 $$;
 
 -- What the plan's status is after something changed. p_edit is true when the facilitator changed a row (an edit takes needs attention away) and false
@@ -205,7 +205,7 @@ language plpgsql stable security definer set search_path='' as $$
 declare pl private.visibility_plans; refs jsonb:='[]'::jsonb; names text[]; x record; v text; kept text[]; v_moment text;
 begin
  select * into pl from private.visibility_plans where engagement_id=p_engagement and not deleted;
- names:=private.discover_names(p_engagement);
+ names:=private.report_names(p_engagement);
  v_moment:=coalesce(pl.moment,'Vision Sunday');
  if private.discover_has_name(v_moment,names) then v_moment:='the public moment'; end if;
  for x in select c.id,c.text from private.scribe_cards c where c.engagement_id=p_engagement and not c.deleted and c.kind='action' order by c.captured_at,c.seq limit 30 loop
@@ -395,7 +395,7 @@ begin
   update private.visibility_plan_rounds set status='idle',lease_id=null,lease_run=null,lease_until=null where id=r.id;
   return jsonb_build_object('status','discarded');
  end if;
- names:=private.discover_names(run.engagement_id);
+ names:=private.report_names(run.engagement_id);
  select coalesce(array_agg(distinct x.stage),array[]::text[]) into kept from private.visibility_plan_rows x where x.plan_id=pl.id and not x.deleted and (x.touched or x.reviewed_at is not null);
  for sn in select e.value as v,e.ord from jsonb_array_elements(case when jsonb_typeof(p_output->'rows')='array' then p_output->'rows' else '[]'::jsonb end) with ordinality e(value,ord) where e.ord<=14 loop
   if jsonb_typeof(sn.v)<>'object' then continue; end if;
@@ -637,7 +637,7 @@ begin
   'rows',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'position',r.position,'stage',r.stage,'who',r.who,'when_text',r.when_text,'when_date',r.when_date,'by_whom',r.by_whom,
     'what_they_hear',r.what_they_hear,'risk',r.risk,'origin',r.origin,'touched',r.touched,'needs_source',r.origin='ai' and not private.vp_row_sourced(r.id),
     'reviewed',case when r.reviewed_at is not null then jsonb_build_object('at',r.reviewed_at,'by',(select u.name from public.clearway_users u where u.id=r.reviewed_by)) end,
-    'sources',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'kind',s.kind,'ref_id',s.ref_id,'excerpt',s.excerpt,'info',
+    'sources',coalesce((select jsonb_agg(jsonb_build_object('id',s.id,'kind',s.kind,'ref_id',s.ref_id,'excerpt',s.excerpt,'room',false,'broken',not private.rp_source_live(p_engagement,s.kind,s.ref_id),'info',
       case when s.kind='record' then jsonb_build_object('label','Record','text',s.excerpt) else private.rp_source_info(p_engagement,s.kind,s.ref_id) end) order by s.position,s.id)
       from private.visibility_plan_sources s where s.row_id=r.id and not s.deleted),'[]'::jsonb)) order by r.position,r.id)
     from private.visibility_plan_rows r where r.plan_id=pl.id and not r.deleted),'[]'::jsonb)) into out;

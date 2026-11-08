@@ -19,10 +19,12 @@
 .cwl-vp-order b { width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--cwl-app-text); color: var(--cwl-app-card); font-size: var(--cwl-fs-app-micro); }
 .cwl-vp-order > svg { width: 14px; height: 14px; }
 .cwl-vp-scroll { overflow: auto; min-height: 0; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
-.cwl-vp-table { width: 100%; border-collapse: collapse; font-size: var(--cwl-fs-app-table); }
+.cwl-vp-table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: var(--cwl-fs-app-table); }
 .cwl-vp-table th { text-align: left; padding: 6px 10px; background: var(--cwl-app-sunken); font-size: var(--cwl-fs-app-micro); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
 .cwl-vp-table td { padding: 12px; vertical-align: top; line-height: 1.5; border-top: 1px solid var(--cwl-app-border); }
 .cwl-vp-table td.who { min-width: 190px; }
+.cwl-vp-table td:nth-child(2), .cwl-vp-table td:nth-child(3) { min-width: 110px; }
+.cwl-vp-table td:nth-child(4) { min-width: 260px; }
 .cwl-vp-table td.risk { min-width: 200px; }
 .cwl-vp-table td.rv { white-space: nowrap; }
 .cwl-vp-row.is-selected td { background: var(--cwl-app-selected); }
@@ -48,7 +50,7 @@
 .cwl-vp-tools { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .cwl-vp-side { position: sticky; top: 12px; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1500px) {
   .cwl-vp-grid { grid-template-columns: minmax(0, 1fr); }
   .cwl-vp-side { position: static; }
 }
