@@ -3,7 +3,8 @@
 // breaks something on purpose and proves the room recovers the way the PRD says.
 // The milestone 2 checks run on the word cloud and wall; then failures-m3.ts runs
 // the same failures on milestone 3's kinds, plus FAIL-09 with the fake AI model; failures-m4.ts and
-// failures-m5.ts (FAIL-03, the scribe offline) follow.
+// failures-m5.ts (FAIL-03, the scribe offline), failures-m6.ts and failures-m7.ts (milestone 7: AI slow and failing on the report and the visibility plan,
+// a revoked link, the scheduled check-in run, the check-in phone offline) follow.
 // Local only: no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
 import { rmSync } from "node:fs";
@@ -15,6 +16,7 @@ import { controlDir, milestone3Failures } from "./failures-m3";
 import { milestone4Failures } from "./failures-m4";
 import { milestone5Failures } from "./failures-m5";
 import { milestone6Failures } from "./failures-m6";
+import { milestone7Failures } from "./failures-m7";
 
 async function main() {
 const env = localEnv(), sql = db(env), mail = await mailbox();
@@ -198,6 +200,8 @@ try {
   await milestone5Failures({ env, sql, mail, app, browser, step, shot });
   await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
   await milestone6Failures({ env, sql, mail, app, browser, step, shot });
+  await Promise.all(browser.contexts().map(c => c.close().catch(() => {})));
+  await milestone7Failures({ env, sql, mail, app, browser, step, shot });
 
   console.log(`Browser failure kit: ${passed.length} checks passed.\n${passed.map(p => `  ${p}`).join("\n")}\nLocal checks on loopback; venue acceptance is the practice-room script.`);
 } catch (error) {

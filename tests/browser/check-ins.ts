@@ -15,7 +15,9 @@ const text = { s1: "List every ministry lead and a possible apprentice", s2: "Me
 async function main() {
   const env = localEnv(), sql = db(env), mail = await mailbox();
   let browser: Browser | undefined, app: Awaited<ReturnType<typeof startApp>> | undefined;
-  const passed: string[] = [];
+  const passed: string[] = [], quieted = new Map<string, string>();
+  // The scheduled run works on every engagement, so every other one is put away while the kit runs, and put back afterward.
+  const quiet = async (keep: string) => { for (const r of (await sql.query("select id,status from private.check_in_rounds where engagement_id<>$1 and status in('scheduled','sending')", [keep])).rows as { id: string; status: string }[]) { quieted.set(r.id, quieted.get(r.id) ?? r.status); await sql.query("update private.check_in_rounds set status='off' where id=$1", [r.id]); } };
   const shot = async (page: Page, name: string) => { if (process.env.KIT_SHOTS) { await delay(700); await page.screenshot({ path: `${process.env.KIT_SHOTS}/${name}.png`, fullPage: true }); } };
   const step = async (name: string, run: () => Promise<void>) => { await run(); passed.push(name); console.log(`ok · ${name}`); };
   // The app, started with this date as its clock (or none) and this cron secret (or none).
@@ -66,7 +68,7 @@ async function main() {
       await closeRetreat(room.id, "2027-01-01");
       assert.deepEqual((await rounds()).map(r => [r.day, r.due_on, r.status]), [[30, D.r30, "scheduled"], [60, D.r60, "scheduled"], [90, D.r90, "scheduled"]]);
       // The scheduled run works on every engagement. Rounds left by an earlier run of this kit or another are put away so the counts here are this room's.
-      await sql.query("update private.check_in_rounds set status='off' where engagement_id<>$1 and status in('scheduled','sending')", [room.id]);
+      await quiet(room.id);
     });
 
     await step("The scheduled route refuses a missing or wrong secret, and when no secret is set", async () => {
@@ -363,7 +365,6 @@ async function main() {
       return r;
     };
     // The scheduled run works on every engagement, so every other one is put away and the counts are this room's.
-    const quiet = (keep: string) => sql.query("update private.check_in_rounds set status='off' where engagement_id<>$1 and status in('scheduled','sending')", [keep]);
     const states = async (id: string) => (await sql.query("select status from private.check_in_rounds where engagement_id=$1 order by day", [id])).rows.map(r => r.status as string);
     const post = (ctx: BrowserContext, id: string, data: Record<string, unknown>) => ctx.request.post(`${app!.origin}/api/control/${id}/check-ins`, { headers: { Origin: app!.origin }, data });
 
@@ -466,6 +467,6 @@ async function main() {
     console.log(`Check-ins kit: ${passed.length} checks passed.`);
   } catch (error) {
     console.error(app?.output().slice(-3000)); throw error;
-  } finally { await browser?.close(); app?.stop(); await mail.close(); await sql.end().catch(() => {}); }
+  } finally { for (const [id, status] of quieted) await sql.query("update private.check_in_rounds set status=$2 where id=$1", [id, status]).catch(() => {}); await browser?.close(); app?.stop(); await mail.close(); await sql.end().catch(() => {}); }
 }
 main().catch(error => { console.error(error); process.exit(1); });

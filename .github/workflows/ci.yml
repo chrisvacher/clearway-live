@@ -36,7 +36,7 @@ jobs:
   database:
     name: PostgreSQL 17 schema and role isolation
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -74,7 +74,7 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Make the screenshot folder for the kits
         run: mkdir -p "${{ runner.temp }}/kit-shots"
-      - name: Test the failure states in real browsers (milestone 2, then milestone 3's kinds and FAIL-09)
+      - name: Test the failure states in real browsers (milestone 2, then the kinds and failures of milestones 3 to 7)
         run: npm run test:browser
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
@@ -373,6 +373,19 @@ jobs:
         with:
           name: plan-screens
           path: plan-shots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: "Test milestone 7 acceptance (after the retreat on Riverside end to end: Close the day, the report, sign-off, Word and PDF, the visibility plan, a share link on a phone and a laptop then revoked, the 30-day check-in by the scheduled run, every owner answering, results, owner status on the copy)"
+        if: ${{ !cancelled() }}
+        run: mkdir -p acceptance-m7-shots && npm run test:acceptance-m7
+        env:
+          KIT_SHOTS: acceptance-m7-shots
+      - name: Upload the milestone 7 acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-m7-screens
+          path: acceptance-m7-shots/
           if-no-files-found: ignore
           retention-days: 14
       - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)
