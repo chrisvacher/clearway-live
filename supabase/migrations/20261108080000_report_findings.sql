@@ -288,5 +288,6 @@ end $$;
 
 revoke all on function private.report_section_inputs_pre_report_findings(uuid,uuid),private.report_section_inputs(uuid,uuid),private.rp_season_label(text,date) from public,anon,authenticated,service_role;
 grant execute on function private.report_section_inputs(uuid,uuid) to service_role;
+revoke all on function private.report_check(text,jsonb,text[],integer,text,text[]) from public,anon,authenticated;
 
 commit;
