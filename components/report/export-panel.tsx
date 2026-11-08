@@ -24,7 +24,10 @@ export function ExportPanel({ engagement, signed, stamp }: { engagement: string;
         const r = await fetch(`${base(engagement)}?format=model&version=${version}`, { cache: "no-store" });
         const d = await r.json().catch(() => null) as { status?: string; model?: ReportModel } | null;
         if (!live) return;
-        if (d?.status === "ok" && d.model) { setModel(d.model); setGone(false); } else { setModel(null); setGone(d?.status === "missing"); }
+        if (d?.status === "ok" && d.model) { setModel(d.model); setGone(false); }
+        // Before the export function is in the database the signed off version says "missing": the draft is still offered, quietly.
+        else if (d?.status === "missing" && version === "signed") setVersion("draft");
+        else { setModel(null); setGone(d?.status === "missing"); }
       } catch { if (live) { setModel(null); } }
     })();
     return () => { live = false; };

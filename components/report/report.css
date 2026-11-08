@@ -93,8 +93,8 @@ a.rpt-tile:hover { background: var(--cwl-app-hover); }
 .rpt-pv { display: flex; gap: 14px; flex-wrap: wrap; }
 .rpt-pv figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
 .rpt-pv figcaption { font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text-muted); letter-spacing: 0.04em; }
-.rpt-pvbox { position: relative; overflow: hidden; background: var(--cw-white); box-shadow: 0 0 0 1px var(--cw-gray-200); }
-.rpt-pg { position: relative; transform-origin: top left; padding: 72px; background: var(--cw-white); color: var(--cw-navy); font-family: "Plus Jakarta Sans", var(--font-sans, sans-serif); font-size: 14.7px; line-height: 1.45; overflow: hidden; box-sizing: border-box; }
+.rpt-pvbox { position: relative; width: 208px; height: 269px; overflow: hidden; background: var(--cw-white); box-shadow: 0 0 0 1px var(--cw-gray-200); }
+.rpt-pg { position: relative; width: 612px; height: 792px; transform: scale(0.34); transform-origin: top left; padding: 72px; background: var(--cw-white); color: var(--cw-navy); font-family: "Plus Jakarta Sans", var(--font-sans, sans-serif); font-size: 14.7px; line-height: 1.45; overflow: hidden; box-sizing: border-box; }
 .rpt-pg .dr { position: absolute; top: 30px; right: 72px; font-size: 12px; letter-spacing: 0.15em; color: var(--cw-gray-500); }
 .rpt-pg .ey { margin-top: 24px; font-size: 10.7px; font-weight: 700; letter-spacing: 0.15em; color: var(--cw-royal-blue); }
 .rpt-pg h2 { margin: 2px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--cw-royal-blue); font-size: 29px; line-height: 1.2; font-weight: 700; }

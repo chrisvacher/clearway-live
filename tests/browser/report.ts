@@ -13,6 +13,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
+import JSZip from "jszip";
+import { extractText, getDocumentProxy } from "unpdf";
 import { db, engagement, facilitator, localEnv, startApp, until } from "./harness";
 
 const controlDir = join(tmpdir(), `clearway-report-kit-${randomUUID().slice(0, 8)}`), controlFile = join(controlDir, "fake.json");
@@ -24,6 +26,12 @@ Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTRO
 const room = "90000000-0000-4000-8000-000000000011";
 const order = ["overview", "church_today", "process", "heard", "interviews", "tensions", "future", "vision", "risks", "outlook", "intent", "decisions", "visibility", "closing"];
 const headings = ["Overview", "The Church Today", "The Process", "What We Heard", "Leadership Interviews", "Strategic Tensions", "The 10-year Future", "The 3-year Vision", "Risks and Roadblocks", "The 1-year Outlook", "Commander's Intent", "Decisions", "Make the Vision Visible", "Closing"];
+
+// The export's files, read the way a person's tools would: the Word file unzipped, the PDF's text extracted.
+const docxText = async (body: Buffer) => { const zip = await JSZip.loadAsync(body), xml = await zip.file("word/document.xml")!.async("string");
+  const header = (await Promise.all(Object.keys(zip.files).filter(n => /^word\/header\d*\.xml$/.test(n)).map(n => zip.file(n)!.async("string")))).join("");
+  return { xml, header, media: Object.keys(zip.files).filter(n => /^word\/media\//.test(n)), texts: [...xml.matchAll(/<w:t[^>]*>([^<]*)<\/w:t>/g)].map(m => m[1].replace(/&amp;/g, "&").replace(/&apos;/g, "'").replace(/&quot;/g, '"')) }; };
+const pdfText = async (body: Buffer) => (await extractText(await getDocumentProxy(new Uint8Array(body)), { mergePages: true })).text as string;
 
 async function main() {
   const env = localEnv(), sql = db(env), app = await startApp(env);
@@ -289,6 +297,23 @@ async function main() {
       await until(async () => await page.getByTestId("rpt-sign-off").isEnabled(), "sign-off opens again", 10000);
     });
 
+    await step("Export: the signed off version is refused before sign-off, and the draft downloads as Word and PDF marked Draft", async () => {
+      const get = (query: string) => context.request.get(`${app.origin}/api/control/${room}/report/export?${query}`);
+      const none = await get("format=docx&version=signed");
+      assert.equal(none.status(), 409); assert.equal((await none.json()).status, "not_signed");
+      assert.equal((await get("format=rtf&version=draft")).status(), 422);
+      const word = await get("format=docx&version=draft");
+      assert.equal(word.status(), 200);
+      assert.match(word.headers()["content-type"], /wordprocessingml/);
+      assert.match(decodeURIComponent(word.headers()["content-disposition"]), /Wayfinding Report \(Draft\)\.docx/);
+      const d = await docxText(await word.body());
+      assert.ok(d.header.includes("DRAFT") && d.texts.includes("Draft. This report has not been signed off."), "every page says Draft");
+      const pdf = await get("format=pdf&version=draft");
+      assert.equal(pdf.status(), 200); assert.match(pdf.headers()["content-type"], /application\/pdf/);
+      assert.match(decodeURIComponent(pdf.headers()["content-disposition"]), /Wayfinding Report \(Draft\)\.pdf/);
+      assert.ok((await pdfText(await pdf.body())).replace(/\s+/g, "").includes("DRAFT"));
+    });
+
     await step("A co-facilitator cannot sign off, and the lead can", async () => {
       const coContext = await browser!.newContext({ viewport: { width: 1360, height: 1200 } }); await coContext.addCookies(co.cookies(app.origin));
       const copage = await coContext.newPage(); await copage.goto(url);
@@ -321,6 +346,51 @@ async function main() {
       await page.getByTestId("rpt-sign-off").click();
       await until(async () => (await sql.query("select count(*)::int n from private.report_sign_offs where engagement_id=$1 and not deleted", [room])).rows[0].n === 2, "version 2", 15000);
       assert.ok((await sql.query("select snapshot::text like '%in prayer%' as has from private.report_sign_offs where engagement_id=$1 and n=1", [room])).rows[0].has === false, "version 1 is kept as it was signed");
+    });
+
+    await step("Export: after sign-off both files carry the 14 headings in order, Plus Jakarta Sans, the logo and the signed words, with no Draft mark, source markers or dashes", async () => {
+      const get = (query: string) => context.request.get(`${app.origin}/api/control/${room}/report/export?${query}`);
+      const word = await get("format=docx&version=signed");
+      assert.equal(word.status(), 200);
+      assert.match(decodeURIComponent(word.headers()["content-disposition"]), /Wayfinding Report\.docx/);
+      assert.ok(!/\(Draft\)/.test(decodeURIComponent(word.headers()["content-disposition"])), "no Draft in the file name");
+      const d = await docxText(await word.body());
+      let at = 0;
+      for (const h of headings) { const i = d.texts.indexOf(h, at); assert.ok(i >= at, `${h} in order`); at = i + 1; }
+      assert.ok(d.xml.includes('w:ascii="Plus Jakarta Sans"') && d.media.length > 0, "the font and the logo");
+      assert.ok(!d.header.includes("DRAFT") && !d.texts.some(x => x.includes("Draft")), "no Draft mark on a signed report");
+      const joined = d.texts.join("\n");
+      assert.ok(joined.includes("The team carries this forward in prayer."), "the newest signed version");
+      assert.ok(!/[\u2013\u2014]/.test(joined) && !joined.includes(";"), "no dashes or semicolons");
+      const sources = (await sql.query("select distinct r.kind from private.report_sources r where r.engagement_id=$1 and not r.deleted", [room])).rows.length;
+      assert.ok(sources > 0 && !/Source|Sources|source marker/.test(joined.replace(/Sources?\b(?= of)/g, "")) , "no source markers");
+      const lens = (await sql.query(`select s.text from generate_series(1,5) g(lens) join private.lens_summaries l on l.engagement_id=$1 and l.lens=g.lens and l.state='signed_off' and not l.deleted
+        join private.lens_summary_sentences s on s.version_id=l.signed_off_version_id and not s.deleted order by g.lens,s.position,s.id`, [room])).rows.map(r => r.text as string);
+      for (const line of lens) assert.ok(joined.includes(line.replace(/\s*[\u2013\u2014]\s*/g, " - ")), "the 10-year Future is in the file word for word");
+      const pdf = await get("format=pdf&version=signed");
+      assert.equal(pdf.status(), 200);
+      const text = await pdfText(await pdf.body());
+      let from = 0;
+      for (const h of headings) { const i = text.indexOf(`\n${h}\n`, from); assert.ok(i >= from, `${h} in the PDF in order`); from = i + 1; }
+      assert.ok(!text.replace(/\s+/g, "").includes("DRAFT") && !/[\u2013\u2014]/.test(text) && text.includes("The team carries this forward in prayer."));
+      const other = await browser!.newContext(); await other.addCookies(stranger.cookies(app.origin));
+      assert.equal((await other.request.get(`${app.origin}/api/control/${room}/report/export?format=docx&version=signed`)).status(), 403, "another engagement's facilitator is denied");
+      await other.close();
+      assert.ok([401, 403].includes((await fetch(`${app.origin}/api/control/${room}/report/export?format=pdf&version=signed`)).status), "and so is an anonymous browser");
+    });
+
+    await step("The page offers the downloads and a preview, and the Word button saves the file", async () => {
+      await page.goto(url);
+      await page.getByTestId("rpt-export").waitFor({ timeout: 15000 });
+      await page.getByTestId("rpt-preview").waitFor({ timeout: 15000 });
+      assert.match(await page.getByTestId("rpt-preview").innerText(), /Wayfinding Report/);
+      const [file] = await Promise.all([page.waitForEvent("download"), page.getByTestId("rpt-download-docx").click()]);
+      assert.match(file.suggestedFilename(), /^.+ Wayfinding Report\.docx$/);
+      await page.getByTestId("rpt-version-draft").check();
+      await page.getByTestId("rpt-draft-note").waitFor();
+      const [draft] = await Promise.all([page.waitForEvent("download"), page.getByTestId("rpt-download-pdf").click()]);
+      assert.match(draft.suggestedFilename(), /Wayfinding Report \(Draft\)\.pdf$/);
+      await shot(page, "export");
     });
 
     await step("Nobody else reaches it, a request from another origin is refused, and no person reaches the model", async () => {
