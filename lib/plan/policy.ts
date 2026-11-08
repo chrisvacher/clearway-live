@@ -20,7 +20,7 @@ export type PlanRowState = {
 };
 export type PlanRound = { status: "pending" | "drafting" | "ready" | "failed" | "idle"; requested_at: string; attempts: number; error: string | null; ok_at: string | null; kept: number; dropped: number };
 export type PlanState =
-  | { status: "ok"; server_time: string; ai: boolean; lead: boolean; report_draft: boolean; slow_after_ms?: number;
+  | { status: "ok"; server_time: string; ai: boolean; lead: boolean; report_draft: boolean; closed?: boolean; report_stale?: boolean; slow_after_ms?: number;
       plan: { id: string; moment: string; public_date: string | null; status: PlanStatus; error: string | null; dropped: number; drafted_at: string | null } | null;
       round: PlanRound | null; rows: PlanRowState[] }
   | { status: "denied" | "unavailable" | "missing" | "closed" };

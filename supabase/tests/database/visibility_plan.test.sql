@@ -230,7 +230,7 @@ select is((select count(*)::integer from private.visibility_plan_rows r where r.
 select is((select count(*)::integer from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.origin='ai' and not r.touched and r.reviewed_at is null),3,'and is the AI''s, untouched');
 select is((select string_agg(r.who,' | ' order by r.position) from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.stage='lead_pastor'),'The lead pastor','The lead pastor row is there');
 select is((select what_they_hear from private.visibility_plan_rows where engagement_id=tests.id(100) and stage='lead_pastor' and not deleted),'Hears the whole plan first, and what is asked of the lead pastor, before anyone else, and before the stage.','Its dashes and semicolons were rewritten as commas');
-select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and when_text<>'' or when_date is not null),0,'No row has a when without a public date');
+select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and (when_text<>'' or when_date is not null)),0,'No row has a when without a public date');
 select is((select status from private.visibility_plans where engagement_id=tests.id(100) and not deleted),'needs_attention','The plan is marked Needs attention');
 select is((select dropped from private.visibility_plans where engagement_id=tests.id(100) and not deleted),11,'and says how many rows were left out');
 select is((select status||':'||last_kept||':'||last_dropped from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'ready:3:11','The round is ready');
@@ -342,6 +342,43 @@ select is((select s.blocks->'rows'->0->'cells'->0->>'t' from private.report_sect
 select is((select count(*)::integer from private.report_sections s,jsonb_array_elements(s.blocks->'rows') r where s.engagement_id=tests.id(100) and s.key='visibility' and not s.deleted and r->>'group'='actions'),3,'beside the scribe''s action cards');
 delete from private.ai_runs where engagement_id=tests.id(100) and job='draft_report';
 
+-- ---------- A plan change after the report was built ----------
+create temp table vs as select id from private.report_sections where engagement_id=tests.id(100) and key='visibility' and not deleted;
+grant select on vs to authenticated;
+-- The scripted report was never drafted by a model here, so the section is taken out of Drafting by hand.
+update private.report_sections set status='drafted' where id=(select id from vs);
+set local role authenticated;
+select tests.login(1);
+select is(public.report_mark_reviewed(tests.id(100),(select id from vs),true)->>'status','ok','The lead reviews Make the Vision Visible');
+select is(public.report_state(tests.id(100))->>'plan_stale','false','Nothing is stale while the section matches the plan');
+select is(public.visibility_plan_state(tests.id(100))->>'report_stale','false','and the plan page says so');
+select is(public.visibility_plan_row_add(tests.id(100),'{"stage":"board","who":"The deacons","what_they_hear":"Hear the plan in person."}')->>'status','ok','A row is added by hand');
+select is(public.visibility_plan_row_edit(tests.id(100),tests.rowid('The elders'),'{"risk":"Burn out comes first."}')->>'status','ok','and a cell is edited');
+select is(public.report_state(tests.id(100))->>'plan_stale','true','The report says the plan changed');
+select is(public.visibility_plan_state(tests.id(100))->>'report_stale','true','and so does the plan page');
+select is(public.report_sign_off(tests.id(100),tests.id(951))->>'status','plan_changed','Sign-off refuses until the section is refreshed');
+select tests.login(2);
+select isnt(public.report_sign_off(tests.id(100),tests.id(952))->>'status','plan_changed','A co-facilitator gets step 1''s own answer');
+select tests.login(1);
+reset role;
+select is((select s.status||':'||(s.reviewed_at is null)||':'||s.plan_stale from private.report_sections s where s.id=(select id from vs)),'edited:true:true','The section is Edited, not reviewed, and stale');
+select is(private.report_snapshot(tests.id(100))::text like '%Burn out comes first%',false,'A snapshot taken now would freeze the old plan');
+set local role authenticated;
+select tests.login(1);
+select is(public.report_refresh(tests.id(100),'visibility',true)->>'status','ok','Refreshing the section rebuilds it from the plan');
+select is(public.report_state(tests.id(100))->>'plan_stale','false','and it is no longer stale');
+select is(public.report_sign_off(tests.id(100),tests.id(953))->>'status','not_reviewed','Sign-off is back to step 1''s checks, which want the section reviewed again');
+reset role;
+select is(private.report_snapshot(tests.id(100))::text like '%Burn out comes first%' and private.report_snapshot(tests.id(100))::text like '%Hear the plan in person.%',true,'The snapshot holds the plan as it is now, edit and added row included');
+select is((select count(*)::integer from private.report_sources r join private.report_sentences x on x.id=r.sentence_id join private.report_sections s on s.id=x.section_id
+  where s.engagement_id=tests.id(100) and s.key='visibility' and not x.deleted and not r.deleted and x.text='Hear the plan in person.' and r.kind='record'),1,'A facilitator''s own row reaches the report with a record source');
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_row_remove(tests.id(100),tests.rowid('The deacons'))->>'status','ok','A removal');
+select is(public.report_state(tests.id(100))->>'plan_stale','true','makes the section stale again');
+reset role;
+delete from private.ai_runs where engagement_id=tests.id(100) and job='draft_report';
+
 -- ---------- Removing a row, the signal rule and the sources ----------
 set local role authenticated;
 select tests.login(1);
@@ -375,10 +412,8 @@ reset role;
 -- ---------- Every row reviewed ----------
 set local role authenticated;
 select tests.login(1);
-do $$ declare r record; begin
-reset role;
- for r in select id from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted loop perform public.visibility_plan_row_reviewed(tests.id(100),r.id,true); end loop;
-set local role authenticated;
+do $$ declare r uuid; begin
+ for r in select (e->>'id')::uuid from jsonb_array_elements(public.visibility_plan_state(tests.id(100))->'rows') e loop perform public.visibility_plan_row_reviewed(tests.id(100),r,true); end loop;
 end $$;
 select is(tests.pstatus(),'reviewed','With every row reviewed the plan is Reviewed');
 select is(public.visibility_plan_row_edit(tests.id(100),tests.rowid('The elders'),'{"risk":"The elders never owned the plan."}')->>'status','ok','An edit');
@@ -446,6 +481,7 @@ set local role authenticated;
 select tests.login(1);
 select is(public.visibility_plan_row_edit(tests.id(100),tests.rowid('The elders'),'{"risk":"Too late."}')->>'status','closed','A closed engagement''s plan cannot change');
 select is(public.visibility_plan_state(tests.id(100))->>'status','ok','but can still be read');
+select is(public.visibility_plan_state(tests.id(100))->>'closed','true','and says it is closed');
 reset role;
 update engagements set status='retreat' where id=tests.id(100);
 
@@ -455,7 +491,13 @@ insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(
 set local role authenticated;
 select tests.login(1);
 select is(public.visibility_plan_row_add('90000000-0000-4000-8000-000000000010','{"stage":"board","who":"The practice elders"}')->>'status','ok','A row is added in the practice room before any rehearsal');
+reset role;
+update engagements set settings=settings||'{"ai_enabled":true}' where id='90000000-0000-4000-8000-000000000010';
+set local role authenticated;
+select tests.login(1);
+select is(public.report_start('90000000-0000-4000-8000-000000000010',tests.id(960),'all',null,false)->>'status','ok','A report is drafted in the practice room before any rehearsal');
 select is(public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.id(851),'start')->>'status','ok','The rehearsal starts');
+select is(public.visibility_plan_row_add('90000000-0000-4000-8000-000000000010','{"stage":"staff","who":"Rehearsal staff"}')->>'status','ok','A row is added during it');
 reset role;
 update engagements set settings=settings||'{"ai_enabled":true}' where id='90000000-0000-4000-8000-000000000010';
 set local role authenticated;
@@ -471,6 +513,9 @@ select is(public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.
 reset role;
 select is((select count(*)::integer from private.visibility_plan_rounds where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'It puts away the test round');
 select is((select count(*)::integer from private.visibility_plan_rows where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),1,'and keeps the plan''s row made before the rehearsal');
+select is((select count(*)::integer from private.visibility_plan_rows where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted and who='Rehearsal staff'),0,'and the row made during the rehearsal');
+select isnt((select status from private.visibility_plans where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),'drafting','A plan the cleared round left in Drafting is healed');
+select is((select count(*)::integer from private.report_drafts where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),1,'while the report drafted before the rehearsal stays');
 select is((select count(*)::integer from private.visibility_plans where engagement_id=tests.id(100) and not deleted),1,'and touches no other engagement');
 set local role authenticated;
 select tests.login(1);
@@ -482,8 +527,105 @@ select is((select count(*)::integer from private.visibility_plan_sources where e
 select is((select count(*)::integer from private.visibility_plan_rounds where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'no round');
 select is((select count(*)::integer from private.visibility_plans where engagement_id=tests.id(100) and not deleted),1,'The first engagement keeps its plan');
 select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted),6,'and its rows');
-select ok(pg_get_functiondef('private.reset_practice_room_pre_visibility_plan()'::regprocedure) like '%rp_clear%','The wrapped reset is step 1''s, so the report is still put away');
-select ok(pg_get_functiondef('private.rehearsal_control_pre_visibility_plan(uuid,uuid,text)'::regprocedure) like '%rp_clear%','and so is Clear test answers');
+select is((select count(*)::integer from private.report_drafts where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'The practice reset puts the report draft away as well');
+select is((select count(*)::integer from private.report_sections where engagement_id='90000000-0000-4000-8000-000000000010' and not deleted),0,'and its sections');
+
+-- ---------- A lease that runs out ----------
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_start(tests.id(100),tests.id(920),true)->>'status','ok','The lead drafts again');
+reset role;
+create temp table c5 as select tests.pclaim() as v;
+update private.visibility_plan_rounds set lease_until=now()-interval '1 minute' where engagement_id=tests.id(100) and not deleted;
+select is(tests.papply((select v from c5),'[]'),'{"status":"stale"}'::jsonb,'A reply after its lease ran out is stale');
+select is(private.visibility_plan_due(tests.id(100)),true,'and the round is due again');
+select is(tests.pclaim()->>'status','cooling','An expired lease counts as a failed attempt, so the next claim waits');
+select is((select attempts||':'||status from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'1:pending','and the attempt was counted');
+update private.visibility_plan_rounds set last_failed_at=now()-interval '5 minutes' where engagement_id=tests.id(100) and not deleted;
+create temp table c6 as select tests.pclaim() as v;
+select is((select v->>'status' from c6),'claimed','After the pause it is claimed once more');
+update private.visibility_plan_rounds set lease_until=now()-interval '1 minute' where engagement_id=tests.id(100) and not deleted;
+select is(tests.pclaim()->>'status','idle','A second expiry gives up');
+select is(tests.pstatus(),'needs_attention','The plan says Needs attention');
+select is((select status from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'failed','and the round has failed');
+select is((select count(*)::integer from private.ai_runs where id in((select v->>'run' from c5)::uuid,(select v->>'run' from c6)::uuid) and status='failed' and error='timeout'),2,'with both runs logged as timeouts');
+select is(private.visibility_plan_due(tests.id(100)),false,'and nothing is due');
+
+-- ---------- An edit while the model is working survives the reply ----------
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_start(tests.id(100),tests.id(921),true)->>'status','ok','The lead drafts again');
+reset role;
+create temp table c7 as select tests.pclaim() as v;
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_row_edit(tests.id(100),tests.rowid('The staff'),'{"risk":"Burn out is named first."}')->>'status','ok','A cell is edited while the model works');
+reset role;
+create temp table a7 as select tests.papply((select v from c7),jsonb_build_array(
+ tests.prow('staff','The staff team','Hear what each person owns.',jsonb_build_array(tests.pref((select v from c7),'k'))),
+ tests.prow('congregation','The congregation','On Vision Sunday the church hears that every ministry is growing its own next leader.',jsonb_build_array(tests.pref((select v from c7),'i')))
+)) as j;
+select is((select j->>'status' from a7),'ok','The reply is applied');
+select ok((select (j->>'skipped')::integer>=1 from a7),'The stages the facilitator holds are not redrafted');
+select is((select risk from private.visibility_plan_rows where id=tests.rowid('The staff')),'Burn out is named first.','and the edited row is still there as they left it');
+select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and who='The staff team'),0,'and no new row is added for them');
+
+-- ---------- A plan stuck in Drafting ----------
+update private.visibility_plan_rounds set deleted=true where engagement_id=tests.id(100) and not deleted;
+update private.visibility_plans set status='drafting' where engagement_id=tests.id(100) and not deleted;
+set local role authenticated;
+select tests.login(1);
+select is(tests.pstate()->'plan'->>'status','edited','Reading a plan the round left in Drafting heals it');
+reset role;
+
+-- ---------- The checks on a when ----------
+select is(private.vp_check('{"stage":"board","who":"The elders","hear":"The plan.","when":"The week before","when_date":"2027-01-24"}','[{"ref":"a1","text":"Brief the elders.","sources":[]}]','{}',date '2027-01-31',date '2026-11-05'),null,'A when on or before the public date is fine');
+select is(private.vp_check('{"stage":"board","who":"The elders","hear":"The plan.","when":"The week after"}','[{"ref":"a1","text":"Brief the elders.","sources":[]}]','{}',date '2027-01-31',date '2026-11-05'),'when','Words that put a row after the public moment are refused');
+select is(private.vp_check('{"stage":"board","who":"The elders","hear":"The plan.","when":"Following the vote"}','[{"ref":"a1","text":"Brief the elders.","sources":[]}]','{}',date '2027-01-31',date '2026-11-05'),'when','whichever word it uses');
+select is(private.vp_check('{"stage":"board","who":"The elders","hear":"The plan.","when_date":"1999-01-01"}','[{"ref":"a1","text":"Brief the elders.","sources":[]}]','{}',date '2027-01-31',date '2026-11-05'),'when','A date before the table''s range is refused, not an error');
+select is(private.vp_check('{"stage":"board","who":"The elders","hear":"The plan.","when_date":"2026-11-01"}','[{"ref":"a1","text":"Brief the elders.","sources":[]}]','{}',date '2027-01-31',date '2026-11-05'),'when','and so is a date before the retreat ended');
+select is(private.vp_check('{"stage":"board","who":"The elders","hear":"The plan.","when_date":"2999-01-01"}','[{"ref":"a1","text":"Brief the elders.","sources":[]}]','{}',date '2027-01-31',date '2026-11-05'),'when','or after the public date');
+
+-- ---------- A reply with bad dates drops those rows and keeps the rest ----------
+update private.vision_outcomes set title='Priya Shah leads' where id=tests.id(660);
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_start(tests.id(100),tests.id(922),true)->>'status','ok','The lead drafts again');
+reset role;
+create temp table c8 as select tests.pclaim() as v;
+update private.vision_outcomes set title='Leaders raised from within' where id=tests.id(660);
+select is((select count(*) from c8,jsonb_array_elements(v->'inputs'->'refs') x where x.value->>'ref' like 'i%'),0::bigint,'An intent card whose outcome title names someone is not sent');
+create temp table a8 as select tests.papply((select v from c8),jsonb_build_array(
+ tests.prow('key_leaders','Key leaders','Hear the first goal.',jsonb_build_array(tests.pref((select v from c8),'g')),'{"when":"The week before","when_date":"2027-01-20"}'),
+ tests.prow('key_leaders','Key leaders','Hear the first goal again.',jsonb_build_array(tests.pref((select v from c8),'g')),'{"when":"The week before","when_date":"2027-01-26"}'),
+ tests.prow('key_leaders','Key leaders','Hear the first goal once more.',jsonb_build_array(tests.pref((select v from c8),'g')),'{"when_date":"1999-01-01"}'),
+ tests.prow('key_leaders','Key leaders','Hear it then.',jsonb_build_array(tests.pref((select v from c8),'g')),'{"when":"The week after"}'),
+ tests.prow('key_leaders','Key leaders','They hear "Name a back-up owner for every first step" from the room.',jsonb_build_array(tests.pref((select v from c8),'m')),'{"when_date":"2027-01-27"}')
+)) as j;
+select is((select j->>'status' from a8),'ok','The reply is applied, a bad date and all');
+select is((select (j->>'kept')||':'||(j->>'dropped') from a8),'2:3','Two rows are kept and three dropped: a date that runs backwards, one before the range and one that says after');
+select is((select string_agg(r.when_date::text,',' order by r.position) from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.stage='key_leaders'),'2027-01-26,2027-01-27','The rows that pass keep their dates, in order');
+select is((select s.excerpt from private.visibility_plan_sources s join private.visibility_plan_rows r on r.id=s.row_id where r.engagement_id=tests.id(100) and not r.deleted and not s.deleted and r.what_they_hear like '%back-up owner%' and s.kind='scribe_card'),'Name a back-up owner for every first step','A row that quotes the room keeps just the quoted words as its source');
+
+-- ---------- Moving or taking away the public date ----------
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_set(tests.id(100),'Vision Sunday','2027-01-26')->>'status','ok','The public date moves earlier');
+reset role;
+select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and origin='ai' and not touched and reviewed_at is null and when_date>date '2027-01-26'),0,'No untouched AI row is left dated after it');
+select is((select when_date::text from private.visibility_plan_rows where id=tests.rowid('The staff')),'2027-01-24','and a row the facilitator touched is left as it was');
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_set(tests.id(100),'Vision Sunday',null)->>'status','ok','The date is taken away');
+reset role;
+select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and origin='ai' and not touched and reviewed_at is null and (when_text<>'' or when_date is not null)),0,'Untouched AI rows lose their whens');
+
+-- ---------- The report's lease ----------
+create temp table rc1 as select private.report_claim(tests.id(100),gen_random_uuid(),'m','{"draft_report":"report@1"}'::jsonb) as v;
+select is((select v->>'status' from rc1),'claimed','The report''s worker claims a section');
+update private.report_rounds set lease_until=now()-interval '1 minute' where engagement_id=tests.id(100) and not deleted;
+select is(private.report_claim(tests.id(100),gen_random_uuid(),'m','{"draft_report":"report@1"}'::jsonb)->>'status','cooling','An expired lease counts as a failed attempt there too');
+select is((select attempts from private.report_rounds where engagement_id=tests.id(100) and not deleted),1,'and the attempt was counted');
 
 select * from finish();
 rollback;

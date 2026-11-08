@@ -4,7 +4,7 @@ import { BadgeCheck, CircleAlert, Loader, Pencil, Plus, Quote, RefreshCw, Trash2
 import { markOf, originNames, plural, statusNames, type BlockCell, type ReportSection, type ReportSentence } from "@/lib/report/policy";
 import type { Api } from "./use-report";
 
-type Props = { section: ReportSection; api: Api; selected: string | null; select: (id: string | null) => void; ai: boolean; locked: boolean; zone: string };
+type Props = { section: ReportSection; api: Api; selected: string | null; select: (id: string | null) => void; ai: boolean; locked: boolean; zone: string; planStale?: boolean };
 const stamp = (iso: string, zone: string) => new Intl.DateTimeFormat("en-US", { timeZone: zone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 
 function Tags({ s }: { s: ReportSentence }) {
@@ -67,7 +67,7 @@ function Table({ section, sentences, selected, select }: { section: ReportSectio
     })}</tbody></table></div>;
 }
 
-export function SectionBody({ section, api, selected, select, ai, locked, zone }: Props) {
+export function SectionBody({ section, api, selected, select, ai, locked, zone, planStale }: Props) {
   const [adding, setAdding] = useState<string | null>(null);
   const [ask, setAsk] = useState<{ kind: "redraft" | "refresh"; n: number } | null>(null);
   const byId = new Map(section.sentences.map(s => [s.id, s]));
@@ -96,6 +96,7 @@ export function SectionBody({ section, api, selected, select, ai, locked, zone }
         <button type="button" className="ovr-btn is-sm" disabled={api.busy || drafting} onClick={() => void refresh(false)} data-testid="rpt-refresh"><RefreshCw aria-hidden="true" />Refresh from the records</button>
         <button type="button" className="ovr-btn is-sm" disabled={api.busy || drafting || !ai} title={ai ? undefined : "AI is off for this engagement"} onClick={() => void redraft(false)} data-testid="rpt-redraft"><Pencil aria-hidden="true" />Redraft the lead</button></>}
     </div>
+    {section.key === "visibility" && planStale && <div className="ovr-banner is-warning" role="status" data-testid="rpt-plan-stale"><TriangleAlert aria-hidden="true" /><div><strong>The visibility plan changed since this section was built.</strong> Refresh it from the records.</div></div>}
     {section.status === "needs_attention" && <div className="ovr-banner is-warning" role="status" data-testid="rpt-attention"><TriangleAlert aria-hidden="true" /><div>
       <strong>{section.error ?? (section.dropped > 0 ? `${plural(section.dropped, "sentence")} didn’t meet the checks and ${section.dropped === 1 ? "was" : "were"} left out.` : "This section needs your attention.")}</strong> {section.error ? "Try again, or write the section yourself." : "Read what is here, add what is missing, or redraft the section."}
       {!locked && ai && <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy} onClick={() => void redraft(false)} data-testid="rpt-retry"><RefreshCw aria-hidden="true" />Try again</button></div>}</div></div>}

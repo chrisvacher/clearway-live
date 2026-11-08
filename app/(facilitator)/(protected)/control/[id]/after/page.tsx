@@ -5,6 +5,7 @@ import { readShow } from "@/lib/run-of-show/server";
 import { AfterHub, type AfterSummary } from "@/components/report/after-hub";
 import type { ReportState } from "@/lib/report/policy";
 import type { PlanState } from "@/lib/plan/policy";
+import { checkInLine, type CheckInState } from "@/lib/check-ins/policy";
 
 export const metadata = { title: "After the retreat", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -24,8 +25,14 @@ export default async function AfterPage({ params }: { params: Promise<{ id: stri
   try {
     const { data, error } = await client.rpc("visibility_plan_state", { p_engagement: id });
     const plan = data as PlanState | null;
-    if (!error && plan?.status === "ok") summary.plan = { available: true, rows: plan.rows.length, reviewed: plan.rows.filter(r => r.reviewed).length, date: plan.plan?.public_date ?? null };
+    if (!error && plan?.status === "ok") summary.plan = { available: true, rows: plan.rows.length, reviewed: plan.rows.filter(r => r.reviewed).length, date: plan.plan?.public_date ?? null, status: plan.plan?.status ?? null };
     else summary.plan = { available: false, rows: 0, reviewed: 0, date: null };
   } catch { summary.plan = { available: false, rows: 0, reviewed: 0, date: null }; }
+  // The check-ins tile shows the next round's status. Before the check-ins migration is applied the call fails and the tile says so, quietly.
+  try {
+    const { data, error } = await client.rpc("check_in_state", { p_engagement: id });
+    const state = data as CheckInState | null;
+    if (!error && state?.status === "ok") summary = { ...summary, checkIns: { available: true, line: checkInLine(state) } };
+  } catch { /* The check-ins are not here yet. */ }
   return <AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} />;
 }

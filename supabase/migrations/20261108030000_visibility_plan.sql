@@ -21,6 +21,10 @@
 -- Shared objects touched, each a superset of its newest definition:
 --   private.reset_practice_room    step 1's wrapper, renamed to _pre_visibility_plan and wrapped
 --   private.rehearsal_control      step 1's wrapper, renamed to _pre_visibility_plan and wrapped
+--   private.report_refresh, report_state, report_sign_off, report_claim   step 1's functions, renamed to _pre_visibility_plan and wrapped (same signatures):
+--     a plan change marks the report's Make the Vision Visible section stale and takes its review away, Refresh clears that, the state says it, sign-off
+--     refuses until it is refreshed, and a lease that ran out counts as a failed attempt so a killed worker cannot repeat a model call for ever
+--   private.report_sections        gains plan_stale
 -- The AI job check and the session check already hold draft_visibility_plan (step 1 added them), so this file leaves them alone.
 begin;
 
@@ -70,6 +74,7 @@ create table private.visibility_plan_rows (
  touched boolean not null default false,
  reviewed_at timestamptz,
  reviewed_by uuid references public.clearway_users(id),
+ test boolean not null default false,
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
  deleted boolean not null default false,
  foreign key(plan_id,engagement_id) references private.visibility_plans(id,engagement_id)
@@ -83,6 +88,11 @@ alter table private.visibility_plan_rows force row level security;
 revoke all on private.visibility_plan_rows from public,anon,authenticated;
 grant select,insert,update,delete on private.visibility_plan_rows to service_role;
 create trigger touch_record before update on private.visibility_plan_rows for each row execute function private.touch_live_record('id');
+create trigger mark_test before insert on private.visibility_plan_rows for each row execute function private.mark_test();
+
+-- The report's Make the Vision Visible section is built from the plan when the report is drafted and when it is refreshed. A plan change after that marks
+-- the section stale (and takes its review away) until it is refreshed.
+alter table private.report_sections add column plan_stale boolean not null default false;
 
 -- A source is a record a row rests on, with the words it used (280 characters at most). The kinds are the report's.
 create table private.visibility_plan_sources (
@@ -195,6 +205,25 @@ begin
  return pl;
 end $$;
 
+-- The plan changed: the report's Make the Vision Visible section no longer matches it, and what was reviewed is not what is there.
+create function private.vp_report_touch(p_engagement uuid) returns void
+language sql security definer set search_path='' as $$
+ update private.report_sections s set plan_stale=true,status=case when s.status='reviewed' then 'edited' else s.status end,reviewed_by=null,reviewed_at=null
+ where s.engagement_id=p_engagement and s.key='visibility' and not s.deleted and (not s.plan_stale or s.reviewed_at is not null)
+  and exists(select 1 from private.report_drafts d where d.id=s.draft_id and d.engagement_id=s.engagement_id and not d.deleted)
+$$;
+
+-- A plan left in Drafting with no round to finish it goes back to what its rows say (as the report heals a section: rp_heal).
+create function private.vp_heal(p_engagement uuid) returns void
+language plpgsql security definer set search_path='' as $$
+declare pl private.visibility_plans;
+begin
+ select * into pl from private.visibility_plans where engagement_id=p_engagement and not deleted and status='drafting';
+ if found and not exists(select 1 from private.visibility_plan_rounds r where r.engagement_id=p_engagement and not r.deleted and r.status in ('pending','drafting')) then
+  perform private.vp_unstick(pl.id);
+ end if;
+end $$;
+
 -- ---------- What the model reads ----------
 -- {plan_id, public:{moment, date}, kept_stages, refs:[{ref, group, text, thin, thin_text, sources}]}. Refs: a scribe action card (a), a scribe mitigation card (m),
 -- a risk that was not merged away (r), a mitigation (k), a Commander's Intent card (i), a first step (s), a 1-year goal (g), a decision (d) and a success
@@ -230,7 +259,7 @@ begin
  for x in select c.id,c.intent,c.must_do,c.what_we_stop,o.title as otitle from private.intent_cards c join private.vision_outcomes o on o.id=c.outcome_id and o.engagement_id=c.engagement_id and not o.deleted
    where c.engagement_id=p_engagement and not c.deleted order by o.position,c.created_at,c.id limit 12 loop
   v:=concat_ws(' ',case when btrim(x.intent)<>'' then 'Intent: '||btrim(x.intent) end,case when btrim(x.must_do)<>'' then 'Must do: '||btrim(x.must_do) end,case when btrim(x.what_we_stop)<>'' then 'We will stop: '||btrim(x.what_we_stop) end);
-  if v='' or private.discover_has_name(v,names) then continue; end if;
+  if v='' or private.discover_has_name(v||' '||coalesce(x.otitle,''),names) then continue; end if;
   refs:=private.rp_add(refs,'i','Commander''s Intent card for the Vision Outcome: '||left(x.otitle,100),v,'intent_card',x.id,v,false,null,false);
  end loop;
  for x in select f.id,f.text from private.first_steps f join private.intent_cards c on c.id=f.card_id and c.engagement_id=f.engagement_id and not c.deleted
@@ -258,8 +287,9 @@ end $$;
 
 -- ---------- The code checks on every row ----------
 -- Why a row must be dropped, or null when it may stay. p_row is {stage, who, when, when_date, by, hear, risk}, already cleaned of dashes and semicolons.
--- p_cited is the refs the row cites, p_names the words of every name in the engagement and p_public the public date or null.
-create function private.vp_check(p_row jsonb,p_cited jsonb,p_names text[],p_public date) returns text
+-- p_cited is the refs the row cites, p_names the words of every name in the engagement, p_public the public date or null and p_floor the day the retreat
+-- ended (a row is dated after it, never before).
+create function private.vp_check(p_row jsonb,p_cited jsonb,p_names text[],p_public date,p_floor date) returns text
 language plpgsql stable security invoker set search_path='' as $$
 declare f text; v text; w text; wt text:=btrim(coalesce(p_row->>'when','')); wd text:=btrim(coalesce(p_row->>'when_date','')); d date; lim integer;
 begin
@@ -277,10 +307,13 @@ begin
   if wt<>'' or wd<>'' then return 'when'; end if;
  else
   if length(wt)>120 or private.screen_text(wt) or private.discover_has_name(wt,p_names) then return 'when'; end if;
+  -- Words that put a row after the public moment are refused: the plan works back from it.
+  if wt ~* '\m(after|following|afterwards|later|next|beyond|past)\M' then return 'when'; end if;
   if wd<>'' then
    if wd !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then return 'when'; end if;
    begin d:=wd::date; exception when others then return 'when'; end;
-   if d>p_public then return 'when'; end if;
+   -- On or before the public date, after the retreat and inside the range the table holds, so a bad date drops its own row and nothing else.
+   if d>p_public or d<greatest(coalesce(p_floor,date '2020-01-01'),date '2020-01-01') or d>date '2100-12-31' then return 'when'; end if;
   end if;
  end if;
  return null;
@@ -340,6 +373,18 @@ begin
  select * into r from private.visibility_plan_rounds where engagement_id=p_engagement and not deleted for update;
  if not found or r.status not in ('pending','drafting') then return jsonb_build_object('status','idle'); end if;
  if r.status='drafting' and r.lease_until>t then return jsonb_build_object('status','busy'); end if;
+ if r.status='drafting' then
+  -- The lease ran out and nobody answered. That is a failed attempt, so a worker that keeps being killed gives up after the same limit as any other failure
+  -- instead of repeating a deep-model call every six minutes.
+  if r.lease_run is not null then update private.ai_runs set status='failed',finished_at=t,error='timeout' where id=r.lease_run and status='running'; end if;
+  if r.attempts+1>=2 then
+   update private.visibility_plans set status='needs_attention',error='AI could not draft the plan' where engagement_id=p_engagement and not deleted;
+   update private.visibility_plan_rounds set status='failed',attempts=0,lease_id=null,lease_run=null,lease_until=null,last_failed_at=null,last_error='timeout' where id=r.id;
+   return jsonb_build_object('status','idle');
+  end if;
+  update private.visibility_plan_rounds set status='pending',attempts=attempts+1,lease_id=null,lease_run=null,lease_until=null,last_failed_at=t,last_error='timeout' where id=r.id;
+  select * into r from private.visibility_plan_rounds where id=r.id;
+ end if;
  if r.status='pending' and r.last_failed_at is not null and r.last_failed_at>t-make_interval(secs=>10*greatest(r.attempts,1)) then
   return jsonb_build_object('status','cooling','ms',(extract(epoch from r.last_failed_at+make_interval(secs=>10*greatest(r.attempts,1))-t)*1000)::integer); end if;
  select * into pl from private.visibility_plans where engagement_id=p_engagement and not deleted;
@@ -375,6 +420,7 @@ language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; r private.visibility_plan_rounds; pl private.visibility_plans; t timestamptz:=clock_timestamp(); in_ jsonb; v_ms integer; sn record; v_refs text[]; cited jsonb;
  names text[]; why text; srcs jsonb; reasons jsonb:='[]'::jsonb; good jsonb:='[]'::jsonb; g record; n_kept integer:=0; n_dropped integer:=0; n_skipped integer:=0; kept text[];
  v_row jsonb; ids uuid[]; ranks integer[]; idx integer; v_id uuid; n integer; s jsonb; reordered boolean:=false; last_rank integer:=0; v_live integer; rk integer; v_when_date date;
+ v_floor date; v_q text; pd date[]; pr integer[]; good2 jsonb:='[]'::jsonb; v_d date;
 begin
  if p_run is null or p_lease is null or jsonb_typeof(p_output) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  select * into run from private.ai_runs where id=p_run and job='draft_visibility_plan';
@@ -396,6 +442,7 @@ begin
   return jsonb_build_object('status','discarded');
  end if;
  names:=private.report_names(run.engagement_id);
+ select coalesce(e.end_date,e.start_date) into v_floor from public.engagements e where e.id=run.engagement_id;
  select coalesce(array_agg(distinct x.stage),array[]::text[]) into kept from private.visibility_plan_rows x where x.plan_id=pl.id and not x.deleted and (x.touched or x.reviewed_at is not null);
  for sn in select e.value as v,e.ord from jsonb_array_elements(case when jsonb_typeof(p_output->'rows')='array' then p_output->'rows' else '[]'::jsonb end) with ordinality e(value,ord) where e.ord<=14 loop
   if jsonb_typeof(sn.v)<>'object' then continue; end if;
@@ -404,18 +451,40 @@ begin
   if v_row->>'stage'=any(kept) then n_skipped:=n_skipped+1; continue; end if;
   select coalesce(array_agg(distinct lower(btrim(x#>>'{}'))),array[]::text[]) into v_refs from jsonb_array_elements(case when jsonb_typeof(sn.v->'refs')='array' then sn.v->'refs' else '[]'::jsonb end) x where jsonb_typeof(x)='string';
   select jsonb_agg(x.value order by x.ord) into cited from jsonb_array_elements(in_->'refs') with ordinality x(value,ord) where lower(x.value->>'ref')=any(v_refs);
-  why:=private.vp_check(v_row,cited,names,pl.public_date);
+  why:=private.vp_check(v_row,cited,names,pl.public_date,v_floor);
   if why is not null then n_dropped:=n_dropped+1; reasons:=reasons||jsonb_build_array(jsonb_build_object('reason',why,'stage',v_row->>'stage')); continue; end if;
   select coalesce(jsonb_agg(z.value order by x.ord,z.ord),'[]'::jsonb) into srcs from jsonb_array_elements(cited) with ordinality x(value,ord) cross join lateral jsonb_array_elements(x.value->'sources') with ordinality z(value,ord);
+  -- A row that quotes the room keeps the quoted words as its source's excerpt, so the panel lights the quotation (as the report does).
+  v_q:=(private.rp_quoted(concat_ws(' ',v_row->>'who',v_row->>'hear',v_row->>'risk')))[1];
+  if v_q is not null then
+   v_q:=regexp_replace(v_q,'[.,!?…]+$','');
+   select coalesce(jsonb_agg(case when (coalesce((z.value->>'room')::boolean,false) or z.value->>'kind' in ('scribe_card','four_lists_card','submission','lens_summary_sentence'))
+      and position(private.rp_qnorm(v_q) in private.rp_qnorm(z.value->>'excerpt'))>0 then jsonb_set(z.value,'{excerpt}',to_jsonb(left(v_q,280))) else z.value end order by z.ord),'[]'::jsonb) into srcs
+    from jsonb_array_elements(srcs) with ordinality z(value,ord);
+  end if;
   good:=good||jsonb_build_array(jsonb_build_object('row',v_row,'sources',srcs,'rank',private.vp_rank(v_row->>'stage')));
   n_kept:=n_kept+1;
  end loop;
+ for g in select e.value as v from jsonb_array_elements(good) e loop
+  rk:=(g.v->>'rank')::integer;
+  if rk<last_rank then reordered:=true; end if;
+  last_rank:=rk;
+ end loop;
+ -- Dates never run backwards along the outward order: not against the rows the facilitator keeps, and not against the rows kept before this one.
+ select coalesce(array_agg(x.when_date),array[]::date[]),coalesce(array_agg(private.vp_rank(x.stage)),array[]::integer[]) into pd,pr
+  from private.visibility_plan_rows x where x.plan_id=pl.id and not x.deleted and (x.touched or x.reviewed_at is not null) and x.when_date is not null;
+ for g in select e.value as v from jsonb_array_elements(good) with ordinality e(value,ord) order by (e.value->>'rank')::integer,e.ord loop
+  rk:=(g.v->>'rank')::integer; v_d:=nullif(g.v->'row'->>'when_date','')::date;
+  if v_d is not null then
+   if exists(select 1 from unnest(pd,pr) u(d,rr) where (rr<rk and u.d>v_d) or (rr>rk and u.d<v_d)) then
+    n_kept:=n_kept-1; n_dropped:=n_dropped+1; reasons:=reasons||jsonb_build_array(jsonb_build_object('reason','when','stage',g.v->'row'->>'stage')); continue;
+   end if;
+   pd:=pd||v_d; pr:=pr||rk;
+  end if;
+  good2:=good2||jsonb_build_array(g.v);
+ end loop;
+ good:=good2;
  if n_kept>0 then
-  for g in select e.value as v from jsonb_array_elements(good) e loop
-   rk:=(g.v->>'rank')::integer;
-   if rk<last_rank then reordered:=true; end if;
-   last_rank:=rk;
-  end loop;
   -- The untouched AI rows go, with their sources.
   update private.visibility_plan_sources set deleted=true where engagement_id=run.engagement_id and not deleted and row_id in (
    select x.id from private.visibility_plan_rows x where x.plan_id=pl.id and not x.deleted and x.origin='ai' and not x.touched and x.reviewed_at is null);
@@ -445,6 +514,7 @@ begin
  end if;
  update private.visibility_plans set status='drafted',error=null,dropped=n_dropped,ai_run=run.id,drafted_at=t where id=pl.id;
  perform private.vp_settle(pl.id,false);
+ perform private.vp_report_touch(run.engagement_id);
  select count(*)::integer into v_live from private.visibility_plan_rows where plan_id=pl.id and not deleted;
  if v_live=0 then
   update private.visibility_plans set status=case when n_dropped>0 then 'needs_attention' else 'thin' end where id=pl.id;
@@ -483,7 +553,7 @@ end $$;
 -- The public moment and its date. A date of null takes it away.
 create function private.visibility_plan_set(p_engagement uuid,p_moment text,p_date date) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare guard text:=private.report_guard(p_engagement,true); pl private.visibility_plans; v_moment text:=btrim(regexp_replace(coalesce(p_moment,''),'\s+',' ','g'));
+declare guard text:=private.report_guard(p_engagement,true); pl private.visibility_plans; v_moment text:=btrim(regexp_replace(coalesce(p_moment,''),'\s+',' ','g')); v_n integer:=0;
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if length(v_moment) not between 1 and 80 or (p_date is not null and p_date not between date '2020-01-01' and date '2100-12-31') then return jsonb_build_object('status','invalid_request'); end if;
@@ -493,6 +563,16 @@ begin
  pl:=private.vp_plan(p_engagement);
  if pl.moment=v_moment and pl.public_date is not distinct from p_date then return jsonb_build_object('status','unchanged'); end if;
  update private.visibility_plans set moment=v_moment,public_date=p_date where id=pl.id;
+ -- The whens of untouched AI rows were worked back from the old date. With no date they go, and with an earlier date the ones that now fall after it go.
+ -- A row the facilitator touched or reviewed is theirs, and the page flags a date after the public date.
+ if p_date is null then
+  update private.visibility_plan_rows set when_text='',when_date=null where plan_id=pl.id and not deleted and origin='ai' and not touched and reviewed_at is null and (when_text<>'' or when_date is not null);
+  get diagnostics v_n=row_count;
+ elsif pl.public_date is not null and p_date<pl.public_date then
+  update private.visibility_plan_rows set when_text='',when_date=null where plan_id=pl.id and not deleted and origin='ai' and not touched and reviewed_at is null and when_date>p_date;
+  get diagnostics v_n=row_count;
+ end if;
+ if v_n>0 then perform private.vp_report_touch(p_engagement); end if;
  return jsonb_build_object('status','ok');
 end $$;
 
@@ -534,6 +614,7 @@ begin
  if n_stage=x.stage and n_who=x.who and n_when=x.when_text and n_date is not distinct from x.when_date and n_by=x.by_whom and n_hear=x.what_they_hear and n_risk=x.risk then return jsonb_build_object('status','unchanged'); end if;
  update private.visibility_plan_rows set stage=n_stage,who=n_who,when_text=n_when,when_date=n_date,by_whom=n_by,what_they_hear=n_hear,risk=n_risk,touched=true,reviewed_at=null,reviewed_by=null where id=x.id;
  perform private.vp_settle(x.plan_id,true);
+ perform private.vp_report_touch(p_engagement);
  return jsonb_build_object('status','ok');
 end $$;
 
@@ -559,6 +640,7 @@ begin
  insert into private.visibility_plan_rows(engagement_id,plan_id,position,stage,who,when_text,when_date,by_whom,what_they_hear,risk,origin,touched)
   values(p_engagement,pl.id,coalesce((select max(x.position) from private.visibility_plan_rows x where x.plan_id=pl.id and not x.deleted),0)+1,v_stage,v_who,v_when,v_date,v_by,v_hear,v_risk,'facilitator',true) returning id into v_id;
  perform private.vp_settle(pl.id,true);
+ perform private.vp_report_touch(p_engagement);
  return jsonb_build_object('status','ok','id',v_id);
 end $$;
 
@@ -574,6 +656,7 @@ begin
  update private.visibility_plan_sources set deleted=true where row_id=x.id and not deleted;
  update private.visibility_plan_rows set deleted=true where id=x.id;
  perform private.vp_settle(x.plan_id,true);
+ perform private.vp_report_touch(p_engagement);
  return jsonb_build_object('status','ok');
 end $$;
 
@@ -595,6 +678,7 @@ begin
  update private.visibility_plan_rows y set position=o.ord from unnest(ids) with ordinality o(id,ord) where y.id=o.id;
  update private.visibility_plan_rows set touched=true where id=x.id;
  perform private.vp_settle(x.plan_id,true);
+ perform private.vp_report_touch(p_engagement);
  return jsonb_build_object('status','ok');
 end $$;
 
@@ -618,20 +702,25 @@ begin
   update private.visibility_plan_rows set reviewed_at=null,reviewed_by=null where id=x.id;
  end if;
  perform private.vp_settle(x.plan_id,false);
+ perform private.vp_report_touch(p_engagement);
  return jsonb_build_object('status','ok');
 end $$;
 
 -- ---------- The page's state ----------
 create function private.visibility_plan_state(p_engagement uuid) returns jsonb
-language plpgsql stable security definer set search_path='' as $$
+language plpgsql security definer set search_path='' as $$
 declare guard text:=private.report_guard(p_engagement,false); pl private.visibility_plans; rd private.visibility_plan_rounds; ai boolean; out jsonb;
 begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
+ -- A plan the round left in Drafting is healed here, as the report heals a section.
+ perform private.vp_heal(p_engagement);
  select * into pl from private.visibility_plans where engagement_id=p_engagement and not deleted;
  select * into rd from private.visibility_plan_rounds where engagement_id=p_engagement and not deleted;
  select coalesce(e.settings->>'ai_enabled','false')='true' into ai from public.engagements e where e.id=p_engagement;
  select jsonb_build_object('status','ok','server_time',clock_timestamp(),'ai',coalesce(ai,false),'lead',coalesce(private.is_lead(p_engagement),false),
   'report_draft',exists(select 1 from private.report_drafts d where d.engagement_id=p_engagement and not d.deleted),
+  'closed',exists(select 1 from public.engagements e where e.id=p_engagement and e.status='closed'),
+  'report_stale',coalesce((select bool_or(s.plan_stale) from private.report_sections s where s.engagement_id=p_engagement and s.key='visibility' and not s.deleted),false),
   'plan',case when pl.id is not null then jsonb_build_object('id',pl.id,'moment',pl.moment,'public_date',pl.public_date,'status',pl.status,'error',pl.error,'dropped',pl.dropped,'drafted_at',pl.drafted_at) end,
   'round',case when rd.id is not null then jsonb_build_object('status',rd.status,'requested_at',rd.requested_at,'attempts',rd.attempts,'error',rd.last_error,'ok_at',rd.last_ok_at,'kept',rd.last_kept,'dropped',rd.last_dropped) end,
   'rows',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'position',r.position,'stage',r.stage,'who',r.who,'when_text',r.when_text,'when_date',r.when_date,'by_whom',r.by_whom,
@@ -658,7 +747,7 @@ language sql stable security definer set search_path='' as $$
 $$;
 
 -- ---------- Public entry points (invokers; every check is in the private functions) ----------
-create function public.visibility_plan_state(p_engagement uuid) returns jsonb language sql stable security invoker set search_path='' as $$ select private.visibility_plan_state(p_engagement) $$;
+create function public.visibility_plan_state(p_engagement uuid) returns jsonb language sql security invoker set search_path='' as $$ select private.visibility_plan_state(p_engagement) $$;
 create function public.visibility_plan_set(p_engagement uuid,p_moment text,p_date date) returns jsonb language sql security invoker set search_path='' as $$ select private.visibility_plan_set(p_engagement,p_moment,p_date) $$;
 create function public.visibility_plan_start(p_engagement uuid,p_id uuid,p_confirm boolean) returns jsonb language sql security invoker set search_path='' as $$ select private.visibility_plan_start(p_engagement,p_id,p_confirm) $$;
 create function public.visibility_plan_row_edit(p_engagement uuid,p_row uuid,p_patch jsonb) returns jsonb language sql security invoker set search_path='' as $$ select private.visibility_plan_row_edit(p_engagement,p_row,p_patch) $$;
@@ -695,13 +784,19 @@ grant execute on function private.visibility_plan_due(uuid),private.visibility_p
 -- merges first. The practice reset puts away the plan, its rows, sources and round. Clear test answers puts away what a rehearsal made (the test rows).
 create function private.vp_clear(p_engagement uuid,p_only_test boolean) returns void
 language plpgsql security definer set search_path='' as $$
+declare pl uuid;
 begin
+ -- A test row is one made while a rehearsal was on, in a plan that was not itself made in one.
  update private.visibility_plan_sources set deleted=true where engagement_id=p_engagement and not deleted and row_id in (
-  select r.id from private.visibility_plan_rows r join private.visibility_plans p on p.id=r.plan_id where r.engagement_id=p_engagement and (not p_only_test or p.test));
- update private.visibility_plan_rows set deleted=true where engagement_id=p_engagement and not deleted and plan_id in (
-  select p.id from private.visibility_plans p where p.engagement_id=p_engagement and (not p_only_test or p.test));
+  select r.id from private.visibility_plan_rows r join private.visibility_plans p on p.id=r.plan_id where r.engagement_id=p_engagement and (not p_only_test or p.test or r.test));
+ update private.visibility_plan_rows set deleted=true where engagement_id=p_engagement and not deleted and (not p_only_test or test or plan_id in (
+  select p.id from private.visibility_plans p where p.engagement_id=p_engagement and p.test));
  update private.visibility_plans set deleted=true,status='empty',error=null where engagement_id=p_engagement and not deleted and (not p_only_test or test);
  update private.visibility_plan_rounds set deleted=true where engagement_id=p_engagement and not deleted and (not p_only_test or test);
+ -- What is left says what its rows say: a plan that was drafting with its round put away is not left Drafting.
+ perform private.vp_heal(p_engagement);
+ for pl in select id from private.visibility_plans where engagement_id=p_engagement and not deleted loop perform private.vp_settle(pl,false); end loop;
+ perform private.vp_report_touch(p_engagement);
 end $$;
 
 alter function private.reset_practice_room() rename to reset_practice_room_pre_visibility_plan;
@@ -727,5 +822,70 @@ end $$;
 
 revoke all on function private.vp_clear(uuid,boolean),private.reset_practice_room_pre_visibility_plan(),private.reset_practice_room(),private.rehearsal_control_pre_visibility_plan(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text) from public,anon,authenticated;
 grant execute on function private.reset_practice_room(),private.rehearsal_control(uuid,uuid,text) to authenticated;
+
+-- ---------- The report's own functions, as supersets (same signatures) ----------
+-- Each is step 1's newest definition renamed to _pre_visibility_plan and wrapped, so whatever step 1 does stays in place.
+alter function private.report_refresh(uuid,text,boolean) rename to report_refresh_pre_visibility_plan;
+alter function private.report_state(uuid) rename to report_state_pre_visibility_plan;
+alter function private.report_sign_off(uuid,uuid) rename to report_sign_off_pre_visibility_plan;
+alter function private.report_claim(uuid,uuid,text,jsonb) rename to report_claim_pre_visibility_plan;
+
+-- Refreshing Make the Vision Visible rebuilds it from the plan as it is now, so it is no longer stale.
+create function private.report_refresh(p_engagement uuid,p_section text,p_confirm boolean) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare out jsonb;
+begin
+ out:=private.report_refresh_pre_visibility_plan(p_engagement,p_section,p_confirm);
+ if out->>'status'='ok' and p_section='visibility' then
+  update private.report_sections s set plan_stale=false where s.engagement_id=p_engagement and s.key='visibility' and not s.deleted and s.plan_stale;
+ end if;
+ return out;
+end $$;
+
+-- The state says whether the plan changed since Make the Vision Visible was built.
+create function private.report_state(p_engagement uuid) returns jsonb
+language plpgsql stable security definer set search_path='' as $$
+declare out jsonb;
+begin
+ out:=private.report_state_pre_visibility_plan(p_engagement);
+ if out->>'status'='ok' then
+  out:=out||jsonb_build_object('plan_stale',coalesce((select bool_or(s.plan_stale) from private.report_sections s where s.engagement_id=p_engagement and s.key='visibility' and not s.deleted),false));
+ end if;
+ return out;
+end $$;
+
+-- Sign-off will not freeze a plan that has changed since the section was built. The lead is told why; anyone else gets step 1's answers.
+create function private.report_sign_off(p_engagement uuid,p_id uuid) returns jsonb
+language plpgsql security definer set search_path='' as $$
+begin
+ if p_engagement is not null and p_id is not null and private.report_guard(p_engagement,true) is null and coalesce(private.is_lead(p_engagement),false)
+  and exists(select 1 from private.report_sections s join private.report_drafts d on d.id=s.draft_id and d.engagement_id=s.engagement_id and not d.deleted
+   where s.engagement_id=p_engagement and s.key='visibility' and not s.deleted and s.plan_stale)
+  and not exists(select 1 from private.report_sign_offs o where o.engagement_id=p_engagement and not o.deleted and o.request_id=p_id)
+ then return jsonb_build_object('status','plan_changed'); end if;
+ return private.report_sign_off_pre_visibility_plan(p_engagement,p_id);
+end $$;
+
+-- A lease that ran out with no answer is a failed attempt (the report's own failure path counts it and gives up after two), so a worker that keeps
+-- being killed does not repeat a deep-model call every six minutes.
+create function private.report_claim(p_engagement uuid,p_lease uuid,p_model text,p_versions jsonb) returns jsonb
+language plpgsql security definer set search_path='' as $$
+declare r private.report_rounds;
+begin
+ if p_engagement is not null and p_lease is not null then
+  select * into r from private.report_rounds where engagement_id=p_engagement and not deleted for update;
+  if found and r.status='drafting' and r.lease_until is not null and r.lease_until<=clock_timestamp() and r.lease_run is not null and r.lease_id is not null then
+   perform private.report_fail(r.lease_run,r.lease_id,'timeout','{}'::jsonb);
+  end if;
+ end if;
+ return private.report_claim_pre_visibility_plan(p_engagement,p_lease,p_model,p_versions);
+end $$;
+
+revoke all on function private.report_refresh_pre_visibility_plan(uuid,text,boolean),private.report_state_pre_visibility_plan(uuid),private.report_sign_off_pre_visibility_plan(uuid,uuid),
+ private.report_claim_pre_visibility_plan(uuid,uuid,text,jsonb),private.report_refresh(uuid,text,boolean),private.report_state(uuid),private.report_sign_off(uuid,uuid),
+ private.report_claim(uuid,uuid,text,jsonb) from public,anon,authenticated,service_role;
+grant execute on function private.report_refresh(uuid,text,boolean),private.report_state(uuid),private.report_sign_off(uuid,uuid) to authenticated;
+grant execute on function private.report_claim(uuid,uuid,text,jsonb) to service_role;
+
 
 commit;

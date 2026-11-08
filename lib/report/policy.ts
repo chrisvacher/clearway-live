@@ -22,7 +22,7 @@ export type ReportSection = {
 };
 export type ReportRound = { status: "pending" | "drafting" | "ready" | "failed" | "idle"; requested_at: string; queue: string[]; current: string | null; attempts: number; error: string | null; ok_at: string | null; kept: number; dropped: number };
 export type ReportState =
-  | { status: "ok"; server_time: string; stamp?: string; future_ok?: boolean | null; ai: boolean; lead: boolean; draft: boolean; slow_after_ms?: number; round: ReportRound | null; signed: { n: number; signed_at: string; by: string | null; stale: boolean } | null; sections: ReportSection[] }
+  | { status: "ok"; server_time: string; stamp?: string; future_ok?: boolean | null; plan_stale?: boolean; ai: boolean; lead: boolean; draft: boolean; slow_after_ms?: number; round: ReportRound | null; signed: { n: number; signed_at: string; by: string | null; stale: boolean } | null; sections: ReportSection[] }
   | { status: "denied" | "unavailable" | "missing" | "closed" };
 export type ReportPulse = { status: string; stamp?: string; working?: boolean };
 export type Candidate = { kind: SourceKind; ref_id: string | null; excerpt: string; room: boolean; label: string };
@@ -45,7 +45,7 @@ export function roundView(state: Extract<ReportState, { status: "ok" }>, now: nu
 
 // ---------- Sign-off ----------
 // What stands between the lead and a signed report, in the order the page lists it. The database refuses the same things.
-export type Blocker = { kind: "no_draft" | "drafting" | "not_reviewed" | "needs_source" | "future_changed" | "lead_only"; count: number; sections: SectionKey[] };
+export type Blocker = { kind: "no_draft" | "drafting" | "not_reviewed" | "needs_source" | "future_changed" | "plan_changed" | "lead_only"; count: number; sections: SectionKey[] };
 export function signOffBlockers(state: Extract<ReportState, { status: "ok" }>): Blocker[] {
   const out: Blocker[] = [];
   if (!state.lead) out.push({ kind: "lead_only", count: 1, sections: [] });
@@ -55,6 +55,7 @@ export function signOffBlockers(state: Extract<ReportState, { status: "ok" }>): 
   const open = state.sections.filter(s => s.status !== "reviewed" && s.status !== "drafting");
   if (open.length) out.push({ kind: "not_reviewed", count: open.length, sections: open.map(s => s.key) });
   if (state.future_ok === false) out.push({ kind: "future_changed", count: 1, sections: ["future"] });
+  if (state.plan_stale) out.push({ kind: "plan_changed", count: 1, sections: ["visibility"] });
   const unsourced = state.sections.filter(s => s.sentences.some(x => x.needs_source));
   if (unsourced.length) out.push({ kind: "needs_source", count: unsourced.reduce((n, s) => n + s.sentences.filter(x => x.needs_source).length, 0), sections: unsourced.map(s => s.key) });
   return out;
@@ -68,6 +69,7 @@ export function blockerText(b: Blocker): string {
     case "not_reviewed": return `${plural(b.count, "section")} still to review.`;
     case "needs_source": return `${plural(b.count, "sentence")} with no source, or resting on a record that is gone. Add one, take the dead one off, or write it in your own words.`;
     case "future_changed": return "The 10-year Future no longer matches the lens summaries the room signed off. Refresh it from the records.";
+    case "plan_changed": return "The visibility plan changed since Make the Vision Visible was built. Refresh it from the records.";
   }
 }
 
@@ -112,6 +114,7 @@ export function reportMessage(status: string, data?: { count?: number; sections?
       return `${n > 0 ? plural(n, "sentence") : "A sentence"}${where} ${n === 1 || n === 0 ? "has" : "have"} no source, or rest${n === 1 || n === 0 ? "s" : ""} on a record that is gone. Add a source, take the dead one off, or write it in your own words.`;
     }
     case "future_changed": return "The 10-year Future no longer matches the lens summaries the room signed off. Refresh it from the records, then sign off.";
+    case "plan_changed": return "The visibility plan changed since Make the Vision Visible was built. Refresh it from the records.";
     case "locked": return "The 10-year Future is the room's signed off lens summaries, word for word. Change them in the lens summaries and refresh this section.";
     case "invalid_request": return "Check the details and try again.";
     default: return "We couldn't save that. Try again.";

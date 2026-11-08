@@ -15,7 +15,9 @@ Start from the most public moment (Vision Sunday unless the facilitator names an
 - Every cell can be edited in place. A row can be added, moved up or down, removed (after asking) and marked reviewed. Positions always run one to n. Editing a cell makes the row the facilitator's to keep: it is marked Edited and takes the review away.
 - **Redraft the plan** asks first when any row is the facilitator's (edited, added, moved or reviewed), keeps those rows where they are and replaces only the rest. New rows go after the last row that is not further out than they are.
 - The plan's status is Not drafted, Drafting, Draft to review, Edited, Every row reviewed, Needs attention or Nothing said about it.
-- Make the Vision Visible in the report is built from the plan when the report is first drafted and again on Refresh from the records. It does not follow the plan live.
+- Make the Vision Visible in the report is built from the plan when the report is first drafted and again on Refresh from the records. Every change to the plan (set, edit, add, remove, move, review, apply) marks that section out of date and takes its review away, when a report draft exists. The report says so, and sign-off refuses with "The visibility plan changed since Make the Vision Visible was built. Refresh it from the records." until the section is refreshed. The plan page has a button that refreshes just that section, and a link to open it.
+- An engagement that is closed shows the plan read only. A plan left in Drafting (after Clear test answers, for example) is healed the next time it is read.
+- Rows drafted in a practice room are marked as test rows and cleared with the practice room. A lease that runs out counts as a failed attempt, and the second one gives up with Needs attention.
 
 ## What the model sees and what the database keeps
 

@@ -1,0 +1,66 @@
+/* Milestone 7, step 2: the check-in phone page (AFT-04) and the results page (AFT-05). Tokens only. Ported from pass 7's cwl-ci-* rules.
+   The phone shows no Warning or Error colours: the label and the icon carry every status. */
+
+/* ---------- The phone ---------- */
+.ci-progress { display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.ci-progress progress { appearance: none; -webkit-appearance: none; width: 100%; height: 4px; border: 0; border-radius: 2px; background: var(--cwl-bar-track); overflow: hidden; }
+.ci-progress progress::-webkit-progress-bar { background: var(--cwl-bar-track); border-radius: 2px; }
+.ci-progress progress::-webkit-progress-value { background: var(--cwl-text); border-radius: 2px; transition: width var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+.ci-progress progress::-moz-progress-bar { background: var(--cwl-text); border-radius: 2px; }
+.ci-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); }
+.surface .ph-app .ci-card p, .surface .ph-app .ci-card .ci-field { color: var(--cwl-text-on-card); }
+.surface .ph-app .ci-field.is-plain { color: var(--cwl-text); }
+.ci-title { margin: 0; font-size: var(--cwl-fs-phone-input); font-weight: var(--fw-bold); line-height: 1.3; overflow-wrap: anywhere; }
+.ci-when { margin: 0; font-size: var(--cwl-fs-phone-body); }
+.ci-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); }
+.ci-options.is-list { grid-template-columns: minmax(0, 1fr); }
+.ci-options button { box-sizing: border-box; min-height: var(--cwl-phone-touch-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1); padding: var(--space-1); border: 0; border-radius: var(--cwl-radius-button); background: transparent; box-shadow: inset 0 0 0 2px var(--cwl-text-on-card); color: var(--cwl-text-on-card); font: inherit; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); text-align: center; cursor: pointer; }
+.ci-options.is-list button { flex-direction: row; justify-content: flex-start; gap: var(--space-3); padding: 0 var(--space-4); font-size: var(--cwl-fs-phone-body); }
+.ci-options button.is-on { background: var(--cwl-button-primary); box-shadow: none; color: var(--cwl-on-accent); }
+.ci-options button:focus-visible, .ci-back:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.ci-field { display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); }
+.ci-field.is-plain { color: var(--cwl-text); }
+.ci-back { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: var(--cwl-phone-touch-lg); padding: 0 var(--space-4); border: 0; border-radius: var(--cwl-radius-button); background: transparent; box-shadow: inset 0 0 0 2px var(--cwl-text); color: var(--cwl-text); font: inherit; font-size: var(--cwl-fs-phone-button); font-weight: var(--fw-semibold); cursor: pointer; }
+.ci-state { display: flex; align-items: center; gap: var(--space-2); min-height: 1.5em; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.surface .ph-app .ci-note-read { color: var(--cwl-text-on-card); }
+.ci-note-read { margin: var(--space-2) 0 0; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-regular, 400); }
+.ci-summary { margin: 0; }
+
+/* ---------- The results page ---------- */
+.cir { display: flex; flex-direction: column; gap: var(--space-4); }
+.cir-tabs { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.cir-tab { min-height: var(--cwl-phone-touch); padding: 0 var(--space-4); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
+.cir-tab[aria-selected="true"] { background: var(--cwl-app-selected); border-color: var(--cwl-app-border-strong); }
+.cir-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); color: var(--cwl-app-text); min-width: 0; }
+.cir-card h2, .cir-card h3 { margin: 0; font-size: var(--fs-h4, 1.125rem); }
+.cir-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.cir-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; color: var(--cwl-app-text-muted); }
+.cir-sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); }
+.cir-sum > div { display: flex; flex-direction: column; padding: var(--space-3) var(--space-4); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.cir-sum .n { font-size: var(--fs-h2, 2rem); font-weight: var(--fw-bold); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cir-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); gap: var(--space-4); align-items: start; }
+.cir-main, .cir-side { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.cir-table { width: 100%; border-collapse: collapse; font-size: var(--cwl-fs-phone-label); }
+.cir-table th { text-align: left; padding: var(--space-2) var(--space-3); background: var(--cwl-app-sunken); font-weight: var(--fw-semibold); }
+.cir-table td { padding: var(--space-2) var(--space-3); border-top: 1px solid var(--cwl-app-border); vertical-align: top; overflow-wrap: anywhere; }
+.cir-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: 2px var(--space-2); border-radius: var(--cwl-radius-button); box-shadow: inset 0 0 0 1.5px var(--cwl-app-border-strong); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); white-space: nowrap; }
+.cir-chip.is-done { background: var(--cwl-app-success-bg); }
+.cir-chip.is-info { background: var(--cwl-app-info-bg); }
+.cir-chip.is-warn { background: var(--cwl-app-warning-bg); }
+.cir-muted { color: var(--cwl-app-text-muted); }
+.cir-fu { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border-top: 1px solid var(--cwl-app-border); }
+.cir-fu:first-of-type { border-top: 0; }
+.cir-fu.is-done b, .cir-fu.is-done span.what { text-decoration: line-through; }
+.cir-fu .t { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+.cir-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; }
+.cir-confirm { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 2px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-card); background: var(--cwl-app-sunken); }
+.cir-confirm p { margin: 0; }
+.cir-banner { display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-card); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); }
+.cir-banner.is-warn { background: var(--cwl-app-warning-bg); }
+.cir-field { display: flex; flex-direction: column; gap: var(--space-1); font-weight: var(--fw-semibold); max-width: 18rem; }
+.cir-field input { min-height: var(--cwl-phone-touch); padding: 0 var(--space-3); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; }
+.cir-goals { display: flex; flex-direction: column; gap: var(--space-3); }
+.cir-goal-group h4 { margin: 0 0 var(--space-1); font-size: var(--cwl-fs-phone-body); }
+.cir-goal-group ul { margin: 0; padding-left: var(--space-5); }
+@media (max-width: 1000px) { .cir-cols { grid-template-columns: minmax(0, 1fr); } .cir-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .ci-progress progress::-webkit-progress-value { transition: none; } }
