@@ -14,9 +14,9 @@ function planLine(p: PlanSummary): string {
   const reviewed = p.reviewed === p.rows ? "Every row is reviewed." : `${p.reviewed} of ${p.rows} rows reviewed.`;
   return p.status === "needs_attention" ? `Needs attention. ${reviewed}` : reviewed;
 }
-export type AfterSummary = { available: boolean; draft: boolean; reviewed: number; total: number; signed: number | null; plan?: PlanSummary };
+export type AfterSummary = { available: boolean; draft: boolean; reviewed: number; total: number; signed: number | null; plan?: PlanSummary; checkIns?: { available: boolean; line: string } };
 
-// After the retreat (milestone 7): the report, the visibility plan, what is shared with the church, and the check-ins. The report and the visibility plan are here.
+// After the retreat (milestone 7): the report, the visibility plan, what is shared with the church, and the check-ins. The report, the visibility plan and the check-ins are here.
 export function AfterHub({ engagement, church, title, summary }: { engagement: string; church: string; title: string; summary: AfterSummary }) {
   return <div className="ovr" data-surface="after" data-theme="light" data-testid="after-hub">
     <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
@@ -38,7 +38,9 @@ export function AfterHub({ engagement, church, title, summary }: { engagement: s
               {summary.plan.rows > 0 && summary.plan.reviewed === summary.plan.rows ? <span className="ovr-st is-reviewed"><BadgeCheck aria-hidden="true" />Reviewed</span> : null}</Link>
           : <div className="rpt-tile is-soon" data-testid="after-visibility"><h2><UserCheck aria-hidden="true" />Visibility plan</h2><span>{summary.plan ? "The visibility plan isn’t available yet." : "Coming in this milestone."}</span></div>}
         <div className="rpt-tile is-soon" data-testid="after-share"><h2><Send aria-hidden="true" />Share</h2><span>Coming in this milestone.</span></div>
-        <div className="rpt-tile is-soon" data-testid="after-checkins"><h2><MessageSquareQuote aria-hidden="true" />Check-ins</h2><span>Coming in this milestone.</span></div>
+        {summary.checkIns?.available
+          ? <Link className="rpt-tile" href={`/control/${engagement}/check-ins`} data-testid="after-checkins"><h2><MessageSquareQuote aria-hidden="true" />Check-ins</h2><span>{summary.checkIns.line}</span></Link>
+          : <div className="rpt-tile is-soon" data-testid="after-checkins"><h2><MessageSquareQuote aria-hidden="true" />Check-ins</h2><span>The check-ins aren’t available yet.</span></div>}
       </div></div>
     </main>
   </div>;
