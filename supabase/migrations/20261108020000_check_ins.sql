@@ -31,6 +31,7 @@ create table private.check_in_rounds (
  sent_at timestamptz,
  sent_by text check(sent_by is null or sent_by='schedule' or sent_by ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'),
  claimed_at timestamptz,
+ snapshot jsonb check(snapshot is null or (jsonb_typeof(snapshot)='object' and pg_column_size(snapshot)<=4096)),
  created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
  unique(engagement_id,day),
  unique(id,engagement_id)
@@ -166,6 +167,12 @@ language sql stable security definer set search_path='' as $$
  select not exists(select 1 from private.check_in_rounds r join private.check_in_rounds n on n.engagement_id=r.engagement_id and n.day>r.day and n.status in('sending','sent') where r.id=p_round)
 $$;
 
+-- A round is skipped once a later round of the engagement is sending or sent: its link would be read-only from the start.
+create function private.check_in_superseded(p_round uuid) returns boolean
+language sql stable security definer set search_path='' as $$
+ select exists(select 1 from private.check_in_rounds r join private.check_in_rounds n on n.engagement_id=r.engagement_id and n.day>r.day and n.status in('sending','sent') where r.id=p_round)
+$$;
+
 -- ---------- The facilitator's page ----------
 create function private.check_in_state(p_engagement uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
@@ -176,8 +183,9 @@ begin
  closed:=private.retreat_closed_on(p_engagement);
  select jsonb_build_object('status','ok','server_time',clock_timestamp(),'type',e.type,'engagement_status',e.status,'eligible',private.check_in_eligible(p_engagement),
   'practice',e.type='practice','retreat_closed_on',closed,
+  'can_switch_on',exists(select 1 from private.check_in_rounds o where o.engagement_id=p_engagement and o.status='off' and not private.check_in_superseded(o.id)),
   'owners',(select count(distinct o.email) from private.check_in_owned(p_engagement) o),
-  'rounds',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'day',d.day,'due_on',d.due_on,'status',d.status,'sent_at',d.sent_at,'sent_by',d.sent_by,
+  'rounds',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'day',d.day,'due_on',d.due_on,'status',d.status,'sent_at',d.sent_at,'sent_by',d.sent_by,'superseded',d.status in('scheduled','off') and private.check_in_superseded(d.id),
      'recipients',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'name',r.name,'email',r.email,'send_result',r.send_result,'sent_at',r.sent_at,'opened_at',r.opened_at,
         'answered_at',r.answered_at,'help',r.help,'practice',r.send_result='practice_address' or r.email ~* '[.](example|invalid|test)$',
         'steps',coalesce((select jsonb_agg(jsonb_build_object('id',x->>'id','text',x->>'text','due',x->>'due','answer',an.answer,'note',an.note,'answer_id',an.id,
@@ -216,7 +224,7 @@ begin
  if guard is not null then return jsonb_build_object('status',guard); end if;
  if p_on is null then return jsonb_build_object('status','invalid_request'); end if;
  perform private.discover_lock(p_engagement);
- if p_on then update private.check_in_rounds set status='scheduled',updated_at=clock_timestamp() where engagement_id=p_engagement and status='off';
+ if p_on then update private.check_in_rounds r set status='scheduled',updated_at=clock_timestamp() where r.engagement_id=p_engagement and r.status='off' and not private.check_in_superseded(r.id);
  else update private.check_in_rounds set status='off',updated_at=clock_timestamp() where engagement_id=p_engagement and status='scheduled';
  end if;
  get diagnostics n=row_count;
@@ -233,6 +241,7 @@ begin
  if not found then return jsonb_build_object('status','not_found'); end if;
  if not private.check_in_eligible(p_engagement) then return jsonb_build_object('status','not_available'); end if;
  if d.status='off' then return jsonb_build_object('status','off'); end if;
+ if d.status='scheduled' and private.check_in_superseded(d.id) then return jsonb_build_object('status','superseded'); end if;
  if d.status='sent' and not exists(select 1 from private.check_in_recipients r where r.round_id=d.id and r.send_result='failed') then return jsonb_build_object('status','sent'); end if;
  return jsonb_build_object('status','ok','by',private.clearway_user_id(),'round_status',d.status);
 end $$;
@@ -282,6 +291,7 @@ begin
  update private.check_in_rounds r set status='off',updated_at=clock_timestamp()
   where r.status='scheduled' and r.due_on<=p_today
    and exists(select 1 from private.check_in_rounds n where n.engagement_id=r.engagement_id and n.day>r.day and n.status='scheduled' and n.due_on<=p_today);
+ update private.check_in_rounds r set status='off',updated_at=clock_timestamp() where r.status='scheduled' and private.check_in_superseded(r.id);
  select coalesce(jsonb_agg(jsonb_build_object('round',r.id,'engagement',r.engagement_id,'day',r.day,'due_on',r.due_on) order by r.due_on,r.id),'[]'::jsonb) into out
   from private.check_in_rounds r join public.engagements e on e.id=r.engagement_id and not e.deleted and e.status<>'closed'
   where private.check_in_eligible(r.engagement_id)
@@ -302,6 +312,7 @@ begin
  if not found or e.status='closed' then return jsonb_build_object('status','closed'); end if;
  if not private.check_in_eligible(d.engagement_id) then return jsonb_build_object('status','not_available'); end if;
  if d.status='off' then return jsonb_build_object('status','off'); end if;
+ if d.status='scheduled' and private.check_in_superseded(d.id) then return jsonb_build_object('status','superseded'); end if;
  if d.status='scheduled' and not coalesce(p_force,false) and d.due_on>p_today then return jsonb_build_object('status','not_due'); end if;
  if d.status='sending' and d.claimed_at>t-interval '10 minutes' then return jsonb_build_object('status','busy'); end if;
  if d.status='sent' then
@@ -310,8 +321,15 @@ begin
   update private.check_in_recipients set send_result=null,updated_at=t where round_id=d.id and send_result='failed';
  end if;
  update private.check_in_rounds set status='sending',claimed_at=t,sent_by=p_by,updated_at=t where id=d.id;
- select c.name into church from public.churches c where c.id=e.church_id;
- select min(n.due_on) into next_on from private.check_in_rounds n where n.engagement_id=d.engagement_id and n.day>d.day and n.status in('scheduled','sending');
+ -- What the email says that can change between attempts (the church's name, the next check-in's date) is taken once, at the first begin,
+ -- and kept, so a resumed or repeated send makes the same email as the first.
+ if d.snapshot is null then
+  select c.name into church from public.churches c where c.id=e.church_id;
+  select min(n.due_on) into next_on from private.check_in_rounds n where n.engagement_id=d.engagement_id and n.day>d.day and n.status in('scheduled','sending');
+  update private.check_in_rounds set snapshot=jsonb_build_object('church',church,'next_on',next_on) where id=d.id;
+ else
+  church:=d.snapshot->>'church'; next_on:=nullif(d.snapshot->>'next_on','')::date;
+ end if;
  select coalesce(jsonb_agg(jsonb_build_object('id',r.id,'email',r.email,'name',r.name,'items',r.items) order by r.name,r.id),'[]'::jsonb) into pending
   from private.check_in_recipients r where r.round_id=d.id and r.send_result is null;
  if exists(select 1 from private.check_in_recipients r where r.round_id=d.id) then items:=null;
@@ -390,7 +408,6 @@ begin
  select * into e from public.engagements where id=r.engagement_id;
  select c.name into church from public.churches c where c.id=e.church_id;
  if e.deleted or e.status='closed' then return jsonb_build_object('status','ended','church',church); end if;
- if r.opened_at is null then update private.check_in_recipients set opened_at=clock_timestamp() where id=r.id; end if;
  select n.day,n.sent_at into newest from private.check_in_rounds n where n.engagement_id=d.engagement_id and n.status in('sending','sent') order by n.day desc limit 1;
  select min(n.due_on) into next_on from private.check_in_rounds n where n.engagement_id=d.engagement_id and n.day>d.day and n.status='scheduled';
  first_name:=private.first_name(r.name);
@@ -408,12 +425,23 @@ language plpgsql security definer set search_path='' as $$
 declare r private.check_in_recipients; e public.engagements; note text:=nullif(btrim(coalesce(p_note,'')),''); t timestamptz:=clock_timestamp(); owned boolean;
 begin
  if p_hash is null or p_hash !~ '^[0-9a-f]{64}$' then return jsonb_build_object('status','unknown'); end if;
- if p_kind is null or p_kind not in('step','goal','help') or (note is not null and length(note)>500) then return jsonb_build_object('status','invalid_request'); end if;
+ if p_kind is null or p_kind not in('step','goal','help','open','finish') or (note is not null and length(note)>500) then return jsonb_build_object('status','invalid_request'); end if;
  select * into r from private.check_in_recipients where token_hash=p_hash for update;
  if not found then return jsonb_build_object('status','unknown'); end if;
  select * into e from public.engagements where id=r.engagement_id;
  if e.deleted or e.status='closed' then return jsonb_build_object('status','ended'); end if;
+ -- Opening is recorded from the page itself after it loads, never from the server's render, so an email scanner's fetch is not an open.
+ if p_kind='open' then
+  update private.check_in_recipients set opened_at=coalesce(opened_at,t),updated_at=t where id=r.id;
+  return jsonb_build_object('status','ok');
+ end if;
  if not private.check_in_editable(r.round_id) then return jsonb_build_object('status','read_only'); end if;
+ -- Answered means the person pressed Send my check-in. Taps before that are saved but do not count.
+ if p_kind='finish' then
+  if not exists(select 1 from private.check_in_answers a where a.recipient_id=r.id) then return jsonb_build_object('status','invalid_request'); end if;
+  update private.check_in_recipients set answered_at=t,updated_at=t where id=r.id;
+  return jsonb_build_object('status','ok');
+ end if;
  if p_kind='help' then
   update private.check_in_recipients set help=note,updated_at=t where id=r.id;
   return jsonb_build_object('status','ok');
@@ -436,7 +464,6 @@ begin
     followed_up_at=case when private.check_in_answers.answer=excluded.answer then private.check_in_answers.followed_up_at end,
     followed_up_by=case when private.check_in_answers.answer=excluded.answer then private.check_in_answers.followed_up_by end;
  end if;
- update private.check_in_recipients set answered_at=t,updated_at=t where id=r.id;
  return jsonb_build_object('status','ok');
 end $$;
 
@@ -469,7 +496,7 @@ create function public.check_in_phone_save(p_hash text,p_kind text,p_item uuid,p
 language sql security invoker set search_path='' as $$ select private.check_in_phone_save(p_hash,p_kind,p_item,p_answer,p_note) $$;
 
 revoke all on function private.retreat_closed_on(uuid),private.check_in_latest_for_view(uuid),private.check_in_eligible(uuid),private.check_in_owned(uuid),private.check_in_make_rounds(uuid,date),
- private.check_in_after_status(),private.check_in_editable(uuid),
+ private.check_in_after_status(),private.check_in_editable(uuid),private.check_in_superseded(uuid),
  private.check_in_state(uuid),private.check_in_create(uuid,date),private.check_in_switch(uuid,boolean),private.check_in_send_guard(uuid,uuid),private.check_in_follow_up(uuid,uuid,boolean),private.check_in_open_as(uuid,uuid,text),
  private.check_in_claim_due(date),private.check_in_round_begin(uuid,text,date,boolean),private.check_in_round_save(uuid,jsonb),private.check_in_recipient_result(uuid,text),private.check_in_round_finish(uuid),
  private.check_in_phone_read(text),private.check_in_phone_save(text,text,uuid,text,text),

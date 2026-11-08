@@ -5,7 +5,7 @@ import { answerLabel, goalAnswers, longDate, noteLimit, shortDate, stepAnswers, 
 import "./check-ins.css";
 
 type Ok = Extract<PhoneView, { status: "ok" }>;
-type Save = { kind: "step" | "goal" | "help"; item: string | null; answer: string | null; note: string | null };
+type Save = { kind: "step" | "goal" | "help" | "finish"; item: string | null; answer: string | null; note: string | null };
 type Item = { kind: "step" | "goal"; id: string; text: string; when: string | null; answer: string | null; note: string };
 
 const icons: Record<string, ReactNode> = {
@@ -13,6 +13,7 @@ const icons: Record<string, ReactNode> = {
   not_started: <CircleDashed size={18} aria-hidden="true" />, on_track: <TrendingUp size={18} aria-hidden="true" />, at_risk: <TriangleAlert size={18} aria-hidden="true" />, off_track: <CircleX size={18} aria-hidden="true" />,
 };
 const goalIcons: Record<string, ReactNode> = { ...icons, done: <CircleCheck size={18} aria-hidden="true" /> };
+const firstOpen = (list: Item[]) => { const at = list.findIndex(i => !i.answer); return at < 0 ? Math.max(0, list.length - 1) : at; };
 const keyOf = (s: Save) => `${s.kind}:${s.item ?? ""}`;
 
 // The person's own check-in. Each tap saves. A save that cannot reach the server waits on this phone and goes when the signal is back.
@@ -24,9 +25,11 @@ export function CheckInPhone({ token, view }: { token: string; view: Ok }) {
   ], [view]);
   const [items, setItems] = useState<Item[]>(initial);
   const [help, setHelp] = useState(view.help ?? "");
-  const [mode, setMode] = useState<"welcome" | "items" | "summary">(!view.editable || view.answered_at ? "summary" : "welcome");
+  // A link with some answers saved but not sent opens at the first question left, not at the welcome page.
+  const started = initial.some(i => i.answer);
+  const [mode, setMode] = useState<"welcome" | "items" | "summary">(!view.editable || view.answered_at ? "summary" : started ? "items" : "welcome");
   const [justSent, setJustSent] = useState(false);
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => firstOpen(initial));
   const [queued, setQueued] = useState(0);
   const [saved, setSaved] = useState(false);
   const [locked, setLocked] = useState<null | "read_only" | "ended">(view.editable ? null : "read_only");
@@ -61,13 +64,18 @@ export function CheckInPhone({ token, view }: { token: string; view: Ok }) {
     queue.current.set(keyOf(save), save); setSaved(false); persist(); void flush();
   }, [persist, flush]);
 
+  // The page records that it was opened once it has loaded here. An email scanner that only fetches the page never runs this.
+  useEffect(() => {
+    void fetch("/api/check-in", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, kind: "open" }) }).catch(() => undefined);
+  }, [token]);
+
   // What was saved on this phone but not yet sent is shown as chosen, and sent again.
   useEffect(() => {
     try {
       const stored = JSON.parse(localStorage.getItem(storeKey) ?? "[]") as Save[];
       for (const s of stored) queue.current.set(keyOf(s), s);
       if (stored.length) {
-        setItems(list => list.map(i => { const q = queue.current.get(`${i.kind}:${i.id}`); return q ? { ...i, answer: q.answer, note: q.note ?? "" } : i; }));
+        setItems(list => { const next = list.map(i => { const q = queue.current.get(`${i.kind}:${i.id}`); return q ? { ...i, answer: q.answer, note: q.note ?? "" } : i; }); setPage(p => p === 0 ? firstOpen(next) : p); return next; });
         const h = queue.current.get("help:"); if (h) setHelp(h.note ?? "");
         setQueued(queue.current.size); setMode(m => m === "welcome" ? "items" : m); void flush();
       }
@@ -98,6 +106,8 @@ export function CheckInPhone({ token, view }: { token: string; view: Ok }) {
     for (const [key, timer] of timers.current) { clearTimeout(timer); timers.current.delete(key); }
     items.forEach(it => { if (it.answer) queue.current.set(`${it.kind}:${it.id}`, { kind: it.kind, item: it.id, answer: it.answer, note: it.note.trim() || null }); });
     if (help.trim() !== (view.help ?? "").trim() || queue.current.has("help:")) queue.current.set("help:", { kind: "help", item: null, answer: null, note: help.trim() || null });
+    // Sending is its own save and goes last, so a person counts as answered only once they have pressed Send my check-in.
+    queue.current.delete("finish:"); queue.current.set("finish:", { kind: "finish", item: null, answer: null, note: null });
     persist(); await flush(); setJustSent(true); setMode("summary");
   };
 
@@ -109,7 +119,7 @@ export function CheckInPhone({ token, view }: { token: string; view: Ok }) {
 
   if (mode === "welcome") return <div className="ph-app" data-screen="phone-answering">{head}
     <div className="ph-body"><h1 className="ph-headline">Your {view.day}-day check-in</h1>
-      <p className="ph-text">Hi {view.first}. It has been {view.day} days since the Wayfinding retreat. This takes about two minutes, and it is only about your own first steps and goals.</p>
+      <p className="ph-text">Hi {view.first}. This is your {view.day}-day check-in after the retreat. It takes about two minutes, and it is only about your own first steps and goals.</p>
       <p className="ph-text">Each tap saves. You can come back to this link and change an answer until the next check-in goes out.</p></div>
     <div className="ph-foot"><div className="ph-actions"><button className="ph-send" type="button" onClick={() => setMode("items")}>Open my check-in<ArrowRight size={18} aria-hidden="true" /></button></div></div></div>;
 

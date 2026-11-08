@@ -68,7 +68,7 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
     const out = await post({ action: "send", round: round.id });
     setPanel(null);
     if (out.status === "ok") setSay({ text: `Sent. ${Number(out.sent ?? 0)} emailed${Number(out.practice ?? 0) ? `, ${Number(out.practice)} practice ${Number(out.practice) === 1 ? "address" : "addresses"} not sent` : ""}${Number(out.failed ?? 0) ? `, ${Number(out.failed)} did not go through` : ""}.` });
-    else setSay({ text: out.status === "sent" ? "That round has already gone out." : out.status === "off" ? "That round is switched off." : out.status === "busy" ? "That round is being sent. Check again in a minute." : "The check-in could not be sent. Nothing was lost, so try again.", tone: "warn" });
+    else setSay({ text: out.status === "sent" ? "That round has already gone out." : out.status === "off" ? "That round is switched off." : out.status === "superseded" ? "That round is skipped because a later check-in has gone out." : out.status === "busy" ? "That round is being sent. Check again in a minute." : "The check-in could not be sent. Nothing was lost, so try again.", tone: "warn" });
   };
   const create = async () => {
     const out = await post({ action: "create", base: base || null });
@@ -83,7 +83,8 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
     if (out.status === "ok" && typeof out.link === "string" && tab) tab.location.href = out.link;
     else { tab?.close(); setSay({ text: "That page could not be opened.", tone: "warn" }); }
   };
-  const off = rounds.some(r => r.status === "scheduled"), canOn = rounds.some(r => r.status === "off");
+  // Switch off only while something is scheduled and will go out. Switch on only when it would schedule something: a round skipped because a later one went out stays off.
+  const off = rounds.some(r => r.status === "scheduled" && !r.superseded), canOn = !!state.can_switch_on;
   const sentNow = rounds.some(r => r.status === "sent");
 
   return <main id="main" className="tv-manager recap">
@@ -112,13 +113,13 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
 
         <section className="cir-card" aria-label={`${round.day}-day round`}>
           <div className="cir-head"><div><p className="ctl-eyebrow">Round {rounds.findIndex(r => r.id === round.id) + 1} of {rounds.length}</p><h2>The {round.day}-day check-in</h2></div>
-            <span className={`cir-chip${round.status === "sent" ? " is-done" : round.status === "off" ? "" : " is-info"}`}>{round.status === "sent" ? "Sent" : round.status === "sending" ? "Sending" : round.status === "off" ? "Switched off" : "Scheduled"}</span></div>
-          <p className="cir-meta"><span>{round.status === "scheduled" || round.status === "off" ? `Goes out ${longDate(round.due_on)}, about 8 am Eastern.` : `Due ${longDate(round.due_on)}${round.sent_at ? `, sent ${longDate(round.sent_at)}` : ""}${round.sent_by && round.sent_by !== "schedule" ? " by a facilitator" : round.sent_by === "schedule" ? " by the schedule" : ""}.`}</span></p>
+            <span className={`cir-chip${round.status === "sent" ? " is-done" : round.status === "off" || round.superseded ? "" : " is-info"}`}>{round.status === "sent" ? "Sent" : round.status === "sending" ? "Sending" : round.superseded ? "Skipped" : round.status === "off" ? "Switched off" : "Scheduled"}</span></div>
+          <p className="cir-meta"><span>{round.superseded ? "Skipped because a later check-in has gone out. This one will not be sent." : round.status === "off" ? "Switched off. Nothing will be emailed for this one until check-ins are switched on." : round.status === "scheduled" ? `Goes out ${longDate(round.due_on)}, in the morning around 8 or 9 am Eastern.` : `Due ${longDate(round.due_on)}${round.sent_at ? `, sent ${longDate(round.sent_at)}` : ""}${round.sent_by && round.sent_by !== "schedule" ? " by a facilitator" : round.sent_by === "schedule" ? " by the schedule" : ""}.`}</span></p>
           {counts && counts.people > 0 && <div className="cir-sum"><div><span className="n">{counts.sent}</span><span className="cir-muted">{`of ${counts.people} emailed${counts.practice ? `, ${counts.practice} practice ${counts.practice === 1 ? "address" : "addresses"} not sent` : ""}`}</span></div>
             <div><span className="n">{counts.answered}</span><span className="cir-muted">of {counts.people} answered</span></div>
             <div><span className="n">{stepsDone}</span><span className="cir-muted">of {steps.length} first steps done</span></div>
             <div><span className="n">{offScript}</span><span className="cir-muted">to follow up</span></div></div>}
-          {(round.status === "scheduled" || round.status === "sending" || (round.status === "sent" && counts && counts.failed > 0)) && panel !== "send" &&
+          {((round.status === "scheduled" && !round.superseded) || round.status === "sending" || (round.status === "sent" && counts && counts.failed > 0)) && panel !== "send" &&
             <div className="cir-actions"><button className="show-button is-primary" type="button" disabled={busy} onClick={() => setPanel("send")}><Send size={16} aria-hidden="true" />{counts && counts.failed > 0 ? "Send again to the ones that failed" : "Send now"}</button></div>}
           {panel === "send" && <div className="cir-confirm" role="group" aria-label="Send now">
             {state.practice ? <p><strong>Send the {round.day}-day check-in now?</strong> This is the practice room, so nobody is emailed. Each person gets a row here, and you can open their page with Open as this person.</p>
@@ -151,7 +152,7 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
             <section className="cir-card"><div><p className="ctl-eyebrow">Follow-ups</p><h3>{follow.filter(f => !f.done).length} to follow up</h3></div>
               {follow.length === 0 ? <p className="cir-muted">Nobody is stuck, and no goal is at risk or off track.</p> : follow.map(f => <div key={f.answer_id} className={`cir-fu${f.done ? " is-done" : ""}`}>
                 <div className="t"><b>{f.who}</b><span className="what">{f.what}</span><span className="cir-muted">{f.kind === "step" ? "Marked stuck" : `Goal is ${answerLabel[f.answer].toLowerCase()}`}{f.note ? `: ${f.note}` : ""}</span></div>
-                {f.done ? <button className="show-button" type="button" disabled={busy} onClick={() => void mark(f.answer_id, false)}><CircleCheck size={14} aria-hidden="true" />Followed up</button>
+                {f.done ? <button className="show-button" type="button" disabled={busy} onClick={() => void mark(f.answer_id, false)}><CircleCheck size={14} aria-hidden="true" />Clear the follow-up</button>
                   : <button className="show-button" type="button" disabled={busy} onClick={() => void mark(f.answer_id, true)}><Flag size={14} aria-hidden="true" />Mark followed up</button>}</div>)}</section>
             <section className="cir-card"><div><p className="ctl-eyebrow">Who hasn&rsquo;t answered</p><h3>{waiting.length === 0 ? "Everyone has answered" : `${waiting.length} ${waiting.length === 1 ? "person" : "people"} to hear from`}</h3></div>
               {waiting.map(r => <div key={r.id} className="cir-fu"><div className="t"><b>{r.name}</b>
@@ -163,7 +164,7 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
               <div className="cir-actions"><Link className="show-button" href={`/setup/${engagement}`}>Open setup</Link></div></section>}
           </aside>
         </div>}
-        {round.recipients.length === 0 && round.status !== "scheduled" && round.status !== "off" && <p className="cir-muted">Nobody owns a first step or a goal with an email, so nobody was emailed.</p>}
+        {round.recipients.length === 0 && round.status !== "scheduled" && round.status !== "off" && !round.superseded && <p className="cir-muted">Nobody owns a first step or a goal with an email, so nobody was emailed.</p>}
         {round.status === "scheduled" && <section className="cir-card"><p className="ctl-eyebrow">Who it goes to</p><p>{state.owners === 0 ? "Nobody yet. Give each first step and goal an owner and an email in the Map." : `${state.owners} ${state.owners === 1 ? "person" : "people"}, each in their own email, listing only their own first steps and goals. The list is worked out when the round is sent, so an owner changed before then is the one emailed.`}</p></section>}
       </>}
       {!sentNow && rounds.length === 0 && state.eligible && <p className="cir-muted">Nothing has been sent yet.</p>}

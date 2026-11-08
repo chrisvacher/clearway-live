@@ -261,7 +261,16 @@ select is(jsonb_array_length(public.check_in_phone_read(tests.hash('3'))->'goals
 select is(public.check_in_phone_read(tests.hash('1'))->>'editable','true','The newest round is open to change');
 select is(public.check_in_phone_read(tests.hash('1'))->>'next_on','2027-03-02','and says when the next one comes');
 reset role;
-select ok((select opened_at is not null from private.check_in_recipients where id=tests.id(900)),'Opening the page is recorded');
+select ok((select opened_at is null from private.check_in_recipients where id=tests.id(900)),'Reading the page does not record an open, since an email scanner fetches it');
+set local role service_role;
+select is(public.check_in_phone_save(tests.hash('1'),'open',null,null,null)->>'status','ok','The page records its own open once it has loaded');
+reset role;
+select ok((select opened_at is not null from private.check_in_recipients where id=tests.id(900)),'and then it is recorded');
+update private.check_in_recipients set opened_at='2027-01-01 10:00:00+00' where id=tests.id(900);
+set local role service_role;
+select is(public.check_in_phone_save(tests.hash('1'),'open',null,null,null)->>'status','ok','Opening again');
+reset role;
+select is((select opened_at from private.check_in_recipients where id=tests.id(900)),'2027-01-01 10:00:00+00'::timestamptz,'keeps the first time');
 set local role service_role;
 select is(public.check_in_phone_save(tests.hash('1'),'step',tests.id(620),'stuck','I need to know who signs off')->>'status','ok','A step is saved');
 select is(public.check_in_phone_save(tests.hash('1'),'step',tests.id(620),'stuck','I need to know who signs off')->>'status','ok','the same save twice is the same');
@@ -279,6 +288,12 @@ select is(public.check_in_phone_read(tests.hash('1'))->>'help','A meeting with t
 select is(public.check_in_phone_read(tests.hash('3'))->'goals'->0->>'answer',null,'Ben''s page shows no answer');
 reset role;
 select is((select count(*) from private.check_in_answers where recipient_id=tests.id(900)),2::bigint,'Two answers are stored, not three');
+select ok((select answered_at is null from private.check_in_recipients where id=tests.id(900)),'Taps and notes alone do not mark her answered');
+select is((select count(*) from private.check_in_recipients where answered_at is not null and round_id=tests.round30()),0::bigint,'so nobody is answered yet');
+set local role service_role;
+select is(public.check_in_phone_save(tests.hash('2'),'finish',null,null,null)->>'status','invalid_request','Sending with no answers saved is refused');
+select is(public.check_in_phone_save(tests.hash('1'),'finish',null,null,null)->>'status','ok','Pressing Send my check-in finishes it');
+reset role;
 select ok((select answered_at is not null from private.check_in_recipients where id=tests.id(900)),'and she is marked answered');
 select is((select count(*) from private.check_in_recipients where id<>tests.id(900) and answered_at is not null and round_id=tests.round30()),0::bigint,'but nobody else is');
 
@@ -388,5 +403,106 @@ insert into private.check_in_rounds(id,engagement_id,day,due_on) values(tests.id
 select ok(private.reset_practice_room(),'Reset practice room runs');
 select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010'),0::bigint,'and clears the practice room''s rounds');
 select is((select count(*) from private.check_in_recipients where engagement_id=tests.id(100)),3::bigint,'and not the other engagement''s recipients');
+
+-- ---------- A round is skipped once a later one has gone out ----------
+insert into engagements(id,church_id,title,type) values(tests.id(104),tests.id(200),'Fourth wayfinding','wayfinding');
+insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(104),tests.id(701),'lead');
+update engagements set status='follow_up' where id=tests.id(104);
+select is(private.check_in_make_rounds(tests.id(104),'2027-01-01'),3,'A third engagement has its three rounds');
+create function tests.r(day integer) returns uuid language sql security definer set search_path='' as $$ select id from private.check_in_rounds where engagement_id='8d070000-0000-4000-8000-000000000104'::uuid and day=$1 $$;
+create function tests.rs(day integer) returns text language sql security definer set search_path='' as $$ select status from private.check_in_rounds where engagement_id='8d070000-0000-4000-8000-000000000104'::uuid and day=$1 $$;
+create function tests.s4() returns jsonb language sql as $$ select public.check_in_state(tests.id(104)) $$;
+grant execute on function tests.r(integer),tests.rs(integer),tests.s4() to authenticated,anon,service_role;
+
+-- Path one: the base date is in the past, so 90 goes out and 30 and 60 are put away. Switching on must not bring them back.
+update private.check_in_rounds set status='sent',sent_at=now() where id=tests.r(90);
+update private.check_in_rounds set status='off' where id=tests.r(30) or id=tests.r(60);
+set local role authenticated;
+select tests.login(1);
+select is(tests.s4()->>'can_switch_on','false','Nothing would be scheduled by switching on, so the page does not offer it');
+select is((select r->>'superseded' from jsonb_array_elements(tests.s4()->'rounds') r where r->>'day'='30'),'true','The 30-day round is shown as skipped');
+select is(public.check_in_switch(tests.id(104),true)->>'status','ok','Switching on');
+reset role;
+select is((select array_agg(tests.rs(d) order by d) from unnest(array[30,60,90]) d),array['off','off','sent'],'leaves the earlier rounds off');
+set local role service_role;
+select is((select count(*) from jsonb_array_elements(public.check_in_claim_due('2027-06-01')->'rounds') r where r->>'engagement'=tests.id(104)::text),0::bigint,'and the next run sends nothing for it');
+reset role;
+
+-- Path two: Send now on the 60-day round while the 30-day round is still scheduled.
+update private.check_in_rounds set status='scheduled',sent_at=null where id=tests.r(30) or id=tests.r(90);
+update private.check_in_rounds set status='sent',sent_at=now(),sent_by='schedule' where id=tests.r(60);
+set local role authenticated;
+select tests.login(1);
+select is((select r->>'superseded' from jsonb_array_elements(tests.s4()->'rounds') r where r->>'day'='30'),'true','The 30-day round is skipped');
+select is((select r->>'superseded' from jsonb_array_elements(tests.s4()->'rounds') r where r->>'day'='90'),'false','and the 90-day round is not');
+select is(public.check_in_send_guard(tests.id(104),tests.r(30))->>'status','superseded','Send now on the skipped round is refused');
+select is(public.check_in_send_guard(tests.id(104),tests.r(90))->>'status','ok','but not on the later one');
+reset role;
+set local role service_role;
+select is(public.check_in_round_begin(tests.r(30),tests.id(701)::text,'2027-06-01',true)->>'status','superseded','The server will not begin it, even with Send now');
+select is(public.check_in_round_begin(tests.r(30),'schedule','2027-06-01',false)->>'status','superseded','nor on the schedule');
+select is((select array_agg(r->>'day' order by r->>'day') from jsonb_array_elements(public.check_in_claim_due('2027-06-01')->'rounds') r where r->>'engagement'=tests.id(104)::text),array['90'],'The run takes only the 90-day round');
+reset role;
+select is(tests.rs(30),'off','and puts the 30-day round away');
+set local role authenticated;
+select tests.login(1);
+select is(public.check_in_switch(tests.id(104),true)->>'status','ok','Switching on afterwards');
+reset role;
+select is(tests.rs(30),'off','leaves it off');
+
+-- Switching on does bring back a round that was only switched off, and says so.
+update private.check_in_rounds set status='off',sent_at=null,claimed_at=null where engagement_id=tests.id(104);
+set local role authenticated;
+select tests.login(1);
+select is(tests.s4()->>'can_switch_on','true','With nothing sent, switching on would schedule the rounds');
+select is(public.check_in_switch(tests.id(104),true)->>'status','ok','and it does');
+reset role;
+select is((select array_agg(tests.rs(d) order by d) from unnest(array[30,60,90]) d),array['scheduled','scheduled','scheduled'],'all three');
+
+-- ---------- What the email says is fixed at the first begin ----------
+set local role service_role;
+select is(public.check_in_round_begin(tests.r(30),'schedule','2027-01-31',false)->>'next_on','2027-03-02','The first begin works out the next check-in''s date');
+reset role;
+select is((select snapshot from private.check_in_rounds where id=tests.r(30)),jsonb_build_object('church','Riverside Church','next_on','2027-03-02'),'and keeps it with the church''s name');
+update private.check_in_rounds set due_on='2027-03-09' where id=tests.r(60);
+update public.churches set name='Riverside Community Church' where id=tests.id(200);
+update private.check_in_rounds set claimed_at=now()-interval '20 minutes' where id=tests.r(30);
+set local role service_role;
+select is(public.check_in_round_begin(tests.r(30),'schedule','2027-01-31',false)->>'status','ok','A stale send is resumed');
+select is(public.check_in_round_begin(tests.r(30),'schedule','2027-01-31',false)->>'status','busy','and then held again');
+reset role;
+update private.check_in_rounds set claimed_at=now()-interval '20 minutes' where id=tests.r(30);
+set local role service_role;
+select is((public.check_in_round_begin(tests.r(30),'schedule','2027-01-31',false)->>'next_on'),'2027-03-02','The resumed send says the same next date after the next round moved');
+reset role;
+update private.check_in_rounds set claimed_at=now()-interval '20 minutes' where id=tests.r(30);
+set local role service_role;
+select is((public.check_in_round_begin(tests.r(30),'schedule','2027-01-31',false)->>'church'),'Riverside Church','and the same church name after it was renamed');
+reset role;
+update public.churches set name='Riverside Church' where id=tests.id(200);
+
+-- ---------- The practice room never emails ----------
+insert into private.check_in_rounds(id,engagement_id,day,due_on) values(tests.id(960),'90000000-0000-4000-8000-000000000010',30,'2027-01-31');
+set local role service_role;
+select is(public.check_in_round_begin(tests.id(960),'schedule','2027-06-01',true)->>'practice_room','true','Beginning a practice room round says it is the practice room, so the server sends nothing');
+select is(public.check_in_round_begin(tests.r(60),tests.id(701)::text,'2027-01-31',true)->>'practice_room','false','and another engagement''s round does not');
+reset role;
+delete from private.check_in_rounds where id=tests.id(960);
+
+-- Clear test answers, run as the lead on the practice room, clears the check-in rows.
+insert into private.check_in_rounds(id,engagement_id,day,due_on) values(tests.id(970),'90000000-0000-4000-8000-000000000010',30,'2027-01-31');
+insert into private.check_in_recipients(id,round_id,engagement_id,email,name,token_hash,items) values(tests.id(971),tests.id(970),'90000000-0000-4000-8000-000000000010','practice@example.org','Practice Person',tests.hash('6'),'{"steps":[],"goals":[]}');
+select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010'),1::bigint,'The practice room has a round before Clear test answers');
+set local role authenticated;
+select tests.login(1);
+select is(public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.id(973),'clear')->>'status','ok','The lead clears test answers in the practice room');
+reset role;
+select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010')+(select count(*) from private.check_in_recipients where engagement_id='90000000-0000-4000-8000-000000000010')+(select count(*) from private.check_in_answers where engagement_id='90000000-0000-4000-8000-000000000010'),0::bigint,'and its rounds, recipients and answers are gone');
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),3::bigint,'while the other engagements keep theirs');
+set local role authenticated;
+select tests.login(1);
+select is(public.rehearsal_control(tests.id(100),tests.id(974),'clear')->>'status','ok','Clear test answers on a real engagement');
+reset role;
+select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),3::bigint,'does not touch its check-ins');
 select * from finish();
 rollback;

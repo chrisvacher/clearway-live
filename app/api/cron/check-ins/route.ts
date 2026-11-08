@@ -22,5 +22,5 @@ export async function GET(request: NextRequest) {
   try {
     const results = await runDue(serviceClient(), today());
     return answer({ status: "ok", rounds: results.length, sent: results.reduce((n, r) => n + (r.sent ?? 0), 0), practice: results.reduce((n, r) => n + (r.practice ?? 0), 0), failed: results.reduce((n, r) => n + (r.failed ?? 0), 0) });
-  } catch { return answer({ status: "unavailable" }, 503); }
+  } catch (error) { console.error("Check-in run unavailable", { code: (error as { code?: string })?.code }); return answer({ status: "unavailable" }, 503); }
 }

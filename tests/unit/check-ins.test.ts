@@ -81,7 +81,7 @@ test("links are shaped like tokens, dates read short, and the middleware leaves 
   assert.doesNotMatch(matcher, /"\/c[/":]|\/api\/check-in|\/api\/cron/, "no matcher entry covers the phone page, its save or the cron");
 });
 
-const round = (day: 30 | 60 | 90): ResultRound => ({ id: "r" + day, day, due_on: "2027-01-06", status: "sent", sent_at: null, sent_by: "schedule", recipients: [
+const round = (day: 30 | 60 | 90): ResultRound => ({ id: "r" + day, day, due_on: "2027-01-06", status: "sent", superseded: false, sent_at: null, sent_by: "schedule", recipients: [
   { id: "p1", name: "Priya Shah", email: "p@x.example", send_result: "sent", sent_at: null, opened_at: null, answered_at: "2027-01-07", help: null, practice: false,
     steps: [{ id: "s1", text: "Step one", due: null, answer: "stuck", note: "Need a sign off, \"soon\"", answer_id: "a1", followed_up_at: null, answered_at: null }],
     goals: [{ id: "g1", title: "Goal one", end: null, answer: "off_track", note: null, answer_id: "a2", followed_up_at: "2027-01-08", answered_at: null }] },
@@ -100,4 +100,13 @@ test("the CSV quotes notes and keeps a formula from running", () => {
   assert.match(csv, /'=SUM\(A1\)/);
   assert.match(csv, /No answer/);
   assert.equal(csv.split("\r\n").length, 5);
+});
+
+test("the email says the round's day after the retreat, with no day count and no Wayfinding, and the same input makes the same email", () => {
+  const input = { church: "Riverside Church", first: "Priya", day: 60 as const, link: "https://live.clearway.co/c/abcDEF1234567890abcdef", steps: [{ text: "A step", due: "2026-11-27" }], goals: [{ title: "A goal", end: null }], nextOn: "2027-03-06" };
+  const a = checkInEmail(input), b = checkInEmail({ ...input });
+  assert.match(a.text, /This is your 60-day check-in after the retreat\./);
+  for (const part of [a.text, a.html]) assert.doesNotMatch(part, /days since|Wayfinding|It has been/);
+  assert.deepEqual(a, b, "a resumed send builds the identical subject, text and html");
+  assert.notEqual(checkInEmail({ ...input, nextOn: "2027-03-07" }).text, a.text, "the next date is in the body, so it must come from the round's snapshot");
 });

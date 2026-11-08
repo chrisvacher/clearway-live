@@ -68,8 +68,8 @@ export type PhoneView =
 export type ResultStep = { id: string; text: string; due: string | null; answer: StepAnswer | null; note: string | null; answer_id: string | null; followed_up_at: string | null; answered_at: string | null };
 export type ResultGoal = { id: string; title: string; end: string | null; answer: GoalAnswer | null; note: string | null; answer_id: string | null; followed_up_at: string | null; answered_at: string | null };
 export type ResultRecipient = { id: string; name: string; email: string; send_result: "sent" | "practice_address" | "failed" | null; sent_at: string | null; opened_at: string | null; answered_at: string | null; help: string | null; practice: boolean; steps: ResultStep[]; goals: ResultGoal[] };
-export type ResultRound = { id: string; day: 30 | 60 | 90; due_on: string; status: "scheduled" | "sending" | "sent" | "off"; sent_at: string | null; sent_by: string | null; recipients: ResultRecipient[] };
-export type CheckInState = { status: "ok"; server_time: string; type: string; engagement_status: string; eligible: boolean; practice: boolean; retreat_closed_on: string | null; owners: number; rounds: ResultRound[] };
+export type ResultRound = { id: string; day: 30 | 60 | 90; due_on: string; status: "scheduled" | "sending" | "sent" | "off"; superseded: boolean; sent_at: string | null; sent_by: string | null; recipients: ResultRecipient[] };
+export type CheckInState = { status: "ok"; server_time: string; type: string; engagement_status: string; eligible: boolean; practice: boolean; retreat_closed_on: string | null; can_switch_on: boolean; owners: number; rounds: ResultRound[] };
 
 export type FollowUp = { answer_id: string; kind: "step" | "goal"; who: string; what: string; answer: string; note: string | null; done: boolean };
 // Stuck steps, and goals at risk or off track, from the newest round that went out.

@@ -63,7 +63,8 @@ export async function runDue(client: SupabaseClient, today: string) {
   if (claimed.error) throw claimed.error;
   const results: RoundResult[] = [];
   for (const due of (claimed.data.rounds ?? []) as { round: string }[]) {
-    try { results.push(await sendRound(client, due.round, "schedule", today, false)); } catch { results.push({ status: "failed" }); }
+    // The round id and the error code only: no address, link or token reaches a log.
+    try { results.push(await sendRound(client, due.round, "schedule", today, false)); } catch (error) { console.error("Check-in round failed", { round: due.round, code: (error as { code?: string })?.code }); results.push({ status: "failed" }); }
   }
   return results;
 }

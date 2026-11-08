@@ -118,6 +118,9 @@ async function main() {
       assert.match(await page.title(), /Your check-in/);
       assert.equal(await page.locator('meta[name="robots"]').getAttribute("content"), "noindex, nofollow");
       await page.getByRole("heading", { name: "Your 30-day check-in" }).waitFor();
+      const welcome = await body(page);
+      assert.ok(welcome.includes("This is your 30-day check-in after the retreat.") && !/days since|Wayfinding/.test(welcome), "the welcome names the round's day and not a day count");
+      await until(async () => (await sql.query("select opened_at from private.check_in_recipients where email=$1 and round_id=(select id from private.check_in_rounds where engagement_id=$2 and day=30)", [priya.email, room.id])).rows[0]?.opened_at, "the page recorded its own open", 8000);
       await shot(page, "aft-04-open");
       await page.getByRole("button", { name: "Open my check-in" }).click();
       assert.ok((await body(page)).includes(text.s1));
@@ -126,6 +129,7 @@ async function main() {
       await page.getByLabel("What would help?").fill("I need to know who signs off the role.");
       await until(async () => (await sql.query("select note from private.check_in_answers where first_step_id=$1", [ids.s1])).rows[0]?.note === "I need to know who signs off the role.", "the note saved", 8000);
       await shot(page, "aft-04-stuck");
+      assert.equal((await sql.query("select answered_at from private.check_in_recipients where email=$1 and round_id=(select id from private.check_in_rounds where engagement_id=$2 and day=30)", [priya.email, room.id])).rows[0].answered_at, null, "taps and notes alone do not mark her answered");
       await page.getByRole("button", { name: "Next" }).click();
       assert.ok((await body(page)).includes(text.g1));
       await page.getByRole("radio", { name: "At risk" }).click();
@@ -134,6 +138,7 @@ async function main() {
       await page.getByLabel("Anything else that would help?").fill("A call with the elders.");
       await page.getByRole("button", { name: "Send my check-in" }).click();
       await page.getByRole("heading", { name: "Thank you" }).waitFor();
+      await until(async () => (await sql.query("select answered_at from private.check_in_recipients where email=$1 and round_id=(select id from private.check_in_rounds where engagement_id=$2 and day=30)", [priya.email, room.id])).rows[0]?.answered_at, "pressing Send my check-in marked her answered", 8000);
       await shot(page, "aft-04-sent");
       const seen = await body(page);
       for (const t of other([text.s1, text.g1, "Priya"])) assert.ok(!seen.includes(t), `Priya's page does not show: ${t}`);
@@ -154,7 +159,12 @@ async function main() {
     });
 
     await step("Phone: offline, a tap waits on the phone ('Saved on this phone') and goes when the signal is back", async () => {
+      const opened = async () => (await sql.query("select opened_at from private.check_in_recipients where email=$1 and round_id=(select id from private.check_in_rounds where engagement_id=$2 and day=30)", [ben.email, room.id])).rows[0].opened_at;
+      const scanned = await fetch(`${app!.origin}/c/${tokens.ben}`, { cache: "no-store" });
+      assert.equal(scanned.status, 200); await scanned.text(); await delay(800);
+      assert.equal(await opened(), null, "an email scanner that only fetches the page does not count as an open");
       const { ctx, page } = await phone(tokens.ben);
+      await until(async () => await opened(), "the page itself recorded the open", 8000);
       await page.getByRole("button", { name: "Open my check-in" }).click();
       assert.ok((await body(page)).includes(text.s2));
       await ctx.setOffline(true);
@@ -167,8 +177,10 @@ async function main() {
       await until(async () => (await sql.query("select answer from private.check_in_answers where first_step_id=$1", [ids.s2])).rows[0]?.answer === "under_way", "the queued tap was sent when the signal came back", 15000);
       await page.getByText("Saved", { exact: true }).waitFor({ timeout: 10000 });
       assert.ok(await page.evaluate(() => Object.keys(localStorage).every(k => !k.startsWith("cw-ci:"))), "and the phone's copy is cleared");
+      assert.equal((await sql.query("select answered_at from private.check_in_recipients where email=$1 and round_id=(select id from private.check_in_rounds where engagement_id=$2 and day=30)", [ben.email, room.id])).rows[0].answered_at, null, "a tap is not an answer sent");
       await page.goto(`${app!.origin}/c/${tokens.ben}`);
-      await page.getByRole("heading", { name: "You already answered" }).waitFor();
+      await page.getByRole("heading", { name: "Your first steps, 2 of 2" }).waitFor();
+      assert.ok((await body(page)).includes(text.s3), "reopening a partly answered link continues at the first question left");
       assert.ok(!(await body(page)).includes(text.s1), "Ben's page does not show Priya's step");
       await ctx.close();
     });
@@ -183,12 +195,12 @@ async function main() {
       for (const t of [text.s1, "I need to know who signs off the role.", text.g1, "A second pair of hands in March.", "Stuck", "At risk", "Under way"]) assert.ok((await main.innerText()).includes(t), `results show: ${t}`);
       assert.ok((await main.innerText()).includes("1 to follow up") || (await main.innerText()).includes("2 to follow up"), "follow-ups are counted");
       const waiting = page.locator("section", { has: page.getByRole("heading", { name: /to hear from/ }) });
-      assert.ok((await waiting.innerText()).includes("Ruth Morrison") && (await waiting.innerText()).includes("Marcus Webb"), "who hasn't answered");
+      assert.ok((await waiting.innerText()).includes("Ruth Morrison") && (await waiting.innerText()).includes("Marcus Webb") && (await waiting.innerText()).includes("Ben Ortiz"), "who hasn't answered, including Ben, who tapped but did not send");
       assert.ok((await waiting.innerText()).includes("Practice address, not sent"), "the practice address row says so");
       await shot(page, "aft-05-results");
       await page.getByRole("button", { name: "Mark followed up" }).first().click();
       await until(async () => Number((await sql.query("select count(*)::int n from private.check_in_answers where followed_up_at is not null and engagement_id=$1", [room.id])).rows[0].n) === 1, "follow-up saved", 8000);
-      await page.getByRole("button", { name: "Followed up" }).first().waitFor();
+      await page.getByRole("button", { name: "Clear the follow-up" }).first().waitFor();
       await shot(page, "aft-05-followed-up");
       const csv = await ctx.request.get(`${app!.origin}/api/control/${room.id}/check-ins?format=csv`);
       assert.equal(csv.status(), 200);
@@ -227,6 +239,8 @@ async function main() {
       const before = mail.count, out = await cron(`Bearer ${secret}`);
       assert.equal(out.body.rounds, 1); assert.equal(mail.count - before, 3);
       assert.equal((await people(60)).length, 4);
+      const sixty = await mail.find(priya.email, /60-day/);
+      assert.ok(sixty.includes("This is your 60-day check-in after the retreat.") && !/days since|Wayfinding/.test(sixty), "the email names the round's day, not a day count");
       const { ctx, page } = await phone(tokens.priya);
       await page.getByRole("heading", { name: "Your answers" }).waitFor();
       const seen = await body(page);
@@ -307,6 +321,8 @@ async function main() {
       await page.getByLabel("Retreat end date").fill("2027-01-01");
       await page.getByRole("button", { name: "Create check-ins" }).click();
       await page.getByRole("tab", { name: "30 days" }).waitFor();
+      const goes = await page.locator("main").innerText();
+      assert.ok(goes.includes("in the morning around 8 or 9 am Eastern") && !goes.includes("about 8 am"), "the time is said accurately");
       assert.deepEqual((await sql.query("select day,due_on::text from private.check_in_rounds where engagement_id=$1 order by day", [second.id])).rows.map(r => [r.day, r.due_on]), [[30, D.r30], [60, D.r60], [90, D.r90]]);
       await page.getByRole("button", { name: "Send now" }).click();
       const panel = page.getByRole("group", { name: "Send now" });
@@ -329,7 +345,120 @@ async function main() {
       await page.getByRole("group", { name: "Switch off check-ins" }).getByRole("button", { name: "Switch off" }).click();
       await until(async () => (await sql.query("select count(*)::int n from private.check_in_rounds where engagement_id=$1 and status='off'", [second.id])).rows[0].n === 2, "the unsent rounds are off", 8000);
       assert.equal((await sql.query("select status from private.check_in_rounds where engagement_id=$1 and day=30", [second.id])).rows[0].status, "sent");
+      await page.getByRole("button", { name: "Switch check-ins on" }).waitFor();
+      await page.getByRole("tab", { name: "60 days" }).click();
+      const off = await page.locator("main").innerText();
+      assert.ok(off.includes("Switched off. Nothing will be emailed") && !off.includes("Goes out"), "a switched off round does not say when it goes out");
       await ctx.close();
+    });
+
+    // A small engagement: one attendee who owns one goal, or two who each own one.
+    const small = async (people: [string, string][], goals: string[]) => {
+      const r = await engagement(sql, people.map(([who]) => who));
+      for (const [i, [, full]] of people.entries()) await sql.query("update public.attendees set name=$2 where id=$1", [r.attendees[i].id, full]);
+      const o = (await sql.query("insert into private.vision_outcomes(engagement_id,title,status,confirmed_at,position) values($1,'Outcome','confirmed',now(),0) returning id", [r.id])).rows[0].id;
+      for (const [i, title] of goals.entries()) await sql.query("insert into private.goals(engagement_id,outcome_id,title,owner_attendee_id,end_date,position) values($1,$2,$3,$4,'2027-06-30',$5)", [r.id, o, title, r.attendees[i].id, i]);
+      return r;
+    };
+    // The scheduled run works on every engagement, so every other one is put away and the counts are this room's.
+    const quiet = (keep: string) => sql.query("update private.check_in_rounds set status='off' where engagement_id<>$1 and status in('scheduled','sending')", [keep]);
+    const states = async (id: string) => (await sql.query("select status from private.check_in_rounds where engagement_id=$1 order by day", [id])).rows.map(r => r.status as string);
+    const post = (ctx: BrowserContext, id: string, data: Record<string, unknown>) => ctx.request.post(`${app!.origin}/api/control/${id}/check-ins`, { headers: { Origin: app!.origin }, data });
+
+    await step("A base date in the past sends only the latest round, and Switch check-ins on does not bring the earlier ones back", async () => {
+      const r = await small([["Cleo", "Cleo Hart"]], ["Open the third door"]);
+      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2026-12-01' where id=$1", [r.id]);
+      await quiet(r.id); await start("2027-06-01");
+      const before = mail.count, out = await cron(`Bearer ${secret}`);
+      assert.equal(out.body.rounds, 1, JSON.stringify(out.body)); assert.equal(mail.count - before, 1, "one email, the 90-day check-in");
+      assert.deepEqual(await states(r.id), ["off", "off", "sent"]);
+      const f = await facilitator(env, sql, r.id);
+      const ctx = await browser!.newContext({ viewport: { width: 1440, height: 1000 } });
+      await ctx.addCookies(f.cookies(app!.origin));
+      const page = await ctx.newPage(); await page.goto(`${app!.origin}/control/${r.id}/check-ins`);
+      await page.getByRole("tab", { name: "30 days" }).click();
+      const main = page.locator("main");
+      await main.getByText("Skipped because a later check-in has gone out").waitFor();
+      assert.ok(!(await main.innerText()).includes("Goes out"), "a skipped round never says when it goes out");
+      assert.equal(await page.getByRole("button", { name: "Switch check-ins on" }).count(), 0, "nothing to switch on");
+      assert.equal(await page.getByRole("button", { name: "Switch off check-ins" }).count(), 0, "and nothing scheduled to switch off");
+      assert.equal(await page.getByRole("button", { name: "Send now" }).count(), 0, "Send now is not offered for a skipped round");
+      await shot(page, "aft-05-skipped");
+      const on = await post(ctx, r.id, { action: "switch", on: true });
+      assert.equal(on.status(), 200);
+      assert.deepEqual(await states(r.id), ["off", "off", "sent"], "switching on leaves them off");
+      const again = await cron(`Bearer ${secret}`);
+      assert.equal(again.body.rounds, 0); assert.equal(mail.count - before, 1, "and the next run sends nothing");
+      await ctx.close();
+    });
+
+    await step("Send now on the 60-day round skips the 30-day round, which is refused and never goes out read-only", async () => {
+      const r = await small([["Dex", "Dex Moran"]], ["Open the fourth door"]);
+      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await quiet(r.id); await start(null);
+      const f = await facilitator(env, sql, r.id);
+      const ctx = await browser!.newContext({ viewport: { width: 1440, height: 1000 } });
+      await ctx.addCookies(f.cookies(app!.origin));
+      const id = async (day: number) => (await sql.query("select id from private.check_in_rounds where engagement_id=$1 and day=$2", [r.id, day])).rows[0].id as string;
+      const before = mail.count;
+      const sent = await post(ctx, r.id, { action: "send", round: await id(60) });
+      assert.equal(sent.status(), 200, await sent.text()); assert.equal(mail.count - before, 1);
+      const refused = await post(ctx, r.id, { action: "send", round: await id(30) });
+      assert.equal(refused.status(), 409); assert.equal((await refused.json()).status, "superseded");
+      assert.equal(mail.count - before, 1, "the 30-day check-in was not sent");
+      await start("2027-06-01");
+      const out = await cron(`Bearer ${secret}`);
+      assert.equal(out.body.rounds, 1, JSON.stringify(out.body)); assert.equal(mail.count - before, 2, "only the 90-day round went out");
+      assert.deepEqual(await states(r.id), ["off", "sent", "sent"]);
+      await ctx.close();
+    });
+
+    await step("A practice engagement never emails, even a real-looking address", async () => {
+      const r = await small([["Pia", "Pia Nash"]], ["Practise the pathway"]);
+      await sql.query("update public.engagements set type='practice',status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await quiet(r.id); await start(D.r30);
+      const real = (await sql.query("select email from public.attendees where engagement_id=$1", [r.id])).rows[0].email as string;
+      assert.ok(/@example\.org$/.test(real) && !/\.(example|invalid|test)$/.test(real), "the address looks real");
+      const before = mail.count, out = await cron(`Bearer ${secret}`);
+      assert.equal(out.body.rounds, 1, JSON.stringify(out.body)); assert.equal(mail.count, before, "nothing was emailed");
+      assert.equal(out.body.sent, 0); assert.equal(out.body.practice, 1);
+      assert.deepEqual((await sql.query("select r.email,r.send_result from private.check_in_recipients r where r.engagement_id=$1", [r.id])).rows.map(x => [x.email, x.send_result]), [[real, "practice_address"]]);
+    });
+
+    await step("An owner changed before the round is sent is the one emailed", async () => {
+      const r = await small([["Ana", "Ana Cole"], ["Bo", "Bo Lane"]], []);
+      const o = (await sql.query("insert into private.vision_outcomes(engagement_id,title,status,confirmed_at,position) values($1,'Outcome','confirmed',now(),0) returning id", [r.id])).rows[0].id;
+      const c = (await sql.query("insert into private.intent_cards(engagement_id,outcome_id,intent) values($1,$2,'Intent') returning id", [r.id, o])).rows[0].id;
+      const stepId = (await sql.query("insert into private.first_steps(engagement_id,card_id,text,owner_attendee_id,due_date,position) values($1,$2,'Write the welcome note',$3,'2027-02-01',0) returning id", [r.id, c, r.attendees[0].id])).rows[0].id;
+      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await sql.query("update private.first_steps set owner_attendee_id=$2 where id=$1", [stepId, r.attendees[1].id]);
+      await quiet(r.id); await start(D.r30);
+      const before = mail.count, out = await cron(`Bearer ${secret}`);
+      assert.equal(out.body.rounds, 1, JSON.stringify(out.body)); assert.equal(mail.count - before, 1, "one email");
+      assert.match(await mail.find(r.attendees[1].email, /30-day/), /Write the welcome note/);
+      assert.deepEqual((await sql.query("select r.email from private.check_in_recipients r where r.engagement_id=$1", [r.id])).rows.map(x => x.email), [r.attendees[1].email], "only the new owner has a row, the old one has none");
+    });
+
+    await step("A resumed send emails only the people with no result, with the same link and the same email as the first try", async () => {
+      const r = await small([["Eve", "Eve Park"], ["Fay", "Fay Ross"]], ["Open the fifth door", "Open the sixth door"]);
+      await sql.query("update public.engagements set status='follow_up',retreat_end_date='2027-01-01' where id=$1", [r.id]);
+      await quiet(r.id); await start(D.r30);
+      const fay = r.attendees[1];
+      const first = mail.count, out = await cron(`Bearer ${secret}`);
+      assert.equal(out.body.rounds, 1, JSON.stringify(out.body)); assert.equal(mail.count - first, 2);
+      const firstFay = await mail.find(fay.email, /30-day/), linkFay = await linkFor(fay.email, 30);
+      // The send stopped before Fay's result was kept. Meanwhile the next round moved and the church was renamed.
+      await sql.query("update private.check_in_rounds set status='sending',sent_at=null,claimed_at=now()-interval '20 minutes' where engagement_id=$1 and day=30", [r.id]);
+      await sql.query("update private.check_in_recipients set send_result=null,sent_at=null where email=$1 and engagement_id=$2", [fay.email, r.id]);
+      await sql.query("update private.check_in_rounds set due_on='2027-03-09' where engagement_id=$1 and day=60", [r.id]);
+      await sql.query("update public.churches set name='Riverside Community Church' where id=(select church_id from public.engagements where id=$1)", [r.id]);
+      await quiet(r.id);
+      const before = mail.count, resumed = await cron(`Bearer ${secret}`);
+      assert.equal(resumed.body.rounds, 1, JSON.stringify(resumed.body)); assert.equal(mail.count - before, 1, "only Fay is emailed again, not Eve");
+      const again = await mail.find(fay.email, /30-day/);
+      assert.equal(again, firstFay, "the email is identical: same subject, same next date, same church");
+      assert.equal(await linkFor(fay.email, 30), linkFay, "and the same link");
+      assert.deepEqual((await sql.query("select status from private.check_in_rounds where engagement_id=$1 and day=30", [r.id])).rows.map(x => x.status), ["sent"]);
     });
 
     console.log(`Check-ins kit: ${passed.length} checks passed.`);

@@ -18,7 +18,7 @@ export function checkInEmail({ church, first, day, link, steps, goals, nextOn }:
   const font = `font-family:${token("--font-sans")};font-size:${token("--cwl-fs-phone-body")};line-height:${token("--lh-body")};color:${token("--cwl-text-on-card")}`;
   const gap = token("--space-6"), smallGap = token("--space-4");
   const hello = first.trim() ? `Hi ${first.trim()},` : "Hello,";
-  const intro = `It has been ${day} days since the Wayfinding retreat. Two minutes is all this takes: tell us how your own first steps and goals are going${last ? ", for the last time" : ""}.`;
+  const intro = `This is your ${day}-day check-in after the retreat. Two minutes is all this takes: tell us how your own first steps and goals are going${last ? ", for the last time" : ""}.`;
   const outro = last ? "Thank you for the work you have put in. This is the last check-in, so the check-ins end here." : nextOn ? `The next check-in comes by email on ${shortDate(nextOn)}.` : "";
   const stepLine = (s: { text: string; due?: string | null }) => `${s.text}${s.due ? ` (due ${shortDate(s.due)})` : ""}`;
   const goalLine = (g: { title: string; end?: string | null }) => `${g.title}${g.end ? ` (ends ${shortDate(g.end)})` : ""}`;
