@@ -19,6 +19,7 @@ import { SignalPanel } from "@/components/interactions/signal/signal-panel";
 import { aiPressNames } from "@/lib/interactions/ai";
 import { ScribeFeed } from "@/components/scribe/scribe-feed";
 import { OvernightCard } from "@/components/overnight/overnight-card";
+import { AfterLink } from "@/components/report/after-link";
 
 function Private({ title, children }: { title: string; children: React.ReactNode }) {
   return <section className="ctl-private" aria-label={`${title}, only you see this`}><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>{title}</span></div><div className="ctl-private-body">{children}</div></section>;
@@ -46,7 +47,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
   return <div className="ctl-app" data-room-version={frame?.version}>
     <header className="ctl-head">
       <div><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>Live room</h1></div>
-      <div className="ctl-row">{status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}<SyncChip room={room} /><Link className="show-button" href={`/remote/${engagement}`}><Smartphone size={18} aria-hidden="true" />Open the remote</Link><Link className="show-button" href={`/setup/${engagement}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link><Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />See results recap</Link><Link className="show-button" href={`/control/${engagement}/map`}><MapIcon size={18} aria-hidden="true" />Draft Clearway Map</Link></div>
+      <div className="ctl-row">{status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}<SyncChip room={room} /><Link className="show-button" href={`/remote/${engagement}`}><Smartphone size={18} aria-hidden="true" />Open the remote</Link><Link className="show-button" href={`/setup/${engagement}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link><Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />See results recap</Link><Link className="show-button" href={`/control/${engagement}/map`}><MapIcon size={18} aria-hidden="true" />Draft Clearway Map</Link><AfterLink engagement={engagement} /></div>
     </header>
     <div className="ctl-cols">
       <nav className="ctl-col ctl-run" aria-label="Run of show">

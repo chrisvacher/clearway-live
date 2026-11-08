@@ -7,6 +7,7 @@ import { workSessions } from "./worker";
 import { workOvernight } from "./overnight";
 import { workThemes } from "./themes";
 import { workHeard } from "./heard";
+import { workReport } from "./report";
 
 // Schedules AI work to run after the response has been sent (Vercel keeps the function
 // alive for it with waitUntil), so it can never delay an answer reaching the TV. With no
@@ -105,6 +106,30 @@ export function kickHeard(engagement: string, force = false) {
         await workHeard(db, ai, engagement, aiConfig());
       } catch (error) {
         console.error("What We Heard unavailable", { code: error instanceof Error ? error.name : "failed" });
+      }
+    });
+  } catch { /* Outside a request (tests): nothing to schedule. */ }
+}
+
+// The Wayfinding report: a press on Draft the report makes a pending round with a queue of sections; this runs it after the response, section by
+// section, and the report page's own poll asks again, so the rest of the queue (and a section that failed once) carries on with nobody pressing
+// anything.
+const lastReport = new Map<string, number>();
+export function kickReport(engagement: string, force = false) {
+  const ai = aiClient();
+  if (!ai) return;
+  const now = Date.now();
+  if (!force && now - (lastReport.get(engagement) ?? 0) < 4000) return;
+  lastReport.set(engagement, now);
+  try {
+    after(async () => {
+      try {
+        const db = serviceClient();
+        const { data, error } = await db.rpc("report_due", { p_engagement: engagement });
+        if (error || data !== true) return;
+        await workReport(db, ai, engagement, aiConfig());
+      } catch (error) {
+        console.error("Report draft unavailable", { code: error instanceof Error ? error.name : "failed" });
       }
     });
   } catch { /* Outside a request (tests): nothing to schedule. */ }

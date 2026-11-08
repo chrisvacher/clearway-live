@@ -6,7 +6,7 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { heardPrompt, overnightPrompt, prompts, replyJson, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type OvernightOutput, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
+import { heardPrompt, overnightPrompt, prompts, replyJson, reportPromptList, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type ReportOutput, type OvernightOutput, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
   return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
@@ -15,13 +15,13 @@ const tokens = (text: string) => Math.ceil(text.length / 4);
 const reply = (call: AiCall, text: string): AiReply => ({ text, inputTokens: tokens(call.system + call.user), outputTokens: tokens(text) });
 
 // A recorded reply per job and user message.
-export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes" | "draft_what_we_heard"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
+export function recordedClient(recordings: { job: AiJob | "overnight_draft" | "draft_discover_themes" | "draft_what_we_heard" | "draft_report"; user: string; reply: string }[]): AiClient & { calls: AiCall[] } {
   const calls: AiCall[] = [];
   return {
     calls, model: () => "recorded-fixture",
     async complete(call) {
       calls.push(call);
-      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : isHeard(call) ? "draft_what_we_heard" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
+      const job = jobOf(call) ?? (isOvernight(call) ? "overnight_draft" : isThemes(call) ? "draft_discover_themes" : isHeard(call) ? "draft_what_we_heard" : isReport(call) ? "draft_report" : null), hit = recordings.find(r => r.job === job && r.user === call.user);
       if (!hit) throw new Error(`No recorded reply for ${job}`);
       return reply(call, hit.reply);
     },
@@ -137,6 +137,34 @@ function scriptedHeard(call: AiCall): string {
   return JSON.stringify(out);
 }
 
+// The report stand-in: for the section it is given, sentences made from the refs it was given, each citing the ref it rests on. It takes the first
+// ref of each group before a second of any (so a section reads across its sources), copies a quote ref's words in quotation marks, writes no number
+// of its own and adds nothing the ref does not say. A record section's lead carries no number and no horizon term.
+export const isReport = (call: Pick<AiCall, "system">) => reportPromptList.some(p => p.system === call.system);
+const reportMax: Record<string, number> = { overview: 5, church_today: 4, process: 5, heard: 5, interviews: 4, tensions: 5, closing: 3 };
+export function reportSection(call: Pick<AiCall, "user">): string {
+  const section = (replyJson(call.user) as { section?: unknown }).section;
+  return typeof section === "string" ? section : "";
+}
+function scriptedReport(call: AiCall): string {
+  const input = replyJson(call.user) as { section?: string; heading?: string; refs?: { ref: string; group: string; text: string }[] };
+  const refs = input.refs ?? [], section = input.section ?? "";
+  const out: ReportOutput = { sentences: [] };
+  if (!refs.length) return JSON.stringify(out);
+  if (!(section in reportMax)) {
+    out.sentences.push({ text: "These are the team's own records for this part of the report, set out as they were recorded.", refs: refs.slice(0, 2).map(r => r.ref) });
+    return JSON.stringify(out);
+  }
+  const order: typeof refs = [], seen = new Set<string>();
+  for (const r of refs) if (!seen.has(r.group)) { seen.add(r.group); order.push(r); }
+  for (const r of refs) if (!order.includes(r)) order.push(r);
+  for (const r of order.slice(0, reportMax[section])) {
+    const text = r.text.replace(/\s+/g, " ").trim();
+    out.sentences.push({ text: /^quote/i.test(r.group) ? `"${text}"` : /[.!?]$/.test(text) ? text.slice(0, 560) : `${text.slice(0, 560)}.`, refs: [r.ref] });
+  }
+  return JSON.stringify(out);
+}
+
 // The lens summary's stand-in. The draft makes one line per cluster, in the room's own words (the cluster's
 // first sentence), then the sentences no cluster holds, within 8 lines and 420 characters. The fold follows the
 // prompt's rules: "Add ..." adds a line, "Remove ..." removes the line it shares most words with, anything else
@@ -218,6 +246,7 @@ export function scripted(call: AiCall): string {
   if (isOvernight(call)) return scriptedOvernight(call);
   if (isThemes(call)) return scriptedThemes(call);
   if (isHeard(call)) return scriptedHeard(call);
+  if (isReport(call)) return scriptedReport(call);
   const job = jobOf(call), input = replyJson(call.user);
   if (job === "combine_words") {
     const list = (input.words ?? []) as { ref: string; text: string; count: number }[], groups: { survivor: string; members: string[] }[] = [];
@@ -286,7 +315,7 @@ export function scripted(call: AiCall): string {
   return "{}";
 }
 
-type Control = { delayMs?: number; fail?: boolean; summary?: string };
+type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string };
 function control(path?: string): Control {
   if (!path) return {};
   try { const value: unknown = JSON.parse(readFileSync(path, "utf8")); return value && typeof value === "object" ? value as Control : {}; } catch { return {}; }
@@ -299,6 +328,7 @@ export function fakeClient(mode: string, controlPath?: string): AiClient {
       if (wait) await new Promise(resolve => setTimeout(resolve, Math.min(wait, call.timeoutMs)));
       if (wait >= call.timeoutMs) throw new Error("timeout");
       if (c.fail) throw new Error("unavailable");
+      if (typeof c.failSection === "string" && isReport(call) && reportSection(call) === c.failSection) throw new Error("unavailable");
       if (typeof c.summary === "string" && jobOf(call) === "summarize_wall") return reply(call, JSON.stringify({ summary: c.summary.slice(0, 1000) }));
       return reply(call, scripted(call));
     },
