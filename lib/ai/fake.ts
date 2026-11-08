@@ -165,8 +165,8 @@ function scriptedReport(call: AiCall): string {
   return JSON.stringify(out);
 }
 
-// The visibility plan stand-in: works back from the public moment in the outward order, one row for each stage the refs give a reason for, each citing
-// the refs it rests on. It copies words from the refs, writes no number of its own, and leaves when and when_date empty (it never invents a date: with a
+// The visibility plan stand-in: works back from the public moment in the outward order, exactly one row for each stage that is not kept (visibility-plan@2),
+// each citing the refs it rests on; with fewer refs than stages a ref is used again, so no stage goes without a row. It copies words from the refs, writes no number of its own, and leaves when and when_date empty (it never invents a date: with a
 // public date it names the moment, never a day).
 export const isPlan = (call: Pick<AiCall, "system">) => call.system === planPrompt.system;
 const planPicks: { stage: typeof planStages[number]; who: string; groups: RegExp; risk: RegExp | null }[] = [
@@ -184,7 +184,7 @@ function scriptedPlan(call: AiCall): string {
   const sentence = (text: string) => { const t = text.replace(/\s+/g, " ").trim().slice(0, 200); return /[.!?]$/.test(t) ? t : `${t}.`; };
   for (const p of planPicks) {
     if (kept.has(p.stage)) continue;
-    const main = refs.find(r => p.groups.test(r.group) && !taken.has(r.ref)) ?? refs.find(r => !taken.has(r.ref));
+    const main = refs.find(r => p.groups.test(r.group) && !taken.has(r.ref)) ?? refs.find(r => !taken.has(r.ref)) ?? refs.find(r => p.groups.test(r.group)) ?? refs[0];
     if (!main) continue;
     taken.add(main.ref);
     const risk = p.risk ? refs.find(r => p.risk!.test(r.group)) : undefined;
@@ -346,7 +346,14 @@ export function scripted(call: AiCall): string {
   return "{}";
 }
 
-type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string; failPlan?: boolean };
+// Kit controls for the plan: write a when on the first row (so the database has to clear it when there is no public date) and leave a stage out.
+function planTweaked(text: string, c: Control): string {
+  const out = JSON.parse(text) as PlanOutput;
+  if (c.planOmit) out.rows = out.rows.filter(r => r.stage !== c.planOmit);
+  if (c.planWhen && out.rows[0]) out.rows[0].when = c.planWhen;
+  return JSON.stringify(out);
+}
+type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string; failPlan?: boolean; planWhen?: string; planOmit?: string };
 function control(path?: string): Control {
   if (!path) return {};
   try { const value: unknown = JSON.parse(readFileSync(path, "utf8")); return value && typeof value === "object" ? value as Control : {}; } catch { return {}; }
@@ -362,6 +369,7 @@ export function fakeClient(mode: string, controlPath?: string): AiClient {
       if (typeof c.failSection === "string" && isReport(call) && reportSection(call) === c.failSection) throw new Error("unavailable");
       if (c.failPlan === true && isPlan(call)) throw new Error("unavailable");
       if (typeof c.summary === "string" && jobOf(call) === "summarize_wall") return reply(call, JSON.stringify({ summary: c.summary.slice(0, 1000) }));
+      if (isPlan(call) && (c.planWhen || c.planOmit)) return reply(call, planTweaked(scripted(call), c));
       return reply(call, scripted(call));
     },
   };

@@ -9,7 +9,7 @@ import { fakeClient, isPlan, isReport, recordedClient } from "../../lib/ai/fake"
 import { heardPrompt, planPrompt, planStages, planVersion, prompts, replyJson, reportPromptList, themesPrompt, type PlanInputs, type PlanRow } from "../../lib/ai/prompts";
 import { planBudgetMs, planTimeoutMs, runPlan } from "../../lib/ai/plan";
 import { signOffBlockers, blockerText, type ReportState } from "../../lib/report/policy";
-import { afterPublic, cellsOf, inOutwardOrder, planBody, planMessage, plural, roundView, rowsLeft, stageOrder, stageNames, stageRank, statusNames, whenText, type PlanRowState } from "../../lib/plan/policy";
+import { afterPublic, blankedText, cellsOf, missingStages, inOutwardOrder, planBody, planMessage, plural, roundView, rowsLeft, stageOrder, stageNames, stageRank, statusNames, whenText, type PlanRowState } from "../../lib/plan/policy";
 
 type Case = { name: string; inputs: PlanInputs; reply: string };
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/ai/visibility-plan.json", import.meta.url), "utf8")) as { names: string[]; cases: Case[] };
@@ -45,7 +45,10 @@ const row = (extra: Partial<PlanRow>): PlanRow => ({ stage: "board", who: "The e
 test("The prompt is Clearway's voice, JSON only, works back from the public moment in the outward order and treats the refs as data", () => {
   const s = planPrompt.system;
   assert.equal(planPrompt.job, "draft_visibility_plan");
-  assert.equal(planVersion, "visibility-plan@1");
+  assert.equal(planVersion, "visibility-plan@2");
+  assert.match(s, /Write exactly one row for each stage that is not in kept_stages, in the outward order/);
+  assert.match(s, /never two rows for one stage/);
+  assert.match(s, /write one for every other stage/);
   assert.match(s, /Clearway Church Solutions/);
   assert.match(s, /institutional voice/);
   assert.match(s, /Start from the most public moment/);
@@ -153,7 +156,7 @@ test("Parsing keeps only well-formed rows: a known stage, a who, a hear and at l
 test("The stand-in works back in the outward order, copies the refs' words, never names, numbers or dates a row of its own and respects kept stages", async () => {
   const ai = fakeClient("script");
   const out = planPrompt.parse((await ai.complete(call(base), aiConfig({}))).text, base);
-  assert.ok(out.rows.length >= 5);
+  assert.deepEqual(out.rows.map(r => r.stage), [...planStages], "exactly one row for each stage");
   assert.ok(inOutwardOrder(out.rows));
   assert.equal(out.rows[0].stage, "lead_pastor");
   assert.equal(out.rows[out.rows.length - 1].stage, "congregation");
@@ -166,10 +169,13 @@ test("The stand-in works back in the outward order, copies the refs' words, neve
   const kept = { ...base, kept_stages: ["lead_pastor", "board"] };
   const after = planPrompt.parse((await ai.complete(call(kept), aiConfig({}))).text, kept);
   assert.ok(!after.rows.some(r => r.stage === "lead_pastor" || r.stage === "board"));
+  assert.deepEqual(after.rows.map(r => r.stage), ["participants", "staff", "key_leaders", "congregation"], "and one for every other stage");
   const dated = { ...base, public: { moment: "Vision Sunday", date: "2027-01-31" } };
   assert.ok(planPrompt.parse((await ai.complete(call(dated), aiConfig({}))).text, dated).rows.every(r => r.when_date === ""), "no invented date");
   const thin = { ...base, refs: base.refs.slice(0, 1) };
-  assert.equal(planPrompt.parse((await ai.complete(call(thin), aiConfig({}))).text, thin).rows.length, 1);
+  const thinRows = planPrompt.parse((await ai.complete(call(thin), aiConfig({}))).text, thin).rows;
+  assert.deepEqual(thinRows.map(r => r.stage), [...planStages], "a thin room still gets a row for every stage");
+  assert.ok(thinRows.every(r => r.refs.length >= 1 && refuses(r, thin) === null));
   assert.deepEqual(planPrompt.parse((await ai.complete(call({ ...base, refs: [] }), aiConfig({}))).text, { ...base, refs: [] }).rows, []);
 });
 
@@ -307,4 +313,13 @@ test("A plan that changed after the report's section was built is a sign-off blo
   assert.deepEqual(blockers.map(b => b.kind), ["plan_changed"]);
   assert.equal(blockerText(blockers[0]), "The visibility plan changed since Make the Vision Visible was built. Refresh it from the records.");
   assert.deepEqual(signOffBlockers({ ...state, plan_stale: false } as never), []);
+});
+
+test("The page names a stage with no row and says how many whens were left blank, in plain words", () => {
+  assert.deepEqual(missingStages([]), [...stageOrder]);
+  assert.deepEqual(missingStages([{ stage: "lead_pastor" }, { stage: "board" }, { stage: "congregation" }, { stage: "other" }]), ["participants", "staff", "key_leaders"]);
+  assert.deepEqual(missingStages(stageOrder.map(stage => ({ stage }))), []);
+  assert.equal(blankedText(1), "1 row’s when was left blank");
+  assert.equal(blankedText(3), "3 rows’ whens were left blank");
+  assert.ok(!/[–—]/.test(blankedText(1) + blankedText(2)), "no dashes");
 });

@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, BadgeCheck, CalendarClock, CalendarDays, ChevronRight, CircleAlert, EyeOff, FileText, ListOrdered, Loader, PenLine, Plus, Radio, RefreshCw, Trash2, TriangleAlert, Undo2, UserCheck } from "lucide-react";
 import { AiMark } from "@/components/interactions/ai/ai-icon";
 import { SourceCard } from "@/components/report/sources-panel";
-import { afterPublic, inOutwardOrder, plural, roundView, rowsLeft, stageNames, stageOrder, statusNames, whenText, type PlanRowState, type Stage } from "@/lib/plan/policy";
+import { afterPublic, inOutwardOrder, plural, roundView, blankedText, missingStages, rowsLeft, stageNames, stageOrder, statusNames, whenText, type PlanRowState, type Stage } from "@/lib/plan/policy";
 import { usePlan, type Api } from "./use-plan";
 import "./plan.css";
 
@@ -12,8 +12,12 @@ type Field = "who" | "when" | "by_whom" | "what_they_hear" | "risk";
 type Editing = { row: string; field: Field; stage: Stage; text: string; date: string } | null;
 const orderNames = ["Lead pastor", "Retreat participants", "Board or elders", "Staff", "Members and key leaders", "Congregation"];
 
-function Order() {
-  return <div className="cwl-vp-order" data-testid="vp-order" aria-label="The order the plan works outward">{orderNames.map((s, i) => <Fragment key={s}>{i > 0 && <ChevronRight aria-hidden="true" />}<span><b>{i + 1}</b>{s}</span></Fragment>)}</div>;
+// The six stages in the outward order. Once the plan has been drafted, a stage with no row says so.
+function Order({ missing }: { missing: Stage[] }) {
+  return <div className="cwl-vp-order" data-testid="vp-order" aria-label="The order the plan works outward">{orderNames.map((s, i) => {
+    const none = missing.includes(stageOrder[i]);
+    return <Fragment key={s}>{i > 0 && <ChevronRight aria-hidden="true" />}<span data-testid="vp-stage" data-stage={stageOrder[i]} data-missing={none ? "yes" : "no"}><b>{i + 1}</b>{s}{none && <em className="cwl-vp-missing" data-testid="vp-stage-missing">No row yet</em>}</span></Fragment>;
+  })}</div>;
 }
 
 // The public moment and its date. Editable; the plan works back from it.
@@ -143,7 +147,7 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
             {closed && <div className="ovr-banner" role="status" data-testid="vp-closed"><CircleAlert aria-hidden="true" /><div><strong>This engagement is closed.</strong> The visibility plan is read only.</div></div>}
             <Moment moment={plan?.moment ?? "Vision Sunday"} date={publicDate} api={api} locked={drafting} />
             <p className="ovr-muted" data-testid="vp-anchor">{publicDate ? `The plan works back from ${plan?.moment ?? "Vision Sunday"} on ${new Date(`${publicDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" })}.` : `There is no date for ${plan?.moment ?? "Vision Sunday"} yet. ${rows.some(r => r.when_text || r.when_date) ? "The rows the AI drafts have no when until there is a date, and the whens you gave are left as they are." : "No row has a when."} Add the date and the plan can work back from it.`}</p>
-            <Order />
+            <Order missing={plan?.drafted_at && !working ? missingStages(rows) : []} />
             {view?.kind === "working" && <div className="ovr-progress is-flat" data-testid="vp-progress"><div className="row"><span><b>Drafting the visibility plan</b></span><span className="ovr-muted">Rows appear as soon as they are ready</span></div><progress className="ovr-bar" aria-label="Progress" /></div>}
             {view?.kind === "working" && view.slow && <div className="ovr-banner is-warning" role="status" data-testid="vp-slow"><TriangleAlert aria-hidden="true" /><div><strong>Drafting is taking longer than usual.</strong> You can add rows by hand while it finishes.</div></div>}
             {view?.kind === "retry" && <div className="ovr-banner is-warning" role="status" data-testid="vp-retry"><TriangleAlert aria-hidden="true" /><div><strong>The draft hit a problem and is trying again.</strong></div></div>}
@@ -151,6 +155,7 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
               <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy || closed || !ok.ai} onClick={() => void draft(false)} data-testid="vp-try-again"><RefreshCw aria-hidden="true" />Try again</button>
                 <button type="button" className="ovr-btn is-sm" onClick={() => setAdding(true)} data-testid="vp-add-by-hand"><Plus aria-hidden="true" />Add a row</button></div></div></div>}
             {plan?.status === "needs_attention" && !plan.error && <div className="ovr-banner is-warning" role="status" data-testid="vp-attention"><TriangleAlert aria-hidden="true" /><div><strong>{plural(plan.dropped, "row")} didn’t meet the checks and {plan.dropped === 1 ? "was" : "were"} left out.</strong> Read what is here, add what is missing, or draft the plan again.</div></div>}
+            {(plan?.dates_blanked ?? 0) > 0 && <div className="ovr-banner" role="status" data-testid="vp-dates-blank"><CircleAlert aria-hidden="true" /><div><strong>{blankedText(plan!.dates_blanked!)}.</strong> {plan!.dates_blanked === 1 ? "The rest of the row is kept. Set it on the row." : "The rest of each row is kept. Set them on the rows."}</div></div>}
             {plan?.status === "thin" && <div className="ovr-banner" role="status" data-testid="vp-thin"><CircleAlert aria-hidden="true" /><div><strong>The room said little about who needs to hear the Vision.</strong> Start from the date of {plan.moment}, work back from it, and add the rows yourself.</div></div>}
             {!ok.ai && !rows.length && <div className="ovr-banner" role="status" data-testid="vp-ai-off"><CircleAlert aria-hidden="true" /><div><strong>AI is off for this engagement.</strong> Add the rows by hand.</div></div>}
             {ask !== null && <div className="cwl-vp-ask" role="alertdialog" aria-label="Keep your rows" data-testid="vp-ask">

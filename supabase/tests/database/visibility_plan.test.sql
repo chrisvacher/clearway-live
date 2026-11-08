@@ -16,7 +16,7 @@ create function tests.q(sql text) returns text language plpgsql security definer
 create function tests.pclaim(eng uuid default null) returns jsonb language plpgsql security definer set search_path='' as $$
 declare lease uuid:=gen_random_uuid(); v jsonb;
 begin
- v:=private.visibility_plan_claim(coalesce(eng,tests.id(100)),lease,'recorded-fixture','{"draft_visibility_plan":"visibility-plan@1"}');
+ v:=private.visibility_plan_claim(coalesce(eng,tests.id(100)),lease,'recorded-fixture','{"draft_visibility_plan":"visibility-plan@2"}');
  return v||jsonb_build_object('lease',lease);
 end $$;
 create function tests.papply(v jsonb,rows jsonb) returns jsonb language sql security definer set search_path='' as $$
@@ -202,13 +202,11 @@ select is((select v->'inputs'->'public'->'date' from c1),'null'::jsonb,'and that
 select is((select v->'inputs'->'kept_stages' from c1),'[]'::jsonb,'and that no stage is kept');
 select is(tests.papply((select v from c1)||'{"lease":"00000000-0000-4000-8000-000000000001"}','[]'),'{"status":"stale"}'::jsonb,'A reply under the wrong lease is stale');
 
--- A reply with no public date: three rows are good (and out of order), the rest fail a check each.
+-- A reply with no public date: three rows are good (and out of order), the rest fail a check each. (A row whose only fault is its when is kept: see the end of this file.)
 create temp table a1 as select tests.papply((select v from c1),jsonb_build_array(
  tests.prow('congregation','The congregation','On Vision Sunday the church hears that every ministry is growing its own next leader.',jsonb_build_array(tests.pref((select v from c1),'i'))),
  tests.prow('lead_pastor','The lead pastor','Hears the whole plan first, and what is asked of the lead pastor'||chr(8212)||'before anyone else; and before the stage.',jsonb_build_array(tests.pref((select v from c1),'i'),tests.pref((select v from c1),'r')),'{"risk":"Staff burned out by spring"}'),
  tests.prow('participants','The retreat participants','Hold the plan until the elders have been briefed.',jsonb_build_array(tests.pref((select v from c1),'a'))),
- tests.prow('board','The elders','Hear the plan.',jsonb_build_array(tests.pref((select v from c1),'a')),'{"when":"Two weeks before"}'),
- tests.prow('board','The elders','Hear the plan.',jsonb_build_array(tests.pref((select v from c1),'a')),'{"when_date":"2027-01-10"}'),
  tests.prow('staff','The staff','Priya tells the staff first.',jsonb_build_array(tests.pref((select v from c1),'s'))),
  tests.prow('staff','The staff','42 people hear the plan.',jsonb_build_array(tests.pref((select v from c1),'s'))),
  tests.prow('staff','The staff','They hear "we are all lost" from the room.',jsonb_build_array(tests.pref((select v from c1),'s'))),
@@ -221,19 +219,19 @@ create temp table a1 as select tests.papply((select v from c1),jsonb_build_array
 )) as j;
 select is((select j->>'status' from a1),'ok','The reply is applied');
 select is((select (j->>'kept')::integer from a1),3,'Three rows pass every check');
-select is((select (j->>'dropped')::integer from a1),11,'and eleven fail one each: a when with no public date (text, then date), a name, a number, a quote, a stage, no ref, an unknown ref, communication plan, a spelled-out number and a quotation from a first step, which is not the room''s words');
+select is((select (j->>'dropped')::integer from a1),9,'and nine fail one each: a name, a number, a quote, a stage, no ref, an unknown ref, communication plan, a spelled-out number and a quotation from a first step, which is not the room''s words');
 select is(tests.stages(),'lead_pastor,participants,congregation','The rows are in the outward order, whatever order the model wrote them in');
 select is((select output->>'reordered' from private.ai_runs where id=(select (v->>'run')::uuid from c1)),'true','and the run log says it reordered them');
 select is((select string_agg(x->>'reason',',' order by ord) from private.ai_runs r,jsonb_array_elements(r.output->'refused') with ordinality t(x,ord) where r.id=(select (v->>'run')::uuid from c1)),
- 'when,when,name,number,quote,stage,unsourced,unsourced,term,number,quote','Each refusal is logged with its reason');
+ 'name,number,quote,stage,unsourced,unsourced,term,number,quote','Each refusal is logged with its reason');
 select is((select count(*)::integer from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and not exists(select 1 from private.visibility_plan_sources s where s.row_id=r.id and not s.deleted)),0,'Every row that was kept has a source');
 select is((select count(*)::integer from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.origin='ai' and not r.touched and r.reviewed_at is null),3,'and is the AI''s, untouched');
 select is((select string_agg(r.who,' | ' order by r.position) from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.stage='lead_pastor'),'The lead pastor','The lead pastor row is there');
 select is((select what_they_hear from private.visibility_plan_rows where engagement_id=tests.id(100) and stage='lead_pastor' and not deleted),'Hears the whole plan first, and what is asked of the lead pastor, before anyone else, and before the stage.','Its dashes and semicolons were rewritten as commas');
 select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and (when_text<>'' or when_date is not null)),0,'No row has a when without a public date');
 select is((select status from private.visibility_plans where engagement_id=tests.id(100) and not deleted),'needs_attention','The plan is marked Needs attention');
-select is((select dropped from private.visibility_plans where engagement_id=tests.id(100) and not deleted),11,'and says how many rows were left out');
-select is((select status||':'||last_kept||':'||last_dropped from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'ready:3:11','The round is ready');
+select is((select dropped from private.visibility_plans where engagement_id=tests.id(100) and not deleted),9,'and says how many rows were left out');
+select is((select status||':'||last_kept||':'||last_dropped from private.visibility_plan_rounds where engagement_id=tests.id(100) and not deleted),'ready:3:9','The round is ready');
 select is(tests.pclaim()->>'status','idle','There is nothing left to claim');
 select is(private.visibility_plan_due(tests.id(100)),false,'and nothing is due');
 
@@ -300,12 +298,10 @@ create temp table a2 as select tests.papply((select v from c2),jsonb_build_array
  tests.prow('board','The elders','Hear it again.',jsonb_build_array(tests.pref((select v from c2),'a'))),
  tests.prow('staff','The staff','Hear what each person owns, and what the church is stopping.',jsonb_build_array(tests.pref((select v from c2),'s')),'{"when":"The week before","when_date":"2027-01-24","by":"The lead pastor"}'),
  tests.prow('staff','The staff, once more','Hear "Tell the congregation about the outcomes on a Sunday in January" from the room.',jsonb_build_array(tests.pref((select v from c2),'a')),'{"when_date":"2027-01-10"}'),
- tests.prow('key_leaders','Key leaders','Hear why the plan is what it is.',jsonb_build_array(tests.pref((select v from c2),'g')),'{"when_date":"2027-02-01"}'),
- tests.prow('key_leaders','Key leaders','Hear why the plan is what it is.',jsonb_build_array(tests.pref((select v from c2),'g')),'{"when_date":"next Sunday"}'),
- tests.prow('key_leaders','Key leaders','Hear why the plan is what it is.',jsonb_build_array(tests.pref((select v from c2),'g')),'{"when":"Priya will call","when_date":"2027-01-12"}'),
+ tests.prow('staff','The staff','Priya tells the staff first.',jsonb_build_array(tests.pref((select v from c2),'s'))),
  tests.prow('congregation','The congregation','On Vision Sunday the church hears the Vision and the first thing everyone can do.',jsonb_build_array(tests.pref((select v from c2),'i')),'{"when":"Vision Sunday","when_date":"2027-01-31"}')
 )) as j;
-select is((select (j->>'kept')||':'||(j->>'dropped')||':'||(j->>'skipped') from a2),'3:3:2','Three rows are kept, three fail (after the public date, not a date, a name in the when) and two are for stages already held');
+select is((select (j->>'kept')||':'||(j->>'dropped')||':'||(j->>'skipped')||':'||(j->>'blanked') from a2),'3:1:2:0','Three rows are kept, one fails (a name in the row) and two are for stages already held');
 select is((select count(*)::integer from private.visibility_plan_rows r join old_rows o on o.id=r.id where not r.deleted),3,'The three rows the facilitator touched or reviewed are still there');
 select is((select count(*)::integer from private.visibility_plan_rows r join old_rows o on o.id=r.id where r.deleted),1,'and the one untouched AI row was replaced');
 select is((select count(*)::integer from private.visibility_plan_sources s join old_rows o on o.id=s.row_id where s.deleted),(select count(*)::integer from private.visibility_plan_sources s where s.row_id=(select id from old_rows where who='The congregation') ),'with its sources');
@@ -603,7 +599,7 @@ create temp table a8 as select tests.papply((select v from c8),jsonb_build_array
  tests.prow('key_leaders','Key leaders','They hear "Name a back-up owner for every first step" from the room.',jsonb_build_array(tests.pref((select v from c8),'m')),'{"when_date":"2027-01-27"}')
 )) as j;
 select is((select j->>'status' from a8),'ok','The reply is applied, a bad date and all');
-select is((select (j->>'kept')||':'||(j->>'dropped') from a8),'2:3','Two rows are kept and three dropped: a date that runs backwards, one before the range and one that says after');
+select is((select (j->>'kept')||':'||(j->>'dropped')||':'||(j->>'blanked') from a8),'5:0:3','All five rows are kept and three have the when cleared: a date that runs backwards, one before the range and one that says after');
 select is((select string_agg(r.when_date::text,',' order by r.position) from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.stage='key_leaders'),'2027-01-26,2027-01-27','The rows that pass keep their dates, in order');
 select is((select s.excerpt from private.visibility_plan_sources s join private.visibility_plan_rows r on r.id=s.row_id where r.engagement_id=tests.id(100) and not r.deleted and not s.deleted and r.what_they_hear like '%back-up owner%' and s.kind='scribe_card'),'Name a back-up owner for every first step','A row that quotes the room keeps just the quoted words as its source');
 
@@ -619,6 +615,52 @@ select tests.login(1);
 select is(public.visibility_plan_set(tests.id(100),'Vision Sunday',null)->>'status','ok','The date is taken away');
 reset role;
 select is((select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted and origin='ai' and not touched and reviewed_at is null and (when_text<>'' or when_date is not null)),0,'Untouched AI rows lose their whens');
+
+-- ---------- A row whose only fault is its when stays, with the when cleared (F8) ----------
+-- Only the Key leaders stage is free by now: the facilitator holds the rest.
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_start(tests.id(100),tests.id(930),true)->>'status','ok','The lead drafts again with no public date');
+reset role;
+create temp table c9 as select tests.pclaim() as v;
+create temp table a9 as select tests.papply((select v from c9),jsonb_build_array(
+ tests.prow('key_leaders','Key leaders','Hear the first goal.',jsonb_build_array(tests.pref((select v from c9),'g')),'{"when":"before Vision Sunday"}'),
+ tests.prow('key_leaders','Key leaders again','Hear the first goal.',jsonb_build_array(tests.pref((select v from c9),'g')),'{"when_date":"2027-01-10"}'),
+ tests.prow('key_leaders','Key leaders, named','Priya tells the leaders.',jsonb_build_array(tests.pref((select v from c9),'g')),'{"when":"before Vision Sunday"}')
+)) as j;
+select is((select (j->>'kept')||':'||(j->>'dropped')||':'||(j->>'blanked') from a9),'2:1:2','A when with no public date keeps its row (two rows, each with its when cleared) and a row that names someone still drops');
+select is((select count(*)::integer from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.origin='ai' and r.when_blanked and r.when_text='' and r.when_date is null and r.stage='key_leaders'),2,'Both rows are there with no when and no date');
+select is((select count(*)::integer from private.visibility_plan_sources s join private.visibility_plan_rows r on r.id=s.row_id where r.engagement_id=tests.id(100) and not r.deleted and not s.deleted and r.when_blanked),2,'and their sources');
+select is((select (output->>'blanked')::integer from private.ai_runs where id=(select (v->>'run')::uuid from c9)),2,'The run log counts them');
+select is((select string_agg(x->>'reason',',') from private.ai_runs r,jsonb_array_elements(r.output->'refused') x where r.id=(select (v->>'run')::uuid from c9)),'name','and lists only the row that dropped');
+set local role authenticated;
+select tests.login(1);
+select is((tests.pstate()->'plan'->>'dates_blanked')::integer,2,'The page''s state counts them');
+reset role;
+-- With a public date: a date after it, not a date, a name in the when, and a date that runs backwards against the staff row the facilitator keeps (2027-01-24).
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_set(tests.id(100),'Vision Sunday','2027-01-31')->>'status','ok','The public date is given again');
+select is(public.visibility_plan_start(tests.id(100),tests.id(931),true)->>'status','ok','and the lead drafts again');
+reset role;
+create temp table c10 as select tests.pclaim() as v;
+create temp table a10 as select tests.papply((select v from c10),jsonb_build_array(
+ tests.prow('key_leaders','Leaders alpha','Hear the first goal.',jsonb_build_array(tests.pref((select v from c10),'g')),'{"when_date":"2027-02-01"}'),
+ tests.prow('key_leaders','Leaders bravo','Hear the first goal.',jsonb_build_array(tests.pref((select v from c10),'g')),'{"when_date":"next Sunday"}'),
+ tests.prow('key_leaders','Leaders charlie','Hear the first goal.',jsonb_build_array(tests.pref((select v from c10),'g')),'{"when":"Priya will call","when_date":"2027-01-12"}'),
+ tests.prow('key_leaders','Leaders delta','Hear the first goal.',jsonb_build_array(tests.pref((select v from c10),'g')),'{"when":"The week before","when_date":"2027-01-20"}'),
+ tests.prow('key_leaders','Leaders echo','Hear the first goal.',jsonb_build_array(tests.pref((select v from c10),'g')),'{"when":"The week before","when_date":"2027-01-27"}'),
+ tests.prow('key_leaders','Leaders foxtrot','Hear the first goal.','[]','{"when_date":"2027-01-28"}')
+)) as j;
+select is((select (j->>'kept')||':'||(j->>'dropped')||':'||(j->>'blanked') from a10),'5:1:4','A date after the public date, one that is not a date, a name in the when and a date that runs backwards each keep the row with the when cleared; a row with no source still drops');
+select is((select string_agg(r.who||'='||coalesce(r.when_date::text,'-')||'/'||r.when_text,',' order by r.position,r.id) from private.visibility_plan_rows r where r.engagement_id=tests.id(100) and not r.deleted and r.stage='key_leaders' and r.who like 'Leaders%'),
+ 'Leaders alpha=-/,Leaders bravo=-/,Leaders charlie=-/,Leaders delta=-/,Leaders echo=2027-01-27/The week before','Only the row with a good date keeps its date and its words');
+set local role authenticated;
+select tests.login(1);
+select is((tests.pstate()->'plan'->>'dates_blanked')::integer,4,'and the page counts four');
+select is(public.visibility_plan_row_edit(tests.id(100),tests.rowid('Leaders alpha'),'{"when_text":"Two weeks before"}')->>'status','ok','The facilitator writes a when on one of them');
+select is((tests.pstate()->'plan'->>'dates_blanked')::integer,3,'and the count goes down by one');
+reset role;
 
 -- ---------- The report's lease ----------
 create temp table rc1 as select private.report_claim(tests.id(100),gen_random_uuid(),'m','{"draft_report":"report@1"}'::jsonb) as v;

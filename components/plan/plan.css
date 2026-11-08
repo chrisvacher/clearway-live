@@ -18,6 +18,7 @@
 .cwl-vp-order span { display: inline-flex; gap: 6px; align-items: center; }
 .cwl-vp-order b { width: 18px; height: 18px; display: inline-grid; place-items: center; border-radius: 50%; background: var(--cwl-app-text); color: var(--cwl-app-card); font-size: var(--cwl-fs-app-micro); }
 .cwl-vp-order > svg { width: 14px; height: 14px; }
+.cwl-vp-missing { font-style: normal; font-weight: 700; padding: 0 6px; border-radius: 5px; background: var(--cwl-app-warning-bg); color: var(--cwl-app-text); }
 .cwl-vp-scroll { overflow: auto; min-height: 0; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
 .cwl-vp-table { width: 100%; min-width: 900px; border-collapse: collapse; font-size: var(--cwl-fs-app-table); }
 .cwl-vp-table th { text-align: left; padding: 6px 10px; background: var(--cwl-app-sunken); font-size: var(--cwl-fs-app-micro); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
