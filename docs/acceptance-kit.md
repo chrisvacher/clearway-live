@@ -208,7 +208,7 @@ Latency is read from the server's log (the lens wall and the read-back go throug
 
 ## CI
 
-One step after the other kits (the database job's timeout is already 60 minutes). The acceptance kit takes about 2 minutes locally and the milestone 5 failure checks about 1 minute.
+One step after the other kits (the database job's timeout is now 75 minutes, because the milestone 6 and 7 kits and their failure checks lengthen it). The acceptance kit takes about 2 minutes locally and the milestone 5 failure checks about 1 minute.
 
 ## Notes from writing the kit
 
@@ -240,7 +240,9 @@ Step 6. No migration. `npm run test:acceptance-m7` runs in CI after the other mi
 | Results | Every answer and note, "3 to follow up", "Everyone has answered", Mark followed up and Clear the follow-up |
 | Owner status on the copy | A new link shows each answered goal's status as a label and a date, a goal nobody answered shows none, and never a note or an email |
 
-The step timings are printed at the end. The kit takes about 1 minute locally.
+Before Day 2 closes it also checks that Share says "Available once Day 2 closes" and offers no link. After sign-off version 1 is saved and later compared byte for byte, and an edit after sign-off is checked to stay off the link. The step timings are printed at the end. The kit takes about 1 minute locally.
+
+Both milestone 7 kits put other engagements' scheduled check-in rounds away while they run, so the email counts are Riverside's, and put them back afterward.
 
 ## The failure kit, milestone 7
 

@@ -448,16 +448,16 @@ Sections 31 to 38 are the acceptance run for milestone 5. Run them in the practi
 
 ## Milestone 7: after the retreat
 
-Sections 39 to 48 are the acceptance run for milestone 7: the report, the visibility plan, the read-only copy for the elders and the 30, 60 and 90-day check-ins. Run them in the practice room on live.clearway.co with a team of about eight people, each with a phone, "Use AI in live sessions" on, and Reset practice room pressed first. The practice room never emails anyone, so every check-in row is a practice address and you open each person's page with Open as this person. Rows marked (Real device) need a real phone or a real laptop, and they carry to the on-site acceptance with the rows in section 11. Everything the facilitators see on the After the retreat pages is private: the TV and the phones never show a report, a plan or a check-in answer. Keep an eye on the TV and one phone through every section.
+Sections 39 to 48 are the acceptance run for milestone 7: the report, the visibility plan, the read-only copy for the elders and the 30, 60 and 90-day check-ins. Run them in the practice room on live.clearway.co. Section 39 follows a full rehearsal that used about eight phones, and sections 40 to 47 need only the laptop, the TV and one phone. Have "Use AI in live sessions" on. Do not press Reset practice room first, because it would clear what the rehearsal made. The practice room never emails anyone, so every check-in row is a practice address and you open each person's page with Open as this person. Rows marked (Real device) need a real phone or a real laptop, and they carry to the on-site acceptance with the rows in section 11. Everything the facilitators see on the After the retreat pages is private: the TV and the phones never show a report, a plan or a check-in answer. Keep an eye on the TV and one phone through every section.
 
-The browser kits cover most of these rows on the local stack and in CI (`npm run test:acceptance-m7`, which runs the whole after-the-retreat path on Riverside, and the milestone 7 failure checks in `npm run test:browser`). They do not run against live.clearway.co, and they use the scripted stand-in for AI, so the wording of the drafts here is the real model's and is the first thing to read with care. Rows marked "kit only" need AI made slow or failing, which only the scripted model can do. The real email, sent by the daily scheduled run at about 8 or 9 am Eastern, is checked on the day with a real address (section 45).
+The browser kits cover most of these rows on the local stack and in CI (`npm run test:acceptance-m7`, which runs the whole after-the-retreat path on Riverside, and the milestone 7 failure checks in `npm run test:browser`). They do not run against live.clearway.co, and they use the scripted stand-in for AI, so the wording of the drafts here is the real model's and is the first thing to read with care. Rows marked "kit only" need AI made slow or failing, which only the scripted model can do: skip them on live, because the failure kit covers them, as section 22's introduction does. The real email is checked in section 45 with Send now to your own address. The daily scheduled run itself is checked on the first real 30-day date, when it sends one email to each owner at about 8 or 9 am Eastern.
 
 ## 39. Set up the practice room for after the retreat (30 minutes)
 
 | Do | What should happen | Pass when |
 | --- | --- | --- |
-| Press Reset practice room. In setup, build a Wayfinding run of show from the template, so there is a Day 1 and a Day 2 | The run of show lists both days. The retreat's start and end dates are set | Day 1 and Day 2 are both there |
-| Fill in what a report needs, quickly: sign off the five lens summaries, confirm three Vision Outcomes with indicators, add a pre-mortem with two risks and mitigations, three 1-year goals, one commander's intent card with two first steps, and a few scribe cards of each kind. In Discover add survey findings (one with fewer than 10 respondents) and a few notes | Each record shows where it belongs. The thin finding carries its Thin mark | Nothing is on the TV or a phone |
+| In setup, check the practice room has a Wayfinding run of show from the template (build one if not), so there is a Day 1 and a Day 2 | The run of show lists both days. The retreat's start and end dates are set | Day 1 and Day 2 are both there |
+| This follows a full rehearsal of sections 12 to 30 in the same practice room (or, as a shortcut, accept two Discover themes and let simulated phones produce the aligned signal). Fill in what a report needs, quickly: sign off the five lens summaries, confirm three Vision Outcomes with indicators, add a pre-mortem with two risks and mitigations, three 1-year goals, one commander's intent card with two first steps, and a few scribe cards of each kind. In Discover add survey findings (one with fewer than 10 respondents) and a few notes | Each record shows where it belongs. The thin finding carries its Thin mark | Nothing is on the TV or a phone |
 | Give each goal and first step an owner. Use attendees whose emails end in `.example`, and add one owner by name and email who is not an attendee, also on a `.example` address | Each goal and step shows its owner and an end or due date | At least three different owners, one of them not an attendee |
 | Save one aligned signal as a citation during a wall step (section 26) | The card says "Saved as a citation" | One saved citation exists |
 | Open the control surface and look at the header | An After the retreat link is there | The link opens the After page with Report, Visibility plan, Share and Check-ins |
@@ -485,14 +485,14 @@ The browser kits cover most of these rows on the local stack and in CI (`npm run
 | On a quotation sentence, choose Use the room's words, then Go back to the draft wording | The exact words go in, then the draft returns | One action each way |
 | Edit one sentence, then choose Redraft section | A panel asks first and says it keeps the sentence you changed. Confirm it. Only the sentences you did not touch are replaced | Your edit and your own read are still there |
 | Choose Refresh from the records on a table section after changing a line in it | A panel asks first. Refreshing rebuilds the table from the records | The table matches the records again |
-| (Kit only) Claude makes AI fail on one section | The section says Needs attention and that AI could not draft it, with Try again. You can write the section yourself. The other sections are not touched | Try again drafts it and your own words stay |
+| (Kit only, skip on live: the failure kit covers it) Claude makes AI fail on one section | The section says Needs attention and that AI could not draft it, with Try again. You can write the section yourself. The other sections are not touched | Try again drafts it and your own words stay |
 
 ## 42. Sign off and export Word and PDF (35 minutes)
 
 | Do | What should happen | Pass when |
 | --- | --- | --- |
 | Before reviewing anything, look at Sign off the report | It is shut, and says how many sections are still to review | The blockers are named |
-| Mark each section reviewed. Remove a source from one sentence, then try again | Sign-off stays shut and says one sentence has no source. Add the source back and review the section again | Sign-off opens only when every sentence has a source |
+| Mark each section reviewed. Take every source off one sentence, then try again | Sign-off stays shut and says one sentence has no source. Add the source back and review the section again | Sign-off opens only when every sentence has a source |
 | As a co-facilitator, look at Sign off | It says only the lead facilitator signs off | The co-facilitator cannot sign |
 | As the lead, sign off | The page says signed off as version 1, with the date. The After page agrees | Version 1 is saved |
 | Download the Word file. Open it in Word, then in Google Docs (Real device) | The file name is "<church> Wayfinding Report.docx". The cover has the logo, the church name, "Wayfinding Report", the retreat dates and "Prepared by Clearway Church Solutions". The pages are white, set in Plus Jakarta Sans, with a section eyebrow over each heading, tables for the goals, risks and visibility plan, quotes set apart and thin data as a callout | It matches Clearway's document standard (`docs/clearway-document-standard.md`), and no source marker, dash or semicolon is in the text |
@@ -511,7 +511,7 @@ The browser kits cover most of these rows on the local stack and in CI (`npm run
 | Choose Draft the plan again | A panel asks first and says it keeps your rows and the reviewed ones. Confirm it | Edited and reviewed rows are where you left them |
 | Open the report's Make the Vision Visible section and choose Refresh from the records | The section is the plan as a table, in the plan's order, with a short lead above it. Until you refresh, the report says the plan changed | The table matches the plan row for row |
 | Mark the section reviewed and sign off again | The report is signed off as version 2, and version 1 is kept as it was signed | The next download has the plan, and version 1 does not |
-| (Kit only) Claude makes AI slow, then fail, while you draft | The page says drafting is taking longer than usual, then that AI could not draft the plan, with Try again and Add a row. Nothing you wrote is lost | You can finish the plan by hand |
+| (Kit only, skip on live: the failure kit covers it) Claude makes AI slow, then fail, while you draft | The page says drafting is taking longer than usual, then that AI could not draft the plan, with Try again and Add a row. Nothing you wrote is lost | You can finish the plan by hand |
 
 ## 44. Share the read-only copy, then revoke it (25 minutes)
 
@@ -543,7 +543,8 @@ The browser kits cover most of these rows on the local stack and in CI (`npm run
 | Choose Mark followed up on a follow-up, then Clear the follow-up | The count of follow-ups goes down, then up | Both work |
 | Choose Download CSV | A file with every person's answers | It matches the page |
 | Choose Send now on the 60-day round, then open the 30-day person's link as them (Real device if you can) | The 30-day page says its answers can no longer be changed and points to the newest check-in | The old answers are kept and read only |
-| On the day, in a real engagement with a real address of your own (Real device) | The scheduled run sends one email at about 8 or 9 am Eastern with your own first steps and goals and a link, and nothing else. A second run the same day sends nothing | You get one email, and the link opens your own check-in |
+| (Real device) In a test engagement that is not the practice room, whose only goal and first step owner is your own address (chris@clearway.co), choose Send now on a round | One real email arrives with your own first steps and goals and a link, and nothing else | You get one email, and the link opens your own check-in |
+| Confirm with Claude that `CRON_SECRET` is set in Vercel's Production environment variables | It is set, and the daily run at 13:07 UTC can reach the route | Without it the run refuses and sends nothing |
 
 ## 46. The elders' copy shows each owner's status (10 minutes)
 

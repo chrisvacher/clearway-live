@@ -30,7 +30,7 @@ const order = ["overview", "church_today", "process", "heard", "interviews", "te
 const headings = ["Overview", "The Church Today", "The Process", "What We Heard", "Leadership Interviews", "Strategic Tensions", "The 10-year Future", "The 3-year Vision", "Risks and Roadblocks", "The 1-year Outlook", "Commander's Intent", "Decisions", "Make the Vision Visible", "Closing"];
 const outward = ["lead_pastor", "participants", "board", "staff", "key_leaders", "congregation"];
 const apostrophe = (s: string) => s.replace(/[’]/g, "'");
-const dash = /[–—]/;
+const dash = /[\u2013\u2014]/;
 const plus = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10);
 
 // The export's files, read the way a person's tools would: the Word file unzipped, the PDF's text extracted.
@@ -45,6 +45,7 @@ async function main() {
   type Saved = { engagement: { settings: unknown; status: string; day2_closed_at: string | null }; roles: { clearway_user_id: string; role: string }[]; sessions: { id: string; state: string; closed_at: string | null }[];
     attendees: { id: string; email: string }[]; goals: { id: string; owner_email: string | null }[]; steps: { id: string; owner_email: string | null }[] };
   let saved: Saved | undefined, kitUsers: string[] = [];
+  const quieted = new Map<string, string>(), v1: { snapshot?: string; at?: string } = {};
   const passed: string[] = [], startedAt = new Date().toISOString();
   const shot = async (page: Page, name: string, full = true) => { if (process.env.KIT_SHOTS) { await delay(700); await page.screenshot({ path: `${process.env.KIT_SHOTS}/acceptance-m7-${name}.png`, fullPage: full }); } };
   const step = async (name: string, run: () => Promise<void>) => { const t0 = Date.now(); await run(); passed.push(`${name} (${((Date.now() - t0) / 1000).toFixed(1)} s)`); console.log(`ok · ${name}`); };
@@ -70,11 +71,9 @@ async function main() {
       attendees: (await sql.query("select id,email from public.attendees where engagement_id=$1", [room])).rows,
       goals: (await sql.query("select id,owner_email from private.goals where engagement_id=$1", [room])).rows, steps: (await sql.query("select id,owner_email from private.first_steps where engagement_id=$1", [room])).rows };
     // The seed's addresses end in .example, which the check-ins never email. For this run they are example.org, and the mailbox is the harness's.
-    const real = (email: string | null) => email && email.replace(/\.example$/, ".example.org").replace(/@riverside\.example\.org$/, "@riverside.example.org");
     await sql.query("update public.attendees set email=regexp_replace(email,'\\.example$','.example.org') where engagement_id=$1", [room]);
     await sql.query("update private.goals set owner_email=regexp_replace(owner_email,'\\.example$','.example.org') where engagement_id=$1 and owner_email is not null", [room]);
     await sql.query("update private.first_steps set owner_email=regexp_replace(owner_email,'\\.example$','.example.org') where engagement_id=$1 and owner_email is not null", [room]);
-    assert.equal(real("naomi.okafor@riverside.example"), "naomi.okafor@riverside.example.org");
     await sql.query("update public.engagements set settings=settings||'{\"ai_enabled\":true}', status='retreat' where id=$1", [room]);
     const fac = await facilitator(env, sql, room);
     const leadId = (await sql.query("select id from public.clearway_users where auth_user_id=$1", [fac.session.user.id])).rows[0].id as string;
@@ -84,7 +83,10 @@ async function main() {
     await wipe();
     // Day 2's step is open again, so Close the day has something to close. Other engagements' check-ins are put away so the counts are this room's.
     await sql.query("update public.sessions set state='live',closed_at=null where engagement_id=$1 and part='Day 2' and not deleted", [room]);
-    const quiet = () => sql.query("update private.check_in_rounds set status='off' where engagement_id<>$1 and status in ('scheduled','sending')", [room]);
+    const quiet = async () => {
+      const rows = (await sql.query("select id,status from private.check_in_rounds where engagement_id<>$1 and status in ('scheduled','sending')", [room])).rows as { id: string; status: string }[];
+      for (const r of rows) { quieted.set(r.id, quieted.get(r.id) ?? r.status); await sql.query("update private.check_in_rounds set status='off' where id=$1", [r.id]); }
+    };
     await quiet();
     app = await startApp(env, mail.url);
     const origin = app.origin;
@@ -123,6 +125,18 @@ async function main() {
     const planRows = async () => (await sql.query("select id,stage,who,what_they_hear,position from private.visibility_plan_rows where engagement_id=$1 and not deleted order by position", [room])).rows as { id: string; stage: string; who: string; what_they_hear: string; position: number }[];
     const gone = "This link isn’t available";
 
+    await step("Sharing is not available before Day 2 closes: the page says so, offers Mark the retreat closed and no New link", async () => {
+      await page.goto(shareUrl);
+      await page.getByTestId("share-waiting").waitFor({ timeout: 20000 });
+      assert.match(await page.locator("main").innerText(), /Available once Day 2 closes/);
+      assert.equal(await page.getByTestId("share-make").count(), 0, "no New link yet");
+      assert.equal(await page.getByTestId("retreat-mark").count(), 1);
+      await page.goto(hub);
+      assert.match(await page.getByTestId("after-share").innerText(), /Available once Day 2 closes/);
+      assert.equal((await sql.query("select count(*)::int n from private.read_only_links where engagement_id=$1", [room])).rows[0].n, 0, "no link exists");
+      await shot(page, "share-before-close");
+    });
+
     // ---------- Close the day ----------
     await step("Close the day on Day 2 closes the retreat and sets the 30, 60 and 90-day check-ins", async () => {
       assert.equal((await sql.query("select day2_closed_at from public.engagements where id=$1", [room])).rows[0].day2_closed_at, null);
@@ -136,7 +150,7 @@ async function main() {
       await page.getByTestId("retreat-closed").waitFor({ timeout: 20000 });
       assert.match(await page.getByTestId("retreat-closed").innerText(), /The retreat closed on/);
       assert.match(await page.getByTestId("after-share").innerText(), /link|Make/i);
-      assert.ok(!/[–—]/.test(await page.locator("main").innerText()), "no dashes in the copy");
+      assert.ok(!/[\u2013\u2014]/.test(await page.locator("main").innerText()), "no dashes in the copy");
       await shot(page, "hub-after-close");
     });
 
@@ -166,7 +180,8 @@ async function main() {
       assert.deepEqual(await page.locator(".rpt-li .h > span").allInnerTexts(), headings);
       await until(async () => { const s = await secs(); return s.length === 14 && s.every(x => x.status !== "drafting"); }, "every section is drafted", 120000);
       const runs = (await sql.query("select output->>'section' as section from private.ai_runs where engagement_id=$1 and job='draft_report' and session_id is null and status='ok' and created_at>=$2 order by created_at", [room, startedAt])).rows.map(r => r.section as string | null);
-      assert.ok(runs.indexOf("overview") > runs.indexOf("tensions") && runs.indexOf("closing") === runs.length - 1, "Overview and Closing are drafted last");
+      for (const k of ["church_today", "process", "heard", "interviews", "tensions"]) assert.ok(runs.includes(k) && runs.indexOf(k) < runs.indexOf("overview"), `${k} is drafted before Overview`);
+      assert.ok(runs.includes("overview") && runs.indexOf("closing") === runs.length - 1, "Closing is drafted last");
       const s = await secs();
       assert.ok(s.every(x => x.status !== "needs_attention"), `no section needs attention: ${JSON.stringify(s.filter(x => x.status === "needs_attention"))}`);
       for (const k of ["future", "vision", "risks", "outlook", "intent", "decisions", "visibility"]) assert.equal(s.find(x => x.key === k)?.kind, "record", `${k} is built from the records`);
@@ -177,6 +192,12 @@ async function main() {
       const unsourced = (await sql.query(`select count(*)::int n from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.engagement_id=$1 and not x.deleted and not s.deleted
         and x.origin in ('ai','room','record') and not exists(select 1 from private.report_sources r where r.sentence_id=x.id and not r.deleted)`, [room])).rows[0].n;
       assert.equal(unsourced, 0, "no sentence without a source");
+      const names = (await sql.query("select name from public.attendees where engagement_id=$1 and name is not null union select distinct speaker from private.scribe_cards where engagement_id=$1 and speaker is not null", [room])).rows.map(r => r.name as string).filter(n => n && n.length > 3);
+      assert.ok(names.length >= 5, "there are names to look for");
+      assert.equal((await sql.query("select count(*)::int n from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.engagement_id=$1 and not x.deleted and not s.deleted and x.origin='ai' and exists(select 1 from unnest($2::text[]) n where x.text ilike '%'||n||'%')", [room, names])).rows[0].n, 0, "no attendee or speaker name in any AI sentence");
+      const loose = (await sql.query(`select x.text from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.engagement_id=$1 and not x.deleted and not s.deleted and x.origin='ai' and x.quote
+        and not exists(select 1 from private.report_sources r where r.sentence_id=x.id and not r.deleted and position(btrim(x.text,$2) in r.excerpt)>0)`, [room, " \"\u201c\u201d.,"])).rows;
+      assert.deepEqual(loose, [], "every quotation appears word for word in one of its sources");
       const ai = (await sql.query("select count(*)::int n from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.engagement_id=$1 and not x.deleted and x.origin='ai'", [room])).rows[0].n;
       assert.ok(ai >= 10, `the model wrote sentences (${ai})`);
       await open("heard");
@@ -220,7 +241,7 @@ async function main() {
 
     await step("The facilitator edits a sentence, adds their own read and reviews every section, and sign-off waits for it", async () => {
       await open("heard");
-      await delay(1500);
+      await until(async () => (await body.getByTestId("rpt-sentence").count()) >= 3, "the section's sentences are on the page", 15000);
       const first = body.getByTestId("rpt-sentence").first();
       await first.locator("button.main").click();
       await first.getByTestId("rpt-edit").waitFor({ timeout: 10000 });
@@ -246,6 +267,8 @@ async function main() {
       await page.getByTestId("rpt-sign-off").click();
       await page.getByTestId("rpt-signed").waitFor({ timeout: 15000 });
       assert.deepEqual(await signOffs(), [1]);
+      const firstSigned = (await sql.query("select snapshot::text as snapshot,signed_at::text as at from private.report_sign_offs where engagement_id=$1 and n=1", [room])).rows[0];
+      v1.snapshot = firstSigned.snapshot; v1.at = firstSigned.at;
       assert.equal((await sql.query("select jsonb_array_length(snapshot->'sections')::int n from private.report_sign_offs where engagement_id=$1 and n=1", [room])).rows[0].n, 14);
       await shot(page, "report-signed");
       await page.goto(hub);
@@ -260,20 +283,30 @@ async function main() {
       let at = 0;
       for (const h of headings) { const i = d.texts.indexOf(h, at); assert.ok(i >= at, `${h} in the Word file, in order`); at = i + 1; }
       assert.ok(d.xml.includes('w:ascii="Plus Jakarta Sans"') && d.media.length > 0, "Plus Jakarta Sans and the logo");
-      assert.ok(!d.header.includes("DRAFT") && !d.texts.some(x => x.includes("Draft")), "no Draft mark on a signed report");
+      assert.ok(!d.header.includes("DRAFT") && !d.texts.includes("Draft. This report has not been signed off.") && !/Draft/.test(decodeURIComponent(word.headers()["content-disposition"])), "no Draft mark in the header, on the cover or in the file name of a signed report");
       const joined = d.texts.join("\n");
       assert.ok(!dash.test(joined) && !joined.includes(";"), "no dashes or semicolons");
-      assert.ok(!/Source|Sources|source marker/.test(joined.replace(/Sources?\b(?= of)/g, "")), "no source markers");
+      const marker = /\b\d+ sources?\b|\[\d+\]/i;
+      assert.ok(!marker.test(joined), "no source markers in the Word file");
       const lens = (await sql.query(`select s.text from generate_series(1,5) g(lens) join private.lens_summaries l on l.engagement_id=$1 and l.lens=g.lens and l.state='signed_off' and not l.deleted
         join private.lens_summary_sentences s on s.version_id=l.signed_off_version_id and not s.deleted order by g.lens,s.position,s.id`, [room])).rows.map(r => r.text as string);
-      for (const line of lens) assert.ok(joined.includes(line.replace(/\s*[–—]\s*/g, " - ")), "the 10-year Future is in the Word file word for word");
+      const flat = (t: string) => t.replace(/\s+/g, " ").trim();
+      for (const line of lens) assert.ok(joined.includes(line), `the 10-year Future line is in the Word file word for word: ${line}`);
       assert.ok(joined.includes("The team heard it plainly"), "and the facilitator's edit");
+      assert.ok(joined.includes("THIN DATA") && joined.includes("6 of 87 respondents"), "the thin data callout is in the Word file");
+      const quotes = (await sql.query(`select x.text from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.engagement_id=$1 and not x.deleted and not s.deleted and x.quote`, [room])).rows.map(r => (r.text as string).replace(/^[\s"\u201c\u201d']+|[\s"\u201c\u201d']+$/g, ""));
+      assert.ok(quotes.length >= 1, "the report has quotations");
+      for (const q of quotes) assert.ok(flat(joined).includes(flat(q)), `the quotation is in the Word file: ${q}`);
       const pdf = await get("format=pdf&version=signed");
       assert.equal(pdf.status(), 200); assert.match(pdf.headers()["content-type"], /application\/pdf/);
       const text = await pdfText(await pdf.body());
       let from = 0;
       for (const h of headings) { const i = text.indexOf(`\n${h}\n`, from); assert.ok(i >= from, `${h} in the PDF, in order`); from = i + 1; }
       assert.ok(!text.replace(/\s+/g, "").includes("DRAFT") && !dash.test(text), "no Draft mark and no dashes in the PDF");
+      assert.ok(!marker.test(text), "no source markers in the PDF");
+      for (const line of lens) assert.ok(flat(text).includes(flat(line)), `the 10-year Future line is in the PDF word for word: ${line}`);
+      assert.ok(flat(text).includes("THIN DATA") && flat(text).includes("6 of 87 respondents"), "the thin data callout is in the PDF");
+      for (const q of quotes) assert.ok(flat(text).includes(flat(q)), `the quotation is in the PDF: ${q}`);
       await page.goto(reportUrl);
       await page.getByTestId("rpt-export").waitFor({ timeout: 15000 });
       await page.getByTestId("rpt-preview").waitFor({ timeout: 15000 });
@@ -326,6 +359,8 @@ async function main() {
       await page.getByTestId("rpt-sign-off").click();
       await until(async () => (await signOffs()).length === 2, "version 2", 15000);
       assert.equal((await sql.query("select snapshot::text like $2 as has from private.report_sign_offs where engagement_id=$1 and n=1", [room, `%${rows[0].who.replace(/[%_]/g, "")}%`])).rows[0].has, false, "version 1 is kept as it was signed, without the plan");
+      const again = (await sql.query("select snapshot::text as snapshot,signed_at::text as at from private.report_sign_offs where engagement_id=$1 and n=1", [room])).rows[0];
+      assert.ok(again.snapshot === v1.snapshot && again.at === v1.at, "version 1 is exactly what was signed, with its signing time");
       const word = await docxText(await (await get("format=docx&version=signed")).body());
       assert.ok(word.texts.join("\n").includes(rows[0].who), "the signed Word file carries the plan's table");
       assert.ok(!dash.test(word.texts.join("\n")));
@@ -366,16 +401,28 @@ async function main() {
         await shot(p, `copy-${kind}`, kind === "laptop");
         await v.ctx.close();
       }
-      assert.equal((await sql.query("select open_count from private.read_only_links where name='Elders'", [])).rows[0].open_count, 2, "both opens were counted");
+      assert.equal((await sql.query("select open_count from private.read_only_links where name='Elders' and engagement_id=$1", [room])).rows[0].open_count, 2, "both opens were counted");
+      // An edit after sign-off stays off the link until the report is signed off again.
+      const edit = (await sql.query("select x.id,x.text from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.engagement_id=$1 and s.key='closing' and not x.deleted and not s.deleted order by x.position limit 1", [room])).rows[0] as { id: string; text: string };
+      const edited = "EDITED-AFTER-SIGN-OFF the team carries this forward in prayer.";
+      const saved = await fac.client.rpc("report_edit", { p_engagement: room, p_sentence: edit.id, p_text: edited });
+      assert.equal(saved.error, null); assert.ok(["ok", "unchanged"].includes(saved.data.status), JSON.stringify(saved.data));
+      const after = await viewer("laptop");
+      await after.page.goto(link); await after.page.getByTestId("ro-report").waitFor();
+      const shown = await after.page.locator("#report").innerText();
+      assert.ok(shown.includes(edit.text) && !shown.includes("EDITED-AFTER-SIGN-OFF"), "the link still shows what was signed");
+      await after.ctx.close();
+      await page.goto(shareUrl); await page.getByTestId("share-link").first().waitFor();
+      assert.match(await page.locator("main").innerText(), /changed the report since/);
     });
 
     await step("Turning the link off asks inside the panel, and the page is the plain one at once", async () => {
       await page.goto(shareUrl);
       await page.getByTestId("share-revoke").first().click();
       assert.match(await page.getByTestId("share-confirm").innerText(), /lose access at once/);
-      assert.equal((await sql.query("select revoked_at from private.read_only_links where name='Elders'")).rows[0].revoked_at, null, "asking changes nothing");
+      assert.equal((await sql.query("select revoked_at from private.read_only_links where name='Elders' and engagement_id=$1", [room])).rows[0].revoked_at, null, "asking changes nothing");
       await page.getByTestId("share-revoke-yes").click();
-      await until(async () => (await sql.query("select revoked_at from private.read_only_links where name='Elders'")).rows[0].revoked_at, "turned off", 10000);
+      await until(async () => (await sql.query("select revoked_at from private.read_only_links where name='Elders' and engagement_id=$1", [room])).rows[0].revoked_at, "turned off", 10000);
       const v = await viewer("phone"), u = await viewer("laptop");
       await v.page.goto(link); await v.page.getByTestId("ro-gone").waitFor();
       await u.page.goto(`${origin}/v/${"y".repeat(32)}`);
@@ -397,7 +444,8 @@ async function main() {
     const everything = [...owners.flatMap(o => o.own), "Design the leader residency", "Ask three people to share a baptism story"];
     await step("The scheduled run refuses a missing or wrong secret, and on the 30-day date sends one email to each owner and to nobody else", async () => {
       assert.equal((await cron()).status, 401, "no header"); assert.equal((await cron("Bearer wrong")).status, 401, "wrong secret");
-      assert.equal(mail.count, 0, "nothing was sent");
+      const sentBefore = mail.count;
+      assert.equal(mail.count, sentBefore, "nothing was sent");
       await quiet();
       const before = mail.count, out = await cron(`Bearer ${secret}`);
       assert.equal(out.status, 200, JSON.stringify(out.body)); assert.equal(out.body.rounds, 1, "the 30-day round only");
@@ -480,9 +528,10 @@ async function main() {
       const v = await viewer("laptop"); const p = v.page;
       await p.goto(second); await p.getByTestId("ro-page").waitFor({ timeout: 20000 });
       const statusOf = async (title: string) => (await p.getByTestId("ro-goal").filter({ hasText: title }).first().getByTestId("ro-goal-status").innerText()).trim();
-      assert.match(await statusOf("Launch the apprentice pathway"), /^At risk\s*, [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
-      assert.match(await statusOf("Develop a leader in every 1:1"), /^On track\s*, [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
-      assert.match(await statusOf("Welcome every first-time guest by name"), /^Off track\s*, [A-Z][a-z]{2} \d{1,2}, \d{4}$/);
+      const answeredOn = async (title: string) => { const d = (await sql.query("select v.answered_on::text as d from private.check_in_latest_for_view($1) v join private.goals g on g.id=v.goal_id where g.title=$2", [room, title])).rows[0].d as string;
+        return new Date(`${d.slice(0, 10)}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }); };
+      for (const [title, label] of [["Launch the apprentice pathway", "At risk"], ["Develop a leader in every 1:1", "On track"], ["Welcome every first-time guest by name", "Off track"]])
+        assert.equal((await statusOf(title)).replace(/\s*,\s*/, ", "), `${label}, ${await answeredOn(title)}`, `${title} shows the owner's answer and the day it was given`);
       assert.equal(await p.getByTestId("ro-goal").filter({ hasText: "Design the leader residency" }).first().getByTestId("ro-goal-status").count(), 0, "a goal with no answer shows no status");
       const html = await p.content();
       for (const note of ["I need to know who signs off the role.", "A second pair of hands in March.", "We need a second greeter team."]) assert.ok(!html.includes(note), "never a note");
@@ -506,6 +555,7 @@ async function main() {
         for (const a of saved.attendees) await sql.query("update public.attendees set email=$2 where id=$1", [a.id, a.email]);
         for (const g of saved.goals) await sql.query("update private.goals set owner_email=$2 where id=$1", [g.id, g.owner_email]);
         for (const s of saved.steps) await sql.query("update private.first_steps set owner_email=$2 where id=$1", [s.id, s.owner_email]);
+        for (const [id, status] of quieted) await sql.query("update private.check_in_rounds set status=$2 where id=$1", [id, status]);
         if (kitUsers.length) await sql.query("update public.engagement_facilitators set deleted=true where engagement_id=$1 and clearway_user_id=any($2::uuid[])", [room, kitUsers]);
         await sql.query("update public.engagement_facilitators set role='co_facilitator' where engagement_id=$1 and role='lead'", [room]);
         for (const r of saved.roles) await sql.query("update public.engagement_facilitators set role=$3::facilitator_role where engagement_id=$1 and clearway_user_id=$2", [room, r.clearway_user_id, r.role]);

@@ -42,7 +42,7 @@ export async function milestone7Failures({ env, sql, mail, app, browser, step, s
     await sql.query("delete from private.read_only_links where engagement_id=$1", [room]);
     await sql.query("update public.engagements set day2_closed_at=null where id=$1", [room]);
   };
-  const poke: NodeJS.Timeout[] = [];
+  const poke: NodeJS.Timeout[] = [], quieted = new Map<string, string>();
   let kitUser: string | undefined;
   try {
     // The seed's owner addresses end in .example, which are never emailed. For these checks they are example.org, and the mailbox is the harness's.
@@ -168,7 +168,7 @@ export async function milestone7Failures({ env, sql, mail, app, browser, step, s
       await page.reload();
       await page.getByTestId("share-revoke").first().click();
       await page.getByTestId("share-revoke-yes").click();
-      await until(async () => (await sql.query("select revoked_at from private.read_only_links where name='Elders'")).rows[0]?.revoked_at, "turned off", 10000);
+      await until(async () => (await sql.query("select revoked_at from private.read_only_links where name='Elders' and engagement_id=$1", [room])).rows[0]?.revoked_at, "turned off", 10000);
       await open1.reload();
       await open1.getByTestId("ro-gone").waitFor({ timeout: 10000 });
       assert.match(await open1.locator("body").innerText(), /This link isn’t available/);
@@ -176,7 +176,7 @@ export async function milestone7Failures({ env, sql, mail, app, browser, step, s
       const fresh = await browser.newContext(); const again = await fresh.newPage(); await again.goto(link);
       await again.getByTestId("ro-gone").waitFor({ timeout: 10000 });
       assert.equal(await again.locator("body").innerText(), await open1.locator("body").innerText(), "the same plain page on a new browser");
-      assert.equal((await sql.query("select open_count from private.read_only_links where name='Elders'")).rows[0].open_count, 1, "a turned-off link's opens add nothing");
+      assert.equal((await sql.query("select open_count from private.read_only_links where name='Elders' and engagement_id=$1", [room])).rows[0].open_count, 1, "a turned-off link's opens add nothing");
       await shot(open1, "fail-m7-revoked-link");
       await phone.close(); await fresh.close();
     });
@@ -185,7 +185,9 @@ export async function milestone7Failures({ env, sql, mail, app, browser, step, s
     const cron = async (header?: string) => { const r = await fetch(`${app.origin}/api/cron/check-ins`, { headers: header ? { Authorization: header } : {}, cache: "no-store" }); return { status: r.status, body: await r.json().catch(() => ({})) as Record<string, number | string> }; };
     const owners = ["priya.shah", "daniel.brooks", "naomi.okafor", "marcus.webb"].map(n => `${n}@riverside.example.org`);
     await step("The scheduled run without the secret is refused and sends nothing, and called twice the same day it sends one email to each owner and no more", async () => {
-      await sql.query("update private.check_in_rounds set status='off' where engagement_id<>$1 and status in ('scheduled','sending')", [room]);
+      for (const r of (await sql.query("select id,status from private.check_in_rounds where engagement_id<>$1 and status in ('scheduled','sending')", [room])).rows as { id: string; status: string }[]) {
+        quieted.set(r.id, r.status); await sql.query("update private.check_in_rounds set status='off' where id=$1", [r.id]);
+      }
       const start = mail.count;
       assert.equal((await cron()).status, 401, "no header"); assert.equal((await cron("Bearer wrong")).status, 401, "wrong secret"); assert.equal((await cron(cronSecret)).status, 401, "no Bearer");
       assert.equal(mail.count, start, "nothing was sent");
@@ -232,6 +234,7 @@ export async function milestone7Failures({ env, sql, mail, app, browser, step, s
       for (const a of saved.attendees) await sql.query("update public.attendees set email=$2 where id=$1", [a.id, a.email]);
       for (const g of saved.goals) await sql.query("update private.goals set owner_email=$2 where id=$1", [g.id, g.owner_email]);
       for (const s of saved.steps) await sql.query("update private.first_steps set owner_email=$2 where id=$1", [s.id, s.owner_email]);
+      for (const [id, status] of quieted) await sql.query("update private.check_in_rounds set status=$2 where id=$1", [id, status]);
       if (kitUser) await sql.query("update public.engagement_facilitators set deleted=true where engagement_id=$1 and clearway_user_id=$2", [room, kitUser]);
       await sql.query("update public.engagement_facilitators set role='co_facilitator' where engagement_id=$1 and role='lead'", [room]);
       for (const r of saved.roles) await sql.query("update public.engagement_facilitators set role=$3::facilitator_role where engagement_id=$1 and clearway_user_id=$2", [room, r.clearway_user_id, r.role]);
