@@ -45,8 +45,8 @@ export function inOutwardOrder(rows: Pick<PlanRowState, "stage">[]): boolean { r
 export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 // The stages that have no row, in the outward order. The page names them once the plan has been drafted.
 export const missingStages = (rows: Pick<PlanRowState, "stage">[]): Stage[] => stageOrder.filter(s => !rows.some(r => r.stage === s));
-// A row kept with its when cleared (no public date yet, or a date that ran backwards): said in plain words.
-export const blankedText = (n: number) => n === 1 ? "1 row’s date was left blank" : `${n} rows’ dates were left blank`;
+// A row kept with its when cleared (no public date yet, a date that ran backwards, a name in it): said in plain words.
+export const blankedText = (n: number) => n === 1 ? "1 row’s when was left blank" : `${n} rows’ whens were left blank`;
 export const longDate = (iso: string | null) => { if (!iso) return ""; const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }); };
 // What the When cell says: the words and the date together.
 export const whenText = (r: Pick<PlanRowState, "when_text" | "when_date">) => [r.when_text.trim(), longDate(r.when_date)].filter(Boolean).join(", ");

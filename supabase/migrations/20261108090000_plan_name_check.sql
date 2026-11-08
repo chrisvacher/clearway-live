@@ -2,57 +2,61 @@
 --
 -- F7. The name check refused ordinary sentences because ordinary words got into the name-word list ("member" from a note's person "A staff member", "One" from an
 -- attendee "Phone One"), and a person called Will, Grace, Faith or Hope would have blocked every "will", "grace", "faith" and "hope". The report and the plan must
--- still never name a person, so the rule is narrowed and not loosened:
---   1. A name word is a word of three letters or more taken from an attendee, a facilitator, a note's person, a scribe speaker or an owner. Role and description
---      words, number words and ordinals are never name words (private.name_stoplist).
---   2. In a free-text field (a note's person, a speaker, an owner) a long description is not a name: when the entry has three words or more only its capitalised
---      words count, so "A staff member" and "someone from the youth team" give nothing. An entry of one or two words counts in any case.
---   3. A name word that is not also an ordinary English word is matched in any case, as before.
---   4. A name word that is also an ordinary English word (private.name_common: will, grace, faith, hope, joy, mark, may, rose, bill ...) is kept in the list as
---      '*Word|Partner|...' (Partner is the other name words of the same person) and counts only when the text writes it as a proper noun: capitalised away from
---      the start of a sentence, or capitalised next to one of its own partners ("Faith Hope"). "will", "Will the team meet?" and "Saved by grace." are clear.
+-- still never name a person, and a mistake falls the safe way (a dropped sentence, never a missed name), so the rule is:
+--   1. A name word is a word of three letters or more taken from an attendee, a facilitator, a note's person, a scribe speaker or an owner.
+--   2. Number words and "phone" are never name words. In the free-text fields (a note's person, a speaker, an owner) role and description words are never name
+--      words either (private.name_stoplist: member, volunteer, parent, pastor ...). An attendee's or a facilitator's name is a name: "Ann Bishop" keeps Bishop.
+--   3. A name word that is not also an ordinary English word is matched in any case, wherever it sits.
+--   4. A name word that is also an ordinary English word (private.name_common: will, grace, faith, hope, joy, mark, may, rose, young, king, bishop ...) is kept as
+--      '*Word' and matched when it is written with a capital (Grace) or in capitals (GRACE), anywhere: the start of a sentence, after punctuation, in quotes or
+--      brackets, as a possessive, after a new line. Only the lowercase word ("will", "grace") is clear. A month name that is also a given name (march, april, may,
+--      june, august) is not a name when it sits in a date ("June 14", "14 June", "June 2027").
 -- Signatures are unchanged (names stay a text[]), so every caller of discover_names, report_names and discover_has_name keeps working as it is: the discover
 -- themes and read-back checks, the report's check and inputs, and the visibility plan's inputs and row checks.
 --
 -- F8. A plan row is no longer dropped whole when only its when fails (no public date yet, or a date that runs backwards against a kept row). The row is kept with
--- when and date cleared, and counted: private.visibility_plan_rows.when_blanked marks it, and the page state says how many of those rows are still blank.
+-- when and date cleared, and counted: private.visibility_plan_rows.when_blanked marks it, and the page state says how many of those rows are still blank. Each
+-- cleared row is logged in the run's output (blanked_rows) with its stage and reason.
 -- F9 is the prompt (visibility-plan@2) and the page; nothing here.
 begin;
 
 -- ---------- Words that are never a name ----------
+-- Number words and "phone" (a placeholder such as "Phone One"), plus the little words a typed entry can carry. Never a name, in any field.
+create function private.name_stoplist_base() returns text[] language sql immutable set search_path='' as $$
+ select array['the','and','for','with','phone','zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve']
+$$;
+
+-- Role and description words. Never a name in a free-text field (a note's person, a speaker, an owner), where a person is described as often as named.
+-- Not applied to an attendee's or a facilitator's name: a surname can be Bishop or Guest.
 create function private.name_stoplist() returns text[] language sql immutable set search_path='' as $$
- select array['the','and','for','with','team','staff','board','elders','elder','pastor','pastors','rev','reverend','senior','lead','associate','executive',
+ select private.name_stoplist_base()||array['team','staff','board','elders','elder','pastor','pastors','rev','reverend','senior','lead','associate','executive',
   'director','chair','deacon','deacons','church','youth','children','kids','worship','group','council','committee','leader','leaders','interview','input','conversation','mrs','miss','pastoral',
   'member','members','volunteer','volunteers','parent','parents','attender','attenders','attendee','attendees','participant','participants','guest','guests','visitor','visitors',
   'person','people','man','men','woman','women','lady','ladies','boy','girl','teen','teens','student','students','teacher','teachers','usher','greeter','host','hosts','coordinator',
   'manager','admin','assistant','secretary','treasurer','officer','minister','ministry','ministries','donor','donors','congregant','congregants','family','families','couple','adult','adults',
-  'anonymous','unnamed','unknown','phone','staffer','employee','employees','coach','facilitator','scribe','speaker','neighbor','neighbour','friend','friends','newcomer','newcomers',
+  'anonymous','unnamed','unknown','staffer','employee','employees','coach','facilitator','scribe','speaker','neighbor','neighbour','friend','friends','newcomer','newcomers',
   'regular','longtime','former','current','prospective','potential','head','vice','chief','overseer','warden','trustee','steward','bishop','rector','vicar','priest','father','mother',
   'sister','brother','son','daughter','husband','wife','spouse','doctor','another','other','others','someone','somebody','anyone','anybody','everyone','from','who','whom','whose','that','this','these','those',
-  'zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','last','next','half','both','each','every']
+  'first','second','third','fourth','fifth','sixth','seventh','eighth','ninth','tenth','last','next','half','both','each','every']
 $$;
 
--- Ordinary English words that are also given names. Kept in the list, but they count only as a proper noun (see the rule above).
+-- Ordinary English words that are also given names or surnames. Kept in the list, but matched only when written with a capital (see the rule above).
 create function private.name_common() returns text[] language sql immutable set search_path='' as $$
- select array['will','grace','faith','hope','joy','mark','may','june','april','august','rose','bill','art','pat','guy','dawn','rich','chase','hunter','mason','page','rob','sue','ray','frank','lane',
-  'bob','don','sky','summer','autumn','amber','ivy','lily','daisy','violet','olive','holly','heather','hazel','iris','ruby','pearl','jade','crystal','ginger','sandy','penny','patience','charity',
-  'mercy','trinity','destiny','harmony','unity','noel','christian','dean','drew','earl','glen','cliff','wade','dale','grant','miles','sterling','forest','royal','major','lance','robin','jay','wren','lark','brook','reed','stone']
+ select array['will','grace','faith','hope','joy','mark','may','june','april','august','march','rose','bill','art','pat','guy','dawn','rich','chase','hunter','mason','page','rob','sue','ray','frank','lane',
+  'bob','don','sky','summer','winter','autumn','amber','ivy','lily','daisy','violet','olive','holly','heather','hazel','iris','ruby','pearl','jade','crystal','ginger','sandy','penny','patience','charity',
+  'mercy','trinity','destiny','harmony','unity','noel','christian','church','dean','drew','earl','glen','cliff','wade','dale','grant','miles','sterling','forest','royal','major','lance','robin','jay','wren','lark','brook','reed','stone',
+  'young','love','king','long','bell','price','hall','green','white','brown','black','gold','gray','grey','west','east','north','south','shepherd','lamb','best','wise','strong','little','small','short','sharp','swift','fox','wolf','bird',
+  'bishop','guest','head','steward','warden','priest','coach','usher','host','friend','father','mother','carpenter','fisher','baker','cook','miller','porter','taylor','parker','cooper']
 $$;
 
--- The name words of a list of entries (one entry is one person's name or one description), as a text[]. An ordinary-word name is '*Word|Partner|...'.
--- p_free is true for a free-text field, where a long description is not a name.
+-- The name words of a list of entries (one entry is one person's name or one description), as a text[]. An ordinary-word name is '*Word'.
+-- p_free is true for a free-text field, where the role and description words are left out too.
 create function private.name_words(p_entries text[],p_free boolean) returns text[]
 language sql immutable security invoker set search_path='' as $$
- with tok as (
-  select e.rid,w.w,count(*) over (partition by e.rid) as n_all
-  from unnest(coalesce(p_entries,array[]::text[])) with ordinality e(t,rid)
-  cross join lateral regexp_split_to_table(coalesce(e.t,''),'[^[:alpha:]]+') w(w) where w.w<>''),
- kept as (
-  select t.rid,t.w from tok t
-  where length(t.w)>=3 and not (lower(t.w)=any(private.name_stoplist())) and (not coalesce(p_free,false) or t.n_all<=2 or t.w ~ '^[[:upper:]]'))
- select coalesce(array_agg(distinct case when lower(k.w)=any(private.name_common())
-   then '*'||initcap(lower(k.w))||coalesce((select '|'||string_agg(distinct initcap(lower(o.w)),'|') from kept o where o.rid=k.rid and lower(o.w)<>lower(k.w)),'')
-   else k.w end),array[]::text[]) from kept k
+ select coalesce(array_agg(distinct case when lower(w.w)=any(private.name_common()) then '*'||initcap(lower(w.w)) else w.w end),array[]::text[])
+ from unnest(coalesce(p_entries,array[]::text[])) e(t)
+ cross join lateral regexp_split_to_table(coalesce(e.t,''),'[^[:alpha:]]+') w(w)
+ where length(w.w)>=3 and not (lower(w.w)=any(case when coalesce(p_free,false) then private.name_stoplist() else private.name_stoplist_base() end))
 $$;
 
 create or replace function private.discover_names(p_engagement uuid) returns text[]
@@ -67,21 +71,18 @@ $$;
 
 create or replace function private.discover_has_name(p_text text,p_names text[]) returns boolean
 language plpgsql immutable security invoker set search_path='' as $$
-declare n text; parts text[]; alt text; pa text;
+declare n text; w text;
 begin
  if p_text is null then return false; end if;
  foreach n in array coalesce(p_names,array[]::text[]) loop
   if left(n,1)<>'*' then
    if p_text ~* ('\m'||n||'\M') then return true; end if;
   else
-   parts:=string_to_array(substr(n,2),'|');
-   alt:='('||parts[1]||'|'||upper(parts[1])||')';
-   -- Capitalised, with a word before it that does not end a sentence: "ask Grace", "thanks, Will".
-   if p_text ~ ('[[:alnum:],][ \t]+'||alt||'\M') then return true; end if;
-   -- Capitalised next to one of the same person's other words, even at the start of a sentence: "Faith Hope".
-   if cardinality(parts)>1 then
-    select '('||string_agg(p||'|'||upper(p),'|')||')' into pa from unnest(parts[2:cardinality(parts)]) p;
-    if p_text ~ ('\m'||alt||'[ \t]+'||pa||'\M') or p_text ~ ('\m'||pa||'[ \t]+'||alt||'\M') then return true; end if;
+   w:=substr(n,2);
+   -- Written with a capital or in capitals, wherever it sits. A month that is also a name is not one inside a date.
+   if lower(w)=any(array['march','april','may','june','august']) then
+    if p_text ~ ('(?<![0-9][ \t])\m('||w||'|'||upper(w)||')\M(?![ \t]+[0-9])') then return true; end if;
+   elsif p_text ~ ('\m('||w||'|'||upper(w)||')\M') then return true;
    end if;
   end if;
  end loop;
@@ -100,7 +101,7 @@ language sql stable security definer set search_path='' as $$
    union all select f.owner_name from private.first_steps f where f.engagement_id=p_engagement and not f.deleted and f.owner_name is not null),true))) z
 $$;
 
-revoke all on function private.name_stoplist(),private.name_common(),private.name_words(text[],boolean) from public,anon,authenticated;
+revoke all on function private.name_stoplist_base(),private.name_stoplist(),private.name_common(),private.name_words(text[],boolean) from public,anon,authenticated;
 
 -- ---------- F8: a row whose when was cleared ----------
 alter table private.visibility_plan_rows add column when_blanked boolean not null default false;
@@ -114,7 +115,7 @@ language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; r private.visibility_plan_rounds; pl private.visibility_plans; t timestamptz:=clock_timestamp(); in_ jsonb; v_ms integer; sn record; v_refs text[]; cited jsonb;
  names text[]; why text; srcs jsonb; reasons jsonb:='[]'::jsonb; good jsonb:='[]'::jsonb; g record; n_kept integer:=0; n_dropped integer:=0; n_skipped integer:=0; kept text[];
  v_row jsonb; ids uuid[]; ranks integer[]; idx integer; v_id uuid; n integer; s jsonb; reordered boolean:=false; last_rank integer:=0; v_live integer; rk integer; v_when_date date;
- v_floor date; v_q text; pd date[]; pr integer[]; good2 jsonb:='[]'::jsonb; v_d date; n_blanked integer:=0; v_blank boolean; gv jsonb;
+ v_floor date; v_q text; pd date[]; pr integer[]; good2 jsonb:='[]'::jsonb; v_d date; n_blanked integer:=0; v_blank boolean; gv jsonb; blank_log jsonb:='[]'::jsonb;
 begin
  if p_run is null or p_lease is null or jsonb_typeof(p_output) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  select * into run from private.ai_runs where id=p_run and job='draft_visibility_plan';
@@ -151,9 +152,8 @@ begin
   v_blank:=false;
   if why='when' then
    v_row:=v_row||jsonb_build_object('when','','when_date','');
-   v_blank:=true; n_blanked:=n_blanked+1;
-   why:=private.vp_check(v_row,cited,names,pl.public_date,v_floor);
-   if why is not null then n_blanked:=n_blanked-1; end if;
+   v_blank:=true; n_blanked:=n_blanked+1; why:=null;
+   blank_log:=blank_log||jsonb_build_array(jsonb_build_object('stage',v_row->>'stage','reason','when'));
   end if;
   if why is not null then n_dropped:=n_dropped+1; reasons:=reasons||jsonb_build_array(jsonb_build_object('reason',why,'stage',v_row->>'stage')); continue; end if;
   select coalesce(jsonb_agg(z.value order by x.ord,z.ord),'[]'::jsonb) into srcs from jsonb_array_elements(cited) with ordinality x(value,ord) cross join lateral jsonb_array_elements(x.value->'sources') with ordinality z(value,ord);
@@ -183,6 +183,7 @@ begin
     -- A date that runs backwards is cleared, with its words, and the rest of the row stays.
     gv:=jsonb_set(jsonb_set(jsonb_set(gv,'{row,when}','""'::jsonb),'{row,when_date}','""'::jsonb),'{blanked}','true'::jsonb);
     n_blanked:=n_blanked+1;
+    blank_log:=blank_log||jsonb_build_array(jsonb_build_object('stage',gv->'row'->>'stage','reason','order'));
    else
     pd:=pd||v_d; pr:=pr||rk;
    end if;
@@ -227,7 +228,7 @@ begin
  elsif n_dropped>0 then
   update private.visibility_plans set status='needs_attention' where id=pl.id and status<>'reviewed';
  end if;
- update private.ai_runs set status='ok',changed=n_kept>0,finished_at=t,ms=v_ms,output=jsonb_build_object('result',p_output,'kept',n_kept,'dropped',n_dropped,'skipped',n_skipped,'blanked',n_blanked,'reordered',reordered,'refused',reasons),
+ update private.ai_runs set status='ok',changed=n_kept>0,finished_at=t,ms=v_ms,output=jsonb_build_object('result',p_output,'kept',n_kept,'dropped',n_dropped,'skipped',n_skipped,'blanked',n_blanked,'blanked_rows',blank_log,'reordered',reordered,'refused',reasons),
   input_tokens=private.ai_usage(p_usage,'input_tokens',10000000)::integer,output_tokens=private.ai_usage(p_usage,'output_tokens',10000000)::integer,cost_usd=private.ai_usage(p_usage,'cost_usd',1000) where id=run.id;
  update private.visibility_plan_rounds set status='ready',attempts=0,lease_id=null,lease_run=null,lease_until=null,last_failed_at=null,last_error=null,
   last_ok_at=t,last_kept=n_kept,last_dropped=n_dropped where id=r.id;

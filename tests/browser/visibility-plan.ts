@@ -16,7 +16,7 @@ import { db, engagement, facilitator, localEnv, startApp, until } from "./harnes
 
 const controlDir = join(tmpdir(), `clearway-plan-kit-${randomUUID().slice(0, 8)}`), controlFile = join(controlDir, "fake.json");
 mkdirSync(controlDir, { recursive: true });
-const fake = (value: { delayMs?: number; fail?: boolean; failPlan?: boolean }) => writeFileSync(controlFile, JSON.stringify(value));
+const fake = (value: { delayMs?: number; fail?: boolean; failPlan?: boolean; planWhen?: string; planOmit?: string }) => writeFileSync(controlFile, JSON.stringify(value));
 fake({});
 Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTROL: controlFile, ANTHROPIC_API_KEY: "", CLEARWAY_AI_PLAN_SLOW_MS: "60000" });
 
@@ -99,7 +99,7 @@ async function main() {
       assert.match(await page.getByTestId("vp-status").innerText(), /Draft to review/);
       assert.equal(await page.getByTestId("vp-stage").count(), 6, "the stage list shows all six");
       assert.equal(await page.getByTestId("vp-stage-missing").count(), 0, "and none is missing a row");
-      assert.equal(await page.getByTestId("vp-dates-blank").count(), 0, "no date was left blank");
+      assert.equal(await page.getByTestId("vp-dates-blank").count(), 0, "no when was left blank");
       assert.match(await page.getByTestId("vp-mark").first().innerText(), /\d+ sources?/);
       assert.ok(await page.getByTestId("vp-ai-icon").count() >= r.length, "AI marks each row");
       assert.match(await page.getByTestId("vp-left").innerText(), new RegExp(`${r.length} of ${r.length} rows still need review`));
@@ -213,20 +213,38 @@ async function main() {
       await shot(page, "hand");
     });
 
-    await step("A row whose date was left blank is counted in plain words, and the count follows the date", async () => {
-      const target = (await rows()).find(r => r.origin === "ai" && r.when_date)!;
-      assert.ok(target, "a row the facilitator dated is there");
-      const old = (await sql.query("select when_text,to_char(when_date,'YYYY-MM-DD') as when_date from private.visibility_plan_rows where id=$1", [target.id])).rows[0] as { when_text: string; when_date: string | null };
-      await sql.query("update private.visibility_plan_rows set when_blanked=true,when_text='',when_date=null where id=$1", [target.id]);
+    await step("A row whose when had to be cleared is kept and counted in plain words, and a stage the model left out is named", async () => {
+      // The model writes "after Vision Sunday" on the first free stage's row (the database clears it and keeps the row) and leaves the second free stage out.
+      const held = new Set((await sql.query("select distinct stage from private.visibility_plan_rows where engagement_id=$1 and not deleted and (touched or reviewed_at is not null or origin='facilitator')", [room])).rows.map(r => r.stage as string));
+      const free = outward.filter(s => !held.has(s));
+      assert.ok(free.length >= 2, `two stages are free to redraft (${free.join(", ")})`);
+      const [withWhen, left] = free;
+      const runs = async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n as number;
+      const done = await runs();
+      fake({ planWhen: "after Vision Sunday", planOmit: left });
       await page.goto(url);
+      await page.getByTestId("vp-draft").click();
+      await page.getByTestId("vp-ask-yes").click();
+      await until(async () => (await runs()) > done && (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the draft is done", 40000);
+      const blanked = (await sql.query("select stage,when_text,when_date,when_blanked from private.visibility_plan_rows where engagement_id=$1 and not deleted and when_blanked", [room])).rows;
+      assert.deepEqual(blanked.map(r => [r.stage, r.when_text, r.when_date]), [[withWhen, "", null]], "the row stays with its when cleared");
+      const run = (await sql.query("select output->'blanked_rows' as b from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok' order by created_at desc limit 1", [room])).rows[0].b;
+      assert.deepEqual(run, [{ stage: withWhen, reason: "when" }], "and the run log says which stage and why");
       await page.getByTestId("vp-dates-blank").waitFor({ timeout: 15000 });
-      assert.match(await page.getByTestId("vp-dates-blank").innerText(), /^1 row’s date was left blank\./);
+      assert.match(await page.getByTestId("vp-dates-blank").innerText(), /^1 row’s when was left blank\./);
       assert.ok(!/[–—]/.test(await page.getByTestId("vp-dates-blank").innerText()), "no dashes");
+      const marker = page.locator(`[data-testid="vp-stage"][data-stage="${left}"]`);
+      await until(async () => (await marker.getAttribute("data-missing")) === "yes", `${left} is named as missing`, 10000);
+      assert.match(await marker.getByTestId("vp-stage-missing").innerText(), /^No row yet$/);
+      assert.equal(await page.getByTestId("vp-stage-missing").count(), 1, "and it is the only one");
       await shot(page, "date-blank");
-      await sql.query("update private.visibility_plan_rows set when_blanked=false,when_text=$2,when_date=$3 where id=$1", [target.id, old.when_text, old.when_date]);
-      await page.goto(url);
-      await page.getByTestId("vp-card").waitFor({ timeout: 15000 });
-      await until(async () => (await page.getByTestId("vp-dates-blank").count()) === 0, "the notice goes once the row has its date again", 10000);
+      // A full redraft brings the row for the stage back, and the notice goes with the blank when.
+      fake({});
+      const again = await runs();
+      await page.getByTestId("vp-draft").click();
+      await page.getByTestId("vp-ask-yes").click();
+      await until(async () => (await runs()) > again && (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the full redraft is done", 40000);
+      await until(async () => (await page.getByTestId("vp-stage-missing").count()) === 0 && (await page.getByTestId("vp-dates-blank").count()) === 0, "no stage is missing and no when is blank", 15000);
     });
 
     await step("Redraft asks first, keeps the rows the facilitator touched or reviewed, and replaces only the rest", async () => {
@@ -257,7 +275,8 @@ async function main() {
       const writtenBefore = (await rows()).filter(r => r.origin === "facilitator" || r.touched).length;
       fake({ failPlan: true });
       await page.getByTestId("vp-draft").click();
-      await page.getByTestId("vp-ask-yes").click();
+      // The ask closes as soon as the draft starts, so the click can lose the race with its own re-render: what matters is that the draft starts (waited for below).
+      await page.getByTestId("vp-ask-yes").click({ timeout: 10000 }).catch(() => {});
       await until(async () => { const r = (await sql.query("select attempts,status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]; return r && r.attempts >= 1 && r.status === "pending"; }, "the first failure waits to be tried again", 40000);
       await page.getByTestId("vp-retry").waitFor({ timeout: 15000 });
       await sql.query("update private.visibility_plan_rounds set last_failed_at=now()-interval '5 minutes' where engagement_id=$1 and not deleted", [room]);

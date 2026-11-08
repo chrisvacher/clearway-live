@@ -346,7 +346,14 @@ export function scripted(call: AiCall): string {
   return "{}";
 }
 
-type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string; failPlan?: boolean };
+// Kit controls for the plan: write a when on the first row (so the database has to clear it when there is no public date) and leave a stage out.
+function planTweaked(text: string, c: Control): string {
+  const out = JSON.parse(text) as PlanOutput;
+  if (c.planOmit) out.rows = out.rows.filter(r => r.stage !== c.planOmit);
+  if (c.planWhen && out.rows[0]) out.rows[0].when = c.planWhen;
+  return JSON.stringify(out);
+}
+type Control = { delayMs?: number; fail?: boolean; summary?: string; failSection?: string; failPlan?: boolean; planWhen?: string; planOmit?: string };
 function control(path?: string): Control {
   if (!path) return {};
   try { const value: unknown = JSON.parse(readFileSync(path, "utf8")); return value && typeof value === "object" ? value as Control : {}; } catch { return {}; }
@@ -362,6 +369,7 @@ export function fakeClient(mode: string, controlPath?: string): AiClient {
       if (typeof c.failSection === "string" && isReport(call) && reportSection(call) === c.failSection) throw new Error("unavailable");
       if (c.failPlan === true && isPlan(call)) throw new Error("unavailable");
       if (typeof c.summary === "string" && jobOf(call) === "summarize_wall") return reply(call, JSON.stringify({ summary: c.summary.slice(0, 1000) }));
+      if (isPlan(call) && (c.planWhen || c.planOmit)) return reply(call, planTweaked(scripted(call), c));
       return reply(call, scripted(call));
     },
   };

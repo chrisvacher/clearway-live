@@ -315,11 +315,11 @@ test("A plan that changed after the report's section was built is a sign-off blo
   assert.deepEqual(signOffBlockers({ ...state, plan_stale: false } as never), []);
 });
 
-test("The page names a stage with no row and says how many dates were left blank, in plain words", () => {
+test("The page names a stage with no row and says how many whens were left blank, in plain words", () => {
   assert.deepEqual(missingStages([]), [...stageOrder]);
   assert.deepEqual(missingStages([{ stage: "lead_pastor" }, { stage: "board" }, { stage: "congregation" }, { stage: "other" }]), ["participants", "staff", "key_leaders"]);
   assert.deepEqual(missingStages(stageOrder.map(stage => ({ stage }))), []);
-  assert.equal(blankedText(1), "1 row’s date was left blank");
-  assert.equal(blankedText(3), "3 rows’ dates were left blank");
+  assert.equal(blankedText(1), "1 row’s when was left blank");
+  assert.equal(blankedText(3), "3 rows’ whens were left blank");
   assert.ok(!/[–—]/.test(blankedText(1) + blankedText(2)), "no dashes");
 });
