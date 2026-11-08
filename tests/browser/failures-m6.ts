@@ -8,11 +8,11 @@
 // KIT_SHOTS=<folder> saves each failure state. Local only: no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import type { Browser, Page } from "playwright";
 import { engagement, facilitator, mailbox, pairTv, press, startApp, until, type Env } from "./harness";
-import { controlDir, controlFile } from "./failures-m3";
+import { controlFile } from "./failures-m3";
 import type pg from "pg";
 
 // The slow-draft notice on the Discover page appears after this long; the kit shortens it (the same switch the themes and What We Heard kits use).
@@ -357,5 +357,4 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
     assert.ok(await unchanged(), "the TV page never reloaded");
   });
   await press(fac, sql, room.id, "nothing_live");
-  rmSync(controlDir, { recursive: true, force: true });
 }

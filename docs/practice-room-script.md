@@ -1,4 +1,4 @@
-# Practice-room script: milestones 3, 4 and 6
+# Practice-room script: milestones 3 to 7
 
 This is the acceptance run for milestone 3, the interaction library. It takes about three hours, so plan two sittings: sections 1 to 5 in one, sections 6 to 11 in the other. Each check names what you do, what the TV and phones should show, and the pass mark. Mark each one pass or fail, and note anything that felt slow, jumpy or confusing, even if it passed.
 
@@ -446,10 +446,137 @@ Sections 31 to 38 are the acceptance run for milestone 5. Run them in the practi
 | Press Reset practice room | Scribe cards, uploaded files, promoted quotes and the read-back items are gone | The scribe console and Scribe panel are empty |
 | Run the checks in sections 31 to 37 once on real phones, real wifi and the venue's TV | The numbers and motion match the kit's. Real devices carry the network checks in section 11 | The Phone to TV report shows 95 in 100 under one second |
 
+## Milestone 7: after the retreat
+
+Sections 39 to 48 are the acceptance run for milestone 7: the report, the visibility plan, the read-only copy for the elders and the 30, 60 and 90-day check-ins. Run them in the practice room on live.clearway.co with a team of about eight people, each with a phone, "Use AI in live sessions" on, and Reset practice room pressed first. The practice room never emails anyone, so every check-in row is a practice address and you open each person's page with Open as this person. Rows marked (Real device) need a real phone or a real laptop, and they carry to the on-site acceptance with the rows in section 11. Everything the facilitators see on the After the retreat pages is private: the TV and the phones never show a report, a plan or a check-in answer. Keep an eye on the TV and one phone through every section.
+
+The browser kits cover most of these rows on the local stack and in CI (`npm run test:acceptance-m7`, which runs the whole after-the-retreat path on Riverside, and the milestone 7 failure checks in `npm run test:browser`). They do not run against live.clearway.co, and they use the scripted stand-in for AI, so the wording of the drafts here is the real model's and is the first thing to read with care. Rows marked "kit only" need AI made slow or failing, which only the scripted model can do. The real email, sent by the daily scheduled run at about 8 or 9 am Eastern, is checked on the day with a real address (section 45).
+
+## 39. Set up the practice room for after the retreat (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Press Reset practice room. In setup, build a Wayfinding run of show from the template, so there is a Day 1 and a Day 2 | The run of show lists both days. The retreat's start and end dates are set | Day 1 and Day 2 are both there |
+| Fill in what a report needs, quickly: sign off the five lens summaries, confirm three Vision Outcomes with indicators, add a pre-mortem with two risks and mitigations, three 1-year goals, one commander's intent card with two first steps, and a few scribe cards of each kind. In Discover add survey findings (one with fewer than 10 respondents) and a few notes | Each record shows where it belongs. The thin finding carries its Thin mark | Nothing is on the TV or a phone |
+| Give each goal and first step an owner. Use attendees whose emails end in `.example`, and add one owner by name and email who is not an attendee, also on a `.example` address | Each goal and step shows its owner and an end or due date | At least three different owners, one of them not an attendee |
+| Save one aligned signal as a citation during a wall step (section 26) | The card says "Saved as a citation" | One saved citation exists |
+| Open the control surface and look at the header | An After the retreat link is there | The link opens the After page with Report, Visibility plan, Share and Check-ins |
+
+## 40. Close Day 2 and the After page (15 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On the After page, look at Share and Check-ins before closing | Share says it is available once Day 2 closes. Check-ins has no rounds yet | Nothing can be shared yet |
+| On the control surface, choose Close Day 2 and tap again to confirm | The After page says the retreat closed, with today's date. Share now offers a link. Check-ins shows three rounds, 30, 60 and 90 days after the retreat's last day | Three rounds, with the right dates |
+| Choose Undo on the After page | A panel asks first, and says the check-in dates are taken away. Confirm it. The retreat shows as open again and the rounds are gone | Nothing is lost that you did not ask to lose |
+| Choose Mark the retreat closed and confirm | The same three rounds come back | The dates match the first time |
+| Look at the TV and a phone | Neither shows anything about the close | Nothing changed on either |
+
+## 41. Draft and review the report (40 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Report and choose Draft the report | Fourteen sections appear in Clearway's order: Overview, The Church Today, The Process, What We Heard, Leadership Interviews, Strategic Tensions, The 10-year Future, The 3-year Vision, Risks and Roadblocks, The 1-year Outlook, Commander's Intent, Decisions, Make the Vision Visible, Closing. Each shows Drafting, then Drafted, and appears as soon as it is ready. Overview and Closing come last | The order is exactly that, and nothing waits for the whole report |
+| Read The 10-year Future against the five lens summaries you signed off | The lines are the summaries word for word. They cannot be edited or removed here | Not one word differs |
+| Open What We Heard and choose a sentence | The sources panel shows the records it rests on, with the words used lit. The citation you saved is one of them. A sentence on the thin finding says "Thin data" with the count | Every sentence has at least one source, and the thin one is labelled |
+| Read every quotation against its source | A quotation is the room's words exactly, and it is anonymous ("a participant") | No quote is reworded and no name is attached |
+| Look for names in the AI's sentences | Owners are named only in The 1-year Outlook and Commander's Intent, put in by the app, never by the AI | No attendee's name is in any other sentence |
+| Read the AI's sentences for your own sense of the team. Choose Add your own read on one section | Your sentence says it is yours and needs no source | You can say what you think in your own words |
+| On a quotation sentence, choose Use the room's words, then Go back to the draft wording | The exact words go in, then the draft returns | One action each way |
+| Edit one sentence, then choose Redraft section | A panel asks first and says it keeps the sentence you changed. Confirm it. Only the sentences you did not touch are replaced | Your edit and your own read are still there |
+| Choose Refresh from the records on a table section after changing a line in it | A panel asks first. Refreshing rebuilds the table from the records | The table matches the records again |
+| (Kit only) Claude makes AI fail on one section | The section says Needs attention and that AI could not draft it, with Try again. You can write the section yourself. The other sections are not touched | Try again drafts it and your own words stay |
+
+## 42. Sign off and export Word and PDF (35 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Before reviewing anything, look at Sign off the report | It is shut, and says how many sections are still to review | The blockers are named |
+| Mark each section reviewed. Remove a source from one sentence, then try again | Sign-off stays shut and says one sentence has no source. Add the source back and review the section again | Sign-off opens only when every sentence has a source |
+| As a co-facilitator, look at Sign off | It says only the lead facilitator signs off | The co-facilitator cannot sign |
+| As the lead, sign off | The page says signed off as version 1, with the date. The After page agrees | Version 1 is saved |
+| Download the Word file. Open it in Word, then in Google Docs (Real device) | The file name is "<church> Wayfinding Report.docx". The cover has the logo, the church name, "Wayfinding Report", the retreat dates and "Prepared by Clearway Church Solutions". The pages are white, set in Plus Jakarta Sans, with a section eyebrow over each heading, tables for the goals, risks and visibility plan, quotes set apart and thin data as a callout | It matches Clearway's document standard (`docs/clearway-document-standard.md`), and no source marker, dash or semicolon is in the text |
+| Download the PDF and open it in Preview or a phone's reader (Real device) | It is the same document, with the headings in the same order and the page numbers in the footer | The PDF and the Word file read the same |
+| Read the headings in both files from top to bottom | They are the fourteen headings in Clearway's order, with "The 10-year Future", "The 3-year Vision" and "The 1-year Outlook" written exactly | No heading is renamed |
+| Edit a sentence after signing off. Choose the Draft version on the export panel and download | The page says the report changed since version 1. The draft file says Draft in every header and in its file name. The signed file still has the old words | A draft never looks like a signed report |
+
+## 43. The visibility plan (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Visibility plan and choose Draft the plan | Rows arrive in this order: the lead pastor, the retreat participants, the board or elders, the staff, members and key leaders, the congregation. Each says who, when, who tells them, what they hear and the risk it answers, with an AI mark and its sources | The order is outward, and every row has a source |
+| Look at the When column before you name a date | No row has a when. The page says there is no date for Vision Sunday yet | Nothing is invented |
+| Name the moment and a date, then edit a row's when to a day after it | The page works back from the date. A row dated after it is flagged, and you may keep it | The flag shows and clears when you fix the date |
+| Edit a cell, mark two rows reviewed, add a row by hand, move one up and remove another | Each change shows at once. Removing asks inside the panel first. Your row says it needs no source | Positions stay in order, and nothing needs a refresh |
+| Choose Draft the plan again | A panel asks first and says it keeps your rows and the reviewed ones. Confirm it | Edited and reviewed rows are where you left them |
+| Open the report's Make the Vision Visible section and choose Refresh from the records | The section is the plan as a table, in the plan's order, with a short lead above it. Until you refresh, the report says the plan changed | The table matches the plan row for row |
+| Mark the section reviewed and sign off again | The report is signed off as version 2, and version 1 is kept as it was signed | The next download has the plan, and version 1 does not |
+| (Kit only) Claude makes AI slow, then fail, while you draft | The page says drafting is taking longer than usual, then that AI could not draft the plan, with Try again and Add a row. Nothing you wrote is lost | You can finish the plan by hand |
+
+## 44. Share the read-only copy, then revoke it (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Share. Choose New link and give it a name, such as Elders | The link is shown once, with Copy. After you leave the page it is not shown again | Only the link's name and when it was made are listed afterward |
+| Open the link on a laptop with no sign-in (Real device) | A page with the church's name, the Clearway Map, the Vision Outcomes with their indicators, the 1-year goals with owners and end dates, the commander's intent cards with first steps, and the signed report | There is nothing to type into or change. The only button prints |
+| Open the same link on a phone (Real device) | The same content, in one column, with no sideways scrolling | Every section reads on the phone |
+| Look for anything private | No raw answers, no scribe cards, no drafts, no sources, no emails, no check-in notes | Nothing from the room's private records is there |
+| Edit a sentence in the report without signing off, then reload the link | The link still shows the version you signed | An edit stays off the link until you sign off again |
+| Sign off again and reload | The new wording appears | The link follows the latest sign-off |
+| On Share, choose Revoke and read the panel, then confirm | The panel says the link will stop working at once. After you confirm, the list says it is turned off | Asking changed nothing, and confirming did |
+| Reload the link on the laptop and the phone | A plain page that says the link isn't available, with nothing about the plan | The page is the same as for a link that never existed |
+
+## 45. The check-ins (45 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open Check-ins | Three rounds, 30, 60 and 90 days, each with its date and the time it goes out, in the morning around 8 or 9 am Eastern | The dates match section 40 |
+| On the 30-day round choose Send now | A panel asks first and says this is the practice room, so nobody is emailed. Confirm it. Each owner gets a row that says "Practice address, not sent" | No email arrives anywhere, and each owner has one row |
+| Check who is listed | One row for each owner of a first step, and for each goal owner who owns no first step. Each person once | Nobody is listed twice or missing |
+| Choose Open as this person on an owner who has a first step and a goal | Their own page opens at "Your 30-day check-in" with a welcome | The page shows only their steps and goals |
+| Open the check-in. Pick Stuck on the step and write in "What would help?", then Next. Pick At risk on the goal and write what would help | Each tap saves ("Saved"). Icons and labels carry the status, and the page has no red or amber warning colours | Nothing relies on colour alone |
+| Choose Send my check-in | A thank-you page that names when the next check-in comes | The person counts as answered only now |
+| Open as a goal owner who has no first step and answer about the goal only | Only the goal is asked about | No first step appears |
+| On a real phone, open an owner's check-in page (send yourself the address), turn on airplane mode and tap an answer (Real device) | The tap says "Saved on this phone" and the header or page shows nothing was lost | Nothing reaches the results yet |
+| Turn airplane mode off (Real device) | The answer is sent once and the phone says Saved | Results show it once |
+| Open Check-ins results | Each answer and note, goals grouped by status, the stuck step and the at-risk goal as follow-ups, and who has not answered | The numbers match what you tapped |
+| Choose Mark followed up on a follow-up, then Clear the follow-up | The count of follow-ups goes down, then up | Both work |
+| Choose Download CSV | A file with every person's answers | It matches the page |
+| Choose Send now on the 60-day round, then open the 30-day person's link as them (Real device if you can) | The 30-day page says its answers can no longer be changed and points to the newest check-in | The old answers are kept and read only |
+| On the day, in a real engagement with a real address of your own (Real device) | The scheduled run sends one email at about 8 or 9 am Eastern with your own first steps and goals and a link, and nothing else. A second run the same day sends nothing | You get one email, and the link opens your own check-in |
+
+## 46. The elders' copy shows each owner's status (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Make a new link on Share and open it | Before any answer, no goal shows a status | Nothing is invented |
+| After the answers in section 45, reload the link | Each goal that was answered shows its owner's status as a label and a date, such as "At risk, Nov 9, 2026". A goal nobody answered shows none | The label and date match the newest answer |
+| Search the page for what the owners wrote in "What would help?" | Nothing | The notes never reach the copy |
+| Check the 60-day answers once they exist | The goal shows the newest status and its date | The newer answer replaces the older one |
+
+## 47. Who cannot see it (15 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On a phone signed in as a participant, open the After the retreat page, Report, Visibility plan, Share and Check-ins results | You are sent to sign in or refused | No report text, plan row or answer is shown |
+| Open the scribe console | The scribe sees none of the report, the plan, the links or the check-ins | Nothing from them is there |
+| Look at the TV through section 41 to 46 | The TV never shows a report, a plan, a link or a check-in | Nothing leaked |
+| In a browser that is not signed in, open the report and plan addresses, and a Download link from the export panel | You are sent to sign in or refused | Nothing downloads |
+| In a browser that is not signed in, open a check-in address with one letter changed | A plain page that does not say whose it is | It says nothing about the plan |
+| Try one person's check-in link and look for another person's steps | Only their own are there | Nobody sees anyone else's |
+
+## 48. Clear up (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Press Clear test answers after a rehearsal | The message says what went. The report, the plan and the check-in answers made in the rehearsal are gone. Real setup data stays | The parts add up to the count the button showed |
+| Press Reset practice room | The report, its sign-offs, the visibility plan, the links, the check-in rounds and answers are all gone, and the retreat shows as open | After the retreat has nothing in it, and every link you made shows the plain page |
+| Run sections 40 to 46 once more with eight real phones, real wifi and a real laptop at the venue (Real device) | The same results, with each phone's page opening and saving as in the kit | The on-site acceptance of milestone 7 |
+
 ## Afterward
 
 - Note the Phone to TV numbers you read in section 11 before breaking anything.
 - Note which phones and browsers you used, the venue network, and anything that felt slow or wrong.
-- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. A row that fails becomes the next fix.
+- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. Milestone 7 is accepted when sections 11 and 39 to 48 pass, with the rows marked (Real device) run on real devices at the venue. A row that fails becomes the next fix.
 
-The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). Milestone 5 has `npm run test:acceptance-m5` (the scribe, promoting a quote, the overnight drafts and the Day 2 read-back with 50 simulated phones) and its failure checks (FAIL-03, in `npm run test:browser`). This script is the real-device, real-room version of them.
+The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). Milestone 5 has `npm run test:acceptance-m5` (the scribe, promoting a quote, the overnight drafts and the Day 2 read-back with 50 simulated phones) and its failure checks (FAIL-03, in `npm run test:browser`). Milestone 7 has `npm run test:acceptance-m7` (after the retreat, end to end on Riverside) and its failure checks in `npm run test:browser`. This script is the real-device, real-room version of them.

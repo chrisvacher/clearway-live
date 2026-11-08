@@ -375,6 +375,19 @@ jobs:
           path: plan-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test milestone 7 acceptance (after the retreat on Riverside end to end: Close the day, the report, sign-off, Word and PDF, the visibility plan, a share link on a phone and a laptop then revoked, the 30-day check-in by the scheduled run, every owner answering, results, owner status on the copy)
+        if: ${{ !cancelled() }}
+        run: mkdir -p acceptance-m7-shots && npm run test:acceptance-m7
+        env:
+          KIT_SHOTS: acceptance-m7-shots
+      - name: Upload the milestone 7 acceptance screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-m7-screens
+          path: acceptance-m7-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)
         if: ${{ !cancelled() }}
         run: mkdir -p acceptance-m5-shots && npm run test:acceptance-m5

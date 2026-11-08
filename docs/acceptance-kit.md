@@ -214,3 +214,44 @@ One step after the other kits (the database job's timeout is already 60 minutes)
 
 - The scribe feed shows the newest cards, so the kit captures the quote last to find its Promote button.
 - The failure kit's shared fake-model folder is removed once, after the last milestone's checks.
+
+# Milestone 7: the after-the-retreat kit and the failure kit
+
+Step 6. No migration. `npm run test:acceptance-m7` runs in CI after the other milestone 7 kits (`test:check-ins`, `test:read-only`, `test:report`, `test:visibility-plan`), with screenshots uploaded as `acceptance-m7-screens`, and the extended `npm run test:browser` carries the failure checks.
+
+## `npm run test:acceptance-m7`
+
+`tests/browser/acceptance-m7.ts`. One run on the seeded Riverside engagement, in real browsers against the production build and the local stack, with the scripted fake model (never the API) and the harness mailbox standing in for Resend. The app is started with `CRON_SECRET` set and `CLEARWAY_NOW` at the 30-day date (30 days after Riverside's retreat end date). The seed's owner addresses end in `.example`, which the check-ins never email, so for the run they are changed to `.example.org` and put back afterward, together with the engagement's status, settings, Day 2 steps and facilitators.
+
+| Step | What is checked |
+| --- | --- |
+| Close the day | Close Day 2 on the control surface sets `day2_closed_at` and makes the 30, 60 and 90-day rounds on the right dates. Undo takes it back (rounds gone) and Mark the retreat closed makes the same rounds again |
+| Draft the report | Fourteen sections in Clearway's order, Overview and Closing drafted last, seven tables built from the records |
+| Sources | Every AI, room and record sentence has a source. The aligned signal saved as a citation is a source in What We Heard, and only a saved aligned signal. The thin survey finding carries its Thin data label |
+| The 10-year Future | The five signed-off lens summaries word for word, with no edit or remove |
+| Edit, review, sign off | An edit and the facilitator's own read, sign-off shut until every section is reviewed, then version 1 signed and kept |
+| Export | Word and PDF: the fourteen headings in order, Plus Jakarta Sans and the logo, no Draft mark, no source markers, no dashes or semicolons, the 10-year Future word for word, the edit present |
+| The visibility plan | Drafted from refs: rows in the outward order, each with a source, no when without a public date |
+| Make the Vision Visible | The plan changing marks the section out of date, the server refuses a sign-off until it is refreshed, the refreshed table holds every plan row, and version 2 carries the plan while version 1 is as it was |
+| Share | A named link shown once. On a phone-size and a laptop-size page: no inputs or edit links, only a Print button, Vision Outcomes, goals with their owners, intent cards, the signed report with its fourteen headings and the plan, no email, no status before any check-in, no sideways scroll |
+| Revoke | A panel asks first, then the page is the plain one at once, the same as a link that never existed |
+| The scheduled run | 401 without the right secret and nothing sent. At the 30-day date one email goes to each of the four owners (two attendees, two with only a name and email) and to nobody else, each listing only their own steps and goals. A second run sends nothing |
+| Owners answer | Each owner answers on a phone-size page seeing only their own items: a stuck step, a goal at risk, on track, off track and a step under way |
+| Results | Every answer and note, "3 to follow up", "Everyone has answered", Mark followed up and Clear the follow-up |
+| Owner status on the copy | A new link shows each answered goal's status as a label and a date, a goal nobody answered shows none, and never a note or an email |
+
+The step timings are printed at the end. The kit takes about 1 minute locally.
+
+## The failure kit, milestone 7
+
+`tests/browser/failures-m7.ts`, run by `npm run test:browser` after milestone 6's checks, on the seeded Riverside engagement with the scripted fake model and the harness mailbox. The slow notices are shortened to 2.5 s for the run, and `CRON_SECRET` and `CLEARWAY_NOW` are set for it.
+
+| Check | What it proves |
+| --- | --- |
+| FAIL-09 on `draft_report` | AI slow (6 s a call): the page says drafting is taking longer than usual, a section that is done can be read and a facilitator's own read added while the rest are still drafting. Then AI failing: sections the model failed on say Needs attention and that AI could not draft them, the facilitator writes one by hand, and when AI is back Try again drafts it while the hand-written words stay |
+| FAIL-09 on `draft_visibility_plan` | AI slow: the page says so and a row is added by hand while the draft still lands. Then failing: "AI couldn't draft the plan" with Try again and Add a row, nothing written is lost, a row is added by hand, and Try again works |
+| A revoked link | The plain page at once on a phone page that was already open, and on a new browser, with nothing about the plan and no count of opens |
+| The scheduled run | 401 with no header, a wrong secret or no Bearer, and nothing sent. With the secret, one email to each owner. Called again the same day it sends nothing |
+| FAIL-01 on the check-in phone | Offline, the answers (a changed answer and a note) are saved on the phone and nothing reaches the server. Back online, they are sent once and the phone's copy is cleared. A tap alone is not an answer sent |
+
+The failure kit's shared fake-model folder is removed once, by `failures.ts`, after the last milestone's checks (milestone 6's check no longer removes it).
