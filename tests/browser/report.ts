@@ -58,14 +58,15 @@ async function main() {
     const open = async (key: string) => { await page.getByTestId(`rpt-section-${key}`).click(); await page.locator(`[data-testid="rpt-body"][data-key="${key}"]`).waitFor(); };
     const body = page.getByTestId("rpt-body");
 
-    await step("After the retreat is on the control surface and the hub lists the report, the visibility plan, the Check-ins tile linked, and the share tile that says it is coming", async () => {
+    await step("After the retreat is on the control surface and the hub lists the report, the visibility plan, the Check-ins tile and the Share tile linked", async () => {
       await page.goto(`${app.origin}/control/${room}`);
       await page.getByTestId("after-link").waitFor({ timeout: 20000 });
       await page.getByTestId("after-link").click();
       await page.getByTestId("after-hub").waitFor({ timeout: 15000 });
       assert.match(await page.getByTestId("after-report").innerText(), /Not drafted yet/);
       assert.match(await page.getByTestId("after-visibility").innerText(), /Not drafted yet/);
-      assert.match(await page.getByTestId("after-share").innerText(), /Coming in this milestone/);
+      assert.equal(await page.getByTestId("after-share").getAttribute("href"), `/control/${room}/share`, "the Share tile opens the share page");
+      assert.match(await page.getByTestId("after-share").innerText(), /Available once Day 2 closes/);
       assert.equal(await page.getByTestId("after-checkins").getAttribute("href"), `/control/${room}/check-ins`, "the Check-ins tile opens the check-ins");
       assert.ok(!/[–—]/.test(await page.locator("main").innerText()), "no dashes in the copy");
       await shot(page, "hub");
