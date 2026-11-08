@@ -627,8 +627,8 @@ export type ReportKey = "overview" | "church_today" | "process" | "heard" | "int
 export const reportKeys: ReportKey[] = ["overview", "church_today", "process", "heard", "interviews", "tensions", "future", "vision", "risks", "outlook", "intent", "decisions", "visibility", "closing"];
 export const reportRecordKeys: ReportKey[] = ["future", "vision", "risks", "outlook", "intent", "decisions", "visibility"];
 export const reportHeadings: Record<ReportKey, string> = {
-  overview: "Overview", church_today: "The church today", process: "The Wayfinding process", heard: "What We Heard", interviews: "Leadership interviews", tensions: "Tensions we worked through",
-  future: "The 10-year Future", vision: "The 3-year Vision", risks: "Risks and how we answer them", outlook: "The 1-year Outlook", intent: "Commander's intent", decisions: "Decisions made", visibility: "The visibility plan", closing: "Closing",
+  overview: "Overview", church_today: "The Church Today", process: "The Process", heard: "What We Heard", interviews: "Leadership Interviews", tensions: "Strategic Tensions",
+  future: "The 10-year Future", vision: "The 3-year Vision", risks: "Risks and Roadblocks", outlook: "The 1-year Outlook", intent: "Commander's Intent", decisions: "Decisions", visibility: "Make the Vision Visible", closing: "Closing",
 };
 export type ReportRef = { ref: string; group: string; text: string; thin: boolean; thin_text?: string | null; sources?: unknown[] };
 export type ReportInputs = { section: ReportKey; heading: string; refs: ReportRef[]; section_id?: string };
@@ -648,11 +648,11 @@ const reportCommon = [
 ];
 const reportFocus: Record<Exclude<ReportKey, "future" | "vision" | "risks" | "outlook" | "intent" | "decisions" | "visibility">, { max: number; guide: string }> = {
   overview: { max: 5, guide: "This is the Overview, drafted last. The refs are sentences already in the report, grouped by section. Say in three to five sentences what the team found, what they decided and where they are going, using only those sentences. Cite the refs each sentence rests on. Do not repeat a sentence word for word." },
-  church_today: { max: 5, guide: "This is The church today. Describe the church as it is now, from its own mission, purpose, values and strategy and from the survey and conversation findings in the refs. This is Discover: today's reality. Never write it as a goal or as the 10-year Future. Three to five sentences." },
-  process: { max: 6, guide: "This is The Wayfinding process. Say plainly how the retreat ran: who took part, when, the steps of each day, how the room decides, and what the room celebrated and opened with. Use only the refs. Three to six sentences." },
+  church_today: { max: 5, guide: "This is The Church Today. Describe the church as it is now, from its own mission, purpose, values and strategy and from the survey and conversation findings in the refs. This is Discover: today's reality. Never write it as a goal or as the 10-year Future. Three to five sentences." },
+  process: { max: 6, guide: "This is The Process. Say plainly how the retreat ran: who took part, when, the steps of each day, how the room decides, and what the room celebrated and opened with. Use only the refs. Three to six sentences." },
   heard: { max: 6, guide: "This is What We Heard. Report what Discover found before the retreat: survey findings, accepted themes from the Four Helpful Lists and the board and staff conversations, quotes, and any aligned signal the facilitator saved. Where the room's own words repeat a finding, say so. Three to six sentences." },
-  interviews: { max: 5, guide: "This is Leadership interviews. Report what the leaders said, from the accepted interview themes and quotes in the refs, without saying who said it. Three to five sentences." },
-  tensions: { max: 6, guide: "This is Tensions we worked through. Name the tensions the room recorded, and any outcome the room asked to change and what was decided about it. Say both sides of a tension fairly. Do not resolve a tension the refs do not resolve. Two to six sentences." },
+  interviews: { max: 5, guide: "This is Leadership Interviews. Report what the leaders said, from the accepted interview themes and quotes in the refs, without saying who said it. Three to five sentences." },
+  tensions: { max: 6, guide: "This is Strategic Tensions. Name the tensions the room recorded, and any outcome the room asked to change and what was decided about it. Say both sides of a tension fairly. Do not resolve a tension the refs do not resolve. Two to six sentences." },
   closing: { max: 4, guide: "This is the Closing, drafted last. The refs are sentences already in the report. In two to four sentences say what the team carries forward and what comes next, using only those sentences. Do not add a promise or a date the refs do not carry." },
 };
 const reportPrompt = (key: keyof typeof reportFocus): ReportPrompt => ({
@@ -663,8 +663,8 @@ const reportPrompt = (key: keyof typeof reportFocus): ReportPrompt => ({
 // The seven record sections are built by code. The model writes one short lead sentence that introduces what the records hold, and nothing else.
 const reportLeadPrompt: ReportPrompt = {
   job: "draft_report", key: "lead", version: "report-lead@1", maxTokens: 500,
-  system: [reportCommon[0], reportCommon[1], "This section is a table or list built from the team's own records, and you write only its lead: one or two short sentences above it that say what the records below hold, in plain words. Say nothing the refs do not say. Write no number at all, and no horizon term, because the section's heading names them. Cite the first ref or two the lead rests on.", ...reportCommon.slice(2)].join("\n"),
-  user: inputs => reportUser("lead", inputs), parse: (text, inputs) => reportParse(text, inputs, 2),
+  system: [reportCommon[0], reportCommon[1], "This section is a table or list built from the team's own records, and you write only its lead: one to three short sentences above it that say what the records below hold, in plain words. Say nothing the refs do not say. You may use the horizon terms, written exactly, when they help. Write a number only if a ref you cite carries it. Cite the refs the lead rests on.", ...reportCommon.slice(2)].join("\n"),
+  user: inputs => reportUser("lead", inputs), parse: (text, inputs) => reportParse(text, inputs, 3),
 };
 function reportUser(key: string, inputs: ReportInputs): string {
   return JSON.stringify({ section: key === "lead" ? inputs.section : key, heading: inputs.heading,

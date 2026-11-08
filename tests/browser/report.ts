@@ -142,6 +142,13 @@ async function main() {
       assert.match(await page.getByTestId("rpt-sources").locator('[data-kind="signal"]').first().innerText(), /Aligned signal saved as a citation/);
     });
 
+    await step("Thin data is labelled on the sentence that rests on the thin survey finding", async () => {
+      await open("heard");
+      await body.getByTestId("rpt-thin").first().waitFor({ timeout: 10000 });
+      assert.match(await body.getByTestId("rpt-thin").first().innerText(), /Thin data: 6 of 87 respondents/);
+      assert.match(await body.getByTestId("rpt-sentences").innerText(), /Respondents under 30/);
+    });
+
     await step("Edit saves the facilitator's words, and the section reads Edited", async () => {
       await open("heard");
       const first = body.getByTestId("rpt-sentence").first();
@@ -162,7 +169,7 @@ async function main() {
       await until(async () => (await sql.query(`select count(*)::int n from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.key='heard' and s.engagement_id=$1 and x.origin='room' and x.text='Volunteers are stretched thin, the same few people every week.'`, [room])).rows[0].n === 1, "the room's exact words are in");
       await body.getByText("The room’s words", { exact: false }).first().waitFor();
       await shot(page, "room-words");
-      await page.getByRole("button", { name: "Back to the draft wording" }).click();
+      await page.getByRole("button", { name: "Go back to the draft wording" }).click();
       await until(async () => (await sql.query(`select count(*)::int n from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.key='heard' and s.engagement_id=$1 and x.origin='room'`, [room])).rows[0].n === 0, "undone");
     });
 
@@ -209,10 +216,33 @@ async function main() {
       await table.getByTestId("rpt-part").first().click();
       await page.getByTestId("rpt-sources").getByTestId("rpt-source").first().waitFor();
       assert.match(await page.getByTestId("rpt-sources").innerText(), /Signed off lens summary/);
+      // The 10-year Future is the signed off lens summaries word for word, and it cannot be edited here.
+      const expected = (await sql.query(`select s.text from generate_series(1,5) g(lens) join private.lens_summaries l on l.engagement_id=$1 and l.lens=g.lens and l.state='signed_off' and not l.deleted
+        join private.lens_summary_sentences s on s.version_id=l.signed_off_version_id and not s.deleted order by g.lens,s.position,s.id`, [room])).rows.map(r => r.text as string);
+      assert.ok(expected.length >= 5, "the seeded room signed off its lens summaries");
+      const shown = await table.getByTestId("rpt-part").evaluateAll(els => els.map(e => e.textContent ?? ""));
+      assert.equal(shown.length, expected.length, "one line for each signed off sentence");
+      expected.forEach((t, i) => assert.ok(shown[i].includes(t), `line ${i + 1} is the signed off sentence word for word`));
+      assert.equal((await sql.query("select private.rp_future_ok($1) as ok", [room])).rows[0].ok, true, "and the database agrees");
+      await body.getByTestId("rpt-picked").getByTestId("rpt-frozen").waitFor();
+      assert.equal(await body.getByTestId("rpt-edit").count() + await body.getByTestId("rpt-remove").count(), 0, "with no way to edit or remove it");
       await shot(page, "future");
       await open("decisions");
-      assert.ok(await body.getByTestId("rpt-table").locator("tbody tr").count() >= 1, "the decisions are rows");
+      const grid = body.getByTestId("rpt-table");
+      const rowsBefore = await grid.locator("tbody tr").count();
+      assert.ok(rowsBefore >= 1, "the decisions are rows");
       assert.ok(await body.getByTestId("rpt-refresh").isEnabled(), "and Refresh from the records is there");
+      // A cell reads the live sentence: an edit shows in the table, a removal takes the row away, and Refresh brings the row back.
+      await grid.getByTestId("rpt-cell-sentence").first().click();
+      await body.getByTestId("rpt-picked").getByTestId("rpt-edit").click();
+      await body.getByTestId("rpt-edit-text").fill("We will launch the five outcomes a season apart, starting in the spring.");
+      await body.getByTestId("rpt-edit-save").click();
+      await until(async () => /starting in the spring/.test(await grid.innerText().catch(() => "")), "the table shows the edit", 10000);
+      await body.getByTestId("rpt-picked").getByTestId("rpt-remove").click();
+      await until(async () => (await body.getByTestId("rpt-table").count()) === 0 || (await body.getByTestId("rpt-table").locator("tbody tr").count()) === rowsBefore - 1, "the row goes with its sentence", 10000);
+      await body.getByTestId("rpt-refresh").click();
+      if (await body.getByTestId("rpt-ask-yes").count()) await body.getByTestId("rpt-ask-yes").click();
+      await until(async () => (await body.getByTestId("rpt-table").count()) === 1 && (await body.getByTestId("rpt-table").locator("tbody tr").count()) === rowsBefore, "Refresh brings the row back", 10000);
       await open("outlook");
       assert.ok(await body.getByTestId("rpt-table").count() === 1);
       await body.getByTestId("rpt-refresh").click();
@@ -310,6 +340,26 @@ async function main() {
       assert.ok(!/@[a-z0-9-]+\.(org|co|test)/i.test(sent), "no email either");
       const state = (await sql.query("select to_jsonb(r)::text as t from public.room_states r where engagement_id=$1", [room])).rows[0];
       assert.ok(!state || !/Our own read|The team heard it plainly/.test(String(state.t)), "the report never reaches the room's state");
+    });
+
+    await step("The page polls the light status call and reads the whole state only when something changed", async () => {
+      await page.goto(url);
+      await page.getByTestId("rpt-grid").waitFor({ timeout: 15000 });
+      let pulses = 0, full = 0;
+      const seen = (request: { url: () => string; method: () => string }) => {
+        const u = new URL(request.url());
+        if (request.method() !== "GET" || !u.pathname.endsWith(`/api/control/${room}/report`)) return;
+        if (u.searchParams.get("pulse")) pulses++; else if (!u.searchParams.get("probe") && !u.searchParams.get("candidates")) full++;
+      };
+      page.on("request", seen);
+      await delay(9500);
+      assert.ok(pulses >= 2, `the light call is polled (${pulses})`);
+      assert.ok(full <= 1, `the whole state is not (${full} reads in nine seconds)`);
+      // A change made elsewhere reaches the page through the stamp.
+      const reads = full;
+      await sql.query("update private.report_sections set updated_at=clock_timestamp() where engagement_id=$1 and key='closing' and not deleted", [room]);
+      await until(async () => full > reads, "the page reads the whole state when the stamp moves", 10000);
+      page.off("request", seen);
     });
 
     await step("Before the report's functions are in the database the link and the hub's tile fail quietly", async () => {

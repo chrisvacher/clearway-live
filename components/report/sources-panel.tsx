@@ -16,6 +16,7 @@ function SourceCard({ source, onRemove }: { source: ReportSource; onRemove: (() 
     <div className="meta"><span className="ovr-meta-l">{info?.label ?? "Record"}{source.room ? " · the room's own words" : ""}</span>
       {onRemove && <button type="button" className="ovr-btn is-icon is-ghost" aria-label="Take this source off the sentence" onClick={onRemove}><X aria-hidden="true" /></button>}</div>
     <div className={source.room ? "ovr-quote" : ""}><Lit text={text} part={source.excerpt} /></div>
+    {source.broken && <p className="ovr-muted" role="status" data-testid="rpt-broken"><TriangleAlert aria-hidden="true" className="rpt-ico" />This record is gone, or no longer counts. Take this source off, or rewrite the sentence.</p>}
     {speaker && <span className="who"><Lock aria-hidden="true" />{speaker} · for the record, never in the report</span>}
   </div>;
 }
@@ -38,7 +39,7 @@ export function SourcesPanel({ section, sentence, api, locked }: { section: Repo
     {!sentence && <p className="ovr-muted">Choose a sentence to see the words it rests on.</p>}
     {sentence && <>
       <div className="ovr-src-sent" data-testid="rpt-src-sentence">{sentence.text}</div>
-      {sentence.needs_source && <div className="ovr-banner is-warning" role="status" data-testid="rpt-needs-source"><TriangleAlert aria-hidden="true" /><div><strong>No source.</strong> Add a record below, or rewrite the sentence in your own words. A sentence with no source stops sign-off.</div></div>}
+      {sentence.needs_source && <div className="ovr-banner is-warning" role="status" data-testid="rpt-needs-source"><TriangleAlert aria-hidden="true" /><div><strong>No source that stands.</strong> Add a record below, take off a source whose record is gone, or rewrite the sentence in your own words. A sentence like this stops sign-off.</div></div>}
       {m?.kind === "yours" && <p className="ovr-muted">These are your own words. They need no source.</p>}
       <div className="ovr-srclist">{sentence.sources.map(s => <SourceCard key={s.id} source={s} onRemove={locked ? null : () => void api.act({ action: "source", sentence: sentence.id, kind: s.kind, ref: s.ref_id, excerpt: s.excerpt, add: false })} />)}</div>
       {!locked && <div className="rpt-src-pick" onMouseEnter={() => void open()} onFocus={() => void open()}>

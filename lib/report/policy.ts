@@ -9,10 +9,12 @@ export type SourceKind = "finding" | "theme" | "four_lists_card" | "scribe_card"
 export const SLOW_AFTER_MS = 45000;
 
 export type SourceInfo = { label: string; text: string; [key: string]: unknown };
-export type ReportSource = { id: string; kind: SourceKind; ref_id: string | null; excerpt: string; room: boolean; info: SourceInfo | null };
+export type ReportSource = { id: string; kind: SourceKind; ref_id: string | null; excerpt: string; room: boolean; broken?: boolean; info: SourceInfo | null };
 export type ReportSentence = { id: string; position: number; text: string; origin: Origin; quote: boolean; thin_label: string | null; touched: boolean; can_undo: boolean; needs_source: boolean; sources: ReportSource[] };
 export type BlockPart = { role: string; sentence_id: string; owner?: string | null; due?: string | null };
-export type BlockRow = { title: string; cells: string[]; parts: BlockPart[]; reviewed?: boolean; group?: string };
+// A table cell is a plain value from the record ({ t }) or the live sentences it stands for ({ s }, one a line): editing or removing a sentence shows in the table.
+export type BlockCell = { t: string } | { s: string[] };
+export type BlockRow = { title: string; cells: BlockCell[]; parts: BlockPart[]; reviewed?: boolean; group?: string };
 export type Blocks = { kind?: string; columns?: string[]; rows?: BlockRow[] };
 export type ReportSection = {
   id: string; key: SectionKey; position: number; heading: string; kind: "prose" | "record"; status: SectionStatus; error: string | null; dropped: number;
@@ -20,8 +22,9 @@ export type ReportSection = {
 };
 export type ReportRound = { status: "pending" | "drafting" | "ready" | "failed" | "idle"; requested_at: string; queue: string[]; current: string | null; attempts: number; error: string | null; ok_at: string | null; kept: number; dropped: number };
 export type ReportState =
-  | { status: "ok"; server_time: string; ai: boolean; lead: boolean; draft: boolean; slow_after_ms?: number; round: ReportRound | null; signed: { n: number; signed_at: string; by: string | null; stale: boolean } | null; sections: ReportSection[] }
+  | { status: "ok"; server_time: string; stamp?: string; future_ok?: boolean | null; ai: boolean; lead: boolean; draft: boolean; slow_after_ms?: number; round: ReportRound | null; signed: { n: number; signed_at: string; by: string | null; stale: boolean } | null; sections: ReportSection[] }
   | { status: "denied" | "unavailable" | "missing" | "closed" };
+export type ReportPulse = { status: string; stamp?: string; working?: boolean };
 export type Candidate = { kind: SourceKind; ref_id: string | null; excerpt: string; room: boolean; label: string };
 
 export const statusNames: Record<SectionStatus, string> = { empty: "Not drafted", drafting: "Drafting", drafted: "Drafted", edited: "Edited", reviewed: "Reviewed", needs_attention: "Needs attention", thin: "Thin data" };
@@ -42,7 +45,7 @@ export function roundView(state: Extract<ReportState, { status: "ok" }>, now: nu
 
 // ---------- Sign-off ----------
 // What stands between the lead and a signed report, in the order the page lists it. The database refuses the same things.
-export type Blocker = { kind: "no_draft" | "drafting" | "not_reviewed" | "needs_source" | "lead_only"; count: number; sections: SectionKey[] };
+export type Blocker = { kind: "no_draft" | "drafting" | "not_reviewed" | "needs_source" | "future_changed" | "lead_only"; count: number; sections: SectionKey[] };
 export function signOffBlockers(state: Extract<ReportState, { status: "ok" }>): Blocker[] {
   const out: Blocker[] = [];
   if (!state.lead) out.push({ kind: "lead_only", count: 1, sections: [] });
@@ -51,6 +54,7 @@ export function signOffBlockers(state: Extract<ReportState, { status: "ok" }>): 
   if (drafting.length) out.push({ kind: "drafting", count: drafting.length, sections: drafting.map(s => s.key) });
   const open = state.sections.filter(s => s.status !== "reviewed" && s.status !== "drafting");
   if (open.length) out.push({ kind: "not_reviewed", count: open.length, sections: open.map(s => s.key) });
+  if (state.future_ok === false) out.push({ kind: "future_changed", count: 1, sections: ["future"] });
   const unsourced = state.sections.filter(s => s.sentences.some(x => x.needs_source));
   if (unsourced.length) out.push({ kind: "needs_source", count: unsourced.reduce((n, s) => n + s.sentences.filter(x => x.needs_source).length, 0), sections: unsourced.map(s => s.key) });
   return out;
@@ -62,7 +66,8 @@ export function blockerText(b: Blocker): string {
     case "no_draft": return "Draft the report first.";
     case "drafting": return `${plural(b.count, "section is", "sections are")} still being drafted.`;
     case "not_reviewed": return `${plural(b.count, "section")} still to review.`;
-    case "needs_source": return `${plural(b.count, "sentence")} with no source. Add one, or write it in your own words.`;
+    case "needs_source": return `${plural(b.count, "sentence")} with no source, or resting on a record that is gone. Add one, take the dead one off, or write it in your own words.`;
+    case "future_changed": return "The 10-year Future no longer matches the lens summaries the room signed off. Refresh it from the records.";
   }
 }
 
@@ -82,7 +87,7 @@ export function litPart(text: string, part: string | null | undefined): { before
 }
 
 // ---------- Plain sentences for each answer ----------
-export function reportMessage(status: string): string {
+export function reportMessage(status: string, data?: { count?: number; sections?: unknown }): string {
   switch (status) {
     case "denied": return "Only the lead and co-facilitators of this engagement can use the report.";
     case "closed": return "This engagement is closed, so the report can't change.";
@@ -101,7 +106,13 @@ export function reportMessage(status: string): string {
     case "lead_only": return "Only the lead facilitator signs off.";
     case "no_draft": return "Draft the report before you sign off.";
     case "not_reviewed": return "Every section has to be marked reviewed before you sign off.";
-    case "unsourced": return "A sentence has no source. Add one, or write it in your own words.";
+    case "unsourced": {
+      const where = Array.isArray(data?.sections) && data.sections.length ? ` in ${data.sections.filter((x): x is string => typeof x === "string").join(", ")}` : "";
+      const n = data?.count ?? 0;
+      return `${n > 0 ? plural(n, "sentence") : "A sentence"}${where} ${n === 1 || n === 0 ? "has" : "have"} no source, or rest${n === 1 || n === 0 ? "s" : ""} on a record that is gone. Add a source, take the dead one off, or write it in your own words.`;
+    }
+    case "future_changed": return "The 10-year Future no longer matches the lens summaries the room signed off. Refresh it from the records, then sign off.";
+    case "locked": return "The 10-year Future is the room's signed off lens summaries, word for word. Change them in the lens summaries and refresh this section.";
     case "invalid_request": return "Check the details and try again.";
     default: return "We couldn't save that. Try again.";
   }
