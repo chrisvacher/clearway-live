@@ -85,7 +85,7 @@ async function main() {
       await table.waitFor({ timeout: 40000 });
       await until(async () => (await plan())?.status === "drafted", "the plan is drafted", 40000);
       const r = await rows();
-      assert.ok(r.length >= 5, `a row for each audience the room gave a reason for (${r.length})`);
+      assert.deepEqual(r.map(x => x.stage), outward, `exactly one row for each of the six stages (${r.length})`);
       assert.equal(r[0].stage, "lead_pastor", "the lead pastor hears first");
       assert.equal(r[r.length - 1].stage, "congregation", "and the congregation last");
       const ranks = r.map(x => outward.indexOf(x.stage));
@@ -97,6 +97,9 @@ async function main() {
       await until(async () => (await vrows.count()) === r.length, "every row is on the screen", 10000);
       await until(async () => JSON.stringify(await vrows.evaluateAll(els => els.map(e => e.getAttribute("data-stage")))) === JSON.stringify(r.map(x => x.stage)), "the screen shows the same order", 10000);
       assert.match(await page.getByTestId("vp-status").innerText(), /Draft to review/);
+      assert.equal(await page.getByTestId("vp-stage").count(), 6, "the stage list shows all six");
+      assert.equal(await page.getByTestId("vp-stage-missing").count(), 0, "and none is missing a row");
+      assert.equal(await page.getByTestId("vp-dates-blank").count(), 0, "no date was left blank");
       assert.match(await page.getByTestId("vp-mark").first().innerText(), /\d+ sources?/);
       assert.ok(await page.getByTestId("vp-ai-icon").count() >= r.length, "AI marks each row");
       assert.match(await page.getByTestId("vp-left").innerText(), new RegExp(`${r.length} of ${r.length} rows still need review`));
@@ -197,10 +200,33 @@ async function main() {
       await page.getByTestId("vp-remove-no").click();
       assert.equal((await rows()).length, last, "keeping it leaves it");
       await page.getByTestId("vp-remove").click();
+      const gone = (await rows())[1].stage;
       await page.getByTestId("vp-remove-yes").click();
       await until(async () => (await rows()).length === last - 1, "the row is gone");
       await until(async () => (await vrows.count()) === last - 1, "and off the screen", 10000);
+      // A stage left with no row is named in the stage list, in plain words.
+      const empty = (await rows()).every(r => r.stage !== gone);
+      const marker = page.locator(`[data-testid="vp-stage"][data-stage="${gone}"]`);
+      await until(async () => (await marker.getAttribute("data-missing")) === (empty ? "yes" : "no"), "the stage list says whether the stage has a row", 10000);
+      if (empty) assert.match(await marker.getByTestId("vp-stage-missing").innerText(), /^No row yet$/);
+      assert.equal(await page.getByTestId("vp-stage-missing").count(), empty ? 1 : 0);
       await shot(page, "hand");
+    });
+
+    await step("A row whose date was left blank is counted in plain words, and the count follows the date", async () => {
+      const target = (await rows()).find(r => r.origin === "ai" && r.when_date)!;
+      assert.ok(target, "a row the facilitator dated is there");
+      const old = (await sql.query("select when_text,to_char(when_date,'YYYY-MM-DD') as when_date from private.visibility_plan_rows where id=$1", [target.id])).rows[0] as { when_text: string; when_date: string | null };
+      await sql.query("update private.visibility_plan_rows set when_blanked=true,when_text='',when_date=null where id=$1", [target.id]);
+      await page.goto(url);
+      await page.getByTestId("vp-dates-blank").waitFor({ timeout: 15000 });
+      assert.match(await page.getByTestId("vp-dates-blank").innerText(), /^1 row’s date was left blank\./);
+      assert.ok(!/[–—]/.test(await page.getByTestId("vp-dates-blank").innerText()), "no dashes");
+      await shot(page, "date-blank");
+      await sql.query("update private.visibility_plan_rows set when_blanked=false,when_text=$2,when_date=$3 where id=$1", [target.id, old.when_text, old.when_date]);
+      await page.goto(url);
+      await page.getByTestId("vp-card").waitFor({ timeout: 15000 });
+      await until(async () => (await page.getByTestId("vp-dates-blank").count()) === 0, "the notice goes once the row has its date again", 10000);
     });
 
     await step("Redraft asks first, keeps the rows the facilitator touched or reviewed, and replaces only the rest", async () => {

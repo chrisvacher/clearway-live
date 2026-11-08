@@ -165,8 +165,8 @@ function scriptedReport(call: AiCall): string {
   return JSON.stringify(out);
 }
 
-// The visibility plan stand-in: works back from the public moment in the outward order, one row for each stage the refs give a reason for, each citing
-// the refs it rests on. It copies words from the refs, writes no number of its own, and leaves when and when_date empty (it never invents a date: with a
+// The visibility plan stand-in: works back from the public moment in the outward order, exactly one row for each stage that is not kept (visibility-plan@2),
+// each citing the refs it rests on; with fewer refs than stages a ref is used again, so no stage goes without a row. It copies words from the refs, writes no number of its own, and leaves when and when_date empty (it never invents a date: with a
 // public date it names the moment, never a day).
 export const isPlan = (call: Pick<AiCall, "system">) => call.system === planPrompt.system;
 const planPicks: { stage: typeof planStages[number]; who: string; groups: RegExp; risk: RegExp | null }[] = [
@@ -184,7 +184,7 @@ function scriptedPlan(call: AiCall): string {
   const sentence = (text: string) => { const t = text.replace(/\s+/g, " ").trim().slice(0, 200); return /[.!?]$/.test(t) ? t : `${t}.`; };
   for (const p of planPicks) {
     if (kept.has(p.stage)) continue;
-    const main = refs.find(r => p.groups.test(r.group) && !taken.has(r.ref)) ?? refs.find(r => !taken.has(r.ref));
+    const main = refs.find(r => p.groups.test(r.group) && !taken.has(r.ref)) ?? refs.find(r => !taken.has(r.ref)) ?? refs.find(r => p.groups.test(r.group)) ?? refs[0];
     if (!main) continue;
     taken.add(main.ref);
     const risk = p.risk ? refs.find(r => p.risk!.test(r.group)) : undefined;
