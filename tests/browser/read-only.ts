@@ -186,6 +186,23 @@ async function main() {
       return out.data.n as number;
     };
 
+    await step("A Map field with nothing in it is left out of the copy, with no setup prompt", async () => {
+      const church = (await sql.query("select c.id,c.mission,c.purpose,c.values,c.strategy from public.churches c join public.engagements e on e.church_id=c.id where e.id=$1", [room])).rows[0] as { id: string; mission: string; purpose: string; values: unknown; strategy: string };
+      try {
+        await sql.query(`update public.churches set mission='',purpose='',"values"='[]'::jsonb,strategy='' where id=$1`, [church.id]);
+        const v = await open(laptopLink);
+        await v.page.getByTestId("ro-page").waitFor({ timeout: 20000 });
+        const text = await v.page.locator("#map").innerText();
+        assert.ok(!/Add it in setup|Add them in setup|Kingdom Assignment|in setup/i.test(await v.page.locator("body").innerText()), "no prompt for the facilitator on the copy");
+        for (const label of ["Mission", "Purpose", "Values", "Strategy"]) assert.ok(!new RegExp(`^${label}$`, "m").test(text), `${label} is left out when it is empty`);
+        assert.equal(await v.page.locator("#map .ro-mf.is-empty").count(), 1, "the one note left is that the Annual Planning holds the priorities");
+        await shot(v.page, "copy-empty-fields");
+        await v.ctx.close();
+      } finally {
+        await sql.query(`update public.churches set mission=$2,purpose=$3,"values"=$4::jsonb,strategy=$5 where id=$1`, [church.id, church.mission, church.purpose, JSON.stringify(church.values), church.strategy]);
+      }
+    });
+
     await step("Signing off the report puts it on the link, as reading text with no source marks", async () => {
       const started = await post({ action: "draft", scope: "all" });
       assert.ok(["ok", "started"].includes(started.status) || started.status, JSON.stringify(started));
@@ -202,6 +219,13 @@ async function main() {
       assert.ok(!/\b(source|sources)\b/i.test(text.replace(/The report/g, "")) || true);
       assert.equal(await v2.page.locator("#report [data-testid='rpt-mark']").count(), 0, "no source marks");
       assert.ok(!/[–—]/.test(text), "no dashes");
+      assert.ok(!/JAN_APR|MAY_AUG|SEP_DEC/.test(text), "no season code in the report");
+      assert.match(await v2.page.locator('[data-key="outlook"]').innerText(), /(Jan to Apr|May to Aug|Sept to Dec) 20\d\d/, "a season reads as the Map words it");
+      const actions = v2.page.locator('[data-key="visibility"]').getByTestId("ro-actions");
+      assert.equal(await actions.count(), 1, "the scribe's action cards stand under the table");
+      assert.match(await actions.innerText(), /Actions the room named[\s\S]*Brief the elders before the plan is shared with the church/);
+      const planTable = v2.page.locator('[data-key="visibility"] table');
+      assert.ok((await planTable.count()) === 0 || !/Brief the elders/.test(await planTable.first().innerText()), "and are not rows of it");
       await shot(v2.page, "copy-report");
       await v2.ctx.close();
     });

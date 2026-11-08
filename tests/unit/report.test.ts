@@ -8,7 +8,7 @@ import { aiConfig } from "../../lib/ai/config";
 import { fakeClient, isHeard, isReport, recordedClient, reportSection } from "../../lib/ai/fake";
 import { heardPrompt, prompts, replyJson, reportHeadings, reportKeys, reportPromptList, reportPrompts, reportRecordKeys, reportVersion, themesPrompt, type ReportInputs, type ReportKey } from "../../lib/ai/prompts";
 import { reportBudgetMs, reportTimeoutMs, runReport } from "../../lib/ai/report";
-import { blockerText, litPart, markOf, reportBody, reportMessage, roundView, signOffBlockers, type ReportSection, type ReportSentence, type ReportState } from "../../lib/report/policy";
+import { blockerText, droppedLeft, litPart, seasonCells, seasonLabel, markOf, reportBody, reportMessage, roundView, signOffBlockers, type ReportSection, type ReportSentence, type ReportState } from "../../lib/report/policy";
 
 type Case = { name: string; inputs: ReportInputs; reply: string };
 const fixtures = JSON.parse(readFileSync(new URL("../fixtures/ai/report.json", import.meta.url), "utf8")) as { names: string[]; cases: Case[] };
@@ -27,18 +27,31 @@ const quoted = (t: string): string[] => {
   const n = qnorm(t), doubles = [...n.matchAll(/"([^"]+)"/g)].map(m => m[1]), rest = n.replace(/"[^"]*"/g, " ");
   return [...doubles, ...[...rest.matchAll(/(^|[\s(])'(.+?)'(?=[\s.,;:!?)]|$)/g)].map(m => m[2])];
 };
-function refuses(text: string, cited: ReportInputs["refs"], names: string[]): string | null {
+// A record section's count (report_check): the table's main-kind total, the noun that may follow it and the source kinds that make it up.
+type Count = { total: number; noun: string; kinds: string[] };
+// How many distinct records of the main kinds the cited refs rest on.
+function recordCount(cited: ReportInputs["refs"], kinds: string[]): number {
+  const keys = new Set<string>();
+  for (const r of cited) for (const x of (Array.isArray(r.sources) ? r.sources : []).map(y => y as { kind?: string; ref_id?: string })) if (x.ref_id && x.kind && kinds.includes(x.kind)) keys.add(`${x.kind}:${x.ref_id}`);
+  return keys.size;
+}
+function refuses(text: string, cited: ReportInputs["refs"], names: string[], count?: Count): string | null {
   if (!text || text.length > 600) return "text";
   if (!cited.length) return "unsourced";
   if (named(text).length && names.length) return "name";
   const have = cited.map(r => r.text).join("\n");
   // The three horizon terms and "1-year goals" are exact wording, not numbers: they come out before the numbers are read.
   const stripped = text.replace(/10-year Future|3-year Vision|1-year Outlook|1-year goals?/g, "");
-  const ok = digits(stripped).every(d => digits(have).includes(d));
-  const spelled = (stripped.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
-    .every(w => new RegExp(`\\b${w}\\b`, "i").test(have) || digits(have).includes(String(words.indexOf(w) + 1)));
+  // A count is taken out only when it is the table's total, sits right before a fitting noun, and the sentence cites every record of it.
+  let counted = stripped;
+  if (count && count.total > 0 && count.total <= 20 && recordCount(cited, count.kinds) === count.total)
+    counted = stripped.replace(new RegExp(`\\b(${count.total}|${words[count.total - 1]})\\s+(${count.noun})\\b`, "gi"), "");
+  const haveDigits = digits(have);
+  const ok = digits(counted).every(d => haveDigits.includes(d));
+  const spelled = (counted.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
+    .every(w => new RegExp(`\\b${w}\\b`, "i").test(have) || haveDigits.includes(String(words.indexOf(w) + 1)));
   if (!ok || !spelled) return "number";
-  if (/\b(10|ten|3|three|1|one)[ -]year\b/i.test(stripped) || /communications? plan/i.test(text)) return "term";
+  if (/\b(10|ten|3|three|1|one)[ -]year\b/i.test(counted) || /communications? plan/i.test(text)) return "term";
   if ((qnorm(text).match(/"/g) ?? []).length % 2) return "quote";
   const room = qnorm(cited.filter(roomRef).map(r => r.text).join("\n"));
   for (const q of quoted(text)) { const body = q.replace(/[.,!?…]+$/, ""); if (!body.trim() || q.length > 280 || !room.includes(body)) return "quote"; }
@@ -52,7 +65,7 @@ test("Every section has a prompt: one per prose section, versioned, and one shar
   for (const k of reportKeys) {
     const p = reportPrompts[k];
     assert.equal(p.job, "draft_report");
-    if (reportRecordKeys.includes(k)) assert.equal(p.version, "report-lead@1"); else assert.equal(p.version, `report-${k}@1`);
+    if (reportRecordKeys.includes(k)) assert.equal(p.version, "report-lead@2"); else assert.equal(p.version, `report-${k}@2`);
   }
   assert.equal(reportVersion, "report@1");
   assert.equal(reportRecordKeys.length, 7);
@@ -100,6 +113,56 @@ test("The model reads refs only: no ids, names, speakers or sources reach it", (
   assert.deepEqual(named(user), []);
   // A record section's lead is told which section it is, so the stand-in and the log know.
   assert.equal((replyJson(reportPrompts.future.user(byName("future lead").inputs)) as { section: string }).section, "future");
+});
+
+test("A redraft tells the model what is kept: already_written carries the kept sentences, only when there are some, and the prompts say not to repeat them", async () => {
+  const c = byName("heard"), plain = replyJson(reportPrompts.heard.user(c.inputs)) as { already_written?: string[] };
+  assert.equal(plain.already_written, undefined, "a first draft has no already_written");
+  const kept = ["Volunteers carry too much, and the team knows it."], user = replyJson(reportPrompts.heard.user({ ...c.inputs, kept })) as { already_written: string[]; refs: unknown[] };
+  assert.deepEqual(user.already_written, kept);
+  assert.equal(user.refs.length, c.inputs.refs.length, "the refs are the same");
+  for (const p of reportPromptList) {
+    assert.match(p.system, /already_written/, p.version);
+    assert.match(p.system, /Do not repeat the point of a sentence in already_written/, p.version);
+    assert.match(p.system, /never cite them/, p.version);
+  }
+  // The stand-in does what the prompt asks: it leaves out a ref that a kept sentence already says.
+  const ask = async (keptWords: string[]) => {
+    const text = (await fakeClient("script").complete({ system: reportPrompts.heard.system, user: reportPrompts.heard.user({ ...c.inputs, kept: keptWords }), maxTokens: 400, timeoutMs: 1000 }, aiConfig({}))).text;
+    return reportPrompts.heard.parse(text, c.inputs).sentences;
+  };
+  const before = await ask([]), theme = c.inputs.refs.find(r => r.ref === "t1")!;
+  assert.ok(before.some(x => x.refs.includes("t1")), "without a kept sentence the stand-in uses the theme");
+  const after = await ask([theme.text]);
+  assert.ok(!after.some(x => x.refs.includes("t1")), "with it, the stand-in does not repeat it");
+  assert.ok(after.length >= 1);
+});
+
+test("The lead prompt tells the model not to count rows, and the check accepts a count only when it is the table's total, before a fitting noun, with every record cited", () => {
+  assert.match(reportPrompts.outlook.system, /Never count the rows/);
+  assert.match(reportPrompts.outlook.system, /In the 1-year Outlook, say that the team set goals for the year, with no count/);
+  assert.doesNotMatch(reportPrompts.outlook.system, /four goals for the year/, "no example of a count to copy");
+  const src = (n: number, id: string, kind = "goal") => ({ ref: `b${n}`, group: "The 1-year Outlook", text: `${["Launch the pathway", "Train the hosts", "Open the cafe", "Start the groups"][n - 1] ?? "A line"}: a result`, thin: false, sources: [{ kind, ref_id: id, excerpt: "A goal" }] });
+  const four = [src(1, "g1"), src(2, "g2"), src(3, "g3"), src(4, "g4")];
+  const goals = (total: number): Count => ({ total, noun: "goals?", kinds: ["goal"] });
+  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names, goals(4)), null, "cite-all: spelled count equal to the table's total");
+  assert.equal(refuses("The team set 4 goals for the year.", four, fixtures.names, goals(4)), null, "digit count");
+  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names, goals(6)), "number", "four cited of six in the table");
+  assert.equal(refuses("The team set six goals for the year.", four, fixtures.names, goals(6)), "number", "a total it does not cite in full");
+  assert.equal(refuses("The team set five goals for the year.", four, fixtures.names, goals(4)), "number", "a count that is not the total");
+  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names), "number", "no count allowed without a total");
+  assert.equal(refuses("The team set four goals for the year.", four.slice(0, 3), fixtures.names, goals(4)), "number", "three of four cited");
+  assert.equal(refuses("Giving will grow by 4 percent.", four, fixtures.names, goals(4)), "number", "4 percent is not a count of goals");
+  assert.equal(refuses("The team set four goals and four owners.", four, fixtures.names, goals(4)), "number", "a second count the noun does not cover");
+  assert.equal(refuses("The team set three goals for the year.", [src(1, "g1"), src(2, "g1"), src(3, "g2")], fixtures.names, goals(3)), "number", "two lines of one record are two records");
+  const dec = (n: number, id: string, kind: string) => src(n, id, kind);
+  assert.equal(refuses("The team made three decisions.", [dec(1, "d1", "decision"), dec(2, "c1", "scribe_card"), dec(3, "d2", "decision")], fixtures.names, { total: 3, noun: "decisions?", kinds: ["decision", "scribe_card"] }), null, "decisions and scribe cards together");
+  const risks = [dec(1, "r1", "risk"), dec(2, "m1", "mitigation"), dec(3, "m2", "mitigation")];
+  assert.equal(refuses("The team named three risks.", risks, fixtures.names, { total: 1, noun: "risks?", kinds: ["risk"] }), "number", "one risk and two mitigations are not three risks");
+  const vision = [dec(1, "o1", "outcome"), dec(2, "i1", "indicator"), dec(3, "i2", "indicator")];
+  assert.equal(refuses("The team set three outcomes.", vision, fixtures.names, { total: 1, noun: "outcomes?|priorities", kinds: ["outcome"] }), "number", "an outcome and its indicators");
+  const lens = [dec(1, "l1", "lens_summary_sentence")];
+  assert.equal(refuses("All five lenses name the same hope.", lens, fixtures.names), "number", "the 10-year Future gives no count");
 });
 
 test("The recorded replies parse to sentences that cite only the refs they were given, and pass the same checks as the database", () => {
@@ -216,7 +279,7 @@ test("The worker claims a section at a time, asks the deeper model with that sec
   assert.equal(ai.calls[1].system, reportPrompts.tensions.system);
   const applies = calls.filter(c => c.name === "report_apply");
   assert.equal(applies.length, 2);
-  assert.equal((applies[0].args.p_output as { prompt: string }).prompt, "report-heard@1");
+  assert.equal((applies[0].args.p_output as { prompt: string }).prompt, "report-heard@2");
   assert.equal((applies[0].args.p_output as { sentences: unknown[] }).sentences.length, 4);
   assert.ok(String((applies[0].args.p_output as { raw: string }).raw).length > 0);
   assert.ok(!calls.some(c => c.name === "report_fail"));
@@ -343,4 +406,26 @@ test("A table cell is a plain value or the live sentences it points at, and a bl
   assert.match(reportMessage("locked"), /word for word/);
   assert.match(reportMessage("unsourced", { count: 2, sections: ["What We Heard", "Decisions"] }), /2 sentences in What We Heard, Decisions have no source, or rest on a record that is gone/);
   assert.match(reportMessage("unsourced", { count: 1, sections: ["Closing"] }), /1 sentence in Closing has no source/);
+});
+
+test("A season code reads as the Clearway Map words it, in every reader of a table", () => {
+  assert.equal(seasonLabel("JAN_APR", "Apr 30, 2027"), "Jan to Apr 2027");
+  assert.equal(seasonLabel("MAY_AUG", "Aug 31, 2027"), "May to Aug 2027");
+  assert.equal(seasonLabel("SEP_DEC", "Dec 31, 2026"), "Sept to Dec 2026");
+  assert.equal(seasonLabel("SEP_DEC", "Not set yet"), "Sept to Dec", "no year without a date");
+  assert.equal(seasonLabel("Jan to Apr 2027", "Apr 30, 2027"), "Jan to Apr 2027", "a label already worded stays");
+  assert.equal(seasonLabel("Not set yet", ""), "Not set yet");
+  const columns = ["Vision Outcome", "Goal", "Owner", "Ends", "Season"];
+  assert.deepEqual(seasonCells(columns, ["Known", "Launch it", "Dana", "Apr 30, 2027", "JAN_APR"]), ["Known", "Launch it", "Dana", "Apr 30, 2027", "Jan to Apr 2027"]);
+  assert.deepEqual(seasonCells(["Risk", "Impact"], ["JAN_APR", "High"]), ["JAN_APR", "High"], "a table with no Season column is left alone");
+});
+
+test("The draft bar's warning counts only the sentences of sections still marked Needs attention for them", () => {
+  const sec = (key: ReportKey, status: ReportSection["status"], dropped: number, error: string | null = null): ReportSection => ({ ...section(key, status), dropped, error });
+  const withSections = (...sections: ReportSection[]) => state({ sections }) as Extract<ReportState, { status: "ok" }>;
+  assert.equal(droppedLeft(withSections(sec("heard", "needs_attention", 2), sec("tensions", "needs_attention", 1))), 3);
+  assert.equal(droppedLeft(withSections(sec("heard", "edited", 2), sec("tensions", "needs_attention", 1))), 1, "a section the facilitator fixed leaves the count");
+  assert.equal(droppedLeft(withSections(sec("heard", "edited", 2), sec("tensions", "reviewed", 1))), 0, "and the warning goes when none is left");
+  assert.equal(droppedLeft(withSections(sec("heard", "needs_attention", 2, "AI could not draft this section"))), 0, "a section that failed outright is not counted as left-out sentences");
+  assert.equal(droppedLeft(withSections(sec("heard", "needs_attention", 0))), 0);
 });

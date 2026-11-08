@@ -56,6 +56,10 @@
 .rpt-done { width: 16px; height: 16px; color: var(--cwl-app-success); flex: none; }
 .rpt-li .h small { display: block; }
 .ovr-progress.is-flat { border: 0; padding: 0; }
+.rpt-actions { margin-top: 12px; }
+.rpt-actions h3 { margin: 0 0 4px; font-size: 14px; }
+.rpt-actions ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.rpt-actions li.is-selected { background: var(--cwl-app-selected); }
 .rpt-parts.is-flat { border-top: 0; padding: 6px 0 0; }
 .ovr-edit.is-flat { padding: 0; }
 .ovr-btn.rpt-part { justify-content: flex-start; white-space: normal; text-align: left; height: auto; padding: 4px 0; }

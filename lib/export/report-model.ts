@@ -6,7 +6,7 @@
 // The text cleaner makes every document line follow Clearway's voice rules: no em or en dashes and no semicolons in anything Claude or a facilitator wrote
 // (rewritten to commas). The room's own words keep what they said: inside a quotation an em or en dash becomes a spaced hyphen, and a semicolon stays.
 // Horizon terms (10-year Future, 3-year Vision, 1-year Outlook) hold only hyphens, so the cleaner never touches them.
-import { sectionKeys, type SectionKey } from "../report/policy";
+import { seasonCells, sectionKeys, type SectionKey } from "../report/policy";
 
 export const COVER_TITLE = "Wayfinding Report";
 export const PREPARED_BY = "Prepared by Clearway Church Solutions";
@@ -173,6 +173,8 @@ function recordBlocks(sec: RawSection, draft: boolean): { lead: Block[]; body: B
     // Goals, risks and decisions are tables. The goals table leads with the goal, as the report's readers look for it first.
     let columns = sec.columns.map(cleanText), table = rows.map(r => r.cells.map(c => cellText(c)));
     if (key === "outlook") {
+      // A table built before the season was worded as the Map words it still holds the code: it reads as the label here too.
+      table = table.map(r => seasonCells(columns, r));
       const want = ["Goal", "Vision Outcome", "Owner", "Ends", "Season"], at = want.map(w => columns.indexOf(w));
       if (at.every(i => i >= 0)) { table = table.map(r => at.map(i => r[i] ?? "")); columns = ["Goal", "Vision Outcome", "Owner", "End date", "Season"]; }
     }

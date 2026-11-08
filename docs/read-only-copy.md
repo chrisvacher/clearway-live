@@ -38,7 +38,7 @@ An unknown token, a revoked link, a closed engagement, or a link used before Day
 - The close date uses the church's time zone.
 - Undo: one hour, and only before any check-in goes out; it takes away only the rounds that close made.
 - Any number of named links per engagement.
-- The Map omits scribe tensions and questions; every 1-year goal (not only those that meet CORE) appears once, under its outcome, with an empty owner or date shown as empty. Provisional outcomes carry a "Provisional" tag.
+- The Map omits scribe tensions and questions; every 1-year goal (not only those that meet CORE) appears once, under its outcome, with an empty owner or date shown as empty. Provisional outcomes carry a "Provisional" tag. A Map field with nothing in it (mission, purpose, values, strategy, a lens not signed off, metrics, celebrations, rhythms, issues) is left out of the copy: the setup prompts ("Add it in setup") are for the facilitator's own views.
 - The report shows the sign-off date, not the signer's name.
 
 ## Reset

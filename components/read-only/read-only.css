@@ -47,6 +47,8 @@
 .ro-rsec { display: flex; flex-direction: column; gap: var(--space-2); }
 .ro-rsec h3 { font-size: 1.125rem; font-weight: 700; }
 .ro-rsec p { margin: 0; max-width: 42rem; }
+.ro-actions h4 { font-size: var(--cwl-fs-app-label); font-weight: 700; }
+.ro-actions ul { margin: var(--space-1) 0 0; padding-left: var(--space-5); display: flex; flex-direction: column; gap: var(--space-1); max-width: 42rem; }
 .ro-quote { margin: 0; padding-left: var(--space-4); border-left: 3px solid var(--cwl-app-border-strong); font-style: italic; max-width: 42rem; }
 .ro-thin { display: inline-flex; margin-left: var(--space-2); padding: 0 var(--space-2); border-radius: var(--cwl-radius-marker); background: var(--cwl-app-warning-bg); font-size: var(--cwl-fs-app-micro); font-style: normal; font-weight: 700; }
 .ro-scroll { overflow-x: auto; }

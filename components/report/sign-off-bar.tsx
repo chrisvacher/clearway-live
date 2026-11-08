@@ -14,7 +14,7 @@ export function SignOffBar({ state, api, zone, jump }: { state: Ok; api: Api; zo
   return <div className={`rpt-bar${signed && !stale ? " is-signed" : ""}`} data-testid="rpt-signoff" data-state={signed ? (stale ? "changed" : "signed") : ready ? "ready" : "blocked"}>
     <div className="ovr-row is-between">
       <span><b>{reviewed} of {state.sections.length || 14} sections reviewed</b>
-        {signed && <span className="ovr-muted"> · {stale ? `signed as version ${signed.n}, then changed` : `signed off as version ${signed.n}`} by {signed.by ?? "the lead"}, {stamp(signed.signed_at, zone)}</span>}</span>
+        {signed && <span className="ovr-muted"> · {`${stale ? "Version" : "Signed off as version"} ${signed.n}${stale ? " was signed off" : ""} by ${signed.by ?? "the lead"}, ${stamp(signed.signed_at, zone)}${stale ? ", and the report has changed since" : ""}`}</span>}</span>
       {(!signed || stale) && <button type="button" className="ovr-btn is-confirm" disabled={!ready || api.busy} onClick={() => void api.act({ action: "sign_off", id: crypto.randomUUID() })} data-testid="rpt-sign-off"><BadgeCheck aria-hidden="true" />{signed ? `Sign off version ${signed.n + 1}` : "Sign off the report"}</button>}
       {signed && !stale && <span className="ovr-st is-reviewed" data-testid="rpt-signed"><BadgeCheck aria-hidden="true" />Signed off</span>}
     </div>
