@@ -3,7 +3,7 @@
 -- The worker's claim decides grouping (the wall and the lens wall) and folding (Q&A) is due when an open answer has not been
 -- seen by an earlier claim (20261103120000_ai_claim_late_commits). Each claim built the run's inputs in one statement and then
 -- wrote the seen set from a second read of the same answers in a later statement. Under READ COMMITTED every statement takes
--- a new snapshot, so an answer that committed between the two reads was written into the seen set without ever being in the
+-- a new snapshot, so an answer that committed between the two reads was added to the seen set without ever being in the
 -- run's inputs. The model never saw it, and the next claim (the one that answer's own trigger asks for) found nothing new and
 -- went idle. The answer stayed loose until some later answer arrived. When it was the last card of a burst, nothing later
 -- came: with eight phones sending at once the wall could stop at three groups of four themes, and a real room would see the
