@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   outputFileTracingIncludes: {
     "/api/room/**": ["./design/clearway-base/colors_and_type.css", "./design/clearway-live/live_tokens.css"],
+    // The report export reads Plus Jakarta Sans and the Clearway logo from disk.
+    "/api/control/**": ["./node_modules/@fontsource/plus-jakarta-sans/files/plus-jakarta-sans-latin-{400,700}-{normal,italic}.woff", "./lib/export/assets/clearway-logo-dark.png"],
   },
   async headers() {
     return [{ source: "/:path*", headers: [

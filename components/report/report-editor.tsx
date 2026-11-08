@@ -62,7 +62,7 @@ export function ReportEditor({ engagement, church, title, timezone }: { engageme
             <div className="rpt-col">{section && <SectionBody key={section.key} section={section} api={api} selected={sentence} select={setSentence} ai={ok.ai} locked={locked} zone={timezone} />}</div>
             <SourcesPanel section={section} sentence={picked} api={api} locked={locked || section?.status === "drafting"} />
           </div>}
-          {ok.draft && <ExportPanel />}
+          {ok.draft && <ExportPanel engagement={engagement} signed={ok.signed} stamp={ok.stamp} />}
         </>}
       </div>
     </main>
