@@ -1,8 +1,8 @@
 // The AI claim and an answer that commits while it runs (migrations 20261108060000_ai_claim_one_snapshot and
 // 20261108070000_claim_one_snapshot_lists_signal).
 // The worker's claim writes which answers it has seen; an answer it marks seen must be one the run's inputs hold,
-// or the model never reads it and the next claim (the one its own trigger asks for) goes idle. Each trial puts two
-// cards on the wall (or two questions in Q&A), starts a claim, and commits one more card a few milliseconds later,
+// or the model never reads it and the next claim (the one its own trigger asks for) goes idle. Each trial seeds a few
+// cards (two on the wall, two questions in Q&A, eight inputs for the signal), starts a claim, and commits one more card a few milliseconds later,
 // so it lands before, during or after the claim. The cases are the lens wall and Q&A, the Four Helpful Lists fold and the
 // alignment signal. Then the worker claims until idle, as it does after a trigger.
 // The late card must have been in some run's inputs. Against the local stack only; it leaves its own rows behind.
@@ -30,7 +30,7 @@ async function main() {
       ($1,$3,'Wall','Day 1',0,'wall','What is worth celebrating?','live',20,280,50),($2,$3,'Questions','Day 1',1,'qa','What do you want to ask?','open',20,200,50)`, [wall, qa, room]);
     await phone.query(`insert into public.sessions(id,engagement_id,title,part,position,interaction,prompt,state,max_sends,max_characters,max_words) values
       ($1,$2,'Four Helpful Lists','Discover',2,'four_lists','Think about our church today.','open',20,140,30)`, [lists, room]);
-    // The signal reads only a live step (one a room), and needs an accepted Discover theme, so it has a room of its own.
+    // The signal reads only a live step (one per room), and needs an accepted Discover theme, so it has a room of its own.
     await phone.query(`insert into public.engagements(id,church_id,title,settings) values($1,$2,'Signal race','{"ai_enabled":true}')`, [room2, church]);
     await phone.query("insert into public.attendees(id,engagement_id,name,email,room_role) values($1,$2,'Ben Ortiz',$3,'participant')", [person2, room2, `race-${person2}@example.org`]);
     await phone.query(`insert into public.sessions(id,engagement_id,title,part,position,interaction,prompt,state,max_sends,max_characters,max_words) values
