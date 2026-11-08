@@ -71,6 +71,17 @@ export type ResultRecipient = { id: string; name: string; email: string; send_re
 export type ResultRound = { id: string; day: 30 | 60 | 90; due_on: string; status: "scheduled" | "sending" | "sent" | "off"; superseded: boolean; sent_at: string | null; sent_by: string | null; recipients: ResultRecipient[] };
 export type CheckInState = { status: "ok"; server_time: string; type: string; engagement_status: string; eligible: boolean; practice: boolean; retreat_closed_on: string | null; can_switch_on: boolean; owners: number; rounds: ResultRound[] };
 
+// One line for the After hub: where the next round stands.
+export function checkInLine(state: CheckInState): string {
+  if (!state.eligible) return "This kind of engagement doesn’t use check-ins.";
+  if (state.rounds.length === 0) return "Not set up yet. They start when the retreat closes.";
+  const next = state.rounds.find(r => (r.status === "scheduled" && !r.superseded) || r.status === "sending");
+  if (next) return next.status === "sending" ? `The ${next.day}-day check-in is going out now.` : `The ${next.day}-day check-in goes out ${longDate(next.due_on)}.`;
+  const sent = state.rounds.filter(r => r.status === "sent");
+  if (sent.length === 0) return "Check-ins are switched off.";
+  return sent.length === state.rounds.length ? "All three check-ins have gone out." : `The ${sent[sent.length - 1].day}-day check-in has gone out. The rest are off.`;
+}
+
 export type FollowUp = { answer_id: string; kind: "step" | "goal"; who: string; what: string; answer: string; note: string | null; done: boolean };
 // Stuck steps, and goals at risk or off track, from the newest round that went out.
 export function followUps(round: ResultRound): FollowUp[] {

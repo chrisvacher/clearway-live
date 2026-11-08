@@ -154,6 +154,97 @@ insert into private.lens_summary_responses(id,engagement_id,version_id,attendee_
  ('90000000-0000-4000-8000-0000000004a6','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-0000000004a2','90000000-0000-4000-8000-000000000102','suggest','Say something about young families.')
  on conflict do nothing;
 
+-- ---------- Milestone 7, step 1: what Riverside's report is drafted from (fictional, idempotent) ----------
+-- Signed-off lens summaries for all five lenses with sources, scribe cards of every kind with speakers, accepted Discover themes with sources, two survey
+-- findings (one thin) and the survey total, an aligned signal saved as a citation, and confirmed outcomes. Ids end in 71xx so step 2's seeds stay clear.
+update public.churches set mission='To help every person in the north end take a next step with Jesus.',purpose='We exist so that families, neighbours and leaders find a home and a calling here.',
+ "values"='["Hospitality","Prayer","Shared leadership"]'::jsonb,strategy='Grow leaders from within and open our doors to the neighbourhood.'
+ where id='90000000-0000-4000-8000-000000000002' and mission is null;
+update public.engagements set retreat_start_date='2026-11-03',retreat_end_date='2026-11-04',survey_respondents=87
+ where id='90000000-0000-4000-8000-000000000011' and retreat_start_date is null;
+insert into public.sessions(id,engagement_id,title,part,position,state,interaction,prompt) values
+ ('90000000-0000-4000-8000-000000007101','90000000-0000-4000-8000-000000000011','Opening prayer and welcome','Day 1',1,'closed','content',''),
+ ('90000000-0000-4000-8000-000000007102','90000000-0000-4000-8000-000000000011','Day 1 conversations','Day 1',2,'closed','content',''),
+ ('90000000-0000-4000-8000-000000007103','90000000-0000-4000-8000-000000000011','Tensions and decisions','Day 2',1,'closed','content','')
+ on conflict do nothing;
+
+-- Lens 1's summary is signed off as it stands. Lenses 2 to 5 each get a summary, one version and sentences linked to the room's own sentences.
+update private.lens_summaries set state='signed_off',signed_off_version_id=current_version_id
+ where id='90000000-0000-4000-8000-0000000004a1' and state='on_screen' and current_version_id is not null and signed_off_version_id is null;
+insert into private.lens_summaries(id,engagement_id,lens,state) select ('90000000-0000-4000-8000-00000000710'||l)::uuid,'90000000-0000-4000-8000-000000000011'::uuid,l,'on_screen' from generate_series(2,5) l on conflict do nothing;
+insert into private.lens_summary_versions(id,engagement_id,summary_id,version,author,shown_at) select ('90000000-0000-4000-8000-00000000711'||l)::uuid,'90000000-0000-4000-8000-000000000011'::uuid,('90000000-0000-4000-8000-00000000710'||l)::uuid,1,'ai',now() from generate_series(2,5) l on conflict do nothing;
+insert into private.lens_summary_sentences(id,engagement_id,version_id,position,text) values
+ ('90000000-0000-4000-8000-000000007121','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007112',0,'Neighbours call Riverside first when someone on the street needs help, and the food bank runs from our building five days a week.'),
+ ('90000000-0000-4000-8000-000000007122','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007112',1,'Two north end schools count us as partners.'),
+ ('90000000-0000-4000-8000-000000007131','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007113',0,'Every ministry has an apprentice leader ready to step in, and a residency raises two new leaders every year.'),
+ ('90000000-0000-4000-8000-000000007132','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007113',1,'Elders spend their time on direction, not operations.'),
+ ('90000000-0000-4000-8000-000000007141','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007114',0,'Our building is open seven days a week, and giving funds ministry and a three-month reserve.'),
+ ('90000000-0000-4000-8000-000000007151','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007115',0,'We know which first steps help newcomers stay, and we know how to disciple people online and in person.')
+ on conflict do nothing;
+insert into private.lens_summary_sources(summary_sentence_id,lens_sentence_id,engagement_id) values
+ ('90000000-0000-4000-8000-000000007121','90000000-0000-4000-8000-000000000320','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007121','90000000-0000-4000-8000-000000000321','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007122','90000000-0000-4000-8000-000000000322','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007131','90000000-0000-4000-8000-000000000330','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007131','90000000-0000-4000-8000-000000000332','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007132','90000000-0000-4000-8000-000000000331','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007141','90000000-0000-4000-8000-000000000340','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007141','90000000-0000-4000-8000-000000000341','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007151','90000000-0000-4000-8000-000000000350','90000000-0000-4000-8000-000000000011'),
+ ('90000000-0000-4000-8000-000000007151','90000000-0000-4000-8000-000000000351','90000000-0000-4000-8000-000000000011')
+ on conflict do nothing;
+update private.lens_summaries set current_version_id=('90000000-0000-4000-8000-00000000711'||lens)::uuid,signed_off_version_id=('90000000-0000-4000-8000-00000000711'||lens)::uuid,state='signed_off'
+ where engagement_id='90000000-0000-4000-8000-000000000011' and lens between 2 and 5 and signed_off_version_id is null and id=('90000000-0000-4000-8000-00000000710'||lens)::uuid;
+
+-- The outcomes are confirmed, so the 3-year Vision has something to build from.
+update private.vision_outcomes set status='confirmed',confirmed_at=now() where engagement_id='90000000-0000-4000-8000-000000000011' and status='provisional';
+
+-- Scribe cards of every kind, with the speakers the scribe recorded (facilitators only; never given to AI).
+insert into private.scribe_cards(id,engagement_id,session_id,kind,text,detail,speaker,attendee_id,captured_at) values
+ ('90000000-0000-4000-8000-000000007201','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007101','quote','We run out of volunteers every September and nobody says it out loud.','{}','Sarah Ellis','90000000-0000-4000-8000-000000000108','2026-11-03 14:05:00+00'),
+ ('90000000-0000-4000-8000-000000007202','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007101','quote','I want my kids to hear how people came to faith here.','{}','Priya Shah','90000000-0000-4000-8000-000000000108','2026-11-03 14:08:00+00'),
+ ('90000000-0000-4000-8000-000000007203','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007102','quote','Our groups are the best thing we have, but you have to know someone to find one.','{}','Daniel Brooks','90000000-0000-4000-8000-000000000108','2026-11-03 15:20:00+00'),
+ ('90000000-0000-4000-8000-000000007204','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007102','quote','Newcomers tell us the welcome is warm and the next step is a mystery.','{}','Elena Cruz','90000000-0000-4000-8000-000000000108','2026-11-03 15:31:00+00'),
+ ('90000000-0000-4000-8000-000000007205','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007101','decision','We will pray before we plan, and keep praying through the year.','{}','Sarah Ellis','90000000-0000-4000-8000-000000000108','2026-11-03 14:12:00+00'),
+ ('90000000-0000-4000-8000-000000007206','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','decision','We will launch the five outcomes a season apart.','{"why":"Trying all five at once is the risk the room feared most."}','Michael Reed','90000000-0000-4000-8000-000000000108','2026-11-04 15:02:00+00'),
+ ('90000000-0000-4000-8000-000000007207','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','tension','Growing the staff team first or growing volunteer leadership first.','{"views":["Staff first, so volunteers have someone to follow.","Volunteers first, so staff are not stretched."]}','Jordan Parker','90000000-0000-4000-8000-000000000108','2026-11-04 14:40:00+00'),
+ ('90000000-0000-4000-8000-000000007208','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','tension','Opening the building seven days a week or keeping a rhythm of rest for staff.','{}','Grace Chen','90000000-0000-4000-8000-000000000108','2026-11-04 14:48:00+00'),
+ ('90000000-0000-4000-8000-000000007209','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','action','Tell the congregation about the outcomes on a Sunday in January.','{"date":"2027-01-10"}','Sarah Ellis','90000000-0000-4000-8000-000000000108','2026-11-04 16:10:00+00'),
+ ('90000000-0000-4000-8000-00000000720a','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','action','Brief the elders before the plan is shared with the church.','{}','Priya Shah','90000000-0000-4000-8000-000000000108','2026-11-04 16:14:00+00'),
+ ('90000000-0000-4000-8000-00000000720b','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','question','Who owns the apprentice pathway when its leader is away?','{}','Thomas Bennett','90000000-0000-4000-8000-000000000108','2026-11-04 15:40:00+00'),
+ ('90000000-0000-4000-8000-00000000720c','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007103','mitigation','Name a back-up owner for every first step.','{"risk":"No one knew who owned what"}','Daniel Brooks','90000000-0000-4000-8000-000000000108','2026-11-04 15:50:00+00')
+ on conflict do nothing;
+
+-- Discover: two survey findings (the second is thin), accepted themes with the sources and quotes they rest on.
+insert into private.survey_findings(id,engagement_id,title,figure,rests_on) values
+ ('90000000-0000-4000-8000-000000007301','90000000-0000-4000-8000-000000000011','A clear way into groups','31%',27),
+ ('90000000-0000-4000-8000-000000007302','90000000-0000-4000-8000-000000000011','Respondents under 30','6',6)
+ on conflict do nothing;
+insert into private.conversation_notes(id,engagement_id,kind,person,title,body,source_kind,word_count) values
+ ('90000000-0000-4000-8000-000000007311','90000000-0000-4000-8000-000000000011','interview','An elder','Interview 1','Newcomers cannot find a small group to join. The groups are full and nobody tells them the next step.','paste',19),
+ ('90000000-0000-4000-8000-000000007312','90000000-0000-4000-8000-000000000011','interview','A staff member','Interview 2','Our staff are stretched. Everyone carries more than one role and nobody has room to breathe.','paste',17),
+ ('90000000-0000-4000-8000-000000007313','90000000-0000-4000-8000-000000000011','interview','A ministry leader','Interview 3','Small groups are hard to find for new families too. We lose people in the first month.','paste',17),
+ ('90000000-0000-4000-8000-000000007314','90000000-0000-4000-8000-000000000011','input','A board member','Board conversation','Volunteers are stretched thin, the same few people every week.','paste',10),
+ ('90000000-0000-4000-8000-000000007315','90000000-0000-4000-8000-000000000011','input','A staff member','Staff conversation','Volunteers are tired. A handful of people do everything.','paste',9)
+ on conflict do nothing;
+insert into private.discover_themes(id,engagement_id,source,label,detail,rests_on,out_of,status) values
+ ('90000000-0000-4000-8000-000000007321','90000000-0000-4000-8000-000000000011','survey','A clear way into groups','Respondents named a way into groups as what to improve first.',27,87,'accepted'),
+ ('90000000-0000-4000-8000-000000007322','90000000-0000-4000-8000-000000000011','conversations','Newcomers cannot find a group','People who are new cannot find a small group, and nobody points them to a next step.',3,5,'accepted'),
+ ('90000000-0000-4000-8000-000000007323','90000000-0000-4000-8000-000000000011','conversations','Volunteers are stretched thin','The same few people carry the volunteer load.',2,5,'accepted')
+ on conflict do nothing;
+insert into private.discover_theme_sources(id,engagement_id,theme_id,finding_id,note_id,quote) values
+ ('90000000-0000-4000-8000-000000007331','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007321','90000000-0000-4000-8000-000000007301',null,null),
+ ('90000000-0000-4000-8000-000000007332','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007322',null,'90000000-0000-4000-8000-000000007311','Newcomers cannot find a small group to join.'),
+ ('90000000-0000-4000-8000-000000007333','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007322',null,'90000000-0000-4000-8000-000000007313','Small groups are hard to find for new families too.'),
+ ('90000000-0000-4000-8000-000000007334','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007323',null,'90000000-0000-4000-8000-000000007314','Volunteers are stretched thin, the same few people every week.'),
+ ('90000000-0000-4000-8000-000000007335','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007323',null,'90000000-0000-4000-8000-000000007315',null)
+ on conflict do nothing;
+-- An aligned signal the facilitator saved as a citation, for What We Heard.
+insert into private.signals(id,engagement_id,session_id,kind,theme_id,evidence,title,line,saved_as_citation_at) values
+ ('90000000-0000-4000-8000-000000007341','90000000-0000-4000-8000-000000000011','90000000-0000-4000-8000-000000007102','aligned','90000000-0000-4000-8000-000000007322','{"room":2}',
+  'The room names the same gap','What the room said about finding a group matches what the interviews said.','2026-11-03 16:00:00+00')
+ on conflict do nothing;
+
 insert into public.engagement_facilitators(engagement_id,clearway_user_id,role)
  select e.id,admin.id,'lead'::public.facilitator_role from public.engagements e cross join lateral
    (select id from public.clearway_users where is_admin and not deleted order by created_at,id limit 1) admin

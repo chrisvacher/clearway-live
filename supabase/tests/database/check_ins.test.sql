@@ -57,10 +57,6 @@ select is((select count(*) from information_schema.role_table_grants where grant
 select is((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'check\_in\_%' and p.prosecdef),0::bigint,'Every public check-in function is a security invoker wrapper');
 select is((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='private' and p.proname like 'check\_in\_%' and not p.prosecdef),0::bigint,'Every private check-in function is security definer');
 select is((select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like 'check\_in\_%'),13::bigint,'There are thirteen public check-in functions');
-select ok(pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%reset_practice_room_pre_check_ins%','The practice reset is wrapped');
-select ok(pg_get_functiondef('private.reset_practice_room_pre_check_ins()'::regprocedure) like '%reset_practice_room_pre_read_back%','over the read-back version, which stays');
-select ok(pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure) like '%rehearsal_control_pre_check_ins%','Clear test answers is wrapped');
-select ok(pg_get_functiondef('private.rehearsal_control_pre_check_ins(uuid,uuid,text)'::regprocedure) like '%rehearsal_control_pre_fixes_b%','over the Milestone 6 fixes version, which stays');
 
 -- ---------- Rounds are made when the retreat closes ----------
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),0::bigint,'No rounds before the retreat closes');
@@ -400,8 +396,10 @@ select lives_ok($$select private.check_in_clear('90000000-0000-4000-8000-0000000
 select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010')+(select count(*) from private.check_in_recipients where engagement_id='90000000-0000-4000-8000-000000000010'),0::bigint,'and leaves nothing in the practice room');
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),3::bigint,'while another engagement''s rounds stay');
 insert into private.check_in_rounds(id,engagement_id,day,due_on) values(tests.id(953),'90000000-0000-4000-8000-000000000010',30,'2027-01-31');
+insert into private.report_drafts(id,engagement_id,test) values(tests.id(976),'90000000-0000-4000-8000-000000000010',false);
 select ok(private.reset_practice_room(),'Reset practice room runs');
 select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010'),0::bigint,'and clears the practice room''s rounds');
+select is((select deleted from private.report_drafts where id=tests.id(976)),true,'and the report''s records under it, since our wrapper sits over the report''s');
 select is((select count(*) from private.check_in_recipients where engagement_id=tests.id(100)),3::bigint,'and not the other engagement''s recipients');
 
 -- ---------- A round is skipped once a later one has gone out ----------
@@ -492,12 +490,14 @@ delete from private.check_in_rounds where id=tests.id(960);
 -- Clear test answers, run as the lead on the practice room, clears the check-in rows.
 insert into private.check_in_rounds(id,engagement_id,day,due_on) values(tests.id(970),'90000000-0000-4000-8000-000000000010',30,'2027-01-31');
 insert into private.check_in_recipients(id,round_id,engagement_id,email,name,token_hash,items) values(tests.id(971),tests.id(970),'90000000-0000-4000-8000-000000000010','practice@example.org','Practice Person',tests.hash('6'),'{"steps":[],"goals":[]}');
+insert into private.report_drafts(id,engagement_id,test) values(tests.id(975),'90000000-0000-4000-8000-000000000010',true);
 select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010'),1::bigint,'The practice room has a round before Clear test answers');
 set local role authenticated;
 select tests.login(1);
 select is(public.rehearsal_control('90000000-0000-4000-8000-000000000010',tests.id(973),'clear')->>'status','ok','The lead clears test answers in the practice room');
 reset role;
 select is((select count(*) from private.check_in_rounds where engagement_id='90000000-0000-4000-8000-000000000010')+(select count(*) from private.check_in_recipients where engagement_id='90000000-0000-4000-8000-000000000010')+(select count(*) from private.check_in_answers where engagement_id='90000000-0000-4000-8000-000000000010'),0::bigint,'and its rounds, recipients and answers are gone');
+select is((select deleted from private.report_drafts where id=tests.id(975)),true,'and the report''s clearing, which sits under ours, still runs');
 select is((select count(*) from private.check_in_rounds where engagement_id=tests.id(100)),3::bigint,'while the other engagements keep theirs');
 set local role authenticated;
 select tests.login(1);

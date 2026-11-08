@@ -338,6 +338,17 @@ jobs:
         with:
           name: check-ins-screens
           path: check-ins-shots/
+      - name: Test the Wayfinding report (draft all 14 sections, sources and the lit words, the aligned signal as a source, edit, the room's words, redraft, a section the model fails on, sign-off, who can reach it) in a real browser
+        if: ${{ !cancelled() }}
+        run: mkdir -p report-shots && npm run test:report
+        env:
+          KIT_SHOTS: report-shots
+      - name: Upload the Wayfinding report screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: report-screens
+          path: report-shots/
           if-no-files-found: ignore
           retention-days: 14
       - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)

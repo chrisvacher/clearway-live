@@ -16,8 +16,8 @@
 --   public wrappers (security invoker) for each of the above that a browser role or the server calls
 --
 -- Shared objects touched, each a superset of its newest definition:
---   private.reset_practice_room    the read-back wrapper (20261106070000), renamed reset_practice_room_pre_check_ins and wrapped; clears the three tables
---   private.rehearsal_control      the Milestone 6 fixes wrapper (20261107020000), renamed rehearsal_control_pre_check_ins and wrapped; Clear test answers clears them too
+--   private.reset_practice_room    the newest wrapper (the report's, 20261108010000), renamed reset_practice_room_pre_check_ins and wrapped; clears the three tables
+--   private.rehearsal_control      the newest wrapper (the report's, 20261108010000), renamed rehearsal_control_pre_check_ins and wrapped; Clear test answers clears them too
 -- Not touched, on purpose: ai_runs checks (no AI here) and the live room (a check-in is a public page with its own token, not a room page).
 begin;
 
