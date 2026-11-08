@@ -143,14 +143,26 @@ export async function milestone7Failures({ env, sql, mail, app, browser, step, s
       await page.getByTestId("vp-add-hear").fill("What we will do together this season.");
       await page.getByTestId("vp-add-save").click();
       await page.getByTestId("vp-row").filter({ has: page.locator(".who b", { hasText: "The staff team" }) }).waitFor({ timeout: 10000 });
+      // A row written by hand takes Needs attention away (vp_settle), so the failure banner and its Try again go with it.
+      await page.getByTestId("vp-failed").waitFor({ state: "detached", timeout: 15000 });
+      await until(async () => !/Needs attention/.test(await page.getByTestId("vp-status").innerText()), "a row written by hand takes Needs attention away", 15000);
+      assert.equal(await mine(), 1, "the earlier row is still there");
+      // Fail the draft again and use Try again on the banner, with nothing changed in between.
+      fake({ fail: true }); skipPause("visibility_plan_rounds");
+      await page.getByTestId("vp-draft").click();
+      await page.getByTestId("vp-ask-yes").click();
+      await page.getByTestId("vp-failed").waitFor({ timeout: 60000 });
+      stopPoking();
       fake({});
       const retryAt = new Date().toISOString();
+      await until(async () => page.getByTestId("vp-try-again").isEnabled(), "Try again is ready", 15000);
       await page.getByTestId("vp-try-again").click();
       await page.getByTestId("vp-ask-yes").waitFor({ timeout: 5000 }).then(() => page.getByTestId("vp-ask-yes").click(), () => {});
       await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok' and created_at>=$2", [room, retryAt])).rows[0].n >= 1, "Try again drafts the plan", 60000);
       await page.getByTestId("vp-failed").waitFor({ state: "detached", timeout: 30000 });
       await until(async () => !/Needs attention/.test(await page.getByTestId("vp-status").innerText()), "the plan no longer needs attention", 30000);
-      assert.equal(await mine(), 1, "and the row written by hand is still there");
+      assert.equal(await mine(), 1, "and the earlier row is still there");
+      assert.equal((await sql.query("select count(*)::int n from private.visibility_plan_rows where engagement_id=$1 and not deleted and who='The staff team' and origin='facilitator'", [room])).rows[0].n, 1, "and the row written by hand while it had failed is still there");
       fake({});
     });
 
