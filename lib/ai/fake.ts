@@ -147,8 +147,11 @@ export function reportSection(call: Pick<AiCall, "user">): string {
   return typeof section === "string" ? section : "";
 }
 function scriptedReport(call: AiCall): string {
-  const input = replyJson(call.user) as { section?: string; heading?: string; refs?: { ref: string; group: string; text: string }[] };
-  const refs = input.refs ?? [], section = input.section ?? "";
+  const input = replyJson(call.user) as { section?: string; heading?: string; refs?: { ref: string; group: string; text: string }[]; already_written?: string[] };
+  // A redraft is told what the facilitator kept. Like the prompt asks, the stand-in leaves out a ref whose words a kept sentence already says.
+  const norm = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(), kept = (input.already_written ?? []).map(norm).filter(Boolean);
+  const said = (text: string) => { const n = norm(text); return n.length > 0 && kept.some(k => k.includes(n) || n.includes(k)); };
+  const refs = (input.refs ?? []).filter(r => !said(r.text)), section = input.section ?? "";
   const out: ReportOutput = { sentences: [] };
   if (!refs.length) return JSON.stringify(out);
   if (!(section in reportMax)) {

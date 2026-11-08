@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { BadgeCheck, CircleAlert, Loader, Pencil, Plus, Quote, RefreshCw, Trash2, TriangleAlert, Undo2 } from "lucide-react";
-import { markOf, originNames, plural, statusNames, type BlockCell, type ReportSection, type ReportSentence } from "@/lib/report/policy";
+import { markOf, originNames, plural, seasonCells, statusNames, type BlockCell, type ReportSection, type ReportSentence } from "@/lib/report/policy";
 import type { Api } from "./use-report";
 
 type Props = { section: ReportSection; api: Api; selected: string | null; select: (id: string | null) => void; ai: boolean; locked: boolean; zone: string; planStale?: boolean };
@@ -43,28 +43,35 @@ function Sentence({ s, api, selected, select, locked, frozen = false }: { s: Rep
 // A record section's table: the records as they stand. A cell that stands for sentences reads their live wording, so an edit or a removal shows here at once.
 // A table row stands on its first sentence: when that sentence is gone, so is the row.
 function Table({ section, sentences, selected, select }: { section: ReportSection; sentences: Map<string, ReportSentence>; selected: string | null; select: (id: string | null) => void }) {
-  const rows = (section.blocks?.rows ?? []).filter(row => !row.parts.length || (row.cells.length ? sentences.has(row.parts[0].sentence_id) : row.parts.some(p => sentences.has(p.sentence_id))));
+  const live = (section.blocks?.rows ?? []).filter(row => !row.parts.length || (row.cells.length ? sentences.has(row.parts[0].sentence_id) : row.parts.some(p => sentences.has(p.sentence_id))));
+  // The scribe's action cards sit under the table as their own list, as they do in the export: they have no who, when or who tells them.
+  const rows = live.filter(r => r.group !== "actions"), actions = live.filter(r => r.group === "actions" && r.parts.length > 0);
   const columns = section.blocks?.columns ?? [];
-  if (!rows.length) return <p className="ovr-muted" data-testid="rpt-empty-table">Nothing has been recorded for this section yet.</p>;
+  if (!live.length) return <p className="ovr-muted" data-testid="rpt-empty-table">Nothing has been recorded for this section yet.</p>;
   const grouped = rows.some(r => r.group);
   const choose = (id: string) => select(id === selected ? null : id);
-  const cellView = (cell: BlockCell) => {
-    if (!("s" in cell)) return cell.t;
+  const cellView = (cell: BlockCell, text: string) => {
+    if (!("s" in cell)) return text;
     const live = cell.s.filter(id => sentences.has(id));
     return live.length === 1 ? sentences.get(live[0])!.text : live.map(id => <span key={id} className="rpt-line is-link" onClick={e => { e.stopPropagation(); choose(id); }} data-testid="rpt-cell-line">{sentences.get(id)!.text}</span>);
   };
-  return <div className="rpt-wrap"><table className="rpt-table" data-testid="rpt-table">
+  return <>{rows.length > 0 && <div className="rpt-wrap"><table className="rpt-table" data-testid="rpt-table">
     {columns.length > 0 && <thead><tr>{columns.map(c => <th key={c} scope="col">{c}</th>)}</tr></thead>}
     <tbody>{rows.map((row, i) => {
       const lead = row.parts.find(p => sentences.has(p.sentence_id)), isSel = row.parts.some(p => p.sentence_id === selected);
       if (!row.cells.length) return <tr key={i} className={isSel ? "is-selected" : ""} data-testid="rpt-row"><td colSpan={Math.max(columns.length, 1)}><b>{row.title}</b>
         <div className="rpt-parts is-flat">{row.parts.map(p => { const s = sentences.get(p.sentence_id); return s && <button key={p.sentence_id} type="button" className="ovr-btn is-ghost is-sm rpt-part" onClick={() => choose(p.sentence_id)} data-testid="rpt-part">
           <span className="rpt-role">{p.role.replace("_", " ")}</span> {s.text}{p.owner ? <span className="rpt-owner"> · {p.owner}</span> : null}{p.due ? <span className="rpt-owner"> · {p.due}</span> : null}</button>; })}</div></td></tr>;
+      // A raw season code in a table built before the season was worded as the Map words it reads as the label.
+      const texts = seasonCells(columns, row.cells.map(cell => "t" in cell ? cell.t : ""));
       return <tr key={i} className={isSel ? "is-selected" : ""} data-testid="rpt-row" data-group={grouped ? row.group ?? "" : undefined}>{row.cells.map((cell, c) => {
         const first = "s" in cell ? cell.s.find(id => sentences.has(id)) : undefined;
-        return <td key={c} className={first ? "is-link" : ""} onClick={first ? () => choose(first) : lead && c === 0 ? () => choose(lead.sentence_id) : undefined} data-testid={first ? "rpt-cell-sentence" : undefined}>{cellView(cell)}</td>;
+        return <td key={c} className={first ? "is-link" : ""} onClick={first ? () => choose(first) : lead && c === 0 ? () => choose(lead.sentence_id) : undefined} data-testid={first ? "rpt-cell-sentence" : undefined}>{cellView(cell, texts[c])}</td>;
       })}</tr>;
-    })}</tbody></table></div>;
+    })}</tbody></table></div>}
+    {actions.length > 0 && <div className="rpt-actions" data-testid="rpt-actions"><h3>Actions the room named</h3>
+      <ul>{actions.map(a => { const s = sentences.get(a.parts[0].sentence_id); return s && <li key={a.parts[0].sentence_id} className={a.parts.some(p => p.sentence_id === selected) ? "is-selected" : ""} data-testid="rpt-action">
+        <button type="button" className="ovr-btn is-ghost is-sm rpt-part" aria-pressed={a.parts.some(p => p.sentence_id === selected)} onClick={() => choose(a.parts[0].sentence_id)}>{s.text}</button></li>; })}</ul></div>}</>;
 }
 
 export function SectionBody({ section, api, selected, select, ai, locked, zone, planStale }: Props) {

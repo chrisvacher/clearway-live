@@ -320,6 +320,28 @@ select is(tests.val($$select count(*)::text from private.report_sentences x wher
 select is(tests.val($$select count(*)::text from private.report_sentences x where x.section_id='$$||tests.sec('heard')||$$' and not x.deleted and x.origin='ai' and not x.touched$$),'1','and only the untouched AI sentences were replaced');
 select is(tests.val($$select count(*)::text from private.report_sources r join private.report_sentences x on x.id=r.sentence_id where x.section_id='$$||tests.sec('heard')||$$' and not x.deleted and not r.deleted and x.origin='ai' and not x.touched and r.kind='signal' and r.ref_id='$$||tests.id(651)||$$'$$),'1','The new sentence cites the aligned signal');
 
+-- F3: a redraft keeps what the facilitator kept exactly where it stands. The one new sentence takes the place of the untouched AI sentence it replaces, ahead of
+-- the kept ones (before this fix the kept sentences were moved to the top and the new one went last).
+select is(tests.val($$select string_agg(case when x.origin='facilitator' then 'own' when x.touched then 'edited' else 'new' end,',' order by x.position,x.id) from private.report_sentences x where x.section_id='$$||tests.sec('heard')||$$' and not x.deleted$$),'new,edited,own','Kept sentences stay where they were and the new sentence takes the place of the one it replaced');
+select is(tests.val($$select x.text from private.report_sentences x where x.section_id='$$||tests.sec('heard')||$$' and not x.deleted order by x.position,x.id offset 1 limit 1$$),'The room''s words on finding a group match the interviews.','The edited sentence is still second');
+-- A second redraft, with more new sentences than places: the first takes the place of the untouched sentence, the extras follow after everything. The claim hands the
+-- model the words of the kept sentences, and no others.
+set local role authenticated;
+select tests.login(1);
+select is(public.report_start(tests.id(100),tests.id(590),'section','heard',true)->>'status','ok','A second redraft is queued');
+reset role;
+drop table if exists claimed;
+create temp table claimed as select tests.claim() as v;
+grant all on claimed to public;
+select is((select jsonb_array_length(v->'inputs'->'kept') from claimed),2,'The claim carries the two kept sentences for the model');
+select is((select (v->'inputs'->'kept')->>0 from claimed),'The room''s words on finding a group match the interviews.','in the order they stand, the edited one first');
+select ok((select (v->'inputs'->'kept')->>1 from claimed) like 'Our own read%','then the facilitator''s own read');
+select is((select count(*)::integer from claimed, jsonb_array_elements(v->'inputs'->'refs') r where r.value->>'text' = (v->'inputs'->'kept')->>0),0,'and a kept sentence is not one of the refs');
+select is(tests.apply((select v from claimed),'[{"text":"31% of respondents named a clear way into groups.","refs":["f1"]},{"text":"Only 6 respondents were under 30.","refs":["f2"]},{"text":"The room says volunteers are stretched thin.","refs":["t1"]}]')->>'kept','3','Three new sentences are kept');
+select is(tests.val($$select string_agg(case when x.origin='facilitator' then 'own' when x.touched then 'edited' else 'new' end,',' order by x.position,x.id) from private.report_sentences x where x.section_id='$$||tests.sec('heard')||$$' and not x.deleted$$),'new,edited,own,new,new','the first in the old place, the extras after the kept ones');
+select is(tests.val($$select x.text from private.report_sentences x where x.section_id='$$||tests.sec('heard')||$$' and not x.deleted order by x.position,x.id limit 1$$),'31% of respondents named a clear way into groups.','in the order the model wrote them');
+drop table claimed;
+
 -- ---------- Sources and the signal rule ----------
 set local role authenticated;
 select tests.login(1);
@@ -496,6 +518,58 @@ select is(private.report_check('Elena asked each host.','[{"ref":"z1","text":"As
 select is(private.report_check('Jordan raised it.','[{"ref":"z1","text":"It was raised","sources":[]}]'::jsonb,private.report_names(tests.id(100))),'name','and a scribe''s speaker');
 select is(private.report_check('Groups start in homes.','[{"ref":"z1","text":"Groups start in homes","sources":[]}]'::jsonb,private.report_names(tests.id(100))),null,'while a reply with no name stands');
 
+-- ---------- Findings from the practice room: seasons (F2) and a count in a record section's lead (F1) ----------
+-- F2: the season is worded as the Clearway Map words it, with the year the Map shows, and never as its code.
+select is(private.rp_season_label('JAN_APR','2027-04-30'),'Jan to Apr 2027','JAN_APR reads Jan to Apr, with its year');
+select is(private.rp_season_label('MAY_AUG','2027-08-31'),'May to Aug 2027','MAY_AUG reads May to Aug');
+select is(private.rp_season_label('SEP_DEC','2026-12-31'),'Sept to Dec 2026','SEP_DEC reads Sept to Dec');
+select is(private.rp_season_label('SEP_DEC',null),'Sept to Dec','and carries no year when there is no end date');
+select is(private.rp_season_label(null,'2027-04-30'),null,'No season is no label');
+select is(private.rp_season_label('  ','2027-04-30'),null,'nor is a blank one');
+select is(tests.val($$select blocks->'rows'->0->'cells'->4->>'t' from private.report_sections where id='$$||tests.sec('outlook')||$$'$$),'May to Aug 2027','The 1-year Outlook table words the season as the Map does');
+select is(tests.val($$select count(*)::text from private.report_sections s cross join lateral jsonb_array_elements(coalesce(s.blocks->'rows','[]'::jsonb)) r where s.engagement_id='$$||tests.id(100)||$$' and s.key='outlook' and r.value::text ~ '(JAN_APR|MAY_AUG|SEP_DEC)'$$),'0','and no season code is left in it');
+-- F1: a record section's lead may count what it cites. A count equal to the number of distinct records the cited refs rest on is allowed, in digits or spelled out.
+create temp table bgoals as select jsonb_agg(jsonb_build_object('ref','b'||n,'text',(array['Launch the pathway','Train the hosts','Open the cafe','Start the groups'])[n],'sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(700+n),'excerpt','A goal'))) order by n) as c from generate_series(1,4) n;
+grant all on bgoals to public;
+select is(private.report_check('The team set four goals for the year.',(select c from bgoals),array[]::text[]),null,'The 1-year Outlook lead may say four goals when it cites four');
+select is(private.report_check('The team set 4 goals for the year.',(select c from bgoals),array[]::text[]),null,'or 4');
+select is(private.report_check('The team set five goals for the year.',(select c from bgoals),array[]::text[]),'number','but not five');
+select is(private.report_check('The team set 5 goals for the year.',(select c from bgoals),array[]::text[]),'number','or 5');
+select is(private.report_check('The team set three goals, and four owners.',(select c from bgoals),array[]::text[]),'number','and another number beside the count still has to be carried by a ref');
+select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(c.value) from jsonb_array_elements((select c from bgoals)) c where c.value->>'ref'<>'b4'),array[]::text[]),'number','Cited three, four is refused');
+select is(private.report_check('The team made three decisions.',jsonb_build_array(
+ jsonb_build_object('ref','b1','text','Launch five outcomes','sources',jsonb_build_array(jsonb_build_object('kind','decision','ref_id',tests.id(711),'excerpt','x'))),
+ jsonb_build_object('ref','b2','text','Hire a coordinator','sources',jsonb_build_array(jsonb_build_object('kind','scribe_card','ref_id',tests.id(712),'excerpt','x'))),
+ jsonb_build_object('ref','b3','text','Meet every month','sources',jsonb_build_array(jsonb_build_object('kind','decision','ref_id',tests.id(713),'excerpt','x')))),array[]::text[]),null,'The Decisions lead may say three decisions when it cites three records');
+select is(private.report_check('The team set three goals.',jsonb_build_array(
+ jsonb_build_object('ref','b1','text','Launch the pathway','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
+ jsonb_build_object('ref','b2','text','The pathway has an end date','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
+ jsonb_build_object('ref','b3','text','Train the hosts','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(702),'excerpt','x')))),array[]::text[]),'number','Two lines of one record count once, so three is refused');
+select is(private.report_check('The team set two goals.',jsonb_build_array(
+ jsonb_build_object('ref','b1','text','Launch the pathway','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
+ jsonb_build_object('ref','b2','text','The pathway has an end date','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
+ jsonb_build_object('ref','b3','text','Train the hosts','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(702),'excerpt','x')))),array[]::text[]),null,'and two is accepted');
+select is(private.report_check('The team named two things.',jsonb_build_array(jsonb_build_object('ref','b1','text','One thing','sources','[]'::jsonb),jsonb_build_object('ref','b2','text','Another','sources','[]'::jsonb)),array[]::text[]),null,'A line with no record id of its own counts once');
+select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(jsonb_set(c.value,'{ref}',to_jsonb('f'||substr(c.value->>'ref',2)))) from jsonb_array_elements((select c from bgoals)) c),array[]::text[]),'number','Only a record section''s own lines may be counted: the same refs under another name are refused');
+select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(c.value) from jsonb_array_elements((select c from bgoals)) c)||'[{"ref":"z1","text":"A line","sources":[]}]'::jsonb,array[]::text[]),'number','and so is a count beside a ref that is not one of them');
+drop table bgoals;
+-- The same through the worker: a second goal is recorded, the lead of the 1-year Outlook counts the two goals it cites, and the section does not need attention.
+insert into private.goals(id,engagement_id,outcome_id,title,result,end_date,season,position) values(tests.id(676),tests.id(100),tests.id(670),'Train twelve table hosts','Hosts trained.','2027-04-30','JAN_APR',2);
+set local role authenticated;
+select tests.login(1);
+select is(public.report_refresh(tests.id(100),'outlook',true)->>'status','ok','The 1-year Outlook is refreshed with the second goal');
+select is(public.report_start(tests.id(100),tests.id(591),'section','outlook',true)->>'status','ok','and its lead is redrafted');
+reset role;
+select is(tests.val($$select blocks->'rows'->1->'cells'->4->>'t' from private.report_sections where id='$$||tests.sec('outlook')||$$'$$),'Jan to Apr 2027','The second goal''s season reads Jan to Apr 2027');
+drop table if exists claimed;
+create temp table claimed as select tests.claim() as v;
+grant all on claimed to public;
+select is((select v->>'section' from claimed),'outlook','The worker claims the 1-year Outlook');
+select is((select jsonb_array_length(v->'inputs'->'refs') from claimed),2,'and reads the two goals');
+select is(tests.apply((select v from claimed),'[{"text":"The team set two goals for the year.","refs":["b1","b2"]}]')->>'dropped','0','A lead that counts the two goals it cites is not dropped');
+select is(tests.status('outlook'),'drafted','so the section is not marked Needs attention');
+drop table claimed;
+
 -- ---------- The checks themselves: horizon terms and quotations ----------
 select is(private.report_check('The 10-year Future starts with ten leaders.','[{"ref":"z1","text":"We have ten leaders and 5 groups.","sources":[]}]'::jsonb,array[]::text[]),null,'The 10-year Future is kept: its digits are the term, not a number');
 select is(private.report_check('The 3-year Vision names 5 groups.','[{"ref":"z1","text":"We have ten leaders and 5 groups.","sources":[]}]'::jsonb,array[]::text[]),null,'so is the 3-year Vision');
@@ -625,6 +699,7 @@ select is((select q->'blocks'->'rows'->0->'cells'->>0 from snap, jsonb_array_ele
 select is((select q->'blocks'->'rows'->0->'cells'->>3 from snap, jsonb_array_elements(s->'sections') q where q->>'key'='risks'),E'Rest every sixth week.\nShare the load across three hosts.','and whose answers are the mitigation sentences');
 select is((select jsonb_typeof(q->'blocks'->'rows'->0->'cells'->0) from snap, jsonb_array_elements(s->'sections') q where q->>'key'='risks'),'string','Cells in the snapshot are plain text');
 select is((select q->'blocks'->'rows'->0->'cells'->>2 from snap, jsonb_array_elements(s->'sections') q where q->>'key'='outlook'),'Dana Whitfield','The Outlook''s owner is in the signed report, added by code');
+select is((select q->'blocks'->'rows'->0->'cells'->>4 from snap, jsonb_array_elements(s->'sections') q where q->>'key'='outlook'),'May to Aug 2027','and its season reads as the Map words it');
 select is((select count(*)::integer from snap, jsonb_array_elements(s->'sections') q, jsonb_array_elements(q->'sentences') x where q->>'key'='future' and x->>'origin'='record'),3,'The Future holds the three signed off lines');
 drop table snap;
 

@@ -208,16 +208,29 @@ async function main() {
       const touched = async () => (await sql.query(`select count(*)::int n from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.key='heard' and s.engagement_id=$1 and not x.deleted and (x.touched or x.origin='facilitator')`, [room])).rows[0].n as number;
       const before = await touched();
       assert.ok(before >= 2);
+      // Where the facilitator's own read stands among the sentences, to see that a redraft leaves it there.
+      const standing = async () => (await sql.query(`select x.text from private.report_sentences x join private.report_sections s on s.id=x.section_id where s.key='heard' and s.engagement_id=$1 and not x.deleted order by x.position,x.id`, [room])).rows.map(r => r.text as string);
+      const listed = await standing(), ownAt = listed.findIndex(t => t.startsWith("Our own read")), editedAt = listed.findIndex(t => t.startsWith("The team heard it plainly"));
+      assert.ok(ownAt > editedAt + 1, "the facilitator's read stands after untouched sentences");
       await body.getByTestId("rpt-redraft").click();
       await page.getByTestId("rpt-ask").waitFor({ timeout: 10000 });
       assert.match(await page.getByTestId("rpt-ask").innerText(), new RegExp(`${before} sentences? you changed`));
       await shot(page, "redraft-ask");
       await page.getByTestId("rpt-ask-no").click();
       assert.equal(await page.getByTestId("rpt-ask").count(), 0, "cancel leaves it as it is");
+      const runs = async () => (await sql.query(`select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_report' and status='ok' and inputs->>'section'='heard'`, [room])).rows[0].n as number;
+      const ranBefore = await runs();
       await body.getByTestId("rpt-redraft").click();
       await page.getByTestId("rpt-ask-yes").click();
-      await until(async () => (await sql.query("select status from private.report_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the redraft is done", 40000);
+      await until(async () => (await runs()) === ranBefore + 1 && (await sql.query("select status from private.report_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the redraft is done", 40000);
       assert.equal(await touched(), before, "the sentences the facilitator touched are still there");
+      const after = await standing();
+      assert.equal(after.findIndex(t => t.startsWith("The team heard it plainly")), editedAt, "the edited sentence is where it was");
+      assert.equal(after.findIndex(t => t.startsWith("Our own read")), ownAt, "the facilitator's read is where it was, not moved to the top");
+      assert.ok(after.length >= listed.length, "the new sentences fill the untouched places, and any extras follow");
+      const ran = (await sql.query(`select inputs from private.ai_runs where engagement_id=$1 and job='draft_report' and inputs->>'section'='heard' order by created_at desc limit 1`, [room])).rows[0].inputs as { kept?: string[] };
+      assert.ok(ran.kept && ran.kept.some(t => t.startsWith("The team heard it plainly")) && ran.kept.some(t => t.startsWith("Our own read")), "the model was handed the kept sentences");
+      assert.ok(!(ran.kept ?? []).some(t => !after.includes(t)), "and only sentences that stand");
       assert.match(await body.innerText(), /The team heard it plainly/);
       assert.match(await body.innerText(), /Our own read/);
     });
@@ -262,6 +275,52 @@ async function main() {
       await body.getByTestId("rpt-refresh").click();
       await delay(800);
       assert.ok(await body.getByTestId("rpt-table").count() === 1, "refreshing keeps the table");
+    });
+
+    await step("The 1-year Outlook words each season as the Clearway Map does, never as its code", async () => {
+      await open("outlook");
+      const text = await body.getByTestId("rpt-table").innerText();
+      assert.ok(!/JAN_APR|MAY_AUG|SEP_DEC/.test(text), "no season code in the table");
+      assert.match(text, /Jan to Apr 20\d\d/);
+      assert.match(text, /May to Aug 20\d\d/);
+      // A table built before the fix still holds the code in its stored cells: the editor words it the same way.
+      const was = (await sql.query("select blocks->'rows'->0->'cells'->4 as cell from private.report_sections where engagement_id=$1 and key='outlook' and not deleted", [room])).rows[0].cell as { t: string };
+      await sql.query(`update private.report_sections set blocks=jsonb_set(blocks,'{rows,0,cells,4}','{"t":"MAY_AUG"}'::jsonb) where engagement_id=$1 and key='outlook' and not deleted`, [room]);
+      await until(async () => /^May to Aug(\s20\d\d)?$/.test((await body.getByTestId("rpt-table").locator("tbody tr").first().locator("td").nth(4).innerText()).trim()), "the editor words a stored code", 15000);
+      assert.ok(!/MAY_AUG/.test(await body.getByTestId("rpt-table").innerText()));
+      await sql.query(`update private.report_sections set blocks=jsonb_set(blocks,'{rows,0,cells,4}',$2::jsonb) where engagement_id=$1 and key='outlook' and not deleted`, [room, JSON.stringify(was)]);
+    });
+
+    await step("Make the Vision Visible lists the scribe's action cards under the table, not as blank rows in it", async () => {
+      await open("visibility");
+      const actions = body.getByTestId("rpt-actions");
+      await actions.waitFor({ timeout: 15000 });
+      assert.match(await actions.innerText(), /Actions the room named/);
+      assert.ok(await actions.getByTestId("rpt-action").count() >= 2, "the scribe's action cards are listed");
+      assert.match(await actions.innerText(), /Brief the elders before the plan is shared with the church/);
+      assert.ok((await body.getByTestId("rpt-table").count()) === 0 || !/Brief the elders|Tell the congregation about the outcomes/.test(await body.getByTestId("rpt-table").innerText()), "and none of them is a row of the table");
+      await actions.getByTestId("rpt-action").first().locator("button").click();
+      await body.getByTestId("rpt-picked").getByTestId("rpt-sentence").waitFor({ timeout: 10000 });
+      await shot(page, "actions");
+    });
+
+    await step("The draft bar's warning goes once the left-out sentences are fixed", async () => {
+      // The fake model never writes a sentence the checks refuse, so the round is set as a round that left some out: one in Leadership Interviews, two in Strategic Tensions.
+      await sql.query("update private.report_sections set status='needs_attention',error=null,dropped=case key when 'interviews' then 1 else 2 end where engagement_id=$1 and key in ('interviews','tensions') and not deleted", [room]);
+      await sql.query("update private.report_rounds set status='ready',last_dropped=3 where engagement_id=$1 and not deleted", [room]);
+      await page.getByTestId("rpt-dropped").waitFor({ timeout: 15000 });
+      assert.match(await page.getByTestId("rpt-dropped").innerText(), /3 sentences didn’t meet the checks and were left out/);
+      await open("interviews");
+      await body.getByTestId("rpt-add-own").click();
+      await body.getByTestId("rpt-add-text").fill("Our own read: the leaders asked for a clearer first step.");
+      await body.getByTestId("rpt-add-save").click();
+      await until(async () => /^2 sentences didn’t meet the checks and were left out/.test(await page.getByTestId("rpt-dropped").innerText().catch(() => "")), "it counts only what is still unfixed", 15000);
+      await open("tensions");
+      await body.getByTestId("rpt-add-own").click();
+      await body.getByTestId("rpt-add-text").fill("Our own read: the tension between staff and volunteers is real.");
+      await body.getByTestId("rpt-add-save").click();
+      await page.getByTestId("rpt-dropped").waitFor({ state: "detached", timeout: 15000 });
+      await shot(page, "dropped-fixed");
     });
 
     await step("Sign-off waits for every review and every source, and says what is missing", async () => {
@@ -345,6 +404,9 @@ async function main() {
       await first.getByTestId("rpt-edit-text").fill("The team carries this forward in prayer.");
       await first.getByTestId("rpt-edit-save").click();
       await until(async () => (await page.getByTestId("rpt-signoff").getAttribute("data-state")) === "changed", "the bar says it changed", 10000);
+      const line = await page.getByTestId("rpt-signoff").innerText();
+      assert.match(line, /Version 1 was signed off by .+, [A-Z][a-z]{2} \d{1,2}, \d{1,2}:\d{2} [AP]M, and the report has changed since/, "the time is the signing time, and the line says so");
+      assert.ok(!/then changed/.test(line));
       await body.getByTestId("rpt-review").click();
       await until(async () => await page.getByTestId("rpt-sign-off").isEnabled(), "ready again", 10000);
       await page.getByTestId("rpt-sign-off").click();

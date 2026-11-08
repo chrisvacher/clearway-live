@@ -616,12 +616,13 @@ export const heardVersion = heardPrompt.version;
 // ---------- The Wayfinding report (milestone 7, step 1) ----------
 // When the facilitator presses Draft the report, the database holds one pending round for the engagement and a queue of the report's 14 sections. The
 // worker claims one section at a time (report_claim) and asks the deeper model once for it; report_apply keeps only what the code checks allow.
-// Each prose section has a prompt of its own, versioned report-<section>@1. The seven record sections (the 10-year Future, 3-year Vision, risks,
+// Each prose section has a prompt of its own, versioned report-<section>@2. The seven record sections (the 10-year Future, 3-year Vision, risks,
 // 1-year Outlook, commander's intent, decisions and visibility plan) are built by code from the records, so their model call is only a short lead
-// sentence under one shared prompt (report-lead@1). Overview and Closing are drafted last, from the other sections' own sentences.
+// sentence under one shared prompt (report-lead@2). Version 2 (after the milestone 7 practice room) adds what a redraft keeps (already_written) and tells the lead not to count rows.
+// Overview and Closing are drafted last, from the other sections' own sentences.
 // The model sees only refs (f1, t2, q1, b3, z4) with a group name and the words of the record: never a name, an email, a role, a speaker or an id.
 // A sentence must cite the refs it rests on. The database refuses a sentence with no ref, a quote not copied from a cited ref, a number (digits or
-// spelled out, two to twenty) the cited refs do not carry, an attendee's name, a horizon term written wrong, "communication plan", or profanity,
+// spelled out, two to twenty) the cited refs do not carry (a record section's lead may also give a count equal to the records it cites), an attendee's name, a horizon term written wrong, "communication plan", or profanity,
 // and rewrites dashes and semicolons. A section that loses a sentence is marked Needs attention.
 export type ReportKey = "overview" | "church_today" | "process" | "heard" | "interviews" | "tensions" | "future" | "vision" | "risks" | "outlook" | "intent" | "decisions" | "visibility" | "closing";
 export const reportKeys: ReportKey[] = ["overview", "church_today", "process", "heard", "interviews", "tensions", "future", "vision", "risks", "outlook", "intent", "decisions", "visibility", "closing"];
@@ -631,7 +632,8 @@ export const reportHeadings: Record<ReportKey, string> = {
   future: "The 10-year Future", vision: "The 3-year Vision", risks: "Risks and Roadblocks", outlook: "The 1-year Outlook", intent: "Commander's Intent", decisions: "Decisions", visibility: "Make the Vision Visible", closing: "Closing",
 };
 export type ReportRef = { ref: string; group: string; text: string; thin: boolean; thin_text?: string | null; sources?: unknown[] };
-export type ReportInputs = { section: ReportKey; heading: string; refs: ReportRef[]; section_id?: string };
+// kept: the words of the sentences a redraft keeps in place (the facilitator's own, the room's words, and AI sentences the facilitator touched). Present only on a redraft.
+export type ReportInputs = { section: ReportKey; heading: string; refs: ReportRef[]; section_id?: string; kept?: string[] };
 export type ReportOutput = { sentences: { text: string; refs: string[] }[] };
 export type ReportPrompt = { job: "draft_report"; key: ReportKey | "lead"; version: string; system: string; maxTokens: number; user: (inputs: ReportInputs) => string; parse: (text: string, inputs: ReportInputs) => ReportOutput };
 
@@ -643,6 +645,7 @@ const reportCommon = [
   "Every sentence must cite the refs it rests on, in refs. A sentence with no ref is thrown away. To quote the room, put double quotation marks around words copied exactly from one cited ref and add nothing inside the marks. Never use quotation marks for anything else.",
   "Never name a person, and never point to one by title or by role. Write about the team, the congregation, the leaders, the staff or the board.",
   "Where a ref says its data is thin, write modestly and do not stretch it. The app marks thin data itself.",
+  "The section may already hold sentences the facilitator kept. They are listed in already_written when there are any. They stay in the report exactly as written and they are not refs, so never cite them. Do not repeat the point of a sentence in already_written, and do not say it again in other words. Write only what the refs say that those sentences leave out. If they already cover everything, reply with an empty list of sentences.",
   "Never use dashes or semicolons. Write sentences a person would say aloud.",
   "Reply as {\"sentences\":[{\"text\":\"...\",\"refs\":[\"f1\",\"t2\"]}]}. Use only the refs you are given. Reply with one JSON object and nothing else.",
 ];
@@ -656,19 +659,20 @@ const reportFocus: Record<Exclude<ReportKey, "future" | "vision" | "risks" | "ou
   closing: { max: 4, guide: "This is the Closing, drafted last. The refs are sentences already in the report. In two to four sentences say what the team carries forward and what comes next, using only those sentences. Do not add a promise or a date the refs do not carry." },
 };
 const reportPrompt = (key: keyof typeof reportFocus): ReportPrompt => ({
-  job: "draft_report", key, version: `report-${key}@1`, maxTokens: 1800,
+  job: "draft_report", key, version: `report-${key}@2`, maxTokens: 1800,
   system: [...reportCommon.slice(0, 1), reportFocus[key].guide, ...reportCommon.slice(1)].join("\n"),
   user: inputs => reportUser(key, inputs), parse: (text, inputs) => reportParse(text, inputs, reportFocus[key].max),
 });
 // The seven record sections are built by code. The model writes one short lead sentence that introduces what the records hold, and nothing else.
 const reportLeadPrompt: ReportPrompt = {
-  job: "draft_report", key: "lead", version: "report-lead@1", maxTokens: 500,
-  system: [reportCommon[0], reportCommon[1], "This section is a table or list built from the team's own records, and you write only its lead: one to three short sentences above it that say what the records below hold, in plain words. Say nothing the refs do not say. You may use the horizon terms, written exactly, when they help. Write a number only if a ref you cite carries it. Cite the refs the lead rests on.", ...reportCommon.slice(2)].join("\n"),
+  job: "draft_report", key: "lead", version: "report-lead@2", maxTokens: 500,
+  system: [reportCommon[0], reportCommon[1], "This section is a table or list built from the team's own records, and you write only its lead: one to three short sentences above it that say what the records below hold, in plain words. Say nothing the refs do not say. You may use the horizon terms, written exactly, when they help. Write a number only if a ref you cite carries it. Never count the rows or lines of the table: do not say how many goals, decisions, risks or rows there are, in digits or in words. Say that the team set goals for the year, with no count. Cite the refs the lead rests on.", ...reportCommon.slice(2)].join("\n"),
   user: inputs => reportUser("lead", inputs), parse: (text, inputs) => reportParse(text, inputs, 3),
 };
 function reportUser(key: string, inputs: ReportInputs): string {
   return JSON.stringify({ section: key === "lead" ? inputs.section : key, heading: inputs.heading,
-    refs: inputs.refs.map(r => ({ ref: r.ref, group: r.group, text: r.text, thin_data: r.thin })) });
+    refs: inputs.refs.map(r => ({ ref: r.ref, group: r.group, text: r.text, thin_data: r.thin })),
+    ...(inputs.kept?.length ? { already_written: inputs.kept } : {}) });
 }
 function reportParse(text: string, inputs: ReportInputs, max: number): ReportOutput {
   const raw = replyJson(text).sentences, known = new Set(inputs.refs.map(r => r.ref.toLowerCase())), sentences: ReportOutput["sentences"] = [];

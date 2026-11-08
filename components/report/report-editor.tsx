@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, CircleAlert, EyeOff, FileText, ListOrdered, Radio, TriangleAlert } from "lucide-react";
-import { roundView, plural, type ReportSection } from "@/lib/report/policy";
+import { droppedLeft, roundView, plural, type ReportSection } from "@/lib/report/policy";
 import { useReport } from "./use-report";
 import { SectionList } from "./section-list";
 import { SectionBody } from "./section-body";
@@ -29,6 +29,8 @@ export function ReportEditor({ engagement, church, title, timezone }: { engageme
   // What is missing: an empty section, one that needs attention, and (with AI on) a table that has no lead yet.
   const open = sections.filter(s => s.status === "empty" || s.status === "needs_attention" || (ok?.ai && s.kind === "record" && s.status === "drafted" && !s.sentences.some(x => x.origin !== "record"))).length;
   const locked = false;
+  // The draft bar's warning counts only what is still unfixed: it goes once no section is marked Needs attention for left-out sentences.
+  const left = ok ? droppedLeft(ok) : 0;
   const draftAll = () => void api.act({ action: "draft", id: crypto.randomUUID(), scope: "all", confirm: false });
   return <div className="ovr" data-surface="report" data-theme="light" data-testid="report-editor">
     <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
@@ -52,7 +54,7 @@ export function ReportEditor({ engagement, church, title, timezone }: { engageme
             {view?.kind === "working" && view.slow && <div className="ovr-banner is-warning" role="status" data-testid="rpt-slow"><TriangleAlert aria-hidden="true" /><div><strong>Drafting is taking longer than usual.</strong> You can read and edit the sections that are done while the rest finish.</div></div>}
             {ok.round?.status === "pending" && ok.round.attempts > 0 && <div className="ovr-banner is-warning" role="status" data-testid="rpt-retry"><TriangleAlert aria-hidden="true" /><div><strong>A section hit a problem and is trying again.</strong></div></div>}
             {!working && !ok.ai && <div className="ovr-banner" role="status" data-testid="rpt-ai-off"><CircleAlert aria-hidden="true" /><div><strong>AI is off for this engagement.</strong> The tables are built from the records. Write the other sections by hand.</div></div>}
-            {!working && ok.round?.status === "ready" && ok.round.dropped > 0 && <div className="ovr-banner is-warning" role="status" data-testid="rpt-dropped"><TriangleAlert aria-hidden="true" /><div><strong>{plural(ok.round.dropped, "sentence")} didn’t meet the checks and {ok.round.dropped === 1 ? "was" : "were"} left out.</strong> The sections they belong to are marked Needs attention.</div></div>}
+            {!working && ok.round?.status === "ready" && left > 0 && <div className="ovr-banner is-warning" role="status" data-testid="rpt-dropped"><TriangleAlert aria-hidden="true" /><div><strong>{plural(left, "sentence")} didn’t meet the checks and {left === 1 ? "was" : "were"} left out.</strong> The sections they belong to are marked Needs attention.</div></div>}
             <div className="ovr-row is-between"><span className="ovr-muted">{ok.draft ? `${plural(open, "section")} still to draft or fix. Nothing here reaches the room or the church.` : "Nothing here reaches the room or the church. The report is drafted from the records, and you sign it off."}</span>
               <button type="button" className="ovr-btn is-primary" disabled={api.busy || working || (ok.draft && open === 0)} onClick={draftAll} data-testid="rpt-draft">{ok.draft ? (open === sections.length ? "Draft the report" : "Draft what is missing") : "Draft the report"}</button></div>
           </div>

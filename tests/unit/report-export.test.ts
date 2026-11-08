@@ -66,6 +66,21 @@ test("the model holds the 14 sections in Clearway's order with eyebrows, and no 
   assert.ok(own && own.type === "paragraph" && own.text.startsWith("Chris's own read"));
 });
 
+test("a season stored as its code reads as the Clearway Map words it, with the year of the end date", () => {
+  const sections = fixtureSections() as { key: string; blocks: { rows: { cells: unknown[] }[] } }[];
+  const outlook = sections.find(s => s.key === "outlook")!;
+  outlook.blocks.rows[0].cells = ["Known in small groups", "Launch twelve new groups: each with a trained host", "Dana Reyes", "Apr 30, 2027", "JAN_APR"];
+  outlook.blocks.rows[1].cells = ["Everyone serves", "Name a lead for every serving team", "Sam Ortiz", "Dec 31, 2026", "SEP_DEC"];
+  const table = buildReportModel({ ...input(false), sections }).sections[9].blocks.find(b => b.type === "table");
+  assert.ok(table && table.type === "table");
+  const at = table.columns.indexOf("Season");
+  assert.deepEqual(table.rows.map(r => r[at]), ["Jan to Apr 2027", "Sept to Dec 2026"]);
+  assert.ok(!modelText(buildReportModel({ ...input(false), sections })).some(t => /JAN_APR|MAY_AUG|SEP_DEC/.test(t)), "no code anywhere in the document");
+  outlook.blocks.rows[0].cells[4] = "MAY_AUG"; outlook.blocks.rows[0].cells[3] = "Not set yet";
+  const bare = buildReportModel({ ...input(false), sections }).sections[9].blocks.find(b => b.type === "table");
+  assert.equal(bare && bare.type === "table" ? bare.rows[0][at] : "", "May to Aug", "with no end date there is no year to give");
+});
+
 test("a draft is marked Draft and a signed report is not", async () => {
   const signed = buildReportModel(input(false)), draft = buildReportModel(input(true));
   assert.equal(signed.draft, false); assert.equal(draft.draft, true);

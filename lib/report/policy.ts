@@ -43,6 +43,30 @@ export function roundView(state: Extract<ReportState, { status: "ok" }>, now: nu
   return { kind: "none" };
 }
 
+// ---------- Seasons ----------
+// The goals table once stored a season as its code (JAN_APR). A table already built, and a report already signed, still holds it, so every reader of a
+// table reads a raw code as the Clearway Map words it: "Jan to Apr", with the year of the end date beside it ("Jan to Apr 2027"). The database words new
+// tables the same way (rp_season_label).
+const seasonWords: Record<string, string> = { SEP_DEC: "Sept to Dec", JAN_APR: "Jan to Apr", MAY_AUG: "May to Aug" };
+export function seasonLabel(cell: string, ends = ""): string {
+  const word = seasonWords[cell.trim()];
+  if (!word) return cell;
+  const year = /\b(20\d{2})\b/.exec(ends)?.[1];
+  return year ? `${word} ${year}` : word;
+}
+// One table row's cells with its Season cell worded (the Ends cell gives the year). Any other table is returned as it came.
+export function seasonCells(columns: string[], cells: string[]): string[] {
+  const at = columns.indexOf("Season");
+  if (at < 0 || at >= cells.length) return cells;
+  const ends = cells[columns.indexOf("Ends")] ?? "";
+  return cells.map((c, i) => i === at ? seasonLabel(c, ends) : c);
+}
+
+// The sentences the last round left out that are still waiting on the facilitator: those of sections still marked Needs attention for it. A section leaves
+// Needs attention when the facilitator edits, adds to or removes from it, so the draft bar's warning goes (or counts fewer) as they fix them.
+export const droppedLeft = (state: Extract<ReportState, { status: "ok" }>): number =>
+  state.sections.reduce((n, s) => n + (s.status === "needs_attention" && !s.error && s.dropped > 0 ? s.dropped : 0), 0);
+
 // ---------- Sign-off ----------
 // What stands between the lead and a signed report, in the order the page lists it. The database refuses the same things.
 export type Blocker = { kind: "no_draft" | "drafting" | "not_reviewed" | "needs_source" | "future_changed" | "plan_changed" | "lead_only"; count: number; sections: SectionKey[] };
