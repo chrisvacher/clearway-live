@@ -47,6 +47,7 @@ function Report({ report }: { report: NonNullable<RoView["report"]> }) {
 // The read-only copy: reading only. No inputs, no edit links. The one button prints.
 export function ReadOnlyCopy({ view }: { view: RoView }) {
   const a = view.map.page1, b = view.map.page2, signedLenses = a.future.lenses.filter(l => l.state === "signed_off" && l.lines.length > 0);
+  const identityShown = [a.mission, a.purpose, a.values, a.strategy].some(filled) || signedLenses.length > 0 || !a.vision.empty;
   return <div className="ro" data-surface="setup" data-theme="light" data-testid="ro-page">
     <header className="ro-head"><LiveWordmark theme="light" /><span className="ro-badge"><Eye size={14} aria-hidden="true" />Read-only</span></header>
     <main id="main" className="ro-main">
@@ -56,12 +57,12 @@ export function ReadOnlyCopy({ view }: { view: RoView }) {
       <nav className="ro-jump" aria-label="On this page"><a href="#map">The Map</a><a href="#outcomes">Vision Outcomes</a><a href="#intent">Commander&rsquo;s intent</a>{view.report ? <a href="#report">Report</a> : null}</nav>
 
       <section className="ro-sec" id="map"><h2>The Clearway Map</h2>
-        <div className="ro-page" aria-label="Page 1, Identity and direction"><h3>Identity and direction</h3>
+        {identityShown && <div className="ro-page" aria-label="Page 1, Identity and direction"><h3>Identity and direction</h3>
           {[a.mission, a.purpose, a.values, a.strategy].some(filled) && <div className="ro-map"><Field label="Mission" f={a.mission} /><Field label="Purpose" f={a.purpose} /><Field label="Values" f={a.values} /><Field label="Strategy" f={a.strategy} /></div>}
           {signedLenses.length > 0 && <div className="ro-mf is-wide"><span className="ro-eyebrow">10-year Future · {a.future.year}</span>
             {signedLenses.map(l => <div key={l.lens} className="ro-lens"><h4>{l.name}</h4><ul>{l.lines.map(x => <li key={x}>{x}</li>)}</ul></div>)}</div>}
           {!a.vision.empty && <div className="ro-mf is-wide"><span className="ro-eyebrow">3-year Vision · {a.vision.year}</span>
-            <ol>{a.vision.outcomes.map(o => <li key={o.n}>{o.title}{o.status !== "confirmed" ? <span className="ro-tag">Provisional</span> : null}</li>)}</ol></div>}</div>
+            <ol>{a.vision.outcomes.map(o => <li key={o.n}>{o.title}{o.status !== "confirmed" ? <span className="ro-tag">Provisional</span> : null}</li>)}</ol></div>}</div>}
         <div className="ro-page" aria-label="Page 2, Action"><h3>Action</h3>
           <div className="ro-mf is-wide is-empty"><span className="ro-eyebrow">This Year&rsquo;s Priorities</span><p><CircleDashed size={14} aria-hidden="true" /> {b.priorities.why}</p></div>
           <div className="ro-mf is-wide"><span className="ro-eyebrow">1-year Outlook · {b.outlook.year}</span><p>The goals are listed under each Vision Outcome below.</p></div>

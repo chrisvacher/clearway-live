@@ -528,30 +528,36 @@ select is(private.rp_season_label(null,'2027-04-30'),null,'No season is no label
 select is(private.rp_season_label('  ','2027-04-30'),null,'nor is a blank one');
 select is(tests.val($$select blocks->'rows'->0->'cells'->4->>'t' from private.report_sections where id='$$||tests.sec('outlook')||$$'$$),'May to Aug 2027','The 1-year Outlook table words the season as the Map does');
 select is(tests.val($$select count(*)::text from private.report_sections s cross join lateral jsonb_array_elements(coalesce(s.blocks->'rows','[]'::jsonb)) r where s.engagement_id='$$||tests.id(100)||$$' and s.key='outlook' and r.value::text ~ '(JAN_APR|MAY_AUG|SEP_DEC)'$$),'0','and no season code is left in it');
--- F1: a record section's lead may count what it cites. A count equal to the number of distinct records the cited refs rest on is allowed, in digits or spelled out.
+-- F1: a record section's lead may count its table, and only that. A count is allowed when it is the TOTAL of the table's main-kind records, sits right before a noun
+-- that fits the section, and the sentence cites every one of them. The three argument form allows no count at all.
 create temp table bgoals as select jsonb_agg(jsonb_build_object('ref','b'||n,'text',(array['Launch the pathway','Train the hosts','Open the cafe','Start the groups'])[n],'sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(700+n),'excerpt','A goal'))) order by n) as c from generate_series(1,4) n;
 grant all on bgoals to public;
-select is(private.report_check('The team set four goals for the year.',(select c from bgoals),array[]::text[]),null,'The 1-year Outlook lead may say four goals when it cites four');
-select is(private.report_check('The team set 4 goals for the year.',(select c from bgoals),array[]::text[]),null,'or 4');
-select is(private.report_check('The team set five goals for the year.',(select c from bgoals),array[]::text[]),'number','but not five');
-select is(private.report_check('The team set 5 goals for the year.',(select c from bgoals),array[]::text[]),'number','or 5');
-select is(private.report_check('The team set three goals, and four owners.',(select c from bgoals),array[]::text[]),'number','and another number beside the count still has to be carried by a ref');
-select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(c.value) from jsonb_array_elements((select c from bgoals)) c where c.value->>'ref'<>'b4'),array[]::text[]),'number','Cited three, four is refused');
+select is(private.report_check('The team set four goals for the year.',(select c from bgoals),array[]::text[],4,'goals?',array['goal']),null,'The 1-year Outlook lead may say four goals when the table holds four and it cites all four');
+select is(private.report_check('The team set 4 goals for the year.',(select c from bgoals),array[]::text[],4,'goals?',array['goal']),null,'or 4 goals');
+select is(private.report_check('The team set four goals for the year.',(select c from bgoals),array[]::text[],6,'goals?',array['goal']),'number','but not four when the table holds six');
+select is(private.report_check('The team set six goals for the year.',(select c from bgoals),array[]::text[],6,'goals?',array['goal']),'number','nor six when it cites only four');
+select is(private.report_check('The team set five goals for the year.',(select c from bgoals),array[]::text[],4,'goals?',array['goal']),'number','nor a count that is not the total');
+select is(private.report_check('The team set four goals for the year.',(select c from bgoals),array[]::text[],null,null,null),'number','and the three argument form allows no count');
+select is(private.report_check('Giving will grow by 4 percent.',(select c from bgoals),array[]::text[],4,'goals?',array['goal']),'number','A number that is not before a goal is refused even when it equals the total');
+select is(private.report_check('The team set four goals and four owners.',(select c from bgoals),array[]::text[],4,'goals?',array['goal']),'number','and so is a second count the noun does not cover');
 select is(private.report_check('The team made three decisions.',jsonb_build_array(
  jsonb_build_object('ref','b1','text','Launch five outcomes','sources',jsonb_build_array(jsonb_build_object('kind','decision','ref_id',tests.id(711),'excerpt','x'))),
  jsonb_build_object('ref','b2','text','Hire a coordinator','sources',jsonb_build_array(jsonb_build_object('kind','scribe_card','ref_id',tests.id(712),'excerpt','x'))),
- jsonb_build_object('ref','b3','text','Meet every month','sources',jsonb_build_array(jsonb_build_object('kind','decision','ref_id',tests.id(713),'excerpt','x')))),array[]::text[]),null,'The Decisions lead may say three decisions when it cites three records');
-select is(private.report_check('The team set three goals.',jsonb_build_array(
- jsonb_build_object('ref','b1','text','Launch the pathway','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
- jsonb_build_object('ref','b2','text','The pathway has an end date','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
- jsonb_build_object('ref','b3','text','Train the hosts','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(702),'excerpt','x')))),array[]::text[]),'number','Two lines of one record count once, so three is refused');
-select is(private.report_check('The team set two goals.',jsonb_build_array(
- jsonb_build_object('ref','b1','text','Launch the pathway','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
- jsonb_build_object('ref','b2','text','The pathway has an end date','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(701),'excerpt','x'))),
- jsonb_build_object('ref','b3','text','Train the hosts','sources',jsonb_build_array(jsonb_build_object('kind','goal','ref_id',tests.id(702),'excerpt','x')))),array[]::text[]),null,'and two is accepted');
-select is(private.report_check('The team named two things.',jsonb_build_array(jsonb_build_object('ref','b1','text','One thing','sources','[]'::jsonb),jsonb_build_object('ref','b2','text','Another','sources','[]'::jsonb)),array[]::text[]),null,'A line with no record id of its own counts once');
-select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(jsonb_set(c.value,'{ref}',to_jsonb('f'||substr(c.value->>'ref',2)))) from jsonb_array_elements((select c from bgoals)) c),array[]::text[]),'number','Only a record section''s own lines may be counted: the same refs under another name are refused');
-select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(c.value) from jsonb_array_elements((select c from bgoals)) c)||'[{"ref":"z1","text":"A line","sources":[]}]'::jsonb,array[]::text[]),'number','and so is a count beside a ref that is not one of them');
+ jsonb_build_object('ref','b3','text','Meet every month','sources',jsonb_build_array(jsonb_build_object('kind','decision','ref_id',tests.id(713),'excerpt','x')))),array[]::text[],3,'decisions?',array['decision','scribe_card']),null,'The Decisions lead may say three decisions, decisions and scribe cards together, when it cites all three');
+-- Risks: one risk and its two mitigations are three lines but one risk.
+select is(private.report_check('The team named three risks.',jsonb_build_array(
+ jsonb_build_object('ref','b1','text','Volunteers tire','sources',jsonb_build_array(jsonb_build_object('kind','risk','ref_id',tests.id(721),'excerpt','x'))),
+ jsonb_build_object('ref','b2','text','Rest every sixth week','sources',jsonb_build_array(jsonb_build_object('kind','mitigation','ref_id',tests.id(722),'excerpt','x'))),
+ jsonb_build_object('ref','b3','text','Share the load','sources',jsonb_build_array(jsonb_build_object('kind','mitigation','ref_id',tests.id(723),'excerpt','x')))),array[]::text[],1,'risks?',array['risk']),'number','A risk and its two mitigations are not three risks');
+-- Vision: an outcome and its indicators.
+select is(private.report_check('The team set three outcomes.',jsonb_build_array(
+ jsonb_build_object('ref','b1','text','Newcomers are known','sources',jsonb_build_array(jsonb_build_object('kind','outcome','ref_id',tests.id(731),'excerpt','x'))),
+ jsonb_build_object('ref','b2','text','Known within a month','sources',jsonb_build_array(jsonb_build_object('kind','indicator','ref_id',tests.id(732),'excerpt','x'))),
+ jsonb_build_object('ref','b3','text','Greeted by name','sources',jsonb_build_array(jsonb_build_object('kind','indicator','ref_id',tests.id(733),'excerpt','x')))),array[]::text[],1,'outcomes?|priorities',array['outcome']),'number','An outcome and its indicators are not three outcomes');
+-- The 10-year Future has no count to give: five lines of one lens are not five lenses.
+select is(private.report_check('All five lenses name the same hope.',jsonb_build_array(
+ jsonb_build_object('ref','b1','text','A line of one lens','sources',jsonb_build_array(jsonb_build_object('kind','lens_summary_sentence','ref_id',tests.id(741),'excerpt','x')))),array[]::text[],null,null,null),'number','The 10-year Future allows no count');
+select is(private.report_check('The team set four goals for the year.',(select jsonb_agg(c.value) from jsonb_array_elements((select c from bgoals)) c where c.value->>'ref'<>'b4'),array[]::text[],4,'goals?',array['goal']),'number','A count must cite every record: three of four cited is refused');
 drop table bgoals;
 -- The same through the worker: a second goal is recorded, the lead of the 1-year Outlook counts the two goals it cites, and the section does not need attention.
 insert into private.goals(id,engagement_id,outcome_id,title,result,end_date,season,position) values(tests.id(676),tests.id(100),tests.id(670),'Train twelve table hosts','Hosts trained.','2027-04-30','JAN_APR',2);

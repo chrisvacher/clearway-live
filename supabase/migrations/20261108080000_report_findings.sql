@@ -2,8 +2,9 @@
 --
 -- F1. The number check refused a count lead. A record section's lead such as "The team set four goals for the year." or "The team made three decisions."
 -- counted the table's rows, and report_check threw the sentence out, so the 1-year Outlook and Decisions sections always opened as Needs attention.
--- report_check now accepts a spelled or digit count equal to the number of distinct records the sentence's cited refs rest on, for a record section's
--- lead only (its refs are the table's own lines, b1, b2 and so on). Every other number still has to come from a cited ref. The lead prompt also tells the
+-- report_check (with the section's total passed in by report_apply) accepts a spelled or digit count only when it is the total of the table's main-kind
+-- records (goals, decisions, risks, outcomes, cards), sits right before a noun that fits and the sentence cites all of them. Every other number still has to
+-- come from a cited ref. The lead prompt also tells the
 -- model not to count (report-lead@2).
 -- F2. The 1-year Outlook table showed the raw season code (JAN_APR, MAY_AUG, SEP_DEC). rp_season_label gives the Clearway Map's wording, with the year the
 -- Map shows ("Jan to Apr 2027"), and report_build_block uses it. Tables already built and signed reports keep the raw code in their stored cells, so the
@@ -25,10 +26,13 @@ language sql immutable security invoker set search_path='' as $$
 $$;
 
 -- ---------- F1: the number check ----------
--- Step 1's report_check, whole, with the count a record section's lead may give. rp_words_ok is unchanged: report_check adds that count to the digits it hands it.
-create or replace function private.report_check(p_text text,p_cited jsonb,p_names text[]) returns text
+-- Step 1's report_check, whole, with the count a record section's lead may give. rp_words_ok is unchanged: the check adds that count to the digits it hands it.
+-- p_total is how many records of the section's main kind its table holds (goals, decisions, risks, outcomes, cards), p_kinds those source kinds and p_noun the
+-- words that may follow a count ("goals?"). A count is allowed only when it is p_total, sits right before one of those nouns and the sentence cites every one of the
+-- records. The caller passes p_total null (the three argument form) when the table is larger than the refs the model was given, or has nothing to count.
+create or replace function private.report_check(p_text text,p_cited jsonb,p_names text[],p_total integer,p_noun text,p_kinds text[]) returns text
 language plpgsql immutable security invoker set search_path='' as $$
-declare v_have text; v_digits text[]; v_marks integer; seg text; stripped text; v_room text; v_records integer;
+declare v_have text; v_digits text[]; v_marks integer; seg text; stripped text; v_room text; v_cited integer; v_word text;
 begin
  if length(p_text) not between 1 and 600 then return 'text'; end if;
  if p_cited is null or jsonb_typeof(p_cited)<>'array' or jsonb_array_length(p_cited)=0 then return 'unsourced'; end if;
@@ -39,17 +43,16 @@ begin
  -- The three horizon terms (and "1-year goals", the PRD's own words) are exact wording, not numbers: they are taken out before the numbers are read and the terms checked.
  stripped:=regexp_replace(p_text,'10-year Future|3-year Vision|1-year Outlook|1-year goals?','','g');
  v_digits:=private.ai_numbers(v_have);
- -- A record section's lead (every ref it cites is one of the table's own lines, b1, b2 and so on) may count what it cites: "The team set four goals for the year."
- -- A count, in digits or spelled out, is allowed when it equals the number of distinct records the cited refs rest on. A ref with no record id of its own counts once.
- if not exists(select 1 from jsonb_array_elements(p_cited) c where coalesce(c.value->>'ref','') !~ '^b[0-9]+$') then
-  select count(distinct z.k)::integer into v_records from (
-   select (s.value->>'kind')||':'||(s.value->>'ref_id') as k
-    from jsonb_array_elements(p_cited) c cross join lateral jsonb_array_elements(case when jsonb_typeof(c.value->'sources')='array' then c.value->'sources' else '[]'::jsonb end) s
-    where coalesce(s.value->>'ref_id','')<>''
-   union
-   select 'ref:'||(c.value->>'ref') from jsonb_array_elements(p_cited) c
-    where not exists(select 1 from jsonb_array_elements(case when jsonb_typeof(c.value->'sources')='array' then c.value->'sources' else '[]'::jsonb end) s where coalesce(s.value->>'ref_id','')<>'')) z;
-  if v_records>0 then v_digits:=v_digits||v_records::text; end if;
+ -- A record section's lead may count its table: "The team set four goals for the year." The count has to be the total of the table's main-kind records, right
+ -- before a noun that fits the section, with every one of those records cited. Its words are taken out before the numbers are read. Any other number is read as before.
+ if p_total is not null and p_total>0 and p_noun is not null and p_kinds is not null then
+  select count(distinct (s.value->>'kind')||':'||(s.value->>'ref_id'))::integer into v_cited
+   from jsonb_array_elements(p_cited) c cross join lateral jsonb_array_elements(case when jsonb_typeof(c.value->'sources')='array' then c.value->'sources' else '[]'::jsonb end) s
+   where coalesce(s.value->>'ref_id','')<>'' and (s.value->>'kind')=any(p_kinds);
+  if v_cited=p_total then
+   v_word:=(array['one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen','twenty'])[p_total];
+   stripped:=regexp_replace(stripped,'\m('||p_total::text||coalesce('|'||v_word,'')||')\s+('||p_noun||')\M','','gi');
+  end if;
  end if;
  if not private.ai_numbers(stripped)<@v_digits or not private.rp_words_ok(stripped,v_have,v_digits) then return 'number'; end if;
  if stripped ~* '\m(10|ten|3|three|1|one)[ -]year\M' or p_text ~* 'communications? plan' then return 'term'; end if;
@@ -63,6 +66,10 @@ begin
  end loop;
  return null;
 end $$;
+
+-- The three argument form is step 1's check exactly: no count is allowed.
+create or replace function private.report_check(p_text text,p_cited jsonb,p_names text[]) returns text
+language sql immutable security invoker set search_path='' as $$ select private.report_check(p_text,p_cited,p_names,null::integer,null::text,null::text[]) $$;
 
 -- ---------- F2: the record blocks ----------
 -- Step 1's report_build_block, whole, with the 1-year Outlook's Season cell worded as the Map words it.
@@ -192,9 +199,9 @@ declare out jsonb:=private.report_section_inputs_pre_report_findings(p_engagemen
 begin
  if out is null or not (out ? 'section') then return out; end if;
  names:=private.report_names(p_engagement);
- select coalesce(jsonb_agg(left(s.text,700) order by s.position,s.id),'[]'::jsonb) into kept from private.report_sentences s
+ select coalesce(jsonb_agg(k.t order by k.position,k.id),'[]'::jsonb) into kept from (select left(s.text,700) as t,s.position,s.id from private.report_sentences s
   where s.section_id=p_section and s.engagement_id=p_engagement and not s.deleted and s.origin in ('ai','room','facilitator') and (s.touched or s.origin<>'ai')
-   and not private.discover_has_name(s.text,names) and not private.screen_text(s.text);
+   and not private.discover_has_name(s.text,names) and not private.screen_text(s.text) order by s.position,s.id limit 30) k;
  if jsonb_array_length(kept)>0 then out:=out||jsonb_build_object('kept',kept); end if;
  return out;
 end $$;
@@ -204,7 +211,7 @@ create or replace function private.report_apply(p_run uuid,p_lease uuid,p_output
 language plpgsql security definer set search_path='' as $$
 declare run private.ai_runs; r private.report_rounds; sec private.report_sections; t timestamptz:=clock_timestamp(); in_ jsonb; v_ms integer; sn record; v_text text; v_refs text[]; cited jsonb;
  names text[]; n_kept integer:=0; n_dropped integer:=0; reasons jsonb:='[]'::jsonb; why text; good jsonb:='[]'::jsonb; g record; v_norm text; v_quote boolean; v_thin text; srcs jsonb; seg text;
- v_live integer; v_touched integer; v_status text; v_all_thin boolean; v_slots integer[]; v_i integer:=0;
+ v_live integer; v_touched integer; v_status text; v_all_thin boolean; v_slots integer[]; v_i integer:=0; v_total integer; v_refs_total integer; v_kinds text[]; v_noun text;
 begin
  if p_run is null or p_lease is null or jsonb_typeof(p_output) is distinct from 'object' then return jsonb_build_object('status','invalid_request'); end if;
  select * into run from private.ai_runs where id=p_run and job='draft_report';
@@ -226,12 +233,23 @@ begin
   return jsonb_build_object('status','discarded');
  end if;
  names:=private.report_names(run.engagement_id);
+  -- What a record section's lead may count: the records of its table's main kind, when every one of them is among the refs the model was given.
+ v_kinds:=case sec.key when 'outlook' then array['goal'] when 'decisions' then array['decision','scribe_card'] when 'risks' then array['risk'] when 'vision' then array['outcome'] when 'intent' then array['intent_card'] end;
+ v_noun:=case sec.key when 'outlook' then 'goals?' when 'decisions' then 'decisions?' when 'risks' then 'risks?' when 'vision' then 'outcomes?|priorities' when 'intent' then 'cards?|intents?' end;
+ if v_kinds is not null then
+  select count(distinct src.kind||':'||src.ref_id)::integer into v_total from private.report_sentences x join private.report_sources src on src.sentence_id=x.id and not src.deleted
+   where x.section_id=sec.id and not x.deleted and x.origin='record' and src.kind=any(v_kinds) and src.ref_id is not null;
+  select count(distinct (s.value->>'kind')||':'||(s.value->>'ref_id'))::integer into v_refs_total
+   from jsonb_array_elements(coalesce(in_->'refs','[]'::jsonb)) c cross join lateral jsonb_array_elements(case when jsonb_typeof(c.value->'sources')='array' then c.value->'sources' else '[]'::jsonb end) s
+   where coalesce(s.value->>'ref_id','')<>'' and (s.value->>'kind')=any(v_kinds);
+  if v_total is distinct from v_refs_total then v_total:=null; end if;
+ end if;
  for sn in select e.value as v,e.ord from jsonb_array_elements(case when jsonb_typeof(p_output->'sentences')='array' then p_output->'sentences' else '[]'::jsonb end) with ordinality e(value,ord) where e.ord<=12 loop
   if jsonb_typeof(sn.v)<>'object' then continue; end if;
   v_text:=private.rp_clean(sn.v->>'text');
   select coalesce(array_agg(distinct lower(btrim(s#>>'{}'))),array[]::text[]) into v_refs from jsonb_array_elements(case when jsonb_typeof(sn.v->'refs')='array' then sn.v->'refs' else '[]'::jsonb end) s where jsonb_typeof(s)='string';
   select jsonb_agg(x.value order by x.ord) into cited from jsonb_array_elements(in_->'refs') with ordinality x(value,ord) where lower(x.value->>'ref')=any(v_refs);
-  why:=private.report_check(v_text,cited,names);
+  why:=private.report_check(v_text,cited,names,v_total,v_noun,v_kinds);
   if why is not null then n_dropped:=n_dropped+1; reasons:=reasons||jsonb_build_array(jsonb_build_object('reason',why)); continue; end if;
   -- The sentence rests on every cited ref's sources, up to eight. A quotation becomes the excerpt of the source that holds it.
   select coalesce(jsonb_agg(s.value order by x.ord,s.ord),'[]'::jsonb) into srcs from jsonb_array_elements(cited) with ordinality x(value,ord) cross join lateral jsonb_array_elements(x.value->'sources') with ordinality s(value,ord);
@@ -269,6 +287,6 @@ begin
 end $$;
 
 revoke all on function private.report_section_inputs_pre_report_findings(uuid,uuid),private.report_section_inputs(uuid,uuid),private.rp_season_label(text,date) from public,anon,authenticated,service_role;
-grant execute on function private.report_section_inputs(uuid,uuid),private.rp_season_label(text,date) to service_role;
+grant execute on function private.report_section_inputs(uuid,uuid) to service_role;
 
 commit;

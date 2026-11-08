@@ -632,7 +632,7 @@ export const reportHeadings: Record<ReportKey, string> = {
   future: "The 10-year Future", vision: "The 3-year Vision", risks: "Risks and Roadblocks", outlook: "The 1-year Outlook", intent: "Commander's Intent", decisions: "Decisions", visibility: "Make the Vision Visible", closing: "Closing",
 };
 export type ReportRef = { ref: string; group: string; text: string; thin: boolean; thin_text?: string | null; sources?: unknown[] };
-// kept: the words of the sentences a redraft keeps in place (the facilitator's own, the room's words, and AI sentences the facilitator touched). Present only on a redraft.
+// kept: the words of the sentences the section already holds that stay (the facilitator's own, the room's words, and AI sentences the facilitator touched), at most 30. Present whenever there are any.
 export type ReportInputs = { section: ReportKey; heading: string; refs: ReportRef[]; section_id?: string; kept?: string[] };
 export type ReportOutput = { sentences: { text: string; refs: string[] }[] };
 export type ReportPrompt = { job: "draft_report"; key: ReportKey | "lead"; version: string; system: string; maxTokens: number; user: (inputs: ReportInputs) => string; parse: (text: string, inputs: ReportInputs) => ReportOutput };
@@ -666,7 +666,7 @@ const reportPrompt = (key: keyof typeof reportFocus): ReportPrompt => ({
 // The seven record sections are built by code. The model writes one short lead sentence that introduces what the records hold, and nothing else.
 const reportLeadPrompt: ReportPrompt = {
   job: "draft_report", key: "lead", version: "report-lead@2", maxTokens: 500,
-  system: [reportCommon[0], reportCommon[1], "This section is a table or list built from the team's own records, and you write only its lead: one to three short sentences above it that say what the records below hold, in plain words. Say nothing the refs do not say. You may use the horizon terms, written exactly, when they help. Write a number only if a ref you cite carries it. Never count the rows or lines of the table: do not say how many goals, decisions, risks or rows there are, in digits or in words. Say that the team set goals for the year, with no count. Cite the refs the lead rests on.", ...reportCommon.slice(2)].join("\n"),
+  system: [reportCommon[0], reportCommon[1], "This section is a table or list built from the team's own records, and you write only its lead: one to three short sentences above it that say what the records below hold, in plain words. Say nothing the refs do not say. You may use the horizon terms, written exactly, when they help. Write a number only if a ref you cite carries it. Never count the rows or lines of the table: do not say how many goals, decisions, risks or rows there are, in digits or in words. In the 1-year Outlook, say that the team set goals for the year, with no count. Cite the refs the lead rests on.", ...reportCommon.slice(2)].join("\n"),
   user: inputs => reportUser("lead", inputs), parse: (text, inputs) => reportParse(text, inputs, 3),
 };
 function reportUser(key: string, inputs: ReportInputs): string {

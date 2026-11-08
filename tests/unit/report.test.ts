@@ -27,30 +27,31 @@ const quoted = (t: string): string[] => {
   const n = qnorm(t), doubles = [...n.matchAll(/"([^"]+)"/g)].map(m => m[1]), rest = n.replace(/"[^"]*"/g, " ");
   return [...doubles, ...[...rest.matchAll(/(^|[\s(])'(.+?)'(?=[\s.,;:!?)]|$)/g)].map(m => m[2])];
 };
-// The distinct records the cited refs rest on: each source's record id, and a ref with no record id counts once (report_check).
-function recordCount(cited: ReportInputs["refs"]): number {
+// A record section's count (report_check): the table's main-kind total, the noun that may follow it and the source kinds that make it up.
+type Count = { total: number; noun: string; kinds: string[] };
+// How many distinct records of the main kinds the cited refs rest on.
+function recordCount(cited: ReportInputs["refs"], kinds: string[]): number {
   const keys = new Set<string>();
-  for (const r of cited) {
-    const ids = (Array.isArray(r.sources) ? r.sources : []).map(x => x as { kind?: string; ref_id?: string }).filter(x => x.ref_id);
-    if (ids.length) for (const x of ids) keys.add(`${x.kind}:${x.ref_id}`); else keys.add(`ref:${r.ref}`);
-  }
+  for (const r of cited) for (const x of (Array.isArray(r.sources) ? r.sources : []).map(y => y as { kind?: string; ref_id?: string })) if (x.ref_id && x.kind && kinds.includes(x.kind)) keys.add(`${x.kind}:${x.ref_id}`);
   return keys.size;
 }
-function refuses(text: string, cited: ReportInputs["refs"], names: string[]): string | null {
+function refuses(text: string, cited: ReportInputs["refs"], names: string[], count?: Count): string | null {
   if (!text || text.length > 600) return "text";
   if (!cited.length) return "unsourced";
   if (named(text).length && names.length) return "name";
   const have = cited.map(r => r.text).join("\n");
   // The three horizon terms and "1-year goals" are exact wording, not numbers: they come out before the numbers are read.
   const stripped = text.replace(/10-year Future|3-year Vision|1-year Outlook|1-year goals?/g, "");
-  // A record section's lead (every ref is one of the table's own lines, b1, b2 ...) may count the distinct records it cites.
+  // A count is taken out only when it is the table's total, sits right before a fitting noun, and the sentence cites every record of it.
+  let counted = stripped;
+  if (count && count.total > 0 && count.total <= 20 && recordCount(cited, count.kinds) === count.total)
+    counted = stripped.replace(new RegExp(`\\b(${count.total}|${words[count.total - 1]})\\s+(${count.noun})\\b`, "gi"), "");
   const haveDigits = digits(have);
-  if (cited.every(r => /^b[0-9]+$/.test(r.ref))) haveDigits.push(String(recordCount(cited)));
-  const ok = digits(stripped).every(d => haveDigits.includes(d));
-  const spelled = (stripped.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
+  const ok = digits(counted).every(d => haveDigits.includes(d));
+  const spelled = (counted.toLowerCase().match(/\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b/g) ?? [])
     .every(w => new RegExp(`\\b${w}\\b`, "i").test(have) || haveDigits.includes(String(words.indexOf(w) + 1)));
   if (!ok || !spelled) return "number";
-  if (/\b(10|ten|3|three|1|one)[ -]year\b/i.test(stripped) || /communications? plan/i.test(text)) return "term";
+  if (/\b(10|ten|3|three|1|one)[ -]year\b/i.test(counted) || /communications? plan/i.test(text)) return "term";
   if ((qnorm(text).match(/"/g) ?? []).length % 2) return "quote";
   const room = qnorm(cited.filter(roomRef).map(r => r.text).join("\n"));
   for (const q of quoted(text)) { const body = q.replace(/[.,!?…]+$/, ""); if (!body.trim() || q.length > 280 || !room.includes(body)) return "quote"; }
@@ -137,19 +138,31 @@ test("A redraft tells the model what is kept: already_written carries the kept s
   assert.ok(after.length >= 1);
 });
 
-test("The lead prompt tells the model not to count rows, and a count lead is still accepted by the check when it matches the records it cites", () => {
+test("The lead prompt tells the model not to count rows, and the check accepts a count only when it is the table's total, before a fitting noun, with every record cited", () => {
   assert.match(reportPrompts.outlook.system, /Never count the rows/);
+  assert.match(reportPrompts.outlook.system, /In the 1-year Outlook, say that the team set goals for the year, with no count/);
   assert.doesNotMatch(reportPrompts.outlook.system, /four goals for the year/, "no example of a count to copy");
-  const src = (n: number, id: string) => ({ ref: `b${n}`, group: "The 1-year Outlook", text: `${["Launch the pathway", "Train the hosts", "Open the cafe", "Start the groups"][n - 1]}: a result`, thin: false, sources: [{ kind: "goal", ref_id: id, excerpt: "A goal" }] });
+  const src = (n: number, id: string, kind = "goal") => ({ ref: `b${n}`, group: "The 1-year Outlook", text: `${["Launch the pathway", "Train the hosts", "Open the cafe", "Start the groups"][n - 1] ?? "A line"}: a result`, thin: false, sources: [{ kind, ref_id: id, excerpt: "A goal" }] });
   const four = [src(1, "g1"), src(2, "g2"), src(3, "g3"), src(4, "g4")];
-  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names), null, "spelled count equal to the distinct records");
-  assert.equal(refuses("The team set 4 goals for the year.", four, fixtures.names), null, "digit count");
-  assert.equal(refuses("The team set five goals for the year.", four, fixtures.names), "number", "a count that is not the records");
-  assert.equal(refuses("The team set three goals for the year.", four, fixtures.names), "number");
-  assert.equal(refuses("The team set three goals for the year.", [src(1, "g1"), src(2, "g1"), src(3, "g2")], fixtures.names), "number", "two cited lines of one record count once");
-  assert.equal(refuses("The team set two goals for the year.", [src(1, "g1"), src(2, "g1"), src(3, "g2")], fixtures.names), null);
-  assert.equal(refuses("The team made three decisions.", [src(1, "d1"), src(2, "d2"), src(3, "d3")], fixtures.names), null);
-  assert.equal(refuses("The team set four goals for the year.", four.map(r => ({ ...r, ref: r.ref.replace("b", "f") })), fixtures.names), "number", "only a record section's own lines may be counted");
+  const goals = (total: number): Count => ({ total, noun: "goals?", kinds: ["goal"] });
+  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names, goals(4)), null, "cite-all: spelled count equal to the table's total");
+  assert.equal(refuses("The team set 4 goals for the year.", four, fixtures.names, goals(4)), null, "digit count");
+  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names, goals(6)), "number", "four cited of six in the table");
+  assert.equal(refuses("The team set six goals for the year.", four, fixtures.names, goals(6)), "number", "a total it does not cite in full");
+  assert.equal(refuses("The team set five goals for the year.", four, fixtures.names, goals(4)), "number", "a count that is not the total");
+  assert.equal(refuses("The team set four goals for the year.", four, fixtures.names), "number", "no count allowed without a total");
+  assert.equal(refuses("The team set four goals for the year.", four.slice(0, 3), fixtures.names, goals(4)), "number", "three of four cited");
+  assert.equal(refuses("Giving will grow by 4 percent.", four, fixtures.names, goals(4)), "number", "4 percent is not a count of goals");
+  assert.equal(refuses("The team set four goals and four owners.", four, fixtures.names, goals(4)), "number", "a second count the noun does not cover");
+  assert.equal(refuses("The team set three goals for the year.", [src(1, "g1"), src(2, "g1"), src(3, "g2")], fixtures.names, goals(3)), "number", "two lines of one record are two records");
+  const dec = (n: number, id: string, kind: string) => src(n, id, kind);
+  assert.equal(refuses("The team made three decisions.", [dec(1, "d1", "decision"), dec(2, "c1", "scribe_card"), dec(3, "d2", "decision")], fixtures.names, { total: 3, noun: "decisions?", kinds: ["decision", "scribe_card"] }), null, "decisions and scribe cards together");
+  const risks = [dec(1, "r1", "risk"), dec(2, "m1", "mitigation"), dec(3, "m2", "mitigation")];
+  assert.equal(refuses("The team named three risks.", risks, fixtures.names, { total: 1, noun: "risks?", kinds: ["risk"] }), "number", "one risk and two mitigations are not three risks");
+  const vision = [dec(1, "o1", "outcome"), dec(2, "i1", "indicator"), dec(3, "i2", "indicator")];
+  assert.equal(refuses("The team set three outcomes.", vision, fixtures.names, { total: 1, noun: "outcomes?|priorities", kinds: ["outcome"] }), "number", "an outcome and its indicators");
+  const lens = [dec(1, "l1", "lens_summary_sentence")];
+  assert.equal(refuses("All five lenses name the same hope.", lens, fixtures.names), "number", "the 10-year Future gives no count");
 });
 
 test("The recorded replies parse to sentences that cite only the refs they were given, and pass the same checks as the database", () => {
