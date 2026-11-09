@@ -145,6 +145,9 @@ reset role;
 
 -- The model's inputs: text, counts and images under short refs; never a speaker, an owner, an attendee or an id the model needs.
 set local role service_role;
+reset role;
+update private.scribe_files set name='Tasha-board.heic' where id=tests.id(4102);
+set local role service_role;
 select is(public.overnight_due(tests.id(100)),true,'The server sees the round is due');
 select is(public.overnight_claim(tests.id(100),tests.id(950),'fake-model','{"overnight_draft":"overnight-draft@1"}')->>'status','claimed','The worker claims it');
 reset role;
@@ -156,6 +159,8 @@ select is((select jsonb_array_length(inputs->'cards') from private.ai_runs where
 select is((select jsonb_array_length(inputs->'photos') from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),2,'and two easel photos');
 select is((select inputs->'photos'->0->>'caption' from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),'easel-1.jpg','with their captions');
 select is((select (inputs->'photos'->1->>'readable')::boolean from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),false,'and says which the model cannot read');
+select is((select inputs->'photos'->1->>'caption' from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),'Easel photo','A caption that carries a name is replaced before the model sees it');
+update private.scribe_files set name='easel-2.heic' where id=tests.id(4102);
 select is((select position('Tasha' in inputs::text)+position('Daniel' in inputs::text)+position('Ben Ortiz' in inputs::text)+position('Sam Lee' in inputs::text)+position('Krista' in inputs::text)+position('attendee' in inputs::text)+position('speaker' in inputs::text)+position('owner' in inputs::text) from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),0,'No speaker, owner or attendee reaches the model');
 set local role service_role;
 select is(public.overnight_claim(tests.id(100),tests.id(952),'fake-model','{"overnight_draft":"overnight-draft@1"}')->>'status','busy','A second worker waits for the lease');

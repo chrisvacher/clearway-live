@@ -56,20 +56,58 @@ const s = StyleSheet.create({
 const pct = (w: number[], i: number) => `${(w[i] / 9360 * 100).toFixed(2)}%`;
 const cellLines = (t: string) => { const l = t.split("\n").filter(Boolean); return l.length ? l : [""]; };
 
-function BlockView({ b }: { b: Block }) {
+// Page breaks. A heading is drawn together with the start of what it heads, inside a box that cannot split, so the pair moves to the next page as one and a
+// heading is never the last thing on a page. What counts as the start: a card is the whole card (cards are short; a very long one may split), a table is its
+// header and first row, a list is its first item. A table's last two rows stay together too, so no page starts with a single stray row. A paragraph is plain
+// text that may split, so a heading before one asks for room for a few lines instead.
+const longCard = (b: Extract<Block, { type: "card" }>) => b.lines.reduce((n, l) => n + l.text.length + l.meta.length, 0) > 1800;
+
+function CardView({ b, split }: { b: Extract<Block, { type: "card" }>; split: boolean }) {
+  return <View style={{ marginBottom: 10 }} wrap={split}><Text style={s.h2} minPresenceAhead={split ? 90 : 0}>{b.title}</Text>
+    {b.lines.map((l, i) => <View key={i} style={s.cardRow} wrap={false}><Text style={s.cardLabel}>{l.label}</Text><View style={s.cardText}><Text>{l.text}</Text>{l.meta ? <Text style={s.meta}>{l.meta}</Text> : null}</View></View>)}</View>;
+}
+
+function TableParts({ b }: { b: Extract<Block, { type: "table" }> }) {
+  const row = (r: string[], n: number) => <View key={n} style={[s.tr, { backgroundColor: n % 2 === 0 ? GRAY100 : "#FFFFFF" }]} wrap={false}>
+    {b.columns.map((_, i) => <View key={i} style={[s.td, { width: pct(b.widths, i) }]}>{cellLines(r[i] ?? "").map((t, k) => <Text key={k} style={k ? { marginTop: 4 } : undefined}>{t}</Text>)}</View>)}</View>;
+  const head = <View style={s.thead} wrap={false}>{b.columns.map((c, i) => <Text key={i} style={[s.th, { width: pct(b.widths, i) }]}>{c}</Text>)}</View>;
+  const n = b.rows.length, tail = n >= 3 ? n - 2 : n;
+  return {
+    lead: <>{head}{n ? row(b.rows[0], 0) : null}</>,
+    rest: <View style={{ marginBottom: 10 }}>{b.rows.slice(1, tail).map((r, k) => row(r, k + 1))}
+      {tail < n ? <View wrap={false}>{b.rows.slice(tail).map((r, k) => row(r, tail + k))}</View> : null}</View>,
+  };
+}
+
+// The block as a start (kept with a heading before it) and the rest.
+function parts(b: Block): { lead: React.ReactNode; rest: React.ReactNode } {
   switch (b.type) {
-    case "paragraph": return <Text style={s.p}>{b.text}</Text>;
-    case "quote": return <View style={s.quote} wrap={false}><Text style={s.quoteText}>{`“${b.text}”`}</Text></View>;
-    case "callout": return <View style={s.callout} wrap={false}><Text style={s.calloutLabel}>{b.label}</Text><Text>{b.text}</Text></View>;
-    case "subheading": return <Text style={s.h2} minPresenceAhead={60}>{b.text}</Text>;
-    case "list": return <View>{b.items.map((t, i) => <View key={i} style={s.bullet} wrap={false}><Text style={{ width: 16 }}>{"•"}</Text><Text style={{ flex: 1 }}>{t}</Text></View>)}</View>;
-    case "card": return <View style={{ marginBottom: 10 }}><Text style={s.h2} minPresenceAhead={60}>{b.title}</Text>
-      {b.lines.map((l, i) => <View key={i} style={s.cardRow} wrap={false}><Text style={s.cardLabel}>{l.label}</Text><View style={s.cardText}><Text>{l.text}</Text>{l.meta ? <Text style={s.meta}>{l.meta}</Text> : null}</View></View>)}</View>;
-    case "table": return <View style={{ marginBottom: 10 }}>
-      <View style={s.thead} wrap={false} minPresenceAhead={40}>{b.columns.map((c, i) => <Text key={i} style={[s.th, { width: pct(b.widths, i) }]}>{c}</Text>)}</View>
-      {b.rows.map((r, n) => <View key={n} style={[s.tr, { backgroundColor: n % 2 === 0 ? GRAY100 : "#FFFFFF" }]} wrap={false}>
-        {b.columns.map((_, i) => <View key={i} style={[s.td, { width: pct(b.widths, i) }]}>{cellLines(r[i] ?? "").map((t, k) => <Text key={k} style={k ? { marginTop: 4 } : undefined}>{t}</Text>)}</View>)}</View>)}</View>;
+    case "paragraph": return { lead: null, rest: <Text style={s.p}>{b.text}</Text> };
+    case "quote": return { lead: <View style={s.quote} wrap={false}><Text style={s.quoteText}>{`“${b.text}”`}</Text></View>, rest: null };
+    case "callout": return { lead: <View style={s.callout} wrap={false}><Text style={s.calloutLabel}>{b.label}</Text><Text>{b.text}</Text></View>, rest: null };
+    case "subheading": return { lead: null, rest: null };
+    case "list": return { lead: b.items.length ? <View style={s.bullet} wrap={false}><Text style={{ width: 16 }}>{"•"}</Text><Text style={{ flex: 1 }}>{b.items[0]}</Text></View> : null,
+      rest: <View>{b.items.slice(1).map((t, i) => <View key={i} style={s.bullet} wrap={false}><Text style={{ width: 16 }}>{"•"}</Text><Text style={{ flex: 1 }}>{t}</Text></View>)}</View> };
+    case "card": return b.lines.length && !longCard(b) ? { lead: <CardView b={b} split={false} />, rest: null }
+      : { lead: <><Text style={s.h2}>{b.title}</Text>{b.lines.slice(0, 1).map((l, i) => <View key={i} style={s.cardRow} wrap={false}><Text style={s.cardLabel}>{l.label}</Text><View style={s.cardText}><Text>{l.text}</Text>{l.meta ? <Text style={s.meta}>{l.meta}</Text> : null}</View></View>)}</>,
+        rest: <View style={{ marginBottom: 10 }}>{b.lines.slice(1).map((l, i) => <View key={i} style={s.cardRow} wrap={false}><Text style={s.cardLabel}>{l.label}</Text><View style={s.cardText}><Text>{l.text}</Text>{l.meta ? <Text style={s.meta}>{l.meta}</Text> : null}</View></View>)}</View> };
+    case "table": return TableParts({ b });
   }
+}
+
+// One section's blocks, each heading kept with the start of the block after it. The section's own heading counts as one: pass it as `top`.
+function Blocks({ blocks, top }: { blocks: Block[]; top?: React.ReactNode }) {
+  const out: React.ReactNode[] = [];
+  let head: React.ReactNode = top ?? null, held = top !== undefined;
+  blocks.forEach((b, k) => {
+    if (b.type === "subheading" || (b.type === "card" && b.lines.length === 0)) { head = <>{held ? head : null}<Text style={s.h2}>{b.type === "card" ? b.title : b.text}</Text></>; held = true; return; }
+    const p = parts(b);
+    if (held) { out.push(<View key={`h${k}`} wrap={false} minPresenceAhead={p.lead ? 0 : 120}>{head}{p.lead}</View>); held = false; head = null; }
+    else if (p.lead) out.push(<View key={`l${k}`} wrap={false}>{p.lead}</View>);
+    if (p.rest) out.push(<React.Fragment key={`r${k}`}>{p.rest}</React.Fragment>);
+  });
+  if (held) out.push(<View key="end" wrap={false}>{head}</View>);
+  return <>{out}</>;
 }
 
 function ReportPdf() {
@@ -104,8 +142,7 @@ function ReportPdf() {
       <Text style={[s.footText, s.footRight]} fixed render={({ pageNumber }) => `Page ${pageNumber - 1 - (model.contents ? 1 : 0)}`} />
       {model.sections.map((sec, i) => <View key={sec.key}>
         {i > 0 && <View style={s.rule} />}
-        <View wrap={false} minPresenceAhead={60}><Text style={s.eyebrow}>{sec.eyebrow}</Text><Text style={s.h1} id={`sec-${sec.number}`}>{sec.heading}</Text></View>
-        {sec.blocks.map((b, k) => <BlockView key={k} b={b} />)}
+        <Blocks blocks={sec.blocks} top={<><Text style={s.eyebrow}>{sec.eyebrow}</Text><Text style={s.h1} id={`sec-${sec.number}`}>{sec.heading}</Text></>} />
       </View>)}
     </Page>
   </Document>;

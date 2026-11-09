@@ -11,18 +11,27 @@ export function usePlan(engagement: string) {
   const [state, setState] = useState<PlanState | null>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  const loading = useRef(false), again = useRef(false), working = useRef(false);
+  const again = useRef(false), working = useRef(false);
 
-  const load = useCallback(async () => {
-    if (loading.current) { again.current = true; return; }
-    loading.current = true;
-    try {
-      const response = await fetch(`/api/control/${engagement}/plan`, { cache: "no-store" });
-      const data = await response.json() as PlanState;
-      working.current = data.status === "ok" && (data.round?.status === "pending" || data.round?.status === "drafting");
-      setState(data);
-    } catch { setState(current => current ?? { status: "unavailable" }); }
-    finally { loading.current = false; if (again.current) { again.current = false; void load(); } }
+  // One read at a time. A call while a read is out marks that another is wanted and gets the promise of the whole run, so whoever awaits load() (the draft
+  // buttons) is released only when the state read after its own change has landed.
+  const flight = useRef<Promise<void> | null>(null);
+  const load = useCallback((): Promise<void> => {
+    if (flight.current) { again.current = true; return flight.current; }
+    flight.current = (async () => {
+      try {
+        do {
+          again.current = false;
+          try {
+            const response = await fetch(`/api/control/${engagement}/plan`, { cache: "no-store" });
+            const data = await response.json() as PlanState;
+            working.current = data.status === "ok" && (data.round?.status === "pending" || data.round?.status === "drafting");
+            setState(data);
+          } catch { setState(current => current ?? { status: "unavailable" }); }
+        } while (again.current);
+      } finally { flight.current = null; }
+    })();
+    return flight.current;
   }, [engagement]);
 
   const act = useCallback(async (body: Record<string, unknown>): Promise<ActResult> => {

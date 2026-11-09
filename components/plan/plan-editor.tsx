@@ -101,7 +101,7 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
   const api = usePlan(engagement), { state } = api;
   const ok = state?.status === "ok" ? state : null;
   const [selected, setSelected] = useState<string | null>(null), [editing, setEditing] = useState<Editing>(null), [adding, setAdding] = useState(false), [ask, setAsk] = useState<number | null>(null);
-  const [now, setNow] = useState(() => Date.now()), [reporting, setReporting] = useState(false), [reportNote, setReportNote] = useState("");
+  const [now, setNow] = useState(() => Date.now()), [reporting, setReporting] = useState(false), [starting, setStarting] = useState(false), [reportNote, setReportNote] = useState("");
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, []);
   const rows = useMemo(() => ok?.rows ?? [], [ok]);
   const picked = rows.find(r => r.id === selected) ?? null;
@@ -121,7 +121,8 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
     } catch { setReportNote("The report couldn’t refresh that section. Open the report and try again."); }
     setReporting(false); await api.load();
   };
-  const draft = async (confirm: boolean) => { const r = await api.act({ action: "draft", id: crypto.randomUUID(), confirm }); setAsk(r.status === "confirm" ? r.kept ?? 0 : null); };
+  // The buttons stay off from the press until the page has read the state back, so there is no moment between the answer and the "drafting" state when a second draft could be started.
+  const draft = async (confirm: boolean) => { setStarting(true); try { const r = await api.act({ action: "draft", id: crypto.randomUUID(), confirm }); setAsk(r.status === "confirm" ? r.kept ?? 0 : null); } finally { setStarting(false); } };
   return <div className="ovr" data-surface="plan" data-theme="light" data-testid="plan-editor">
     <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
       <Link href={`/control/${engagement}`}><Radio aria-hidden="true" />Live room</Link>
@@ -152,7 +153,7 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
             {view?.kind === "working" && view.slow && <div className="ovr-banner is-warning" role="status" data-testid="vp-slow"><TriangleAlert aria-hidden="true" /><div><strong>Drafting is taking longer than usual.</strong> You can add rows by hand while it finishes.</div></div>}
             {view?.kind === "retry" && <div className="ovr-banner is-warning" role="status" data-testid="vp-retry"><TriangleAlert aria-hidden="true" /><div><strong>The draft hit a problem and is trying again.</strong></div></div>}
             {view?.kind === "failed" && <div className="ovr-banner is-warning" role="alert" data-testid="vp-failed"><TriangleAlert aria-hidden="true" /><div><strong>AI couldn’t draft the plan.</strong> Add the rows by hand, or try again. Nothing you have written is lost.
-              <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy || closed || !ok.ai} onClick={() => void draft(false)} data-testid="vp-try-again"><RefreshCw aria-hidden="true" />Try again</button>
+              <div className="ovr-row"><button type="button" className="ovr-btn is-sm" disabled={api.busy || starting || closed || !ok.ai} onClick={() => void draft(false)} data-testid="vp-try-again"><RefreshCw aria-hidden="true" />Try again</button>
                 <button type="button" className="ovr-btn is-sm" onClick={() => setAdding(true)} data-testid="vp-add-by-hand"><Plus aria-hidden="true" />Add a row</button></div></div></div>}
             {plan?.status === "needs_attention" && !plan.error && <div className="ovr-banner is-warning" role="status" data-testid="vp-attention"><TriangleAlert aria-hidden="true" /><div><strong>{plural(plan.dropped, "row")} didn’t meet the checks and {plan.dropped === 1 ? "was" : "were"} left out.</strong> Read what is here, add what is missing, or draft the plan again.</div></div>}
             {(plan?.dates_blanked ?? 0) > 0 && <div className="ovr-banner" role="status" data-testid="vp-dates-blank"><CircleAlert aria-hidden="true" /><div><strong>{blankedText(plan!.dates_blanked!)}.</strong> {plan!.dates_blanked === 1 ? "The rest of the row is kept. Set it on the row." : "The rest of each row is kept. Set them on the rows."}</div></div>}
@@ -160,7 +161,7 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
             {!ok.ai && !rows.length && <div className="ovr-banner" role="status" data-testid="vp-ai-off"><CircleAlert aria-hidden="true" /><div><strong>AI is off for this engagement.</strong> Add the rows by hand.</div></div>}
             {ask !== null && <div className="cwl-vp-ask" role="alertdialog" aria-label="Keep your rows" data-testid="vp-ask">
               <span><strong>{plural(ask, "row")} {ask === 1 ? "is" : "are"} yours or reviewed.</strong> Drafting again keeps {ask === 1 ? "it" : "them"} where {ask === 1 ? "it is" : "they are"} and replaces only the rows you haven’t touched.</span>
-              <div className="ovr-row"><button type="button" className="ovr-btn is-primary is-sm" disabled={api.busy} onClick={() => void draft(true)} data-testid="vp-ask-yes">Keep them and redraft the rest</button>
+              <div className="ovr-row"><button type="button" className="ovr-btn is-primary is-sm" disabled={api.busy || starting} onClick={() => void draft(true)} data-testid="vp-ask-yes">Keep them and redraft the rest</button>
                 <button type="button" className="ovr-btn is-sm" onClick={() => setAsk(null)} data-testid="vp-ask-no">Cancel</button></div></div>}
             <div className="cwl-vp-grid">
               <div className="cwl-vp-scroll">{rows.length ? <table className="cwl-vp-table" data-testid="vp-table">
@@ -184,7 +185,7 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
             {adding && <AddRow api={api} onDone={() => setAdding(false)} />}
             <div className="cwl-vp-foot">
               <div className="ovr-row">
-                <button type="button" className="ovr-btn is-primary" disabled={api.busy || drafting || !ok.ai} title={ok.ai ? undefined : "AI is off for this engagement"} onClick={() => void draft(false)} data-testid="vp-draft"><RefreshCw aria-hidden="true" />{rows.some(r => r.origin === "ai") ? "Redraft the plan" : "Draft the plan"}</button>
+                <button type="button" className="ovr-btn is-primary" disabled={api.busy || starting || drafting || !ok.ai} title={ok.ai ? undefined : "AI is off for this engagement"} onClick={() => void draft(false)} data-testid="vp-draft"><RefreshCw aria-hidden="true" />{rows.some(r => r.origin === "ai") ? "Redraft the plan" : "Draft the plan"}</button>
                 <button type="button" className="ovr-btn" disabled={api.busy || drafting} onClick={() => setAdding(true)} data-testid="vp-add"><Plus aria-hidden="true" />Add a row</button>
                 <span className="ovr-muted" data-testid="vp-left">{rows.length ? (left ? `${left} of ${rows.length} rows still need review` : "Every row is reviewed") : "Nothing is reviewed yet"}</span></div>
               {ok.report_draft && ok.report_stale && !closed

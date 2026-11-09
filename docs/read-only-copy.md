@@ -55,3 +55,7 @@ An unknown token, a revoked link, a closed engagement, or a link used before Day
 The migration sets `day2_closed_at` for engagements already in follow-up with a retreat end date, so their Share and Check-ins pages work. Others stay open until their Day 2 closes.
 
 If the page cannot read its data (a failed call or a missing setting), it shows the plain unavailable page and logs an error code, never the token.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+The public view carries the church's `timezone` (migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`), and "Signed off on" prints the church's day (`dayInZone`), not the UTC day.

@@ -16,6 +16,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
   const fac = await getFacilitator(); if (!fac) return answer({ status: "denied" }, 401);
   const [remote, access, view] = await Promise.all([fac.client.rpc("team_remote_state", { p_engagement: id }), fac.client.rpc("followup_manage", { p_engagement: id, p_action: "status", p: {} }), fac.client.rpc("intent_view", { p_engagement: id })]);
   if (remote.error || access.error) return answer({ status: "unavailable" }, 503);
+  // Another engagement's facilitator gets the answer the other control reads give: 403, with nothing from the sub-reads.
+  if (remote.data?.status === "denied" || access.data?.status === "denied") return answer({ status: "denied" }, 403);
   return answer({ status: "ok", remote: remote.data, followup: access.data, people: view.data?.people ?? [] });
 }
 // Give the remote, take it back, end the block: one press each, decided under the room lock.

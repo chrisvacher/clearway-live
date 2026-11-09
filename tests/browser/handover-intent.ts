@@ -176,6 +176,13 @@ async function main() {
       await until(async () => (await state()).remote_holder_id === null && (await state()).team_led_block_id === null, "the block ended and the remote returned", 8000);
     });
 
+    await step("Another engagement's facilitator is refused the handover state", async () => {
+      const elsewhere = await engagement(sql, []), stranger = await facilitator(env, sql, elsewhere.id);
+      const other = await browser!.newContext(); await other.addCookies(stranger.cookies(app.origin));
+      assert.equal((await other.request.get(`${app.origin}/api/control/${room.id}/handover`)).status(), 403, "another engagement's facilitator is denied");
+      await other.close();
+    });
+
     await step("Follow-up: a link and a code from the lead, no Clearway sign-in", async () => {
       await press(fac, sql, room.id, "go_live", { session: intent });
       // The room's own handover is still open, given to Ben in the room.

@@ -256,9 +256,11 @@ async function main() {
       await shot(page, "redraft-ask");
       await page.getByTestId("vp-ask-no").click();
       assert.equal(await page.getByTestId("vp-ask").count(), 0, "cancel leaves it as it is");
+      // Count the finished runs before the press: "at least 2" was already true from the earlier steps, so the step went on while its own run was still going.
+      const okBefore: number = (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n;
       await page.getByTestId("vp-draft").click();
       await page.getByTestId("vp-ask-yes").click();
-      await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n >= 2
+      await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n > okBefore
         && (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready", "the redraft is done", 40000);
       const after = await rows();
       for (const k of kept) assert.ok(after.some(r => r.id === k.id), `${k.who} is still there`);
@@ -289,9 +291,10 @@ async function main() {
       assert.equal((await rows()).filter(r => r.origin === "facilitator" || r.touched).length, writtenBefore, "nothing written is lost");
       await shot(page, "failed");
       fake({});
+      const okBeforeRetry: number = (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n;
       await page.getByTestId("vp-try-again").click();
       await page.getByTestId("vp-ask-yes").click().catch(() => {});
-      await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n >= 3
+      await until(async () => (await sql.query("select count(*)::int n from private.ai_runs where engagement_id=$1 and job='draft_visibility_plan' and status='ok'", [room])).rows[0].n > okBeforeRetry
         && (await sql.query("select status from private.visibility_plan_rounds where engagement_id=$1 and not deleted", [room])).rows[0]?.status === "ready" && (await plan())?.error === null, "the plan is drafted again", 40000);
       await page.getByTestId("vp-failed").waitFor({ state: "detached", timeout: 15000 });
     });
