@@ -34,3 +34,18 @@ export function place(hub: HubPlace | null | undefined): string | null {
   if (!parts.length && hub.country?.trim()) parts.push(hub.country.trim());
   return parts.length ? parts.join(", ") : null;
 }
+
+export const statusName = (status: string) => ({ setup: "Setup", discover: "Discover", pre_call: "Pre-call", retreat: "Retreat", follow_up: "Follow-up", closed: "Closed" }[status] ?? "Engagement");
+
+// Upcoming first (nearest first), then undated, then past (most recent first), then closed.
+// Callers supply today's date in the engagement's own time zone.
+export function compareEngagements(a: ListedEngagement, b: ListedEngagement, now = new Date()): number {
+  const key = (e: ListedEngagement): [number, string] => {
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: e.church?.timezone ?? "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+    const start = e.retreat_start_date ?? e.start_date ?? e.pre_call_at?.slice(0, 10);
+    const end = e.retreat_end_date ?? e.end_date ?? start;
+    return [e.status === "closed" ? 3 : !start ? 1 : end! >= today ? 0 : 2, start ?? ""];
+  };
+  const [ag, ad] = key(a), [bg, bd] = key(b);
+  return ag - bg || (ag >= 2 ? bd.localeCompare(ad) : ad.localeCompare(bd)) || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+}
