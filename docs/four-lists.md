@@ -51,18 +51,6 @@ Deviation: `show_write`, `template_write` (which also anchors a saved template o
 - The home page's tool count rises by one.
 - The 60% standing rule is per run (against the groups standing when the run was claimed), across all four lists together.
 
-## Under load, and the lock a submission holds (acceptance finding live-4 23.8, November 9)
+## Load check
 
-On live.clearway.co the 50-phone load test (`npm run load -- --origin https://live.clearway.co`) sent 150 cards with the Four Helpful Lists live: 124 were accepted and 26 came back unavailable (Postgres 57014, statement timeout), all in the third burst, with about 120 cards on the step. The 50 agrees all succeeded.
-
-What the local stack shows (the load script against `http://localhost:3000`, on an engagement of its own, 150, 450 and about 1,000 cards, and the database throttled to a fortieth of a CPU):
-
-- 150 cards land with none refused. One submission costs about 22 ms of database time, the same at 0 cards and at 450, so the card count alone does not make the queue. The board (`four_lists_board`) is built once per submission, not several times, and its cost grows only gently with cards (about 5 ms at 150, 9 ms at 600).
-- Every submission holds the room's row lock (and, in the practice room, an advisory lock before it) from its first statement to the end of its transaction, and the statement timeout counts the wait for that lock. So the capacity of a room is the length of time one submission holds the lock, and a burst that arrives faster than that queues until the last phone's wait passes the timeout. On a database that is several times slower than the local one (the hosted project) the same burst can queue for eight seconds.
-- Nearly half of that time was spent before anything needed the lock: the caller's role check, the attendee ids, the step and kind lookups, the request's shape and the answer's own parse.
-
-Not shown here: the local stack could not make the 150 cards fail without throttling the database to a fortieth of a CPU with all 50 phones sending in the same instant, and the throttled run is CPU-bound as a whole, so it does not tell the lock hold from everything else. The hosted project's logs are the check that the change below was enough. The load script now counts the Four Helpful Lists in CI, so a regression that loses cards fails the pull request.
-
-Change (`supabase/migrations/20261109060000_overnight_four_lists_signal.sql`): `private.live_submit` does the role check, the attendee, the step and kind lookups, the request shape and the parse before the room lock; then takes the lock, reads the step again (its state can change while a request waits), the person's earlier answer, the room's state and the answer limit, and writes. Statuses and writes are as before, and the parse's verdict is acted on where it always was (after the conflict and closed checks). A refused request (denied, invalid session, invalid request) no longer queues.
-
-Load check: `npm run load -- --origin <origin> [--room <practice room id>]` joins 50 phones and sends 3 bursts of cards to whichever of word cloud, wall, lens or Four Helpful Lists is live. `--room` names another room that accepts the practice guest join. `npm run test:load` runs the word cloud, then the Four Helpful Lists with 150 cards and 50 agrees, and fails on any refusal.
+`npm run load -- --origin <origin> [--room <room id>]` sends 3 bursts of 50 phones to whichever of word cloud, wall, lens or Four Helpful Lists is live. `npm run test:load` runs the word cloud and then the Four Helpful Lists (150 cards, 50 agrees) and fails on any refusal.
