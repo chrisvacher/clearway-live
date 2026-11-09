@@ -31,6 +31,7 @@ export type RoSentence = { text: string; quote: boolean; thin?: string };
 export type RoRow = { title?: string; group?: string; cells: string[]; parts: { role: string; owner?: string; due?: string; text?: string }[] };
 export type RoSection = { key: string; heading: string; kind: "prose" | "record"; sentences: RoSentence[]; table?: { columns: string[]; rows: RoRow[] } };
 export type RoView = {
+  timezone?: string;
   status: "ok"; church: string; title: string; years: { base: number; future: number; vision: number; outlook: number };
   map: {
     page1: { mission: RoField; purpose: RoField; values: RoField; strategy: RoField;

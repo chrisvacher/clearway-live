@@ -70,3 +70,7 @@ The model sees refs only (`f1` survey finding, `t1` accepted theme, `q1` quote, 
 ## Sign-off numbers after a reset
 
 The next sign-off number is the highest standing `n` plus one; sign-offs a reset put away (deleted) no longer count, and the unique index on (engagement, n) holds only for standing rows. Migration `20261109060000_overnight_four_lists_signal.sql`. Test: `report.test.sql`.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+Migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`. `report_source_set` matches the excerpt the facilitator picked, so a theme's quote can be added next to the theme's summary (they share a kind and a ref), and the quote is stored as the room's own words so Use the room's words has something to use. Taking a source off with an excerpt removes that source only; with none, every source of the record comes off as before. Test: `report.test.sql`.

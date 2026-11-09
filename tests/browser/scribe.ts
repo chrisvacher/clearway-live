@@ -111,7 +111,7 @@ async function main() {
       const kinds = (await sql.query("select kind from private.scribe_cards where engagement_id=$1 order by seq", [room.id])).rows.map(r => r.kind);
       assert.deepEqual(kinds, ["quote", "decision", "tension", "action", "question", "mitigation"]);
       const text = await laptop.locator("[data-testid=scribe-cards]").innerText();
-      assert.match(text, /Why: Weekly was too much/); assert.match(text, /Dana/); assert.match(text, /Linked to Volunteer burnout/);
+      assert.match(text, /Why: Weekly was too much/); assert.match(text, /Dana/); await until(async () => /Not on a risk yet: Volunteer burnout/.test(await laptop.locator("[data-testid=scribe-cards]").innerText()), "once synced, the card says it is not on a risk (no pre-mortem risk has those words)");
       assert.match(text, /Stay small and close/); assert.match(text, /Reach new families/);
       await shot(laptop, "02-six-kinds");
     });
@@ -238,11 +238,28 @@ async function main() {
       await card.getByRole("button", { name: "Edit this card" }).click();
       await card.locator("textarea").fill("Who owns the food bank, Community or Operations?");
       await card.getByRole("button", { name: "Save the edit" }).click();
-      await until(async () => (await sql.query("select revision,text from private.scribe_cards where text like 'Who owns the food bank, %'", [])).rows.length === 1, "the edit is saved");
+      await until(async () => (await sql.query("select revision,text from private.scribe_cards where engagement_id=$1 and text like 'Who owns the food bank, %'", [room.id])).rows.length === 1, "the edit is saved");
       await card.getByRole("button", { name: "Re-file to another session" }).click();
       await card.locator("select").selectOption({ label: "Close the day" });
       await card.getByRole("button", { name: "Re-file", exact: true }).click();
       await until(async () => (await sql.query("select 1 from private.scribe_cards where text like 'Who owns the food bank, %' and session_id=$1 and refiled_from is not null", [later])).rows.length === 1, "the card is on the other session");
+    });
+
+    await step("An edit on an old copy is refused and says so, and Dismiss shows the server's wording", async () => {
+      const cardId = (await sql.query("select id from private.scribe_cards where engagement_id=$1 and text='We will meet monthly.'", [room.id])).rows[0].id as string;
+      // Located by id: the words change under it, so a text filter would lose the card.
+      const card = laptop.locator(`[data-testid=scribe-cards] [data-card-id="${cardId}"]`);
+      await card.getByRole("button", { name: "Edit this card" }).click();
+      // Another scribe saves the same card while this form is still open. The console's poll then reads the new revision.
+      await sql.query("update private.scribe_cards set text='Rae kept it weekly', revision=revision+1 where engagement_id=$1 and text='We will meet monthly.'", [room.id]);
+      await delay(3500);
+      await card.locator("textarea").fill("Thomas wants monthly");
+      await card.getByRole("button", { name: "Save the edit" }).click();
+      await card.getByText("This card changed somewhere else, so this edit didn’t go in.").waitFor({ timeout: 8000 });
+      assert.equal((await sql.query("select text from private.scribe_cards where engagement_id=$1 and text like 'Rae kept%'", [room.id])).rows.length, 1, "the other scribe's words are still the stored ones");
+      await card.getByRole("button", { name: "Dismiss" }).click();
+      await until(async () => (await cardsOnLaptop().filter({ hasText: "Rae kept it weekly" }).count()) === 1, "after Dismiss the card shows the server's words");
+      assert.equal(await cardsOnLaptop().filter({ hasText: "Thomas wants monthly" }).count(), 0);
     });
 
     await step("The team-led block turns the console off, and it comes back after", async () => {

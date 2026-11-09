@@ -15,10 +15,10 @@ export default async function FourListsReviewPage({ params }: { params: Promise<
   const { data, error } = await client.rpc("four_lists_review", { p_engagement: id });
   if (fourListsMissing(error)) return <main id="main" className="page-width"><div className="hero"><div className="eyebrow-live">Only you see this</div><h1>Four Helpful Lists</h1>
     <Link className="text-link" href={`/setup/${id}/run-of-show`}>Back to the run of show</Link></div><p className="show-empty">Four Helpful Lists isn’t available yet. It arrives with the next update.</p></main>;
-  if (error || !data || data.status === "missing") notFound();
-  const review = data.status === "ok" ? data as FourReview : null;
-  return <main id="main" className="page-width"><div className="hero"><div className="eyebrow-live">Only you see this</div><h1>Four Helpful Lists</h1>{review && <p>{review.engagement.title}</p>}
+  if (error || !data || data.status !== "ok") notFound();
+  const review = data as FourReview;
+  return <main id="main" className="page-width"><div className="hero"><div className="eyebrow-live">Only you see this</div><h1>Four Helpful Lists</h1><p>{review.engagement.title}</p>
     <Link className="text-link" href={`/setup/${id}/run-of-show`}>Back to the run of show</Link></div>
-    {review ? <FourListsReview review={review} engagement={id} /> : <p className="show-empty">You’re not assigned to this engagement.</p>}
+    <FourListsReview review={review} engagement={id} />
   </main>;
 }
