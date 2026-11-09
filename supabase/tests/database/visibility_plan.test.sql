@@ -662,6 +662,28 @@ select is(public.visibility_plan_row_edit(tests.id(100),tests.rowid('Leaders alp
 select is((tests.pstate()->'plan'->>'dates_blanked')::integer,3,'and the count goes down by one');
 reset role;
 
+-- ---------- A row added by hand keeps its place through Draft again ----------
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_row_add(tests.id(100),'{"stage":"other","who":"The prayer team","what_they_hear":"What the team is praying for."}')->>'status','ok','The lead adds a row with a stage of their own');
+do $$ declare i integer; begin for i in 1..40 loop perform public.visibility_plan_row_move(tests.id(100),tests.rowid('The prayer team'),'up'); end loop; for i in 1..2 loop perform public.visibility_plan_row_move(tests.id(100),tests.rowid('The prayer team'),'down'); end loop; end $$;
+reset role;
+select is((select position from private.visibility_plan_rows where id=tests.rowid('The prayer team')),3,'and puts it third');
+set local role authenticated;
+select tests.login(1);
+select is(public.visibility_plan_start(tests.id(100),tests.id(940),true)->>'status','ok','The lead drafts again');
+reset role;
+-- The lead pastor row was reviewed earlier; let it go back to the model's, so the redraft has an early stage to fill (new rows for it go before the row added by hand).
+update private.visibility_plan_rows set reviewed_at=null,touched=false where engagement_id=tests.id(100) and not deleted and stage='lead_pastor' and origin='ai';
+create temp table c11 as select tests.pclaim() as v;
+create temp table a11 as select tests.papply((select v from c11),jsonb_build_array(
+ tests.prow('lead_pastor','The lead pastor, first','Hears the plan first.',jsonb_build_array(tests.pref((select v from c11),'i'))),
+ tests.prow('lead_pastor','The lead pastor, once more','Hears what the church will hear.',jsonb_build_array(tests.pref((select v from c11),'i')))
+)) as j;
+select ok((select (j->>'kept')::integer>=1 from a11),'The redraft puts new rows in');
+select is((select position from private.visibility_plan_rows where id=tests.rowid('The prayer team') and not deleted),3,'and the row the lead added by hand is still third, as it was left');
+select is((select array_agg(position order by position) from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted),(select array_agg(g) from generate_series(1,(select count(*)::integer from private.visibility_plan_rows where engagement_id=tests.id(100) and not deleted)) g),'with positions one to n');
+
 -- ---------- The report's lease ----------
 create temp table rc1 as select private.report_claim(tests.id(100),gen_random_uuid(),'m','{"draft_report":"report@1"}'::jsonb) as v;
 select is((select v->>'status' from rc1),'claimed','The report''s worker claims a section');

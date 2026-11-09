@@ -66,3 +66,7 @@ status poll, AI apply and TV heartbeat for the room takes that lock or the room 
 - `ai_apply` refuses a whole group (`kept_apart`) if the facilitator ever separated one of its members, so the AI never re-folds what a person pulled apart.
 - The home page's tool count rises by one.
 - The 60% standing rule is per run (against the groups standing when the run was claimed), across all four lists together.
+
+## Load check
+
+`npm run load -- --origin <origin> [--room <room id>]` sends 3 bursts of 50 phones to whichever of word cloud, wall, lens or Four Helpful Lists is live. `npm run test:load` runs the word cloud and then the Four Helpful Lists (60 cards from 15 phones) and fails on any refusal.
