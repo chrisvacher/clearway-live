@@ -5,7 +5,9 @@ export type FileKind = "photo" | "file";
 export type CardDetail = { views?: [string, string]; owner?: string; date?: string; why?: string; risk?: string };
 
 export type ScribeCardRow = { id: string; session_id: string; kind: CardKind; text: string; detail: CardDetail; has_speaker: boolean;
-  captured_at: string; received_at: string; seq: string; revision: number; refiled: boolean };
+  captured_at: string; received_at: string; seq: string; revision: number; refiled: boolean;
+  // Mitigation cards only: whether the card is on the pre-mortem risk it names.
+  linked?: boolean };
 export type ScribeFileRow = { id: string; session_id: string; kind: FileKind; name: string; content_type: string; bytes: number; uploaded: boolean;
   captured_at: string; received_at: string; seq: string; refiled: boolean };
 export type ScribeSession = { id: string; title: string; part: string; team_led: boolean };

@@ -13,7 +13,7 @@ type Scribe = ReturnType<typeof useScribe>;
 // SCR-02: the scribe's phone. The camera is the main thing: take the easel photo, it is fitted,
 // saved on the phone, and sent when there is a connection. A short note card can also be captured.
 export function EaselCapture({ engagement, church, scribe }: { engagement: string; church: string; scribe: Scribe }) {
-  const { state, mode, files, cards, online, waiting, capture, addFiles, fileError } = scribe;
+  const { state, mode, files, cards, online, waiting, capture, addFiles, dismiss, fileError } = scribe;
   const camera = useRef<HTMLInputElement>(null), picker = useRef<HTMLInputElement>(null);
   const live = state?.live ?? null;
   const off = mode !== "ready";
@@ -34,9 +34,9 @@ export function EaselCapture({ engagement, church, scribe }: { engagement: strin
         <div className="scr-phrow"><button type="button" className="scr-btn" disabled={off} onClick={() => picker.current?.click()}><FileUp className="scr-icon" aria-hidden="true" />Upload a file</button></div>
         {fileError ? <span className="scr-err" role="alert">{fileError}</span> : null}
       </div>
-      <div className="scr-phone-cards" data-testid="scribe-phone-files">{recent.map(f => <ScribeCard key={f.id} file={f} engagement={engagement} surface="phone" isNew={fresh.has(f.id)} />)}</div>
+      <div className="scr-phone-cards" data-testid="scribe-phone-files">{recent.map(f => <ScribeCard key={f.id} file={f} engagement={engagement} surface="phone" onDismiss={dismiss} isNew={fresh.has(f.id)} />)}</div>
       <CaptureComposer sessionTitle={live && !live.team_led ? live.title : null} off={off} onCapture={capture} onFiles={list => void addFiles(list)} />
-      <div className="scr-phone-cards">{notes.map(c => <ScribeCard key={c.id} card={c} engagement={engagement} surface="phone" isNew={fresh.has(c.id)} />)}</div>
+      <div className="scr-phone-cards">{notes.map(c => <ScribeCard key={c.id} card={c} engagement={engagement} surface="phone" onDismiss={dismiss} isNew={fresh.has(c.id)} />)}</div>
     </div>
   </div>;
 }

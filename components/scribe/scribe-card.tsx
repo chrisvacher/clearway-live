@@ -28,7 +28,8 @@ export function fileUrl(engagement: string, id: string, surface: "scribe" | "con
 export type CardSurface = "console" | "phone" | "feed";
 type CardProps = {
   card?: ShownCard; file?: ShownFile; engagement: string; surface: CardSurface; sessions?: ScribeSession[]; sessionTitle?: string; isNew?: boolean;
-  onEdit?: (card: ShownCard, next: { text: string; detail: ReturnType<typeof cleanDetail>; speaker: string }) => void;
+  onEdit?: (card: ShownCard, next: { text: string; detail: ReturnType<typeof cleanDetail>; speaker: string; revision: number }) => void;
+  onDismiss?: (id: string) => void;
   onRefile?: (id: string, session: string) => void;
   // The feed's Promote to TV on a quote: on the TV now, why it can't be pressed (plain words), and the two presses.
   promote?: { on: boolean; block: string | null; busy: boolean; error: string; onPromote: () => void; onTakeDown: () => void };
@@ -36,10 +37,12 @@ type CardProps = {
 
 // ScribeCard: one capture. An icon and a word tell the kinds apart. The speaker is kept for the record
 // and is never shown here: the card says only that one was kept, on the scribe's own console.
-export function ScribeCard({ card, file, engagement, surface, sessions = [], sessionTitle, isNew, onEdit, onRefile, promote }: CardProps) {
+export function ScribeCard({ card, file, engagement, surface, sessions = [], sessionTitle, isNew, onEdit, onRefile, onDismiss, promote }: CardProps) {
   const [mode, setMode] = useState<"view" | "edit" | "refile">("view");
   const [text, setText] = useState(card?.text ?? "");
   const [target, setTarget] = useState("");
+  // The revision the card had when Edit was opened: the edit is sent against that copy, not whatever the poll has fetched since.
+  const [opened, setOpened] = useState(0);
   const device = surface === "phone" ? "phone" : "laptop";
   const item = card ?? file!;
   const kind: CardKind | "photo" | "file" = card ? card.kind : file!.kind;
@@ -52,7 +55,7 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
       if (d.owner) facts.push(<><User className="scr-icon" aria-hidden="true" />{d.owner}</>); else facts.push(<><User className="scr-icon" aria-hidden="true" />No owner named</>);
       if (d.date) facts.push(<><Calendar className="scr-icon" aria-hidden="true" />{d.date}</>);
     }
-    if (card.kind === "mitigation" && d.risk) facts.push(<><Link2 className="scr-icon" aria-hidden="true" />Linked to {d.risk}</>);
+    if (card.kind === "mitigation" && d.risk) facts.push(<><Link2 className="scr-icon" aria-hidden="true" />{card.linked === false ? `Not on a risk yet: ${d.risk}` : `Linked to ${d.risk}`}</>);
     if (card.has_speaker && surface !== "feed") facts.push(<><Lock className="scr-icon" aria-hidden="true" />Speaker kept for the record</>);
   }
   const editable = surface === "console" && card && !card.pending && state !== "queued";
@@ -68,7 +71,7 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
         {surface !== "feed" ? <StateChip state={state} device={device} /> : <StateChip state={state} device={device} show="waiting" />}
       </span>
       {surface === "console" && (card || file) && state !== "failed" && mode === "view" ? <span className="scr-acts">
-        {editable ? <button type="button" className="scr-btn is-icon" aria-label="Edit this card" title="Edit" onClick={() => { setText(card!.text); setMode("edit"); }}><Pencil className="scr-icon" aria-hidden="true" /></button> : null}
+        {editable ? <button type="button" className="scr-btn is-icon" aria-label="Edit this card" title="Edit" onClick={() => { setText(card!.text); setOpened(card!.revision); setMode("edit"); }}><Pencil className="scr-icon" aria-hidden="true" /></button> : null}
         {state === "synced" && onRefile ? <button type="button" className="scr-btn is-icon" aria-label="Re-file to another session" title="Re-file to another session" onClick={() => { setTarget(""); setMode("refile"); }}><FolderInput className="scr-icon" aria-hidden="true" /></button> : null}
       </span> : null}
     </div>
@@ -78,7 +81,7 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
       <label className="scr-flabel" htmlFor={`edit-${card.id}`}>{kindInfo[card.kind].field}</label>
       <textarea id={`edit-${card.id}`} className="scr-input" value={text} onChange={e => setText(e.target.value)} aria-invalid={!canCapture(text)} />
       <div className="scr-row"><button type="button" className="scr-btn is-sm" onClick={() => setMode("view")}>Cancel</button>
-        <button type="button" className="scr-btn is-sm is-primary" disabled={!canCapture(text)} onClick={() => { onEdit?.(card, { text: text.trim(), detail: cleanDetail(card.kind, card.detail as Record<string, unknown>), speaker: "" }); setMode("view"); }}>Save the edit</button></div>
+        <button type="button" className="scr-btn is-sm is-primary" disabled={!canCapture(text)} onClick={() => { onEdit?.(card, { text: text.trim(), detail: cleanDetail(card.kind, card.detail as Record<string, unknown>), speaker: "", revision: opened }); setMode("view"); }}>Save the edit</button></div>
     </div> : null}
     {file && file.kind === "photo" ? (file.uploaded ? <span className="scr-photo">
       {/* eslint-disable-next-line @next/next/no-img-element -- served by our own signed-in route, never optimised by a CDN */}
@@ -88,6 +91,7 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
       ? <a href={fileUrl(engagement, file.id, surface === "feed" ? "control" : "scribe")} download={file.name}>{file.name}</a> : <span className="scr-trunc">{file.name}</span>}<small>{fileSize(file.bytes)}</small></div> : null}
     {facts.length ? <div className="scr-facts">{facts.map((f, i) => <span key={i}>{f}</span>)}</div> : null}
     {item.reason ? <div className="scr-err" role="alert">{item.reason}</div> : null}
+    {state === "failed" && onDismiss ? <div className="scr-row"><button type="button" className="scr-btn is-sm" onClick={() => onDismiss(item.id)}>Dismiss</button></div> : null}
     {promote && card?.kind === "quote" ? <div className="scr-promote">
       {promote.on
         ? <button type="button" className="scr-btn is-sm" disabled={promote.busy} onClick={promote.onTakeDown}><MonitorOff className="scr-icon" aria-hidden="true" />Take off the TV</button>

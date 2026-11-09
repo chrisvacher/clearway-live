@@ -4,7 +4,7 @@ Milestone 4, step 6 (D2-11 to D2-14, INT-16). Migration: `supabase/migrations/20
 
 ## The remote changing hands
 
-- The lead or co-facilitator names one person from the team and hands over the remote for a block. The block is the run of consecutive commander's intent and sign steps around the live step, or the steps named when a follow-up is issued.
+- The lead or co-facilitator names one person from the team and hands over the remote for a block. The block is the run of consecutive commander's intent and sign steps around the live step, or the steps named when a follow-up is issued. The lead can hand over from any step of that run, and from the team-led step just before it ("The team takes the remote" in the Wayfinding template, the PRD's 1:00 row), which hands over the run that follows. That step is not part of the block. Any other step is refused with `invalid_state` (`private.team_run`, migration `20261109020000_overnight_scribe_handover.sql`).
 - The team remote shows the block's steps, Go live, Next, Back, Phones down, Open phones, and for the intent step Pair everyone, Clear pairs and Present. It never shows the alignment signal, presenter notes, Discover data or any step outside the block. The database refuses everything else (`private.room_control`, `private.remote_actor`), so a hidden button is not the only guard.
 - The lead's remote shows who holds it. Take it back changes only who holds the remote: the live step, spotlight and hidden items stay as they are. The remote returns to the lead on its own when the live step leaves the block.
 

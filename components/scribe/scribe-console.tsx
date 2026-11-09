@@ -12,7 +12,7 @@ type Scribe = ReturnType<typeof useScribe>;
 // SCR-01: the scribe console on a laptop. The header follows the run of show; cards attach to the
 // step that is live. A team-led step turns the console off, and nothing live says so.
 export function ScribeConsole({ engagement, church, scribe }: { engagement: string; church: string; scribe: Scribe }) {
-  const { state, mode, cards, files, online, waiting, capture, edit, refile, addFiles, fileError, readBack, correct } = scribe;
+  const { state, mode, cards, files, online, waiting, capture, edit, refile, dismiss, addFiles, fileError, readBack, correct } = scribe;
   const live = state?.live ?? null;
   const sessions = state?.sessions ?? [];
   const title = (id: string) => sessions.find(s => s.id === id)?.title;
@@ -47,7 +47,7 @@ export function ScribeConsole({ engagement, church, scribe }: { engagement: stri
           {shownCards.length === 0 ? <div className="scr-empty">Nothing captured for this step yet.</div> : null}
           {shownCards.map(card => <div role="listitem" key={card.id}>
             <ScribeCard card={card} engagement={engagement} surface="console" sessions={sessions} sessionTitle={title(card.session_id)} isNew={fresh.has(card.id)}
-              onEdit={(c, next) => edit(c, next)} onRefile={refile} />
+              onEdit={(c, next) => edit(c, next)} onRefile={refile} onDismiss={dismiss} />
           </div>)}
         </div>
       </section>
@@ -56,9 +56,9 @@ export function ScribeConsole({ engagement, church, scribe }: { engagement: stri
         <div className="scr-strip" data-testid="scribe-files">
           {photos.length === 0 && others.length === 0 ? <div className="scr-empty">Easel photos from the scribe’s phone land here.</div> : null}
           {photos.map(file => <figure key={file.id} className={`${fresh.has(file.id) ? "is-new " : ""}${file.state === "failed" ? "is-failed" : file.uploaded ? "" : "is-arriving"}`}>
-            <ScribeCard file={file} engagement={engagement} surface="console" sessions={sessions} onRefile={refile} />
+            <ScribeCard file={file} engagement={engagement} surface="console" sessions={sessions} onRefile={refile} onDismiss={dismiss} />
           </figure>)}
-          {others.map(file => <ScribeCard key={file.id} file={file} engagement={engagement} surface="console" sessions={sessions} onRefile={refile} isNew={fresh.has(file.id)} />)}
+          {others.map(file => <ScribeCard key={file.id} file={file} engagement={engagement} surface="console" sessions={sessions} onRefile={refile} onDismiss={dismiss} isNew={fresh.has(file.id)} />)}
         </div>
       </section>
     </div>
