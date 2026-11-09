@@ -13,7 +13,7 @@ export default async function EngagementRoom({ params, searchParams }: { params:
   const [initial,ai]=info.closed?[{status:"closed"},false] as const:await Promise.all([initialRoomAccess(id),roomAi(id)]);
   return <main id="main" className="page-width narrow">
     <div className="eyebrow-live">{info.church}</div><h1>{info.title}</h1>
-    {info.closed ? <p>This engagement has closed. Check with your facilitator.</p> : <RoomAccess key={id} engagement={id} church={info.church} email={email?.slice(0,254)} practice={info.type==="practice"} initial={initial} ai={ai} />}
+    {info.closed ? <p>This engagement has closed. Check with your facilitator.</p> : <RoomAccess key={id} engagement={id} church={info.church} email={email?.slice(0,254)} practice={info.type==="practice"} openJoin={info.openJoin===true} initial={initial} ai={ai} />}
     {info.howTheRoomDecides && <section className="notice"><h2>How the room decides</h2><p>{info.howTheRoomDecides}</p></section>}
   </main>;
 }

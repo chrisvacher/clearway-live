@@ -40,6 +40,26 @@ select is(public.practice_guest(tests.practice_payload()||jsonb_build_object('pr
 select is(public.practice_guest(tests.practice_payload())->>'status','approved','Name-only guest obtains a practice grant');
 select is((select email from attendees where engagement_id='90000000-0000-4000-8000-000000000010'),tests.id(101)::text||'@practice.clearway.invalid','Practice identity is generated per device');
 select is((select count(*)::integer from device_sessions),0,'A guest grant alone creates no signed-in device');
+-- Open joining (November 9): a name-only join on a real engagement, only when the admin setting is on.
+select is(public.practice_guest(tests.payload(5,11)||jsonb_build_object('name','Open guest'))->>'status','invalid_request','A room without open joining refuses a name-only join');
+reset role;
+insert into engagements(id,church_id,title,status,type,how_the_room_decides) values(tests.id(13),tests.id(21),'Open workshop','retreat','team_workshop','By consensus');
+insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(13),tests.id(303),'lead');
+-- Only an admin changes open joining, by any path.
+set local role authenticated;
+select tests.login(3);
+select throws_ok($$update engagements set settings=settings||'{"open_join":true}' where id='82000000-0000-4000-8000-000000000013'$$,'42501',null,'A facilitator who is not an admin cannot turn on open joining directly');
+select throws_ok($$select public.save_engagement('82000000-0000-4000-8000-000000000013',(select to_jsonb(c) from churches c where id='82000000-0000-4000-8000-000000000021'),(select to_jsonb(e)||'{"settings":{"open_join":true}}' from engagements e where id='82000000-0000-4000-8000-000000000013'),null,null,null,null)$$,'42501',null,'A facilitator who is not an admin cannot turn on open joining through save');
+reset role;
+select set_config('request.jwt.claims','',true);
+update engagements set settings=settings||'{"open_join":true}' where id=tests.id(13);
+set local role service_role;
+select is(public.room_auth('init',tests.payload(5,13))->>'status','ready','Open joining device initializes');
+select is(public.practice_guest(tests.payload(5,13)||jsonb_build_object('name','Open guest','proof',repeat('b',64)))->>'status','device_missing','Open joining still requires the device secret');
+select is(public.practice_guest(tests.payload(5,13)||jsonb_build_object('name','Open guest'))->>'status','approved','Open joining lets a name-only guest in');
+select is((select email from attendees where engagement_id=tests.id(13) and name='Open guest'),tests.id(105)::text||'@guest.clearway.invalid','Open joining generates a guest identity per device');
+select is((public.room_public_info(tests.id(13))->>'openJoin')::boolean,true,'Room info reports open joining');
+select is((public.room_public_info(tests.id(10))->>'openJoin')::boolean,false,'Room info reports open joining off by default');
 select set_config('tests.practice_claim',public.room_auth('prepare_claim',tests.practice_payload())->>'claim',true);
 reset role;
 select is((select count(*)::integer from attendees where engagement_id=tests.id(11)),1,'Joining practice does not alter another engagement');

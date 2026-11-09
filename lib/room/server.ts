@@ -12,7 +12,7 @@ import { digest, hash, newCode, newDevice, newLink, normalizedEmail, parseDevice
 import { hasRoomCookie, participantClient } from "./client";
 import type { RoomAccessStatus } from "./access";
 
-export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean };
+export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean; openJoin?: boolean };
 export async function roomInfo(id: string): Promise<RoomInfo | null> {
   if (!uuid(id)) return null;
   const { data, error } = await serviceClient().rpc("room_public_info", { p_engagement: id });
