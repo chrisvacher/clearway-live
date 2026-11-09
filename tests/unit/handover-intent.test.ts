@@ -91,5 +91,5 @@ test("each follow-up refusal has its own plain line, and none reads as a dead ro
     assert.ok(text && text !== followupStatusText.unavailable, status);
     assert.ok(!/[\u2013\u2014]/.test(text), "no dashes");
   }
-  assert.match(followupManageText.invalid_window, /scheduled times of the follow-up steps/);
+  assert.match(followupManageText.invalid_window, /24 hours/);
 });

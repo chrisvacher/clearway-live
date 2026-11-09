@@ -20,4 +20,4 @@ Run `npm run check`. CI also replays migrations, lints functions and runs the da
 
 These checks do not claim venue phone-to-TV acceptance. The TV/phone UIs, physical printing and practice-room timing acceptance follow in their ordered PRs. No production attendee or Auth session is created for these checks.
 
-**Overnight acceptance fix (November 9).** Remove template on /setup/templates asks inside the panel ("Remove <name>? Engagements already started from it keep their sessions.", Remove template or Keep it), never with the browser's confirm box. The kind picker no longer shows screen codes such as INT-07.
+**Overnight acceptance fix (November 9).** The kind picker no longer shows screen codes such as INT-07.

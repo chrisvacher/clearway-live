@@ -50,7 +50,7 @@ export function ShareLinks({ engagement, church, title, initial }: { engagement:
       {say && <p className="shr-banner" role="status">{say}</p>}
       {!state.eligible && <p className="shr-banner">This kind of engagement has no read-only copy.</p>}
       {state.eligible && !state.closed && <section className="shr-card" data-testid="share-waiting"><h2>Available once Day 2 closes</h2>
-        <p>The copy waits for the retreat to end. Pressing Close Day 2 on the control screen opens it. A day and a half closes the same way, because its half day is Day 2. If you ended the retreat another way, mark it closed here.</p>
+        <p>The copy waits for the retreat to end. Pressing Close Day 2 on the control surface opens it. A day and a half closes the same way, because its half day is Day 2. If you ended the retreat another way, mark it closed here.</p>
         <RetreatClose engagement={engagement} closed={false} closedOn={null} canReopen={false} onChange={read} /></section>}
       {state.eligible && state.closed && <>
         <section className="shr-card"><div className="shr-head"><div><p className="ctl-eyebrow">Read-only copy</p><h2>Share the plan with the elders</h2></div>

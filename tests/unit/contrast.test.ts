@@ -56,6 +56,10 @@ test("phone summary lines on the light card use the on-card text token", () => {
   let found = "";
   css.walkRules(rule => { if (/\.lsm-ph-lines p$/.test(rule.selector) && /^\.[\w-]+ \.lsm-ph-lines p$/.test(rule.selector)) rule.walkDecls("color", d => { found = d.value; }); });
   assert.equal(found, "var(--cwl-text-on-card)");
+  const rb = postcss.parse(readFileSync("components/interactions/read-back/read-back.css", "utf8"));
+  let rbColor = "";
+  rb.walkRules(rule => { if (rule.selector === ".rbk-ph-line p") rule.walkDecls("color", d => { rbColor = d.value; }); });
+  assert.equal(rbColor, "var(--cwl-text-on-card)", "read-back lines too");
   const values = tokens("dark"), a = luminance(rgb("--cwl-text-on-card", values)), b = luminance(rgb("--cwl-surface-card", values));
   assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 4.5);
 });

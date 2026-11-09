@@ -34,3 +34,5 @@ Milestone 4, step 6 (D2-11 to D2-14, INT-16). Migration: `supabase/migrations/20
 4. A line locks for three seconds after the last keystroke.
 5. The follow-up window defaults to an hour before the first step and two hours after the last.
 6. Taking the remote back leaves it with the lead until the lead hands it back.
+
+**Overnight acceptance fix (November 9).** Issue link and code, Extend, Reissue and Revoke each give a refusal its own plain line (invalid_window, invalid_request, limit, closed) instead of "The room didn't answer". Issue link and code says why it is off until the steps and a team facilitator are picked. Hand over keeps its own lines.

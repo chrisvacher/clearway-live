@@ -4,6 +4,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Download, EyeOff, Printer } from "lucide-react";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { recapCount, recapFrame, recapKey, type Recap, type RecapEntry } from "@/lib/export/recap";
+import { lensOf, lensOptions } from "@/lib/interactions/lens";
 import { windowLabel } from "@/lib/run-of-show/self-paced";
 import { parts, type ShowContext } from "@/lib/run-of-show/types";
 import type { LiveSnapshot } from "@/lib/live/types";
@@ -20,6 +21,7 @@ const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry
     <h3>{s.title}</h3>
     {s.prompt && <p className="recap-prompt">{s.prompt}</p>}
     <TvMirror frame={frame} label={`Results for ${s.title}`} />
+    {s.interaction === "lens" && !lensOptions(s.options).seed && lensOf(entry.results).seeded.length > 0 && <p className="recap-prompt">The count is this step&rsquo;s own answers. Seeded sentences are counted in the seeding step&rsquo;s CSV.</p>}
     <div className="recap-meta"><span className="recap-count" aria-live="polite">{recapCount(entry)}</span>
       <a className="show-button is-small" href={`/api/control/${engagement}/export?session=${s.id}`} download><Download size={14} aria-hidden="true" />Download CSV</a></div>
   </article>;

@@ -74,7 +74,7 @@ export function aiNotice(status: AiStatus | null): { kind: "warning" | "info"; t
   if (!s.ai) return { kind: "info", title: "AI is off for this session.", text: s.interaction === "wall" ? "The wall shows answers in arrival order." : s.interaction === "lens" ? "The wall shows sentences in arrival order, with no clusters." : s.interaction === "four_lists" ? "Only cards with the same words combine. Nothing on the TV is marked as AI." : "Nothing on the TV is marked as AI.", short: "AI is off. The room is fine." };
   const waiting = status.waiting ? ` ${status.waiting} ${status.waiting === 1 ? "answer" : "answers"} waiting for grouping.` : "";
   if (status.state?.failing) return { kind: "warning", title: "AI isn't responding.", text: `The room keeps working: answers show in arrival order and AI catches up when it's back.${waiting}`, short: "AI isn't responding. The room is fine." };
-  if (status.state?.slow) return { kind: "warning", title: "AI is slow.", text: `The room keeps working: answers show in arrival order and ${s.interaction === "wall" ? "groups catch up" : "AI catches up"} when it does.${waiting}`, short: "AI is slow. The room is fine." };
+  if (status.state?.slow) return { kind: "warning", title: "AI is slow.", text: `The room keeps working: answers show in arrival order, and ${s.interaction === "wall" ? "groups catch up once AI speeds up" : "AI catches up once it speeds up"}.${waiting}`, short: "AI is slow. The room is fine." };
   return null;
 }
 // Recent presses and other remotes' toasts, in plain words.

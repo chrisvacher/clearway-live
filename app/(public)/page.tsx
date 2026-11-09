@@ -61,7 +61,7 @@ const steps = [
   { name: "Day 1", photo: "/home/room-five-lenses.webp", text: "The 10-year Future through the Five Lenses, written in the present tense. Then the 3-year Vision and its Vision Outcomes, held provisionally overnight." },
   { name: "Overnight", photo: "/home/room-retreat-venue.webp", text: "Your facilitators review a draft of each lens built from the room's own words, every sentence traced to the answers it came from." },
   { name: "Day 2", photo: "/home/room-u-table.webp", text: "A read-back to confirm the room was heard, a pre-mortem on what could stop the plan, the 1-year Outlook as goals with an owner and an end date, then your own team takes the remote." },
-  { name: "After", photo: "/home/room-calendar.webp", text: "Your report and a draft visibility plan are assembled from the engagement. Each goal owner gets a check-in at 30, 60 and 90 days, and your elders get a read-only copy." },
+  { name: "After", photo: "/home/room-calendar.webp", text: "Your report and a draft visibility plan are assembled from the engagement. Each goal owner gets a check-in at 30, 60 and 90 days, and your elders or board get a read-only copy." },
 ];
 
 const room = [

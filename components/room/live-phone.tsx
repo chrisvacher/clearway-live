@@ -55,13 +55,12 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const [editing, setEditing] = useState<{ id: string; revision: number } | null>(null);
   const [bannerSeen, setBannerSeen] = useState(false), [bannerShown, setBannerShown] = useState(false);
   const [now, setNow] = useState(() => Date.now());
-  // The signed-in line is one-time for each sign-in: the first time it would show, it is also marked in session storage.
+  // The signed-in line is one-time for each sign-in: the first time it would show, it is also marked on the phone.
   const bannerDue = Boolean(phone.fresh && room && room.answers.length > 0), bannerFor = bannerKey(engagement, room?.name);
   useEffect(() => {
     if (!bannerDue) return;
-    let store: Storage | null = null;
-    try { store = window.sessionStorage; } catch { store = null; }
-    if (!bannerTaken(store, bannerFor)) setBannerShown(true);
+    // Local storage through browserStore (it never throws): a sign-in lasts until the engagement closes, so the flag does too.
+    if (!bannerTaken(browserStore, bannerFor)) setBannerShown(true);
   }, [bannerDue, bannerFor]);
   const input = useRef<HTMLTextAreaElement>(null);
   const burstLength = useRef<{ ends: string; total: number } | null>(null);

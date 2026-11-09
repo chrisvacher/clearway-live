@@ -10,8 +10,10 @@ import "./handover.css";
 type Person = { id: string; first: string };
 type Access = { id: string; state: FollowupState; attendee: string; first?: string; email?: string; opens_at: string; closes_at: string; tv?: boolean; remote?: boolean };
 type Panel = { status: string; remote: RemoteState; followup: { status: string; access: Access | null }; people: Person[] };
-const messages: Record<string, string> = { ...followupStatusText, ...followupManageText, moved: "The room moved on. Check what is live and try again.", missing: "That person or step is not available.", invalid_state: "Go live on the first step of the block, then hand over.", denied: "Only the lead facilitator can do that.", exists: "A follow-up is already issued. Revoke it or reissue it.",
+const messages: Record<string, string> = { ...followupStatusText, moved: "The room moved on. Check what is live and try again.", missing: "That person or step is not available.", invalid_state: "Go live on the first step of the block, then hand over.", denied: "Only the lead facilitator can do that.", exists: "A follow-up is already issued. Revoke it or reissue it.",
   unavailable: "The room didn’t answer. Try again." };
+// Only Issue, Extend, Reissue and Revoke can be refused with these lines; Hand over has its own statuses.
+const manageMessages: Record<string, string> = { ...messages, ...followupManageText };
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 // The lead's side of the remote changing hands (D2-11): who holds it, Take back, Hand over, and the
@@ -37,7 +39,7 @@ export function HandoverPanel({ room }: { room: Room }) {
     setBusy(true); setMessage("");
     const out = await post(`/api/control/${engagement}/followup`, { action, ...body });
     setBusy(false); void read();
-    if (out.status !== "ok") { setMessage(messages[out.status] ?? messages.unavailable); return; }
+    if (out.status !== "ok") { setMessage(manageMessages[out.status] ?? manageMessages.unavailable); return; }
     if (typeof out.link === "string") setIssued({ link: out.link, code: String(out.code), emailed: out.emailed === true, first: String(out.first ?? "") });
     if (action === "revoke") setIssued(null);
   };

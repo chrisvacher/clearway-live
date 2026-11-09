@@ -55,3 +55,5 @@ An unknown token, a revoked link, a closed engagement, or a link used before Day
 The migration sets `day2_closed_at` for engagements already in follow-up with a retreat end date, so their Share and Check-ins pages work. Others stay open until their Day 2 closes.
 
 If the page cannot read its data (a failed call or a missing setting), it shows the plain unavailable page and logs an error code, never the token.
+
+**Overnight acceptance fix (November 9).** The Share page names the button as it reads, Close Day 2. A day and a half closes the same way, because its half day is Day 2.

@@ -135,7 +135,7 @@ export const followupStatusText: Record<string, string> = {
 // What the lead's Video follow-up panel says when the server refuses Issue link and code or Extend. Each
 // refusal has its own line, so a window the server will never accept doesn't read as a dead room.
 export const followupManageText: Record<string, string> = {
-  invalid_window: "That window won't work. It has to end in the future, open before it ends and run no longer than 24 hours. Set it to cover the scheduled times of the follow-up steps.",
+  invalid_window: "That window won't work. It has to end in the future, open before it ends and run no longer than 24 hours.",
   invalid_request: "Pick the steps, a team facilitator and when the link opens and ends, then try again.",
   limit: "A follow-up can run 24 hours at most, so it can't be extended again.",
   closed: "This engagement is closed, so no follow-up can be issued.",

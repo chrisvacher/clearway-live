@@ -112,12 +112,12 @@ test("the self-paced list hides only under a live step that takes input", () => 
 });
 
 test("the signed-in line shows once for each sign-in, and a closed store never breaks it", () => {
-  const store = (() => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, v); } }; })();
+  const store = (() => { const m = new Map<string, string>(); return { get: (k: string) => m.get(k) ?? null, set: (k: string, v: string) => { m.set(k, v); } }; })();
   const key = bannerKey("room", "Ann");
   assert.equal(bannerTaken(store, key), false, "the first time it shows");
   assert.equal(bannerTaken(store, key), true, "a reload does not bring it back");
   assert.equal(bannerTaken(store, bannerKey("room", "Ben")), false, "another person signing in on this phone sees it once");
-  const closed = { getItem: () => { throw new Error("closed"); }, setItem: () => { throw new Error("closed"); } };
+  const closed = { get: () => { throw new Error("closed"); }, set: () => { throw new Error("closed"); } };
   assert.equal(bannerTaken(closed, key), false);
   assert.equal(bannerTaken(null, key), false);
 });

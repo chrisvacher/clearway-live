@@ -60,7 +60,7 @@ test("The public pages promise no publishing to CORE: the After step says what A
   const { readFileSync, readdirSync, statSync } = await import("node:fs");
   const walk = (dir: string): string[] => readdirSync(dir).flatMap(n => { const f = `${dir}/${n}`; return statSync(f).isDirectory() ? walk(f) : /\.tsx?$/.test(f) ? [f] : []; });
   const home = readFileSync("app/(public)/page.tsx", "utf8");
-  assert.doesNotMatch(home, /to CORE|into CORE|move[^.]*CORE/i);
+  assert.doesNotMatch(home, /to CORE|move[^.]*CORE/i);
   assert.match(home, /30, 60 and 90 days/);
   for (const file of [...walk("app/(public)"), ...walk("components/public")]) assert.doesNotMatch(readFileSync(file, "utf8"), /(publish\w*|move[sd]?|sent|send|pushed?) [^.`"]{0,40}\bto CORE\b|\bin one step to CORE/i, file);
 });

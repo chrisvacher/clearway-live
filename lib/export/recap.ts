@@ -28,8 +28,11 @@ export function recapFrame(recap: Pick<Recap, "display" | "server_time" | "versi
 // holds, so the number on the card and the file never disagree. The TV's results count words in a word
 // cloud and only waiting questions in Q&A; the recap counts what was sent.
 export function recapCount(entry: RecapEntry) {
-  const kind = kindOf(entry.session), n = typeof entry.csv_rows === "number" ? entry.csv_rows : countOf(entry.results, kind?.counts);
-  return `${n} ${countUnit(n, kind?.counts, entry.session.interaction)}`;
+  const kind = kindOf(entry.session), rows = typeof entry.csv_rows === "number";
+  // Rows are answers: only a one-per-person kind keeps the people unit ("8 answering"), where rows are people.
+  const counts = rows && kind?.counts === "people" && !kind.one_per_person ? "answers" : kind?.counts;
+  const n = rows ? entry.csv_rows as number : countOf(entry.results, kind?.counts);
+  return `${n} ${countUnit(n, counts, entry.session.interaction)}`;
 }
 // Only what changed: a card redraws when its session's results, answers or text move.
-export const recapKey = (entry: RecapEntry) => JSON.stringify([entry.session.revision, entry.session.state, entry.results, entry.answers.map(a => [a.id, a.revision]), entry.hidden_keys, entry.hidden_ids, entry.csv_rows ?? null]);
+export const recapKey = (entry: RecapEntry) => JSON.stringify([entry.session.revision, entry.session.state, entry.results, entry.answers.map(a => [a.id, a.revision]), entry.hidden_keys, entry.hidden_ids]);
