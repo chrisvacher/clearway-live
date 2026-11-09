@@ -111,7 +111,7 @@ async function main() {
       const kinds = (await sql.query("select kind from private.scribe_cards where engagement_id=$1 order by seq", [room.id])).rows.map(r => r.kind);
       assert.deepEqual(kinds, ["quote", "decision", "tension", "action", "question", "mitigation"]);
       const text = await laptop.locator("[data-testid=scribe-cards]").innerText();
-      assert.match(text, /Why: Weekly was too much/); assert.match(text, /Dana/); assert.match(text, /Not on a risk yet: Volunteer burnout/, "no pre-mortem risk has those words, so the card says it is not on one");
+      assert.match(text, /Why: Weekly was too much/); assert.match(text, /Dana/); await until(async () => /Not on a risk yet: Volunteer burnout/.test(await laptop.locator("[data-testid=scribe-cards]").innerText()), "once synced, the card says it is not on a risk (no pre-mortem risk has those words)");
       assert.match(text, /Stay small and close/); assert.match(text, /Reach new families/);
       await shot(laptop, "02-six-kinds");
     });
