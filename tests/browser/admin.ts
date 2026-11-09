@@ -12,6 +12,7 @@ async function main() {
     const room=await engagement(sql,["Ruth","Ben"]), fac=await facilitator(env,sql,room.id);
     await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
     await sql.query("update public.engagements set title='Staff planning workshop',type='team_workshop',start_date='2027-02-20',end_date='2027-02-20' where id=$1",[room.id]);
+    if(process.env.KIT_AREA==="c") await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
@@ -25,6 +26,14 @@ async function main() {
           assert.equal(await page.locator("#main").count(),1,`${path} has one main destination`);
           assert.ok(await page.locator("h1").count(),`${path} has a heading`);
           assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} fits ${width}px`);
+          if((area==="c" || area==="d") && path!=="/setup/templates") {
+            assert.equal(await page.getByRole("navigation",{name:"Engagement pages",exact:true}).count(),1);
+            assert.ok(await page.getByRole("navigation",{name:"Engagement pages",exact:true}).innerText().then(text=>text.includes("Riverside Church")));
+          }
+          if(area==="c" && path.endsWith("/door")) {
+            assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
+            assert.equal(await page.getByText("Joined by name · Not signed in",{exact:true}).count(),0);
+          }
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/setup");
           if(path==="/setup") for(const label of ["Edit setup","Open run of show","Open the live room","Open door list","Open After the retreat"])
             assert.ok(await page.getByRole("link",{name:label,exact:true}).count(),label);

@@ -62,7 +62,7 @@ async function main() {
       await editor.mouse.up();
     }
 
-    // ---------- SET-08: the library and Start an engagement ----------
+    // ---------- SET-08: the library and Use a template ----------
     await step("SET-08: the library lists the team workshop template, ninety minutes, with its sessions", async () => {
       await editor.goto(`${app.origin}/setup/templates?engagement=${room.id}`);
       const card = editor.locator(".tpl-card", { hasText: "Team workshop" });
@@ -75,15 +75,15 @@ async function main() {
       assert.ok((await panel.innerText()).includes("1:25"), "times from the durations");
       await shot(editor, "set-08-library");
     });
-    await step("SET-08: Start an engagement from the team workshop copies its sessions, prompts, settings, timings and notes", async () => {
+    await step("SET-08: Use a template from the team workshop copies its sessions, prompts, settings, timings and notes", async () => {
       await editor.locator(".tpl-panel").getByRole("button", { name: "Use this template" }).click();
-      const dialog = editor.getByRole("dialog", { name: "Start an engagement" });
+      const dialog = editor.getByRole("dialog", { name: "Use a template" });
       await dialog.waitFor();
       assert.equal(await dialog.locator("#start-engagement").inputValue(), room.id, "the engagement it came from");
       await dialog.locator("#start-time").fill("2026-11-19T19:00");
       assert.match(await dialog.innerText(), /Copies 11 sessions/);
       await shot(editor, "set-08-start-engagement");
-      await dialog.getByRole("button", { name: "Start engagement" }).click();
+      await dialog.getByRole("button", { name: "Apply template" }).click();
       await editor.waitForURL(`**/setup/${room.id}/run-of-show**`, { timeout: 15000 });
       await editor.getByText("Started from the template: 11 sessions added.").waitFor();
       const copied = await run();
@@ -247,7 +247,7 @@ async function main() {
       const card = editor.locator(".tpl-card", { hasText: tplName });
       assert.match(await card.innerText(), /Saved by you/);
     });
-    await step("SET-08: Start an engagement from it shifts live and self-paced times alike; 6a's rehearsal, self-paced list and export work", async () => {
+    await step("SET-08: Use a template from it shifts live and self-paced times alike; 6a's rehearsal, self-paced list and export work", async () => {
       const second = await engagement(sql, ["Ben"]);
       await sql.query("update public.engagements set title='Board night' where id=$1", [second.id]);
       await sql.query("insert into public.engagement_facilitators(engagement_id,clearway_user_id,role) select $1,clearway_user_id,'lead' from public.engagement_facilitators where engagement_id=$2 and not deleted limit 1", [second.id, room.id]);
@@ -255,10 +255,10 @@ async function main() {
       const firstLive = Math.min(...source.filter(r => r.mode === "live" && r.planned_start).map(r => r.planned_start.getTime()));
       await editor.goto(`${app.origin}/setup/templates?engagement=${second.id}`);
       await editor.locator(".tpl-card", { hasText: tplName }).getByRole("button", { name: `Use ${tplName}` }).click();
-      const dialog = editor.getByRole("dialog", { name: "Start an engagement" });
+      const dialog = editor.getByRole("dialog", { name: "Use a template" });
       assert.equal(await dialog.locator("#start-engagement").inputValue(), second.id);
       await dialog.locator("#start-time").fill("2026-12-03T19:00");
-      await dialog.getByRole("button", { name: "Start engagement" }).click();
+      await dialog.getByRole("button", { name: "Apply template" }).click();
       await editor.waitForURL(`**/setup/${second.id}/run-of-show**`, { timeout: 15000 });
       const copied = (await sql.query("select title,mode,state,planned_start,opens_at,closes_at from public.sessions where engagement_id=$1 and not deleted", [second.id])).rows;
       assert.equal(copied.length, 14);

@@ -28,7 +28,7 @@ function tomorrowAtNine(timezone: string) {
   return `${d.toISOString().slice(0, 10)}T09:00`;
 }
 
-// SET-08: the template library with the team workshop template, Start an engagement from a
+// SET-08: the template library with the team workshop template, Use a template from a
 // template, and Remove template for the facilitator's own.
 export function TemplateLibrary({ initial, admin, engagement, template }: { initial: Library | null; admin: boolean; engagement: string | null; template: string | null }) {
   const router = useRouter();
@@ -57,7 +57,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
     <div className="show-workspace">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
       <header className="show-header"><div><p className="show-eyebrow">Library</p><h1>Templates</h1></div><div className="show-actions">
-        <button className="show-button is-primary" type="button" disabled={!library?.templates.length} onClick={() => setStarting(current?.id ?? library?.templates[0]?.id ?? null)}><Plus size={18} aria-hidden="true" />Start an engagement</button>
+        <button className="show-button is-primary" type="button" disabled={!library?.templates.length} onClick={() => setStarting(current?.id ?? library?.templates[0]?.id ?? null)}><Plus size={18} aria-hidden="true" />Use a template</button>
       </div></header>
       {message && <div className="show-message" role="status">{message}</div>}
       {!library ? <p className="show-message is-error" role="alert">We couldn’t load the templates. Reload the page to try again.</p> :
@@ -100,7 +100,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
   </main>;
 }
 
-// Start an engagement from a template: copies every session into the engagement's run of
+// Apply a template to an existing engagement: copies every session into the engagement's run of
 // show, after any it already has, with its times starting where the facilitator chooses.
 function StartEngagement({ library, template, engagement, admin, onClose, onStarted }: { library: Library; template: string; engagement: string | null; admin: boolean; onClose: () => void; onStarted: (id: string, count: number) => void }) {
   const [tpl, setTpl] = useState(template), [eng, setEng] = useState(() => engagement && library.engagements.some(e => e.id === engagement) ? engagement : library.engagements.find(e => e.sessions === 0)?.id ?? library.engagements[0]?.id ?? "");
@@ -125,7 +125,7 @@ function StartEngagement({ library, template, engagement, admin, onClose, onStar
   }
   return <div className="rb-scrim" onClick={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
     <form className="rb-modal" role="dialog" aria-modal="true" aria-labelledby="start-title" onSubmit={go}>
-      <div className="rb-modal-head"><h2 id="start-title">Start an engagement</h2><button type="button" className="show-button is-icon" aria-label="Close" disabled={busy} onClick={onClose}><X size={20} aria-hidden="true" /></button></div>
+      <div className="rb-modal-head"><h2 id="start-title">Use a template</h2><button type="button" className="show-button is-icon" aria-label="Close" disabled={busy} onClick={onClose}><X size={20} aria-hidden="true" /></button></div>
       <div className="rb-modal-body">
         {library.engagements.length ? <>
           <label htmlFor="start-engagement">Engagement<select ref={first} id="start-engagement" value={eng} onChange={e => { setEng(e.target.value); const next = library.engagements.find(x => x.id === e.target.value); if (next) setStart(tomorrowAtNine(next.timezone)); }}>
@@ -138,7 +138,7 @@ function StartEngagement({ library, template, engagement, admin, onClose, onStar
         {message && <p className="show-message is-error" role="alert">{message}</p>}
       </div>
       <div className="rb-modal-foot"><button type="button" className="show-button" disabled={busy} onClick={onClose}>Cancel</button>
-        <button type="submit" className="show-button is-primary" disabled={busy || !eng || !tpl}><Play size={18} aria-hidden="true" />{busy ? "Starting..." : "Start engagement"}</button></div>
+        <button type="submit" className="show-button is-primary" disabled={busy || !eng || !tpl}><Play size={18} aria-hidden="true" />{busy ? "Applying…" : "Apply template"}</button></div>
     </form>
   </div>;
 }
