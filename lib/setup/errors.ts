@@ -19,7 +19,7 @@ export function deliberate(error: DatabaseError | null | undefined): Failure | n
   return null;
 }
 
-// Thrown by the setup route for a refusal worth showing; the route's catch turns it into the response.
+// Thrown by the setup route for a refusal worth showing; the route's catch makes it the response.
 export class SetupRefusal extends Error {
   constructor(readonly failure: Failure) { super(failure.message); }
 }

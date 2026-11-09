@@ -90,7 +90,7 @@ export async function POST(request:NextRequest){
       if(person){const {error}=await client.from("attendees").update({name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)refuse(error);}
       // Removing a person is a soft delete through a function, so the lead and co-facilitator can do it as well as an admin: the table's read
       // rule hides a removed row from a non-admin, which refuses a plain update to deleted.
-      else{const removed=await rpc("remove_attendee",{p_engagement:e.id,p_attendee:body.attendee}) as {status?:string}|null;if(removed?.status==="missing")return answer({ok:false,message:"That person is already removed."},404);if(removed?.status!=="ok")throw new Error("save");}
+      else{const removed=await rpc("remove_attendee",{p_engagement:e.id,p_attendee:body.attendee}) as {status?:string}|null;if(removed?.status==="missing")return answer({ok:false,message:"That person isn’t in this engagement."},404);if(removed?.status!=="ok")throw new Error("save");}
       const notice=await serviceClient().rpc("tv_presence_sync",{p_engagement:e.id});if(notice.error)console.error("TV roster notification unavailable",{code:notice.error.code});return answer({ok:true});
     }
     if(action==="reset_practice"){

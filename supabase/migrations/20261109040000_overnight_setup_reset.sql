@@ -29,7 +29,7 @@ revoke all on function private.remove_attendee(uuid,uuid),public.remove_attendee
 grant execute on function private.remove_attendee(uuid,uuid),public.remove_attendee(uuid,uuid) to authenticated;
 
 -- ---------- Every AI record of the practice room ----------
--- Soft deletes only, so the history stays. A run still going is marked stale so a late answer is refused. The cost log keeps its rows.
+-- Soft deletes, so the history stays, except the grid merges (below). A run still going is marked stale so a late answer is refused. The cost log keeps its rows.
 create function private.ai_reset_room(p_engagement uuid) returns void
 language plpgsql security definer set search_path='' as $$
 begin
@@ -37,13 +37,16 @@ begin
  update private.ai_group_members set deleted=true where engagement_id=p_engagement and not deleted;
  update private.ai_groups set deleted=true where engagement_id=p_engagement and not deleted;
  update private.ai_summaries set deleted=true where engagement_id=p_engagement and not deleted;
- update private.grid_merges set deleted=true where engagement_id=p_engagement and not deleted;
+ -- A grid merge is deleted for good, not marked: for a grid, a deleted merge reads as "the facilitator took this apart", which would keep the AI from
+ -- ever merging those reasons again (the claim leaves them out and the apply refuses them as kept apart).
+ delete from private.grid_merges where engagement_id=p_engagement;
+ update private.risks set merged_into=null where engagement_id=p_engagement and merged_into is not null;
  update private.ai_runs set deleted=true,status=case when status='running' then 'stale' else status end where engagement_id=p_engagement and session_id is not null and not deleted;
  update private.ai_sessions set summary_shown=false,lease_id=null,lease_run=null,lease_until=null,combine_seen=0,group_seen_at=null,fold_seen_at=null,
   group_seen_ids=array[]::uuid[],fold_seen_ids=array[]::uuid[],reasons_seen=0,last_ok_at=null,last_failed_at=null,last_error=null,last_ms=null where engagement_id=p_engagement;
 end $$;
 
--- What We Heard words applied to a step go back to the template's step: no headline, no number, the source's plain name and the template's phone line.
+-- What We Heard words an AI draft applied to a step (a draft still pointing at it) go back to the template's step; a headline typed by hand stays. The template's step: no headline, no number, the source's plain name and the template's phone line (it lives in the template JSON of 20261104180000_map_templates.sql, so it is copied here).
 create function private.heard_unapply(p_engagement uuid) returns void
 language plpgsql security definer set search_path='' as $$
 begin
@@ -52,6 +55,7 @@ begin
    state=case when s.state='ready' then 'draft' else s.state end
   where s.engagement_id=p_engagement and not s.deleted and s.interaction='content' and coalesce(s.options->>'screen','headline')='headline'
    and private.heard_source_key(s.options->>'source') is not null and s.state not in ('open','live','phones_down')
+   and exists(select 1 from private.heard_drafts d where d.engagement_id=p_engagement and d.applied_session=s.id)
    and (s.prompt<>'' or s.options ? 'number' or s.options->>'source' like '% · %' or s.phone_depth<>'The detail under this headline.');
 end $$;
 
@@ -73,17 +77,27 @@ end $$;
 
 create function private.rehearsal_control(p_engagement uuid,p_id uuid,p_action text) returns jsonb
 language plpgsql security definer set search_path='' as $$
-declare out jsonb; touched uuid[]; n integer:=0; sid uuid;
+declare out jsonb; touched uuid[]; since timestamptz; sid uuid; ids uuid[];
 begin
+ -- The same locks the inner function takes, before anything is read.
  if p_action='clear' and p_engagement is not null then
-  select array_agg(distinct x.session_id) into touched from public.submissions x where x.engagement_id=p_engagement and x.test and not x.deleted;
+  if p_engagement='90000000-0000-4000-8000-000000000010'::uuid then perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7)); end if;
+  perform 1 from public.room_states where engagement_id=p_engagement and not deleted for update;
+  select array_agg(distinct x.session_id),min(x.created_at) into touched,since from public.submissions x where x.engagement_id=p_engagement and x.test and not x.deleted;
  end if;
  out:=private.rehearsal_control_pre_setup_reset(p_engagement,p_id,p_action);
+ -- Only what a rehearsal made goes: the AI's merges from runs since the first test answer, in the steps the test answers touched. A real merge
+ -- from before the rehearsal and a facilitator's own merge stay.
  if p_action='clear' and p_engagement is not null and out->>'status'='ok' and touched is not null then
-  update private.grid_merges set deleted=true where engagement_id=p_engagement and session_id=any(touched) and made_by='ai' and not deleted;
-  get diagnostics n=row_count;
-  if n>0 then
-   foreach sid in array touched loop perform private.reasons_sync(p_engagement,sid); end loop;
+  select coalesce(array_agg(m.id),array[]::uuid[]) into ids from private.grid_merges m
+   where m.engagement_id=p_engagement and m.session_id=any(touched) and m.made_by='ai' and m.run_id in
+    (select r.id from private.ai_runs r where r.engagement_id=p_engagement and r.session_id=any(touched) and r.created_at>=since);
+  if cardinality(ids)>0 then
+   foreach sid in array (select array_agg(distinct session_id) from private.grid_merges where id=any(ids)) loop
+    delete from private.grid_merges where id=any(ids) and session_id=sid;
+    update private.ai_sessions set reasons_seen=0 where session_id=sid;
+    perform private.reasons_sync(p_engagement,sid);
+   end loop;
    update public.room_states set results=private.live_results(p_engagement) where engagement_id=p_engagement;
   end if;
  end if;
@@ -209,5 +223,6 @@ revoke all on function private.ai_reset_room(uuid),private.heard_unapply(uuid),p
  private.rehearsal_control_pre_setup_reset(uuid,uuid,text),private.rehearsal_control(uuid,uuid,text),private.overnight_apply_pre_setup_reset(uuid,uuid,jsonb,jsonb),private.overnight_apply(uuid,uuid,jsonb,jsonb),private.ov_count(text,text) from public,anon,authenticated;
 grant execute on function private.reset_practice_room(),private.rehearsal_control(uuid,uuid,text) to authenticated;
 grant execute on function private.overnight_apply(uuid,uuid,jsonb,jsonb) to service_role;
+revoke execute on function private.overnight_apply_pre_setup_reset(uuid,uuid,jsonb,jsonb) from service_role;
 
 commit;

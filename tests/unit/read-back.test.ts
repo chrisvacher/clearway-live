@@ -116,8 +116,11 @@ test("fold-read-back@1 changes one line or adds one, in the room's words, and na
 });
 
 test("Mark a decision with no words leaves the wording to the database, which says 'Confirmed with changes' after a fold", () => {
-  assert.equal(decisionHint({ version: 1 }), "Confirmed");
-  assert.equal(decisionHint({ version: 2 }), "Confirmed with changes");
+  const item = (now: string[], first: string[], version = 2) => ({ lines: now.map(text => ({ text })), versions: [{ version: 1, lines: first }, { version, lines: now }] });
+  assert.equal(decisionHint(item(["A", "B"], ["A", "B"], 1)), "Confirmed");
+  assert.equal(decisionHint(item(["A", "B2"], ["A", "B"])), "Confirmed with changes");
+  assert.equal(decisionHint(item(["A", "B"], ["A", "B"])), "Confirmed", "a version that left the words as they were is not a change");
+  assert.equal(decisionHint(null), "Confirmed");
   const press = readBackPress({ id: "00000000-0000-4000-8000-000000000001", action: "decide", decision: "", reasons: "" });
   assert.ok(press && press.action === "decide" && (press.p as { decision: string }).decision === "", "a blank decision reaches the server blank, so its default applies");
   const panel = readFileSync("components/interactions/read-back/read-back-panel.tsx", "utf8");

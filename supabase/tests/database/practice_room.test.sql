@@ -87,14 +87,20 @@ select is((select device_count::integer from public.room_presence(tests.id(10)) 
 -- Reset practice room puts away every AI record and the applied What We Heard words (overnight acceptance, finding 1).
 reset role;
 select set_config('tests.p','90000000-0000-4000-8000-000000000010',true);
-insert into sessions(id,engagement_id,title,interaction,state) values(tests.id(500),current_setting('tests.p')::uuid,'Words','word_cloud','ready'),(tests.id(501),current_setting('tests.p')::uuid,'Reasons','grid','ready');
+update engagements set settings=settings||'{"ai_enabled":true}' where id=current_setting('tests.p')::uuid;
+insert into sessions(id,engagement_id,title,interaction,state) values(tests.id(500),current_setting('tests.p')::uuid,'Words','word_cloud','ready');
+insert into sessions(id,engagement_id,title,interaction,state,options) values(tests.id(501),current_setting('tests.p')::uuid,'Reasons','grid','ready',
+ '{"preset":"pre_mortem","items":[{"key":"r1","text":"We burned out our volunteers"},{"key":"r2","text":"Volunteers burned out and quit"},{"key":"r3","text":"Giving fell"},{"key":"r4","text":"Nobody owned the plan"}]}');
 insert into sessions(id,engagement_id,title,interaction,state,prompt,phone_depth,options)
  values(tests.id(502),current_setting('tests.p')::uuid,'What we heard: Survey','content','ready','Giving is up (edited by me)','Detail I typed','{"screen":"headline","source":"Congregational survey · 87 respondents","number":"87%"}');
+insert into sessions(id,engagement_id,title,interaction,state,prompt,phone_depth,options)
+ values(tests.id(504),current_setting('tests.p')::uuid,'What we heard: Four Helpful Lists','content','ready','Typed by hand','My own depth','{"screen":"headline","source":"Four Helpful Lists"}');
+insert into private.heard_drafts(engagement_id,source_key,applied_session,applied_at) values(current_setting('tests.p')::uuid,'survey',tests.id(502),now());
 insert into private.ai_runs(id,engagement_id,session_id,job,model,prompt_version,inputs,status) values(tests.id(510),current_setting('tests.p')::uuid,tests.id(500),'combine_words','fake','v1','{}','running'),(tests.id(511),current_setting('tests.p')::uuid,tests.id(501),'merge_reasons','fake','v1','{}','ok');
 insert into private.ai_word_merges(engagement_id,session_id,survivor_key,member_key,run_id) values(current_setting('tests.p')::uuid,tests.id(500),'ministry','ministries',tests.id(510));
 insert into private.ai_groups(engagement_id,session_id,label,ai_label,run_id) values(current_setting('tests.p')::uuid,tests.id(500),'Old label','Old label',tests.id(510));
 insert into private.ai_summaries(engagement_id,session_id,text,answers,cut_at,run_id) values(current_setting('tests.p')::uuid,tests.id(500),'The room said something nobody wrote',3,now(),tests.id(510));
-insert into private.grid_merges(engagement_id,session_id,item_key,into_key,made_by,run_id) values(current_setting('tests.p')::uuid,tests.id(501),'a1','a2','ai',tests.id(511)),(current_setting('tests.p')::uuid,tests.id(501),'b1','b2','facilitator',null);
+insert into private.grid_merges(engagement_id,session_id,item_key,into_key,made_by,run_id) values(current_setting('tests.p')::uuid,tests.id(501),'r2','r1','ai',tests.id(511)),(current_setting('tests.p')::uuid,tests.id(501),'r4','r3','facilitator',null);
 insert into private.ai_sessions(session_id,engagement_id,summary_shown,combine_seen) values(tests.id(500),current_setting('tests.p')::uuid,true,4);
 insert into engagements(id,church_id,title,status) values(tests.id(12),tests.id(21),'Room C','retreat');
 insert into sessions(id,engagement_id,title,interaction,state) values(tests.id(503),tests.id(12),'Other words','word_cloud','ready');
@@ -112,10 +118,37 @@ select is((select count(*)::integer from private.ai_runs where engagement_id=cur
 select is((select status from private.ai_runs where id=tests.id(510)),'stale','A run still going is stale, so a late answer is refused');
 select is((select summary_shown::text||combine_seen::text from private.ai_sessions where session_id=tests.id(500)),'false0','The session starts clean for the next run');
 select is((select prompt||'|'||phone_depth||'|'||coalesce(options->>'number','none')||'|'||(options->>'source')||'|'||state from sessions where id=tests.id(502)),'|The detail under this headline.|none|Congregational survey|draft','The applied What We Heard words are off the step, which is a Draft again');
+select is((select prompt||'|'||phone_depth||'|'||state from sessions where id=tests.id(504)),'Typed by hand|My own depth|ready','A headline typed by hand, with no AI draft applied to it, stays');
 select is((select count(*)::integer from private.ai_summaries where engagement_id=tests.id(12) and not deleted),1,'Another engagement keeps its AI records');
 -- Clear test answers puts away the AI grid merges of the sessions its test answers touched, and keeps a facilitator's own merge.
-select ok(pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure) like '%grid_merges%made_by=''ai''%','Clear test answers puts away the grid merges the AI made');
-select ok(pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%ai_reset_room%','and the reset calls the AI clearing');
+-- The AI can merge those reasons again: the step opens, and the claim offers the reasons that were merged before the reset.
+update sessions set state='open' where id=tests.id(501);
+select is((select jsonb_agg(r->>'key' order by r->>'key')::text from jsonb_array_elements(private.ai_claim(tests.id(501),gen_random_uuid(),'fake','{"merge_reasons":"merge-reasons@1"}'::jsonb)->'inputs'->'reasons') r),'["r1", "r2", "r3", "r4"]','After a reset the next merge-reasons claim includes the reasons that were merged before');
+select is((select count(*)::integer from private.risks where engagement_id=current_setting('tests.p')::uuid and merged_into is not null),0,'and no reason is left pointing at a merge');
+
+-- Clear test answers in a real engagement keeps a real merge, a facilitator's merge and anything from before the rehearsal; it removes the AI's merge from the rehearsal.
+insert into attendees(id,engagement_id,name,email) values(tests.id(70),tests.id(11),'Real person','real70@example.org'),(tests.id(71),tests.id(11),'Tester','tester71@example.org');
+insert into room_states(engagement_id) values(tests.id(11)) on conflict do nothing;
+update engagements set settings=settings||'{"ai_enabled":true}' where id=tests.id(11);
+insert into sessions(id,engagement_id,title,interaction,state,options) values(tests.id(601),tests.id(11),'Reasons','grid','closed',
+ '{"preset":"pre_mortem","items":[{"key":"r1","text":"We burned out our volunteers"},{"key":"r2","text":"Volunteers burned out and quit"},{"key":"r3","text":"Giving fell"},{"key":"r4","text":"Giving dropped"},{"key":"r5","text":"Nobody owned the plan"},{"key":"r6","text":"Ownership was unclear"}]}');
+insert into private.ai_runs(id,engagement_id,session_id,job,model,prompt_version,inputs,status,created_at) values
+ (tests.id(611),tests.id(11),tests.id(601),'merge_reasons','fake','v1','{}','ok',now()-interval '1 hour'),(tests.id(612),tests.id(11),tests.id(601),'merge_reasons','fake','v1','{}','ok',now()+interval '1 minute');
+insert into private.grid_merges(engagement_id,session_id,item_key,into_key,made_by,run_id) values
+ (tests.id(11),tests.id(601),'r2','r1','ai',tests.id(611)),(tests.id(11),tests.id(601),'r4','r3','ai',tests.id(612)),(tests.id(11),tests.id(601),'r6','r5','facilitator',null);
+insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at,test) values
+ (gen_random_uuid(),tests.id(11),tests.id(601),tests.id(70),'1 of 6 placed','[{"key":"r1","text":"x"}]',now(),false),
+ (gen_random_uuid(),tests.id(11),tests.id(601),tests.id(71),'1 of 6 placed','[{"key":"r3","text":"x"}]',now(),true);
+insert into private.ai_sessions(session_id,engagement_id,reasons_seen) values(tests.id(601),tests.id(11),6) on conflict(session_id) do update set reasons_seen=6;
+set local role authenticated;
+select tests.login(3);
+select is(public.rehearsal_control(tests.id(11),tests.id(620),'clear')->>'status','ok','The lead clears test answers in a real engagement');
+reset role;
+select is((select string_agg(item_key,',' order by item_key) from private.grid_merges where session_id=tests.id(601) and not deleted),'r2,r6','A real merge from before the rehearsal stays, and so does the facilitator''s; the AI merge made during the rehearsal is gone');
+select is((select count(*)::integer from private.grid_merges where session_id=tests.id(601) and deleted),0,'None is left marked as taken apart');
+select is((select reasons_seen from private.ai_sessions where session_id=tests.id(601)),0,'The step looks at its reasons again');
+update sessions set state='open' where id=tests.id(601);
+select ok((select jsonb_agg(r->>'key')::jsonb from jsonb_array_elements(private.ai_claim(tests.id(601),gen_random_uuid(),'fake','{"merge_reasons":"merge-reasons@1"}'::jsonb)->'inputs'->'reasons') r) @> '["r4"]','The next claim offers the reason whose rehearsal merge was removed');
 reset role;
 select * from finish();
 rollback;

@@ -196,7 +196,11 @@ export const failureLine: Record<string, string> = {
 // One press from the control surface, by a client-made id (a repeat of the id is a duplicate).
 // The decision field starts empty: the database words a blank decision "Confirmed", or "Confirmed with changes" once a correction folded in.
 // The field's hint says which, so typing nothing is a choice the facilitator can see.
-export const decisionHint = (item: { version: number } | null): string => item && item.version > 1 ? "Confirmed with changes" : "Confirmed";
+export function decisionHint(item: { lines: { text: string }[]; versions: { version: number; lines: string[] }[] } | null): string {
+  // As the server decides it: the current lines against version 1's lines.
+  const first = item?.versions.find(v => v.version === 1);
+  return item && first && JSON.stringify(item.lines.map(l => l.text)) !== JSON.stringify(first.lines) ? "Confirmed with changes" : "Confirmed";
+}
 export const readBackActions = ["show", "reload", "correct", "accept", "dismiss", "undo", "decide", "undecide", "ai_on", "ai_off"] as const;
 export type ReadBackAction = typeof readBackActions[number];
 export type ReadBackPress = { id: string; action: ReadBackAction; p: Record<string, unknown>; session: string | null };
