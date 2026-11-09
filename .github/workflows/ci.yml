@@ -64,6 +64,8 @@ jobs:
         run: npm run test:controls
       - name: Test that an AI claim never marks an answer seen that its run did not read
         run: npm run test:ai-claim-race
+      - name: Test the room lock, stale votes and the follow-up poll
+        run: npm run test:submit-lock
       - name: Test Team Hub reader against a disposable fixture only
         run: npm run test:team-hub
       - name: Test idempotent seeds and native practice sign-in/reset

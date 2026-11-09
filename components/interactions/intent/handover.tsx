@@ -22,10 +22,10 @@ export function HandoverPanel({ room }: { room: Room }) {
   const engagement = room.frame?.state.engagement_id ?? "", live = room.frame?.state.live_session_id ?? null;
   const [data, setData] = useState<Panel | null>(null), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [who, setWho] = useState(""), [issued, setIssued] = useState<{ link: string; code: string; emailed: boolean; first: string } | null>(null);
-  const reading = useRef(false);
+  const reading = useRef(false), again = useRef(false);
   const read = useCallback(async () => {
-    if (!engagement || reading.current) return; reading.current = true;
-    try { const r = await fetch(`/api/control/${engagement}/handover`, { cache: "no-store" }); const d = await r.json().catch(() => null); if (d?.status === "ok") setData(d); } catch { /* Next read tries again. */ } finally { reading.current = false; }
+    if (!engagement) return; if (reading.current) { again.current = true; return; } reading.current = true;
+    try { const r = await fetch(`/api/control/${engagement}/handover`, { cache: "no-store" }); const d = await r.json().catch(() => null); if (d?.status === "ok") setData(d); } catch { /* Next read tries again. */ } finally { reading.current = false; if (again.current) { again.current = false; void read(); } }
   }, [engagement]);
   useEffect(() => { void read(); const t = setInterval(() => void read(), 5000); return () => clearInterval(t); }, [read]);
   useEffect(() => { void read(); }, [room.frame?.version, read]);

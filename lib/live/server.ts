@@ -9,7 +9,7 @@ import { uuid } from "@/lib/room/policy";
 import { limitedJson } from "@/lib/server/request";
 import { submissionRequest } from "./protocol";
 import type { LiveSnapshot } from "./types";
-import { roomMutation } from "./mutation";
+import { queuedWrite, roomMutation } from "./mutation";
 import { kickAi } from "@/lib/ai/trigger";
 
 export async function handleLive(request: NextRequest, engagement: string) {
@@ -41,8 +41,8 @@ export async function handleLive(request: NextRequest, engagement: string) {
       try { body = await limitedJson(request, 16384); } catch { return result({ status: "invalid_request" }, 422); }
       const input = submissionRequest(body);
       if (!input) return result({ status: "invalid_request" }, 422);
-      const { data, error } = await roomMutation(client, engagement, () => client.rpc("live_submit", { p_engagement: engagement, p_id: input.id, p_session: input.session, p_revision: input.revision,
-        p_action: input.action, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt || null, p_uncertainty: input.uncertaintyMs || 0, p_value: input.value ?? null }));
+      const { data, error } = await queuedWrite(attempt => roomMutation(client, engagement, () => client.rpc("live_submit", { p_engagement: engagement, p_id: input.id, p_session: input.session, p_revision: input.revision,
+        p_action: input.action, p_text: input.text, p_sent: input.sentAt, p_queued: input.queuedAt || (attempt ? input.sentAt : null), p_uncertainty: input.uncertaintyMs || 0, p_value: input.value ?? null })));
       if (error) throw error;
       // AI works after the answer is stored and broadcast, never before (PRD "AI").
       if (data.status === "accepted") kickAi(engagement, input.session);
