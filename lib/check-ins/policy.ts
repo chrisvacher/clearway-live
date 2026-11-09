@@ -60,7 +60,10 @@ export function longDate(iso: string | null | undefined): string {
 // 10:30 PM on November 8 in Toronto reads as November 8 and not the UTC day after. Without a zone it is the Toronto day.
 export function dayInZone(iso: string | null | undefined, zone?: string | null): string {
   const at = iso ? new Date(iso) : null; if (!at || Number.isNaN(at.getTime())) return "";
-  const pick = (z: string) => new Intl.DateTimeFormat("en-CA", { timeZone: z, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+  const pick = (z: string) => {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: z, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(at).map(p => [p.type, p.value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
+  };
   try { return pick(zone || "America/Toronto"); } catch { return pick("America/Toronto"); }
 }
 

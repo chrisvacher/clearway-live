@@ -267,6 +267,12 @@ async function main() {
     for (const p of [priya, ben, ruth]) await p.context().close();
     await facContext.close(); await tvContext.close();
     await press(fac, sql, room.id, "nothing_live");
+    {
+      const elsewhere = await engagement(sql, []), stranger = await facilitator(env, sql, elsewhere.id);
+      const other = await browser.newContext(); await other.addCookies(stranger.cookies(app.origin));
+      assert.equal((await other.request.get(`${app.origin}/setup/${room.id}/four-lists`)).status(), 404, "another engagement's facilitator gets the same 404 as the other setup pages");
+      await other.close();
+    }
 
     // ---------- Part two: 50 simulated phones in the practice room ----------
     practiceSettings = (await sql.query("select settings from public.engagements where id=$1 and not deleted", [practiceRoom])).rows[0]?.settings;

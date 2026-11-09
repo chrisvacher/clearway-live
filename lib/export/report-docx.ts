@@ -3,7 +3,7 @@
 // line, section eyebrows, H1 and H2 only), a contents page only for a long report, headings kept with what follows, tables left to flow. Widths are DXA and
 // shading is CLEAR so the file opens the same in Google Docs, Word and LibreOffice.
 import {
-  AlignmentType, BorderStyle, Bookmark, Document, Footer, Header, HeadingLevel, ImageRun, InternalHyperlink, LevelFormat, Packer, PageNumber, Paragraph, ShadingType, Table, TableCell, TableLayoutType,
+  AlignmentType, BorderStyle, Document, Footer, Header, HeadingLevel, ImageRun, LevelFormat, Packer, PageNumber, Paragraph, ShadingType, Table, TableCell, TableLayoutType, TableOfContents,
   TableRow, TextRun, WidthType, type FileChild, type ParagraphChild,
 } from "docx";
 import { logoPng, logoSize } from "./assets";
@@ -20,8 +20,7 @@ const run = (text: string, o: { size?: number; bold?: boolean; italics?: boolean
 const gap = () => new Paragraph({ spacing: { after: 140 }, children: [] });
 const para = (text: string, o: { after?: number; keepNext?: boolean } = {}) => new Paragraph({ spacing: { after: o.after ?? 160, line: 276 }, keepNext: o.keepNext, children: [run(text)] });
 const eyebrow = (text: string) => new Paragraph({ spacing: { before: 360, after: 40 }, keepNext: true, keepLines: true, children: [run(text, { size: 16, bold: true, color: ROYAL, spacing: 120 })] });
-const h1 = (text: string, anchor?: string) => new Paragraph({ heading: HeadingLevel.HEADING_1, keepNext: true, keepLines: true,
-  children: anchor ? [new Bookmark({ id: anchor, children: [new TextRun({ text, font: FONT })] })] : [new TextRun({ text, font: FONT })] });
+const h1 = (text: string) => new Paragraph({ heading: HeadingLevel.HEADING_1, keepNext: true, keepLines: true, children: [new TextRun({ text, font: FONT })] });
 const h2 = (text: string) => new Paragraph({ heading: HeadingLevel.HEADING_2, keepNext: true, keepLines: true, children: [new TextRun({ text, font: FONT })] });
 
 function callout(label: string, text: string): Table {
@@ -140,18 +139,17 @@ export async function buildDocx(model: ReportModel): Promise<Buffer> {
   const content: FileChild[] = [];
   model.sections.forEach((s, i) => {
     if (i > 0) content.push(new Paragraph({ spacing: { before: 120, after: 0 }, border: { bottom: { style: BorderStyle.SINGLE, size: 2, color: GRAY200, space: 1 } }, children: [] }));
-    content.push(eyebrow(s.eyebrow), h1(s.heading, model.contents ? `section_${i + 1}` : undefined), ...s.blocks.flatMap(blockChildren));
+    content.push(eyebrow(s.eyebrow), h1(s.heading), ...s.blocks.flatMap(blockChildren));
   });
   const sections = [{ properties: { page }, headers: header(model), footers: { default: coverFooter() }, children: cover(model, logo) }];
   if (model.contents) sections.push({ properties: { page }, headers: header(model), footers: { default: footer(logo, model.title) }, children: [
     new Paragraph({ spacing: { after: 300 }, children: [run("Contents", { size: 44, bold: true })] }),
     new Paragraph({ spacing: { after: 400 }, border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ROYAL, space: 8 } }, children: [] }),
-    // A plain list of links to each section, not a Word contents field: a field has to be updated when the file opens, and Word asks about that. A list
-    // with no page numbers opens quietly and still jumps to the section.
-    ...model.sections.map((s, i) => new Paragraph({ spacing: { after: 140 }, children: [new InternalHyperlink({ anchor: `section_${i + 1}`, children: [run(s.heading, { size: 24, color: ROYAL })] })] })),
+    new TableOfContents("Contents", { hyperlink: true, headingStyleRange: "1-1" }),
   ] });
   const doc = new Document({
     creator: FIRM, title: `${model.church} ${model.title}${model.draft ? ` (${DRAFT_MARK})` : ""}`, description: model.title,
+    features: { updateFields: model.contents },
     styles: {
       default: { document: { run: { font: FONT, size: 22, color: NAVY } } },
       paragraphStyles: [

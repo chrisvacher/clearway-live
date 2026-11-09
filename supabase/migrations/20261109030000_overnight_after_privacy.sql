@@ -11,14 +11,15 @@
 begin;
 
 -- ---------- F2 ----------
--- The two-argument function stays (the model's suggested question is still checked with it). This one adds every accepted theme's label in the engagement,
+-- The two-argument function stays (the model's suggested question is checked with it at apply). This one adds every accepted theme's label in the engagement,
 -- with the same four-letter floor the own-label check uses.
 create function private.signal_neutral(p_text text,p_label text,p_engagement uuid) returns boolean
 language sql stable security definer set search_path='' as $$
  select private.signal_neutral(p_text,p_label)
   and not exists(select 1 from private.discover_themes t
    where t.engagement_id=p_engagement and not t.deleted and t.merged_into is null and t.status='accepted'
-    and length(btrim(t.label))>=4 and position(lower(btrim(t.label)) in lower(p_text))>0)
+    and length(btrim(t.label))>=4
+    and extensions.unaccent('extensions.unaccent'::regdictionary,p_text) ~* ('(?<![[:alpha:]])'||regexp_replace(extensions.unaccent('extensions.unaccent'::regdictionary,btrim(t.label)),'([.^$*+?()\[\]{}|\\])','\\\1','g')||'(?![[:alpha:]])'))
 $$;
 revoke all on function private.signal_neutral(text,text,uuid) from public,anon,authenticated;
 
@@ -34,7 +35,7 @@ begin
   'can_switch_on',exists(select 1 from private.check_in_rounds o where o.engagement_id=p_engagement and o.status='off' and not private.check_in_superseded(o.id)),
   'owners',(select count(distinct o.email) from private.check_in_owned(p_engagement) o),
   'rounds',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'day',d.day,'due_on',d.due_on,'status',d.status,'sent_at',d.sent_at,'sent_by',d.sent_by,'superseded',d.status in('scheduled','off') and private.check_in_superseded(d.id),
-     'recipients',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'name',case when lower(btrim(r.name))=lower(btrim(r.email)) or r.name like '%@%' then 'Unnamed owner' else r.name end,'send_result',r.send_result,'sent_at',r.sent_at,'opened_at',r.opened_at,
+     'recipients',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'name',case when lower(btrim(r.name))=lower(btrim(r.email)) or r.name like '%@%' then 'Unnamed owner '||r.rn else r.name end,'send_result',r.send_result,'sent_at',r.sent_at,'opened_at',r.opened_at,
         'answered_at',r.answered_at,'help',r.help,'practice',r.send_result='practice_address' or r.email ~* '[.](example|invalid|test)$',
         'steps',coalesce((select jsonb_agg(jsonb_build_object('id',x->>'id','text',x->>'text','due',x->>'due','answer',an.answer,'note',an.note,'answer_id',an.id,
             'followed_up_at',an.followed_up_at,'answered_at',an.updated_at) order by t.ord)
@@ -42,7 +43,7 @@ begin
         'goals',coalesce((select jsonb_agg(jsonb_build_object('id',x->>'id','title',x->>'text','end',x->>'due','answer',an.answer,'note',an.note,'answer_id',an.id,
             'followed_up_at',an.followed_up_at,'answered_at',an.updated_at) order by t.ord)
            from jsonb_array_elements(r.items->'goals') with ordinality t(x,ord) left join private.check_in_answers an on an.recipient_id=r.id and an.goal_id=(x->>'id')::uuid),'[]'::jsonb)
-        ) order by r.name,r.id) from private.check_in_recipients r where r.round_id=d.id),'[]'::jsonb)
+        ) order by r.name,r.id) from (select z.*,row_number() over(order by z.name,z.id) as rn from private.check_in_recipients z where z.round_id=d.id) r),'[]'::jsonb)
     ) order by d.day) from private.check_in_rounds d where d.engagement_id=p_engagement),'[]'::jsonb))
   into out;
  return out;
@@ -113,7 +114,7 @@ begin
   -- A theme's summary and its quote share a kind and a ref: the excerpt the facilitator picked says which. A record needs its excerpt; any other kind
   -- falls back to the first candidate of that record when the excerpt sent matches none, as before.
   select e.value into c from jsonb_array_elements(private.report_candidates(p_engagement,s.section_id)) e
-   where e.value->>'kind'=p_kind and nullif(e.value->>'ref_id','')::uuid is not distinct from p_ref and e.value->>'excerpt'=p_excerpt limit 1;
+   where e.value->>'kind'=p_kind and nullif(e.value->>'ref_id','')::uuid is not distinct from p_ref and btrim(e.value->>'excerpt')=btrim(p_excerpt) limit 1;
   if c is null and p_kind<>'record' then
    select e.value into c from jsonb_array_elements(private.report_candidates(p_engagement,s.section_id)) e
     where e.value->>'kind'=p_kind and nullif(e.value->>'ref_id','')::uuid is not distinct from p_ref limit 1;
@@ -128,13 +129,24 @@ begin
   -- Take off the source whose excerpt was sent. A theme can rest on its summary and its quote at once, so the excerpt picks one; with none sent (or
   -- none matching) every source of that record comes off, as before.
   update private.report_sources set deleted=true where sentence_id=s.id and not deleted and kind=p_kind and ref_id is not distinct from p_ref
-   and (excerpt=p_excerpt or (p_kind<>'record' and not exists(select 1 from private.report_sources z where z.sentence_id=s.id and not z.deleted and z.kind=p_kind and z.ref_id is not distinct from p_ref and z.excerpt=p_excerpt)));
+   and (btrim(excerpt)=btrim(p_excerpt) or (p_kind<>'record' and not exists(select 1 from private.report_sources z where z.sentence_id=s.id and not z.deleted and z.kind=p_kind and z.ref_id is not distinct from p_ref and btrim(z.excerpt)=btrim(p_excerpt))));
   if not found then return jsonb_build_object('status','not_found'); end if;
  end if;
  update private.report_sentences set touched=true where id=s.id;
  perform private.rp_touch_section(s.section_id);
  return jsonb_build_object('status','ok');
 end $$;
+
+-- ---------- F2, the other half ----------
+-- A suggested question that signal_act would refuse is not shown. The newest signal_state (step 6 patched it) is patched in place, the way that step did.
+do $patch$
+declare def text; patched text;
+begin
+ def:=pg_get_functiondef('private.signal_state(uuid,uuid)'::regprocedure);
+ patched:=replace(def,'''ask'',g.ask','''ask'',case when g.ask is null or private.signal_neutral(g.ask,g.evidence->''theme''->>''label'',p_engagement) then g.ask end');
+ if patched=def then raise exception 'The suggested question in signal_state did not patch cleanly'; end if;
+ execute patched;
+end $patch$;
 
 -- ---------- F4 ----------
 -- The read-only copy and the check-in phone page print the day a moment fell on. Each now says the church's time zone, so the page can use the church's day

@@ -88,7 +88,9 @@ function parts(b: Block): { lead: React.ReactNode; rest: React.ReactNode } {
     case "subheading": return { lead: null, rest: null };
     case "list": return { lead: b.items.length ? <View style={s.bullet} wrap={false}><Text style={{ width: 16 }}>{"•"}</Text><Text style={{ flex: 1 }}>{b.items[0]}</Text></View> : null,
       rest: <View>{b.items.slice(1).map((t, i) => <View key={i} style={s.bullet} wrap={false}><Text style={{ width: 16 }}>{"•"}</Text><Text style={{ flex: 1 }}>{t}</Text></View>)}</View> };
-    case "card": return b.lines.length && !longCard(b) ? { lead: <CardView b={b} split={false} />, rest: null } : { lead: null, rest: <CardView b={b} split /> };
+    case "card": return b.lines.length && !longCard(b) ? { lead: <CardView b={b} split={false} />, rest: null }
+      : { lead: <><Text style={s.h2}>{b.title}</Text>{b.lines.slice(0, 1).map((l, i) => <View key={i} style={s.cardRow} wrap={false}><Text style={s.cardLabel}>{l.label}</Text><View style={s.cardText}><Text>{l.text}</Text>{l.meta ? <Text style={s.meta}>{l.meta}</Text> : null}</View></View>)}</>,
+        rest: <View style={{ marginBottom: 10 }}>{b.lines.slice(1).map((l, i) => <View key={i} style={s.cardRow} wrap={false}><Text style={s.cardLabel}>{l.label}</Text><View style={s.cardText}><Text>{l.text}</Text>{l.meta ? <Text style={s.meta}>{l.meta}</Text> : null}</View></View>)}</View> };
     case "table": return TableParts({ b });
   }
 }
@@ -98,9 +100,9 @@ function Blocks({ blocks, top }: { blocks: Block[]; top?: React.ReactNode }) {
   const out: React.ReactNode[] = [];
   let head: React.ReactNode = top ?? null, held = top !== undefined;
   blocks.forEach((b, k) => {
-    if (b.type === "subheading") { if (held) out.push(<View key={`h${k}`} wrap={false}>{head}</View>); head = <Text style={s.h2}>{b.text}</Text>; held = true; return; }
+    if (b.type === "subheading" || (b.type === "card" && b.lines.length === 0)) { head = <>{held ? head : null}<Text style={s.h2}>{b.type === "card" ? b.title : b.text}</Text></>; held = true; return; }
     const p = parts(b);
-    if (held) { out.push(<View key={`h${k}`} wrap={false} minPresenceAhead={p.lead ? 0 : 60}>{head}{p.lead}</View>); held = false; head = null; }
+    if (held) { out.push(<View key={`h${k}`} wrap={false} minPresenceAhead={p.lead ? 0 : 120}>{head}{p.lead}</View>); held = false; head = null; }
     else if (p.lead) out.push(<View key={`l${k}`} wrap={false}>{p.lead}</View>);
     if (p.rest) out.push(<React.Fragment key={`r${k}`}>{p.rest}</React.Fragment>);
   });

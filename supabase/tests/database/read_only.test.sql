@@ -224,6 +224,7 @@ select is(tests.view('z'),jsonb_build_object('status','unavailable'),'An unknown
 select is((select open_count from private.read_only_links where name='Elders'),0,'which counts nothing');
 select is(public.read_only_view('short') is null,false,'A badly shaped hash is answered too');
 select is(tests.view('a')->>'status','ok','A link opens the plan');
+select is(tests.view('a')->>'timezone',(select c.timezone from public.churches c join public.engagements e on e.church_id=c.id join private.read_only_links l on l.engagement_id=e.id where l.token_hash=repeat('a',64)),'and says the church''s time zone, for the day it prints');
 select is((select open_count from private.read_only_links where name='Elders'),1,'and the open is counted');
 select isnt((select last_opened_at from private.read_only_links where name='Elders'),null,'with when');
 select is(tests.view('a')->>'church','Riverside Church','It names the church');

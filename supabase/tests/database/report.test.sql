@@ -358,7 +358,16 @@ select is(public.report_source_set(tests.id(100),(select id from own),'signal',t
 select is(public.report_source_set(tests.id(100),(select id from own),'theme',tests.id(621),'not a record the section reads',true)->>'status','ok','A record the section reads can be added, whatever excerpt is sent: the database uses its own') ;
 select is(public.report_source_set(tests.id(100),(select id from own),'theme',tests.id(699),'x',true)->>'status','not_a_source','but a record the section does not read cannot');
 select is(public.report_source_set(tests.id(100),(select id from own),'theme',tests.id(621),(select c->>'excerpt' from jsonb_array_elements(public.report_candidates(tests.id(100),tests.sec('heard'))->'candidates') c where c->>'kind'='theme' and c->>'ref_id'=tests.id(621)::text and (c->>'room')::boolean limit 1),true)->>'status','ok','A theme''s quote can be added beside its summary: the excerpt picked decides');
+reset role;
 select is((select count(*)::integer from private.report_sources z where z.sentence_id=(select id from own) and z.kind='theme' and z.ref_id=tests.id(621) and not z.deleted and z.room_words),1,'and it is stored as the room''s own words, so Use the room''s words has something to use');
+set local role authenticated;
+select tests.login(1);
+select is(public.report_source_set(tests.id(100),(select id from own),'theme',tests.id(621),(select c->>'excerpt' from jsonb_array_elements(public.report_candidates(tests.id(100),tests.sec('heard'))->'candidates') c where c->>'kind'='theme' and c->>'ref_id'=tests.id(621)::text and (c->>'room')::boolean limit 1),false)->>'status','ok','Taking the quote off by its excerpt');
+reset role;
+select is((select count(*)::integer from private.report_sources z where z.sentence_id=(select id from own) and z.kind='theme' and z.ref_id=tests.id(621) and not z.deleted),1,'leaves the theme''s summary as a source');
+select is((select count(*)::integer from private.report_sources z where z.sentence_id=(select id from own) and z.kind='theme' and z.ref_id=tests.id(621) and not z.deleted and z.room_words),0,'and nothing of the quote');
+set local role authenticated;
+select tests.login(1);
 reset role;
 select throws_ok($$insert into private.report_sources(engagement_id,sentence_id,kind,ref_id,excerpt) values(tests.id(100),tests.own('heard'),'signal',tests.id(653),'x')$$,'23514',null,'Whoever writes the row, a divergent signal is refused by the database');
 select throws_ok($$insert into private.report_sources(engagement_id,sentence_id,kind,ref_id,excerpt) values(tests.id(100),tests.own('heard'),'signal',tests.id(652),'x')$$,'23514',null,'and so is an aligned signal that was not saved as a citation');
