@@ -5,7 +5,6 @@ import { Download, EyeOff, Printer } from "lucide-react";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { recapCount, recapFrame, recapKey, type Recap, type RecapEntry } from "@/lib/export/recap";
 import { windowLabel } from "@/lib/run-of-show/self-paced";
-import { screenIds } from "@/lib/interactions/kinds";
 import { parts, type ShowContext } from "@/lib/run-of-show/types";
 import type { LiveSnapshot } from "@/lib/live/types";
 import "./self-paced.css";
@@ -16,7 +15,7 @@ import "./self-paced.css";
 const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry: RecapEntry; frame: LiveSnapshot; engagement: string; zone: string; now: number }) {
   const s = entry.session, label = s.kind?.label ?? s.interaction;
   return <article className="recap-card" data-session={s.id} data-kind={s.interaction}>
-    <div className="recap-meta"><span className="ctl-eyebrow">{label} · {screenIds[s.interaction]}{entry.mode === "self_paced" ? " · Self-paced" : ""}</span>
+    <div className="recap-meta"><span className="ctl-eyebrow">{label}{entry.mode === "self_paced" ? " · Self-paced" : ""}</span>
       <span className={`show-state is-${s.state}`}>{entry.mode === "self_paced" ? windowLabel({ ...entry, state: s.state }, zone, now) : s.state === "closed" ? "Closed" : s.state === "open" ? "Taking late answers" : s.state === "live" || s.state === "phones_down" ? "Live" : "Ready"}</span></div>
     <h3>{s.title}</h3>
     {s.prompt && <p className="recap-prompt">{s.prompt}</p>}

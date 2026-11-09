@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { CalendarCheck, Undo2 } from "lucide-react";
 import { longDate } from "@/lib/check-ins/policy";
 
-// Mark the retreat closed, for when Day 2 was not closed with Close the day in the app, and Undo for a mistaken mark. It asks inside the panel first.
+// Mark the retreat closed, for when Day 2 was not closed with Close Day 2 in the app, and Undo for a mistaken mark. It asks inside the panel first.
 export function RetreatClose({ engagement, closed, closedOn, canReopen, onChange }: { engagement: string; closed: boolean; closedOn: string | null; canReopen: boolean; onChange?: () => void | Promise<void> }) {
   const router = useRouter();
   const [asking, setAsking] = useState(false), [busy, setBusy] = useState(false), [say, setSay] = useState<string | null>(null);

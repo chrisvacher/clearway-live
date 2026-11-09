@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Hand, Link2, RotateCcw, Undo2 } from "lucide-react";
 import type { Room } from "@/components/control/live-controls";
-import { followupLabels, followupStatusText, followupWindow, type FollowupState } from "@/lib/interactions/intent";
+import { followupLabels, followupManageText, followupStatusText, followupWindow, type FollowupState } from "@/lib/interactions/intent";
 import { post, type RemoteState } from "./use-intent";
 import { pressId } from "@/lib/control/own-presses";
 import "./handover.css";
@@ -10,7 +10,8 @@ import "./handover.css";
 type Person = { id: string; first: string };
 type Access = { id: string; state: FollowupState; attendee: string; first?: string; email?: string; opens_at: string; closes_at: string; tv?: boolean; remote?: boolean };
 type Panel = { status: string; remote: RemoteState; followup: { status: string; access: Access | null }; people: Person[] };
-const messages: Record<string, string> = { ...followupStatusText, moved: "The room moved on. Check what is live and try again.", missing: "That person or step is not available.", invalid_state: "Go live on the first step of the block, then hand over.", denied: "Only the lead facilitator can do that.", exists: "A follow-up is already issued. Revoke it or reissue it.", unavailable: "The room didn’t answer. Try again." };
+const messages: Record<string, string> = { ...followupStatusText, ...followupManageText, moved: "The room moved on. Check what is live and try again.", missing: "That person or step is not available.", invalid_state: "Go live on the first step of the block, then hand over.", denied: "Only the lead facilitator can do that.", exists: "A follow-up is already issued. Revoke it or reissue it.",
+  unavailable: "The room didn’t answer. Try again." };
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 // The lead's side of the remote changing hands (D2-11): who holds it, Take back, Hand over, and the
@@ -85,6 +86,8 @@ function FollowupIssue({ people, steps, disabled, issue, previous }: { people: P
       setFrom(local(w.opens)); setTo(local(w.closes));
     }
   };
+  // Why Issue link and code is off, in the order a person fills the form.
+  const why = people.length === 0 ? "No one has signed in on a phone yet, so there is no team facilitator to pick." : !picked.length ? "Pick the steps in the block first." : !who ? "Pick a team facilitator to issue the link." : !from || !to ? "Set when the link opens and ends." : "";
   return <form className="hi-banner" onSubmit={e => { e.preventDefault(); if (who && picked.length && from && to) issue({ attendee: who, sessions: steps.filter(x => picked.includes(x.id)).map(x => x.id), opens_at: new Date(from).toISOString(), closes_at: new Date(to).toISOString() }); }}>
     <span>{previous === "revoked" ? "The last access was revoked." : previous === "expired" ? "The last access ended." : "No follow-up link yet."} Issue one for the block run over video.</span>
     <fieldset className="hi-field"><legend>Steps in the block</legend>{steps.map(x => <label key={x.id} className="show-radio"><input type="checkbox" checked={picked.includes(x.id)} disabled={disabled} onChange={() => choose(x.id)} />{x.title}</label>)}</fieldset>
@@ -92,6 +95,7 @@ function FollowupIssue({ people, steps, disabled, issue, previous }: { people: P
       <select aria-label="Team facilitator" value={who} onChange={e => setWho(e.target.value)} disabled={disabled}><option value="">Pick a team facilitator</option>{people.map(p => <option key={p.id} value={p.id}>{p.first}</option>)}</select>
       <label className="hi-field">Opens<input type="datetime-local" value={from} onChange={e => setFrom(e.target.value)} disabled={disabled} /></label>
       <label className="hi-field">Ends<input type="datetime-local" value={to} onChange={e => setTo(e.target.value)} disabled={disabled} /></label>
-      <button type="submit" className="show-button is-primary" disabled={disabled || !who || !picked.length || !from || !to}><Link2 size={16} aria-hidden="true" />Issue link and code</button></span>
+      <button type="submit" className="show-button is-primary" disabled={disabled || Boolean(why)} aria-describedby={why ? "hi-issue-why" : undefined}><Link2 size={16} aria-hidden="true" />Issue link and code</button></span>
+    {why && <p className="show-help" id="hi-issue-why">{why}</p>}
   </form>;
 }

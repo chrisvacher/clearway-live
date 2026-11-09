@@ -1,6 +1,6 @@
 "use client";
 import { useState, type FormEvent } from "react";
-import { Check, ExternalLink, Lock, RefreshCw, Send, Sprout, WifiOff } from "lucide-react";
+import { Check, ExternalLink, RefreshCw, Send, Sprout, WifiOff } from "lucide-react";
 import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { LensHeading } from "@/components/wayfinding/lens-icon";
 import { checkSentence, futureTense, heldText, lensOptions, presentTenseNudge, seededByLens } from "@/lib/interactions/lens";
@@ -32,8 +32,6 @@ export function LensInput({ step, mine, open, send, change, withdraw }: PhoneInp
   const name = (lens: LensNumber) => options.names[lens - 1] || undefined;
   return <div className="lens-phone" data-lens-phone={options.seed ? "seed" : "wall"}>
     {options.seed && <>
-      <p className="ph-who"><span className="ph-marker"><Lock size={14} aria-hidden="true" />Hidden</span>
-        <span><strong>Who sees my sentences?</strong> No one, until each lens opens on Day 1. Not even the facilitator.</span></p>
       {options.recording && <p className="ph-text"><a className="lens-recording" href={options.recording} target="_blank" rel="noopener noreferrer"><ExternalLink size={16} aria-hidden="true" />Missed the pre-call? Watch the recording first.</a></p>}
       <div className="lens-picker" role="group" aria-label="Lens">
         {lensNumbers.map(lens => <button key={lens} type="button" className={`lens-pick${pick === lens ? " is-on" : ""}`} aria-pressed={pick === lens} onClick={() => setPick(lens)}>

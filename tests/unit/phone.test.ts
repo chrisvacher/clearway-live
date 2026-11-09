@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { PhoneOutbox } from "../../lib/phone/outbox";
-import { checkAnswer, keepSettled, limitHint, ownAnswers, selfListHidden, sendsUsed, settledReason, type SettledAnswer } from "../../lib/phone/policy";
+import { bannerKey, bannerTaken, checkAnswer, keepSettled, limitHint, ownAnswers, selfListHidden, sendsUsed, settledReason, type SettledAnswer } from "../../lib/phone/policy";
 import type { OutboxEntry, OwnAnswer } from "../../lib/phone/types";
 import type { SubmissionRequest } from "../../lib/live/types";
 
@@ -109,4 +109,15 @@ test("the self-paced list hides only under a live step that takes input", () => 
   assert.equal(selfListHidden(true, true, false), false, "a live content step (a holding screen) leaves it visible");
   assert.equal(selfListHidden(false, false, true), false);
   assert.equal(selfListHidden(true, false, true), false);
+});
+
+test("the signed-in line shows once for each sign-in, and a closed store never breaks it", () => {
+  const store = (() => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, v); } }; })();
+  const key = bannerKey("room", "Ann");
+  assert.equal(bannerTaken(store, key), false, "the first time it shows");
+  assert.equal(bannerTaken(store, key), true, "a reload does not bring it back");
+  assert.equal(bannerTaken(store, bannerKey("room", "Ben")), false, "another person signing in on this phone sees it once");
+  const closed = { getItem: () => { throw new Error("closed"); }, setItem: () => { throw new Error("closed"); } };
+  assert.equal(bannerTaken(closed, key), false);
+  assert.equal(bannerTaken(null, key), false);
 });

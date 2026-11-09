@@ -5,7 +5,7 @@ import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { defaultWindow } from "@/lib/run-of-show/builder";
 import { parts, type SessionInput, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
-import { contentOf, fallbackKinds, screenIds, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
+import { contentOf, fallbackKinds, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { kindDefaults, optionEditors } from "@/components/interactions/option-editors";
 import { contentPromptLabel } from "./content-options";
 
@@ -92,7 +92,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           <p className="show-help is-full">All times in {context.timezone}. Planned times stay private.</p>
           {value.mode === "self_paced" && <><label htmlFor="session-opens">Opens<input id="session-opens" type="datetime-local" required value={opens} onChange={e => setOpens(e.target.value)} /></label><label htmlFor="session-closes">Closes<input id="session-closes" type="datetime-local" required value={closes} onChange={e => setCloses(e.target.value)} /></label><p className="show-help is-full">It opens and closes on phones at these times, outside the live room. Next and Back skip it, and invite emails link to it.</p></>}
           <label className="is-full" htmlFor="session-interaction">Interaction<select id="session-interaction" disabled={running} value={value.interaction} onChange={e => choose(e.target.value as InteractionKind)}>
-            {kinds.map(k => <option key={k.kind} value={k.kind}>{k.label}{k.kind !== "content" ? ` (${screenIds[k.kind]})` : ""}</option>)}
+            {kinds.map(k => <option key={k.kind} value={k.kind}>{k.label}</option>)}
             {!kinds.some(k => k.kind === value.interaction) && <option value={value.interaction}>{value.interaction}</option>}</select></label>
           {seedable.length > 0 && <label className="is-full" htmlFor="session-seeded">Seeded from<select id="session-seeded" value={value.seeded_from ?? ""} onChange={e => change("seeded_from", e.target.value || null)}>
             <option value="">Nothing, start empty</option>{seedable.map(s => <option key={s.id} value={s.id}>{s.part}: {s.title}</option>)}</select>

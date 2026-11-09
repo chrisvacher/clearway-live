@@ -75,7 +75,8 @@
 .lsm-ph-meta .cwl-ai-mark { width: 16px; height: 16px; }
 .lsm-ph-lines { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--space-3); }
 .lsm-ph-lines > li { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) 14px; border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); }
-.lsm-ph-lines p { margin: 0; font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-semibold); line-height: 1.4; overflow-wrap: anywhere; }
+/* The card is light, so its lines take the on-card text token. `.surface p` would otherwise paint them Sky on Off-White (1.7:1). */
+.lsm-phone .lsm-ph-lines p { color: var(--cwl-text-on-card); margin: 0; font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-semibold); line-height: 1.4; overflow-wrap: anywhere; }
 .lsm-ph-from { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-1); min-height: var(--cwl-phone-touch); padding: 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .lsm-ph-from:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
 .lsm-ph-sources { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-medium); }

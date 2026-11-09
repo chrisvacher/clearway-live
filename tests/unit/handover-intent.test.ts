@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cardNeeds, cardsOf, isTeamPress, lineChange, needsText, normalizeCode, phoneIntent, showCode, stepMissing, validCode, followupWindow, shortDate } from "../../lib/interactions/intent";
+import { cardNeeds, cardsOf, isTeamPress, lineChange, needsText, normalizeCode, phoneIntent, showCode, stepMissing, validCode, followupWindow, shortDate, followupManageText, followupStatusText } from "../../lib/interactions/intent";
 import { interactionKinds, isReservedKind, screenIds } from "../../lib/interactions/kinds";
 
 const id = "11111111-1111-4111-8111-111111111111", other = "22222222-2222-4222-8222-222222222222";
@@ -83,4 +83,13 @@ test("Fill Affirm together is the facilitator's press: the control route takes i
   assert.equal(phoneIntent(body), null, "a phone or team remote cannot fill it");
   assert.deepEqual(phoneIntent(body, true), { rpc: "intent_control", args: { p_id: id, p_action: "affirm_text", p: { session } } });
   assert.equal(phoneIntent({ ...body, p: { from: null, session: "x" } }, true), null, "the step must be a real id");
+});
+
+test("each follow-up refusal has its own plain line, and none reads as a dead room", () => {
+  for (const status of ["invalid_window", "invalid_request", "limit", "closed"]) {
+    const text = followupManageText[status];
+    assert.ok(text && text !== followupStatusText.unavailable, status);
+    assert.ok(!/[\u2013\u2014]/.test(text), "no dashes");
+  }
+  assert.match(followupManageText.invalid_window, /scheduled times of the follow-up steps/);
 });

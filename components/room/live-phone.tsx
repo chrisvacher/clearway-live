@@ -1,11 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Check, ChevronLeft, ChevronRight, FlaskConical, MonitorSmartphone, RefreshCw, Send, Smartphone, WifiOff } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Lock, FlaskConical, MonitorSmartphone, RefreshCw, Send, Smartphone, WifiOff } from "lucide-react";
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
 import { PhoneContent, phoneContentWaits } from "./phone-content";
-import { checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
+import { bannerKey, bannerTaken, checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
 import { browserStore } from "@/lib/phone/outbox";
 import type { PhoneStep } from "@/lib/phone/types";
 import { TvMirror } from "@/components/tv/tv-mirror";
@@ -16,6 +16,7 @@ import { recheckDelay, requestedStep, selfPacedState, windowLabel } from "@/lib/
 import "./self-paced.css";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
+import { lensOptions, seedingWhoText } from "@/lib/interactions/lens";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
 const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Sending", failed: "Not sent" } as const;
@@ -52,8 +53,16 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const [viewing, setViewing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<{ id: string; revision: number } | null>(null);
-  const [bannerSeen, setBannerSeen] = useState(false);
+  const [bannerSeen, setBannerSeen] = useState(false), [bannerShown, setBannerShown] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  // The signed-in line is one-time for each sign-in: the first time it would show, it is also marked in session storage.
+  const bannerDue = Boolean(phone.fresh && room && room.answers.length > 0), bannerFor = bannerKey(engagement, room?.name);
+  useEffect(() => {
+    if (!bannerDue) return;
+    let store: Storage | null = null;
+    try { store = window.sessionStorage; } catch { store = null; }
+    if (!bannerTaken(store, bannerFor)) setBannerShown(true);
+  }, [bannerDue, bannerFor]);
   const input = useRef<HTMLTextAreaElement>(null);
   const burstLength = useRef<{ ends: string; total: number } | null>(null);
 
@@ -174,7 +183,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
     <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} />{marker}</header>
     <div className="ph-body">
       <PhoneTeamRemote engagement={engagement} frame={frame} />
-      {phone.fresh && !bannerSeen && room && room.answers.length > 0 && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
+      {bannerShown && !bannerSeen && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
         <span>Signed in on this phone. Your earlier answers are here.</span><button type="button" onClick={() => setBannerSeen(true)}>OK</button></p>}
       {room?.rehearsal && <p className="ph-banner" role="status"><FlaskConical size={16} aria-hidden="true" /><span>Rehearsal. Your answers are test answers and will be cleared.</span></p>}
       {selfView && <nav className="ph-pager" aria-label="Steps reached"><span /><button type="button" onClick={() => go(null)}>Back to now<ChevronRight size={18} aria-hidden="true" /></button></nav>}
@@ -200,7 +209,9 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
           : <><h1 className="ph-prompt">{view.prompt}</h1>
             {view.phone_depth && <details className="ph-more"><summary>More detail</summary><div className="ph-depth">{view.phone_depth}</div></details>}
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
-            {takesInput && (kind?.shares_answers === false
+            {takesInput && (view.interaction === "lens" && lensOptions(view.options).seed
+              ? <p className="ph-who"><span className="ph-marker"><Lock size={14} aria-hidden="true" />Hidden</span><span><strong>Who sees my answers?</strong> {seedingWhoText}</span></p>
+              : kind?.shares_answers === false
               ? <p className="ph-who"><span className="ph-marker">Private</span><span><strong>Who sees my answers?</strong> Only the facilitators will read this, with your name. It never shows on the screen.</span></p>
               : <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>)}

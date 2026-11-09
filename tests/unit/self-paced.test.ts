@@ -157,6 +157,11 @@ test("A recap card is the TV's own frame for that session, results from the serv
   assert.equal(recapFrame({ display: frame.display!, server_time: "", version: 1 }, entry({ session: { ...e.session, state: "live" } })).session?.state, "open", "never a live mark on a card");
   assert.equal(recapCount(e), "8 answering", "the TV's own count words");
   assert.equal(recapCount(entry({ session: { ...e.session, interaction: "qa", kind: { ...e.session.kind!, counts: "answers" } }, results: { total: 7, people: 4, words: [] } })), "7 questions");
+  // The count is the CSV's row count: a word cloud with 39 answers holding 41 words, and Q&A with 8 waiting and 1 answered.
+  const wc = entry({ session: { ...e.session, interaction: "word_cloud", kind: { ...e.session.kind!, kind: "word_cloud", counts: "answers" } }, results: { total: 41, people: 12, words: [] }, csv_rows: 39 });
+  assert.equal(recapCount(wc), "39 answers", "the card matches its CSV, not the TV's word count");
+  assert.equal(recapCount(entry({ session: { ...e.session, interaction: "qa", kind: { ...e.session.kind!, counts: "answers" } }, results: { total: 8, people: 4, words: [] }, csv_rows: 9 })), "9 questions", "answered questions are rows too");
+  assert.notEqual(recapKey(wc), recapKey({ ...wc, csv_rows: 40 }), "a new row count redraws the card");
   assert.equal(recapKey(e), recapKey(entry()), "the same results keep the same frame");
   assert.notEqual(recapKey(e), recapKey(entry({ results: { ...e.results, people: 9 } })), "new results change it");
 });

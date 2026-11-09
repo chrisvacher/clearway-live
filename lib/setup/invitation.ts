@@ -1,4 +1,5 @@
 import { selfPacedLink } from "../run-of-show/self-paced";
+import { retreatDates } from "../export/report-model";
 import { aiInviteParagraph, aiPagePath } from "../ai/disclosure";
 
 export type InvitationSnapshot={title:string;church:string;timezone:string;pre_call_at:string|null;retreat_start_date:string|null;retreat_end_date:string|null;consensus:string;people:{id:string;name:string;email:string}[]};
@@ -8,7 +9,8 @@ export type InvitationSelfPaced={id:string;title:string;opens_at:string;closes_a
 export function invitationMessages(engagement:string,snapshot:InvitationSnapshot,origin:string,selfPaced:InvitationSelfPaced[]=[],ai=false){
   const aiNote=ai ? `\n\n${aiInviteParagraph}\n${new URL(aiPagePath,origin)}` : "";
   const pre=snapshot.pre_call_at ? new Intl.DateTimeFormat("en-CA",{timeZone:snapshot.timezone,dateStyle:"full",timeStyle:"short"}).format(new Date(snapshot.pre_call_at))+` (${snapshot.timezone})` : "Your facilitator will confirm the pre-call time.";
-  const retreat=snapshot.retreat_start_date ? `${snapshot.retreat_start_date}${snapshot.retreat_end_date && snapshot.retreat_end_date!==snapshot.retreat_start_date?` to ${snapshot.retreat_end_date}`:""}` : "Your facilitator will confirm the retreat dates.";
+  // The retreat dates are calendar days, not instants, so they read the same in any time zone: "November 3 to 4, 2026".
+  const retreat=retreatDates(snapshot.retreat_start_date,snapshot.retreat_end_date) || "Your facilitator will confirm the retreat dates.";
   const when=(iso:string)=>new Intl.DateTimeFormat("en-CA",{timeZone:snapshot.timezone,dateStyle:"medium",timeStyle:"short"}).format(new Date(iso));
   return snapshot.people.map(person=>{
     const room=new URL(`/room/${engagement}`,origin);room.searchParams.set("email",person.email);

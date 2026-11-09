@@ -7,7 +7,9 @@ import type { TvAppearance } from "../tv/types";
 import { countOf, countUnit, kindOf } from "../interactions/kinds";
 
 export type RecapEntry = { part: string; mode: "live" | "self_paced"; opens_at: string | null; closes_at: string | null; session: LiveSession;
-  hidden_keys: string[]; hidden_ids: string[]; results: LiveResults; answers: LiveAnswer[] };
+  hidden_keys: string[]; hidden_ids: string[]; results: LiveResults; answers: LiveAnswer[];
+  // The rows this session's CSV holds (every answer not deleted or withdrawn), counted by the server.
+  csv_rows?: number };
 export type Recap = { status: "ok"; server_time: string; version: number; display: TvAppearance; sessions: RecapEntry[] };
 
 export function recapFrame(recap: Pick<Recap, "display" | "server_time" | "version">, entry: RecapEntry): LiveSnapshot {
@@ -22,10 +24,12 @@ export function recapFrame(recap: Pick<Recap, "display" | "server_time" | "versi
     answers: entry.answers,
   };
 }
-// "8 answering", "23 answers", "7 questions": the TV's own count words.
+// "8 answering", "23 answers", "9 questions": the TV's own count words, over the rows the card's CSV
+// holds, so the number on the card and the file never disagree. The TV's results count words in a word
+// cloud and only waiting questions in Q&A; the recap counts what was sent.
 export function recapCount(entry: RecapEntry) {
-  const kind = kindOf(entry.session), n = countOf(entry.results, kind?.counts);
+  const kind = kindOf(entry.session), n = typeof entry.csv_rows === "number" ? entry.csv_rows : countOf(entry.results, kind?.counts);
   return `${n} ${countUnit(n, kind?.counts, entry.session.interaction)}`;
 }
 // Only what changed: a card redraws when its session's results, answers or text move.
-export const recapKey = (entry: RecapEntry) => JSON.stringify([entry.session.revision, entry.session.state, entry.results, entry.answers.map(a => [a.id, a.revision]), entry.hidden_keys, entry.hidden_ids]);
+export const recapKey = (entry: RecapEntry) => JSON.stringify([entry.session.revision, entry.session.state, entry.results, entry.answers.map(a => [a.id, a.revision]), entry.hidden_keys, entry.hidden_ids, entry.csv_rows ?? null]);

@@ -39,3 +39,5 @@ Limits hold Send and say why, never cutting an answer: a word cloud takes up to 
 - `supabase/tests/database/live_phones.test.sql`: reached steps only, filled years, own answers only, no notes or other people's data, other rooms and the TV denied.
 - `tests/unit/phone.test.ts`: limits, send counting, answer status, settled outcomes, outbox order and retries, reload and offline.
 - `tests/smoke/routes.test.ts`: `/mine` needs the room's own cookie.
+
+**Overnight acceptance fix (November 9).** On the lens seeding step, "Who sees my answers?" reads "No one, until each lens opens on Day 1. Not even the facilitator." The "Signed in on this phone. Your earlier answers are here." line shows once for each sign-in (session storage keyed by engagement and person), not on every reload. The AI lens-summary lines on the light card use the on-card text token.

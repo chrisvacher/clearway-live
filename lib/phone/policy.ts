@@ -77,3 +77,14 @@ export function settledReason(status: string): string | null {
 export function selfListHidden(isLive: boolean, running: boolean, takesInputKind: boolean): boolean {
   return isLive && running && takesInputKind;
 }
+
+// "Signed in on this phone. Your earlier answers are here." shows once for each sign-in on this phone. The
+// flag lives in session storage, keyed by the engagement and the signed-in person, so a reload doesn't bring
+// it back and a different person signing in on the same phone sees it once too. Storage that throws (private
+// mode) counts as "not seen" and "not saved", so the line still shows and never breaks the screen.
+export const bannerKey = (engagement: string, person: string | null | undefined) => `cw-signed-in-${engagement}-${person ?? ""}`;
+type FlagStore = Pick<Storage, "getItem" | "setItem">;
+export function bannerTaken(store: FlagStore | null, key: string): boolean {
+  try { if (store?.getItem(key)) return true; store?.setItem(key, "1"); } catch { /* Storage is closed: show it. */ }
+  return false;
+}

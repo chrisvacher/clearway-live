@@ -6,6 +6,7 @@ import { BadgeCheck, EyeOff, FlaskConical, LayoutDashboard, LayoutTemplate, Play
 import { kindLabel } from "@/lib/interactions/kinds";
 import { clock } from "@/lib/run-of-show/builder";
 import { parts } from "@/lib/run-of-show/types";
+import { removeTemplateQuestion } from "@/lib/templates/policy";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { practiceId } from "@/lib/room/practice";
 import type { Template, TemplateLibrary as Library } from "@/lib/templates/types";
@@ -32,11 +33,10 @@ function tomorrowAtNine(timezone: string) {
 export function TemplateLibrary({ initial, admin, engagement, template }: { initial: Library | null; admin: boolean; engagement: string | null; template: string | null }) {
   const router = useRouter();
   const [library, setLibrary] = useState(initial), [selected, setSelected] = useState<string | null>(() => template ?? initial?.templates.find(t => t.kind === "shipped")?.id ?? initial?.templates[0]?.id ?? null);
-  const [starting, setStarting] = useState<string | null>(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false);
+  const [starting, setStarting] = useState<string | null>(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [asking, setAsking] = useState<string | null>(null);
   const current = library?.templates.find(t => t.id === selected) ?? null;
   async function remove(t: Template) {
-    if (!window.confirm(`Remove the ${t.name} template? Engagements already started from it keep their sessions.`)) return;
-    setBusy(true); setMessage("");
+    setAsking(null); setBusy(true); setMessage("");
     try {
       const response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove", input: { template: t.id } }) });
       const result = await response.json().catch(() => ({}));
@@ -87,7 +87,11 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
               })}</ol></section>;
             })}
           </div>
-          <div className="show-panel-foot">{current.can_remove && <button type="button" className="show-button" disabled={busy} onClick={() => void remove(current)}><Trash2 size={16} aria-hidden="true" />Remove template</button>}
+          <div className="show-panel-foot">{current.can_remove && (asking === current.id
+              ? <span className="show-message" role="alert" data-remove-confirm>{removeTemplateQuestion(current.name)}{" "}
+                <button type="button" className="show-button is-small" disabled={busy} onClick={() => void remove(current)}>Remove template</button>{" "}
+                <button type="button" className="show-button is-small" onClick={() => setAsking(null)}>Keep it</button></span>
+              : <button type="button" className="show-button" disabled={busy} onClick={() => setAsking(current.id)}><Trash2 size={16} aria-hidden="true" />Remove template</button>)}
             <button type="button" className="show-button is-primary" onClick={() => setStarting(current.id)}><Play size={16} aria-hidden="true" />Use this template</button></div>
         </aside>}
       </div>}

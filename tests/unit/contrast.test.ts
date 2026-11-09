@@ -47,3 +47,15 @@ for (const theme of ["light", "dark"] as const) {
     }
   });
 }
+
+// The AI lens-summary and read-back lines sit on a light card on the phone. `.surface p` paints paragraphs in the
+// muted Sky token, so the card's own paragraphs must set the on-card token with at least that rule's weight (a
+// class and an element), or the lines read Sky on Off-White at 1.7:1.
+test("phone summary lines on the light card use the on-card text token", () => {
+  const css = postcss.parse(readFileSync("components/interactions/lens-summary/lens-summary.css", "utf8"));
+  let found = "";
+  css.walkRules(rule => { if (/\.lsm-ph-lines p$/.test(rule.selector) && /^\.[\w-]+ \.lsm-ph-lines p$/.test(rule.selector)) rule.walkDecls("color", d => { found = d.value; }); });
+  assert.equal(found, "var(--cwl-text-on-card)");
+  const values = tokens("dark"), a = luminance(rgb("--cwl-text-on-card", values)), b = luminance(rgb("--cwl-surface-card", values));
+  assert.ok((Math.max(a, b) + .05) / (Math.min(a, b) + .05) >= 4.5);
+});

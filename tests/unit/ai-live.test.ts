@@ -393,7 +393,7 @@ const status = (extra: Partial<AiStatus> & { ai?: boolean; interaction?: "wall" 
   state: { running: false, job: null, running_ms: null, last_ms: 900, last_ok_at: null, last_failed_at: null, failing: false, slow: false }, ...extra });
 test("FAIL-09 on the control surface and remote: slow, not responding, off. The TV never says it", () => {
   assert.equal(aiNotice(status()), null, "all well: nothing to say");
-  assert.match(aiNotice(status({ state: { ...status().state!, slow: true }, waiting: 6 }))!.text, /arrival order and groups catch up when AI does\. 6 answers waiting for grouping\./);
+  assert.match(aiNotice(status({ state: { ...status().state!, slow: true }, waiting: 6 }))!.text, /arrival order and groups catch up when it does\. 6 answers waiting for grouping\./);
   assert.equal(aiNotice(status({ state: { ...status().state!, failing: true } }))!.title, "AI isn't responding.");
   assert.equal(aiNotice(status({ ai: false }))!.text, "The wall shows answers in arrival order.");
   assert.equal(aiNotice(status({ engagement_ai: false }))!.title, "AI is off for this engagement.");
