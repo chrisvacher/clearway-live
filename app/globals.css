@@ -692,3 +692,12 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .cwl-wordmark.is-tv { height: var(--cwl-wordmark-h-tv); }
 .cwl-wordmark.is-print { height: var(--cwl-wordmark-h-print); }
 .cwl-wordmark.is-page { height: var(--cwl-wordmark-h-page); }
+/* The engagement list on /setup: organization, event, then its type, date and place. */
+.engagement-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-4); }
+.engagement-row { padding-block: var(--space-4); border-top: 1px solid var(--cwl-border); }
+.engagement-row:first-child { border-top: 0; padding-top: 0; }
+.narrow .engagement-row p { margin-bottom: var(--space-1); }
+.engagement-org { font-size: var(--fs-small); font-weight: var(--fw-semibold); color: var(--cwl-text-muted); }
+.engagement-row h3 { margin-block: 0 var(--space-1); }
+.engagement-meta { color: var(--cwl-text-muted); }
+.engagement-row .actions { display: flex; flex-wrap: wrap; gap: var(--space-4); }

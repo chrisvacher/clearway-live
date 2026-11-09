@@ -40,6 +40,8 @@ export class TeamHubReader {
     return (await this.read<HubClient>(`select ${clientColumns} from live_read.clients where name ilike $1 and ($2::uuid is null or id>$2) order by id limit $3`,[wildcard(search),after?id(after):null,Math.min(100,Math.max(1,Math.trunc(limit)||50))])).map(clientLogo);
   }
   async client(clientId:string){const client=(await this.read<HubClient>(`select ${clientColumns} from live_read.clients where id=$1`,[id(clientId)]))[0];return client?clientLogo(client):null;}
+  // Many clients at once (the engagement list): validated ids only, at most 200.
+  async clients(clientIds:string[]){const ids=[...new Set(clientIds)].slice(0,200).map(id);if(!ids.length)return [];return (await this.read<HubClient>(`select ${clientColumns} from live_read.clients where id=any($1::uuid[])`,[ids])).map(clientLogo);}
   engagements(clientId:string){return this.read<HubEngagement>(`select ${engagementColumns} from live_read.engagements e join live_read.clients c on c.id=e.client_id where e.client_id=$1 order by e.id`,[id(clientId)]);}
   async engagement(engagementId:string,clientId:string){return (await this.read<HubEngagement>(`select ${engagementColumns} from live_read.engagements e join live_read.clients c on c.id=e.client_id where e.id=$1 and e.client_id=$2`,[id(engagementId),id(clientId)]))[0]||null;}
   async people(clientId:string){
