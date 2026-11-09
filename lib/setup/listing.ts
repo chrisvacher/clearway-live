@@ -15,8 +15,9 @@ const day = (iso: string, withYear: boolean) => new Intl.DateTimeFormat("en-CA",
 
 // The day the room meets: the retreat dates, else the engagement's own dates. A pre-call alone
 // shows as the pre-call. Ranges read "Sat, Nov 7 to Sun, Nov 8, 2026", never with a dash.
-export function eventDate(e: Pick<ListedEngagement, "start_date" | "end_date" | "retreat_start_date" | "retreat_end_date" | "pre_call_at">, timezone = "America/Toronto"): string | null {
-  const start = e.retreat_start_date ?? e.start_date, end = e.retreat_start_date ? e.retreat_end_date : e.end_date;
+export function eventDate(e: Pick<ListedEngagement, "start_date" | "end_date" | "retreat_start_date" | "retreat_end_date" | "pre_call_at"> & { type?: string }, timezone = "America/Toronto"): string | null {
+  const retreat = e.type !== "team_workshop" && e.retreat_start_date;
+  const start = retreat || e.start_date, end = retreat ? e.retreat_end_date : e.end_date;
   if (start) {
     if (!end || end === start) return day(start, true);
     return start.slice(0, 4) === end.slice(0, 4) ? `${day(start, false)} to ${day(end, true)}` : `${day(start, true)} to ${day(end, true)}`;
@@ -42,8 +43,9 @@ export const statusName = (status: string) => ({ setup: "Setup", discover: "Disc
 export function compareEngagements(a: ListedEngagement, b: ListedEngagement, now = new Date()): number {
   const key = (e: ListedEngagement): [number, string] => {
     const today = new Intl.DateTimeFormat("en-CA", { timeZone: e.church?.timezone ?? "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
-    const start = e.retreat_start_date ?? e.start_date ?? e.pre_call_at?.slice(0, 10);
-    const end = e.retreat_end_date ?? e.end_date ?? start;
+    const retreat = e.type !== "team_workshop" && e.retreat_start_date;
+    const start = retreat || e.start_date || (e.pre_call_at ? new Intl.DateTimeFormat("en-CA", { timeZone: e.church?.timezone ?? "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(e.pre_call_at)) : null);
+    const end = (retreat ? e.retreat_end_date : e.end_date) ?? start;
     return [e.status === "closed" ? 3 : !start ? 1 : end! >= today ? 0 : 2, start ?? ""];
   };
   const [ag, ad] = key(a), [bg, bd] = key(b);
