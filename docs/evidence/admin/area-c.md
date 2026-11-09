@@ -13,3 +13,5 @@ Local fictional Riverside engagement. Desktop 1440px and narrow 390px full-page 
 The shared door-list component used by the live control surface is unchanged. New door-page styles apply only inside its admin wrapper. Name-joined guests use their truthful joining label without claiming an email session is absent.
 
 Door and list reviews have explicit refresh buttons. Door names use the same alphabetical order as setup. Disabled admin controls use the disabled token treatment. The local browser harness verifies both database and API ports against the actual Clearway Live containers before connecting, and a mismatched-checkout check proves the refusal path.
+
+Validation passed: `npm run check`, the admin audit at both widths, and the templates (17), Discover (10), Four Helpful Lists (13, including 50 phones), themes, What We Heard and team-workshop (19) browser kits. The phone helper waits for its UI before submitting a test sign-in request.

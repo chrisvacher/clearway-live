@@ -72,9 +72,10 @@ async function main() {
 
     async function phone(person: { email: string }) {
       const ctx = await browser!.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-      const page = await ctx.newPage(); await page.goto(`${app.origin}/room/${room.id}`);
+      const page = await ctx.newPage(); await page.goto(`${app.origin}/room/${room.id}`); await page.waitForLoadState("networkidle");
       const before = mail.count;
       await page.fill("#room-email", person.email); await page.getByRole("button", { name: "Send me a sign-in code" }).click();
+      await page.locator("#room-code").waitFor({ timeout: 15000 });
       await page.fill("#room-code", await mail.code(person.email, before)); await page.getByRole("button", { name: "Sign in" }).click();
       await page.locator(".ph-app").waitFor({ timeout: 15000 });
       return page;
