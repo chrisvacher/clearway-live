@@ -40,6 +40,18 @@ select is(public.practice_guest(tests.practice_payload()||jsonb_build_object('pr
 select is(public.practice_guest(tests.practice_payload())->>'status','approved','Name-only guest obtains a practice grant');
 select is((select email from attendees where engagement_id='90000000-0000-4000-8000-000000000010'),tests.id(101)::text||'@practice.clearway.invalid','Practice identity is generated per device');
 select is((select count(*)::integer from device_sessions),0,'A guest grant alone creates no signed-in device');
+-- Open joining (November 9): a name-only join on a real engagement, only when the admin setting is on.
+select is(public.practice_guest(tests.payload(2,12)||jsonb_build_object('name','Open guest'))->>'status','invalid_request','A room without open joining refuses a name-only join');
+reset role;
+insert into engagements(id,church_id,title,status,type) values(tests.id(12),tests.id(21),'Open workshop','retreat','team_workshop');
+update engagements set settings=settings||'{"open_join":true}' where id=tests.id(12);
+set local role service_role;
+select is(public.room_auth('init',tests.payload(2,12))->>'status','ready','Open joining device initializes');
+select is(public.practice_guest(tests.payload(2,12)||jsonb_build_object('name','Open guest','proof',repeat('b',64)))->>'status','device_missing','Open joining still requires the device secret');
+select is(public.practice_guest(tests.payload(2,12)||jsonb_build_object('name','Open guest'))->>'status','approved','Open joining lets a name-only guest in');
+select is((select email from attendees where engagement_id=tests.id(12) and name='Open guest'),tests.id(102)::text||'@guest.clearway.invalid','Open joining generates a guest identity per device');
+select is((public.room_public_info(tests.id(12))->>'openJoin')::boolean,true,'Room info reports open joining');
+select is((public.room_public_info(tests.id(10))->>'openJoin')::boolean,false,'Room info reports a closed door by default');
 select set_config('tests.practice_claim',public.room_auth('prepare_claim',tests.practice_payload())->>'claim',true);
 reset role;
 select is((select count(*)::integer from attendees where engagement_id=tests.id(11)),1,'Joining practice does not alter another engagement');
@@ -66,8 +78,8 @@ update clearway_users set is_admin=true where id=tests.id(304);
 update attendees set auth_user_id=tests.id(1),verified_at=now() where id=tests.id(30);
 insert into device_sessions(engagement_id,attendee_id,auth_session_id) values(tests.id(10),tests.id(30),tests.id(201));
 set local role service_role;
-select is(public.room_auth('init',tests.payload(2,11))->>'status','ready','Another engagement gets a manual-sign-in device');
-select is(public.room_auth('join',tests.payload(2,11)||jsonb_build_object('name','Admin-approved guest','email','admin-guest@example.org'))->>'status','pending','Another engagement gets a join request');
+select is(public.room_auth('init',tests.payload(2,12))->>'status','ready','Another engagement gets a manual-sign-in device');
+select is(public.room_auth('join',tests.payload(2,12)||jsonb_build_object('name','Admin-approved guest','email','admin-guest@example.org'))->>'status','pending','Another engagement gets a join request');
 reset role;
 select set_config('tests.admin_join',(select id::text from join_requests where device_id=tests.id(102)),true);
 set local role authenticated;
@@ -76,7 +88,7 @@ select is(public.sign_in_room_device(tests.id(11),tests.id(31),'AAAAAAAB'),true,
 -- Manual sign-in already resolves that request, so submit a second request below.
 reset role;
 set local role service_role;
-select is(public.room_auth('join',tests.payload(2,11)||jsonb_build_object('name','Admin-approved guest','email','admin-guest@example.org'))->>'status','pending','A fresh request waits for an admin');
+select is(public.room_auth('join',tests.payload(2,12)||jsonb_build_object('name','Admin-approved guest','email','admin-guest@example.org'))->>'status','pending','A fresh request waits for an admin');
 reset role;
 select set_config('tests.admin_join',(select id::text from join_requests where device_id=tests.id(102) and status='pending'),true);
 set local role authenticated;

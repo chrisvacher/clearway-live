@@ -21,7 +21,7 @@ const messages: Record<string, string> = {
   invalid_request: "Check your details and try again.",
 };
 
-export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, initial, ai = false }: { engagement: string; church?: string; practice?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string }; ai?: boolean }) {
+export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, openJoin = false, initial, ai = false }: { engagement: string; church?: string; practice?: boolean; openJoin?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string }; ai?: boolean }) {
   const [state, setState] = useState<Status>(initial||{ status: "loading" });
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState("");
@@ -30,6 +30,8 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
   const [busy, setBusy] = useState(!confirm);
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  // Open joining: name only by default, with email sign-in one tap away for people on the list.
+  const [useEmail, setUseEmail] = useState(false);
   const needsFacilitator = submitting !== "send" && ["not_listed", "check_facilitator", "declined"].includes(state.status);
   const claiming = useRef(false);
   const waitingMessage = useRef<HTMLDivElement>(null);
@@ -97,6 +99,12 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
     <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="practice-name">Your name</label><input id="practice-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the practice room</button></form>
     {ai&&<AiSignInNote />}
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
+  </section>;
+  if(openJoin&&!useEmail)return <section className="form-stack"><p>Join with your name. You won’t need an email or a sign-in code.</p>
+    <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="open-name">Your name</label><input id="open-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the room</button></form>
+    {ai&&<AiSignInNote />}
+    {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
+    <button type="button" className="text-link" onClick={()=>{setUseEmail(true);setState(previous=>previous.status==="invalid_request"?{status:"ready"}:previous);}}>Sign in with your email instead</button>
   </section>;
   if (state.status === "pending") return <section className="form-stack">
     <div className="room-waiting" ref={waitingMessage} tabIndex={-1} role="status" aria-labelledby="room-waiting-title" aria-describedby="room-waiting-message">

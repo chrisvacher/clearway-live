@@ -48,7 +48,7 @@ export async function POST(request:NextRequest){
       const {error}=await client.from("clearway_users").insert({name:m.name,email:m.email,team_hub_team_member_id:m.id,is_admin:false});if(error)return answer({ok:false,message:"That person may already be a Clearway user."},400);return answer({ok:true});
     }
     if(action==="create"||action==="save"){
-      const input=setupInput(body);let id:string|null=null,linkedClient:string|null=null,linkedEngagement:string|null=null;
+      const input=setupInput(body);if(!profile.is_admin)delete (input.engagement.settings as Record<string,unknown>).open_join;let id:string|null=null,linkedClient:string|null=null,linkedEngagement:string|null=null;
       if(action==="create"){
         admin();if(!uuid(body.hub_client)||!uuid(body.hub_engagement))return answer({ok:false,message:"Choose a church and engagement from Team Hub."},400);
         const hub=teamHubReader();const [c,e]=await Promise.all([hub.client(body.hub_client),hub.engagement(body.hub_engagement,body.hub_client)]);if(!c||!e)return answer({ok:false},400);linkedClient=c.id;linkedEngagement=e.id;
