@@ -22,3 +22,5 @@ Invites are reviewed and sent in batches of up to 50 through Resend's batch API.
 # Validation
 
 Unit tests cover CSV edge cases, duplicate matching, roles, local times, dates and invitation content. HTTP tests exercise guarded setup routes, import review/save and invite review/send/retry against local Auth, REST and Resend fixtures. PostgreSQL tests prove participants and other-engagement facilitators cannot save setup, import people or queue invitations. They also cover immutable external links, private outbox access, atomic imports, preserved scribe roles, consensus snapshots and admin creation.
+
+**Overnight acceptance fix (November 9).** The invite email writes the retreat dates as the app does ("November 3 to 4, 2026"), not as ISO dates.

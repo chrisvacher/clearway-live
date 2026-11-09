@@ -39,3 +39,7 @@ export const templateMessages: Record<string, string> = {
   too_large: "A template holds up to 500 sessions.", invalid_request: "That template doesn't fit this engagement. Check its sessions and try again.",
   unavailable: "We couldn’t finish that. Please try again.",
 };
+
+// The question Remove template asks inside the panel. The name is the template's own, so the question
+// never adds the word "template" after it (a template named "Retreat template" would read twice).
+export const removeTemplateQuestion = (name: string) => `Remove ${name}? Engagements already started from it keep their sessions.`;

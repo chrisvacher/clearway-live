@@ -132,6 +132,14 @@ export const followupStatusText: Record<string, string> = {
   unavailable: "The room didn't answer. Try again.", limited: "Too many tries. Wait a moment.", busy: "The room's own handover is still open. Ask the lead facilitator to end it.",
   lead_has_it: "The lead facilitator has the remote. Ask for it back.", outside_block: "That is outside your block.",
 };
+// What the lead's Video follow-up panel says when the server refuses Issue link and code or Extend. Each
+// refusal has its own line, so a window the server will never accept doesn't read as a dead room.
+export const followupManageText: Record<string, string> = {
+  invalid_window: "That window won't work. It has to end in the future, open before it ends and run no longer than 24 hours.",
+  invalid_request: "Pick the steps, a team facilitator and when the link opens and ends, then try again.",
+  limit: "A follow-up can run 24 hours at most, so it can't be extended again.",
+  closed: "This engagement is closed, so no follow-up can be issued.",
+};
 // What the follow-up phone says when Take the remote does not go through. Busy means the room's own handover,
 // given to someone else in the room, is still open: only the lead can end it.
 export function followupTakeText(status: string, lead?: string | null): string {

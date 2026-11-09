@@ -21,5 +21,14 @@ test("dates and church local times reject invalid dates and daylight-saving gaps
 });
 test("each personal invite carries saved consensus, dates and the prefilled room link",()=>{
  const [m]=invitationMessages("room",{title:"Wayfinding",church:"Riverside",timezone:"America/Toronto",pre_call_at:"2026-11-04T19:00Z",retreat_start_date:"2026-11-18",retreat_end_date:"2026-11-19",consensus,people:[{id:"a",name:"Ann",email:"a+test@example.org"}]},"https://live.clearway.co");
- assert.equal(m.to,"a+test@example.org");assert.ok(m.text.includes(consensus));assert.match(m.text,/2026-11-18 to 2026-11-19/);const link=m.text.match(/https:\/\/[^\s]+/)![0];assert.equal(new URL(link).searchParams.get("email"),m.to);assert.match(m.text,/Send me a sign-in code/);
+ assert.equal(m.to,"a+test@example.org");assert.ok(m.text.includes(consensus));assert.match(m.text,/Retreat: November 18 to 19, 2026\n/);assert.ok(!/\d{4}-\d{2}-\d{2}/.test(m.text.split("Pre-call:")[1].split("Open your room")[0].replace(/\(.*\)/,"")),"no ISO dates in the dates block");const link=m.text.match(/https:\/\/[^\s]+/)![0];assert.equal(new URL(link).searchParams.get("email"),m.to);assert.match(m.text,/Send me a sign-in code/);
+});
+test("the invite writes retreat dates the way the app does, across a month and a single day",()=>{
+ const base={title:"Wayfinding",church:"Riverside",timezone:"America/Toronto",pre_call_at:null,consensus,people:[{id:"a",name:"Ann",email:"a+test@example.org"}]};
+ const line=(start:string|null,end:string|null)=>invitationMessages("room",{...base,retreat_start_date:start,retreat_end_date:end},"https://live.clearway.co")[0].text.match(/Retreat: (.*)/)![1];
+ assert.equal(line("2026-11-03","2026-11-04"),"November 3 to 4, 2026");
+ assert.equal(line("2026-10-31","2026-11-01"),"October 31 to November 1, 2026");
+ assert.equal(line("2026-11-03","2026-11-03"),"November 3, 2026");
+ assert.equal(line("2026-11-03",null),"November 3, 2026");
+ assert.equal(line(null,null),"Your facilitator will confirm the retreat dates.");
 });

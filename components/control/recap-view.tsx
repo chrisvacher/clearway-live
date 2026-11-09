@@ -4,8 +4,8 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Download, EyeOff, Printer } from "lucide-react";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { recapCount, recapFrame, recapKey, type Recap, type RecapEntry } from "@/lib/export/recap";
+import { lensOf, lensOptions } from "@/lib/interactions/lens";
 import { windowLabel } from "@/lib/run-of-show/self-paced";
-import { screenIds } from "@/lib/interactions/kinds";
 import { parts, type ShowContext } from "@/lib/run-of-show/types";
 import type { LiveSnapshot } from "@/lib/live/types";
 import "./self-paced.css";
@@ -16,11 +16,12 @@ import "./self-paced.css";
 const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry: RecapEntry; frame: LiveSnapshot; engagement: string; zone: string; now: number }) {
   const s = entry.session, label = s.kind?.label ?? s.interaction;
   return <article className="recap-card" data-session={s.id} data-kind={s.interaction}>
-    <div className="recap-meta"><span className="ctl-eyebrow">{label} · {screenIds[s.interaction]}{entry.mode === "self_paced" ? " · Self-paced" : ""}</span>
+    <div className="recap-meta"><span className="ctl-eyebrow">{label}{entry.mode === "self_paced" ? " · Self-paced" : ""}</span>
       <span className={`show-state is-${s.state}`}>{entry.mode === "self_paced" ? windowLabel({ ...entry, state: s.state }, zone, now) : s.state === "closed" ? "Closed" : s.state === "open" ? "Taking late answers" : s.state === "live" || s.state === "phones_down" ? "Live" : "Ready"}</span></div>
     <h3>{s.title}</h3>
     {s.prompt && <p className="recap-prompt">{s.prompt}</p>}
     <TvMirror frame={frame} label={`Results for ${s.title}`} />
+    {s.interaction === "lens" && !lensOptions(s.options).seed && lensOf(entry.results).seeded.length > 0 && <p className="recap-prompt">The count is this step&rsquo;s own answers. Seeded sentences are counted in the seeding step&rsquo;s CSV.</p>}
     <div className="recap-meta"><span className="recap-count" aria-live="polite">{recapCount(entry)}</span>
       <a className="show-button is-small" href={`/api/control/${engagement}/export?session=${s.id}`} download><Download size={14} aria-hidden="true" />Download CSV</a></div>
   </article>;

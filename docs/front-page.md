@@ -55,3 +55,5 @@ The gallery uses screenshots. Whenever an interaction's TV or phone screen chang
 - Or from a downloaded `team-workshop-screens` artifact: `npm run home:shots -- <folder>`.
 
 `homeShots` in the script maps each image to its workshop screenshot. TV shots become 1600 wide WebP, phone shots keep their size. Look at the gallery afterwards, since a redesigned screen may need new alt text in `app/(public)/page.tsx`.
+
+**Overnight acceptance fix (November 9).** The After step no longer says goals move to CORE (the app doesn't publish to CORE). It names the report, the draft visibility plan, 30, 60 and 90-day check-ins with each owner and the elders' read-only copy.

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { canSelfPace, clock, defaultWindow, droppedSession, endOfRun, kindMinutes, liveMinutes, onlyMoved, palette, paletteScreens, partOf, partTimes, placeSession, slots, stepSlot } from "../../lib/run-of-show/builder";
-import { templateInput } from "../../lib/templates/policy";
+import { removeTemplateQuestion, templateInput } from "../../lib/templates/policy";
 import { interactionKinds, type KindInfo } from "../../lib/interactions/kinds";
 import type { ShowSession } from "../../lib/run-of-show/types";
 
@@ -113,4 +113,11 @@ test("the template preview shows the registry labels for the Wayfinding kinds, n
   const expected: Record<string, string> = { lens: "Lens wall", lens_summary: "Lens summary", candidates: "Candidate priorities", bullets: "Outcome bullets", confirm: "Outcome confirm", goals: "CORE goals", intent: "Commander's intent" };
   for (const [kind, label] of Object.entries(expected)) assert.equal(kindLabel(kind, null), label);
   assert.equal(kindLabel("wall", null), "Open text");
+});
+
+test("Remove template asks with the template's own name and never doubles the word template", () => {
+  const q = removeTemplateQuestion("FL acceptance template");
+  assert.equal(q, "Remove FL acceptance template? Engagements already started from it keep their sessions.");
+  assert.ok(!/template template/i.test(q));
+  assert.ok(!readFileSync("components/templates/template-library.tsx", "utf8").includes("window.confirm"), "the question is asked inside the panel");
 });

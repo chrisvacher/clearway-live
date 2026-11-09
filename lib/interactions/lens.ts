@@ -5,6 +5,9 @@ import { isLens, lensNumbers, type LensNumber } from "@/lib/wayfinding/lens";
 import { wallOf, type WallGroup } from "@/lib/interactions/ai";
 
 export const heldText = "Hidden until Day 1";
+// The phone's "Who sees my answers?" line on the seeding step. Sentences are held from everyone, the facilitator
+// included, until each lens opens (PRD), so the general line about the screen would say the opposite.
+export const seedingWhoText = "No one, until each lens opens on Day 1. Not even the facilitator.";
 export type LensOptions = { seed: boolean; lens: LensNumber | null; recording: string; names: string[]; ai: boolean };
 export function lensOptions(options: unknown): LensOptions {
   const o = options && typeof options === "object" && !Array.isArray(options) ? options as Record<string, unknown> : {};

@@ -248,6 +248,22 @@ select is(tests.recap(311),null,'A self-paced session not yet open is left out')
 select is(tests.recap(313),null,'A draft is left out');
 select is(tests.recap(325),null,'Content screens are left out');
 select is(tests.recap(324),null,'A step the clear put back to Ready, with no answers, is left out');
+
+-- csv_rows is the row count of the session's own CSV, for every card.
+select is((select count(*)::integer from jsonb_array_elements(public.results_recap(tests.id(100))->'sessions') s
+  where (s->>'csv_rows')::integer is distinct from jsonb_array_length(public.session_export(tests.id(100),(s->'session'->>'id')::uuid)->'rows')),0,'Every recap card counts the rows its CSV holds');
+reset role;
+-- A hidden answer, a test answer and a two-word word cloud answer are all rows; a withdrawn one is not.
+update public.submissions set hidden=true where id=(select id from public.submissions where session_id=tests.id(310) and not withdrawn and not deleted order by id limit 1);
+update public.submissions set test=true where id=(select id from public.submissions where session_id=tests.id(310) and not withdrawn and not deleted order by id offset 1 limit 1);
+update public.submissions set answers='[{"text":"hope","key":"hope"},{"text":"joy","key":"joy"}]'::jsonb where id=(select id from public.submissions where session_id=tests.id(320) and not withdrawn and not deleted order by id limit 1);
+select tests.login(1);
+set local role authenticated;
+select is((tests.recap(310)->>'csv_rows')::integer,jsonb_array_length(public.session_export(tests.id(100),tests.id(310))->'rows'),'Hidden and test answers are rows, withdrawn ones are not');
+select is((tests.recap(310)->>'csv_rows')::integer,4,'the wall''s four standing answers');
+select is((tests.recap(320)->>'csv_rows')::integer,jsonb_array_length(public.session_export(tests.id(100),tests.id(320))->'rows'),'A two-word word cloud answer is one row');
+select cmp_ok((tests.recap(320)->'results'->>'total')::integer,'>=',(tests.recap(320)->>'csv_rows')::integer,'while the TV counts its words');
+select ok(not has_function_privilege('authenticated','private.results_recap_pre_overnight_copy_ui(uuid)','execute'),'The wrapped recap function is not callable by authenticated');
 select ok(not (public.results_recap(tests.id(100))::text like '%Private note%'),'The recap carries no presenter notes');
 select ok(not (public.results_recap(tests.id(100))::text like '%person%@example.org%'),'nor anyone''s email');
 select tests.login(3);
