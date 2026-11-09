@@ -208,6 +208,9 @@ select is((select count(*)::integer from private.draft_notes n where n.kind='voi
 select is((select count(*)::integer from private.draft_outcomes where round_id=(select id from private.overnight_rounds where engagement_id=tests.id(100)) and tidy='tidied'),3,'All three outcomes are tidied (a thin one stays thin)');
 select is((select array_length(unreadable,1) from private.overnight_rounds where engagement_id=tests.id(100)),2,'Two easel photos are flagged: the format it cannot read, and the one the model named');
 select is((select count(*)::integer from private.draft_versions v join private.draft_outcomes d on d.id=v.draft_outcome_id where v.kind='ai' and d.engagement_id=tests.id(100) and v.actor_id is null),3,'The tidy is a version of each, by no person');
+select is(private.ov_count('1','bullet')||'|'||private.ov_count('1','scribe card')||'|'||private.ov_count('1','easel photo'),'1 bullet|1 scribe card|1 easel photo','The version note says one in the singular');
+select is(private.ov_count('0','bullet')||'|'||private.ov_count('16','scribe card')||'|'||private.ov_count(null,'easel photo'),'0 bullets|16 scribe cards|0 easel photos','and zero or many in the plural');
+select is((select count(*)::integer from private.draft_versions v where v.kind='ai' and v.engagement_id=tests.id(100) and v.what ~ '^Tidied from [0-9]+ bullets?, [0-9]+ scribe cards? and [0-9]+ easel photos?$' and v.what !~ '(^| )1 (bullets|scribe cards|easel photos)'),3,'Each tidy note reads right for its counts');
 select is((select count(*)::integer from private.draft_sources where kind='photo' and ref_id is null),0,'(photos link by id)');
 
 -- The review as the facilitators see it.
