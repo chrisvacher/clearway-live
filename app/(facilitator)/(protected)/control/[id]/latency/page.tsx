@@ -1,3 +1,4 @@
+import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EyeOff } from "lucide-react";
@@ -20,7 +21,7 @@ export default async function LatencyPage({ params, searchParams }: { params: Pr
   const report = data as LatencyReport, result = verdict(report), zone = show.context.timezone;
   const when = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
   const hourAgo = new Date(Date.now() - 3600e3).toISOString();
-  return <main id="main" className="tv-manager latency-report">
+  return <div className="admin-after"><EngagementNavigation id={id} /><main id="main" className="tv-manager latency-report">
     <div className="ctl-row"><Link className="show-button" href={`/control/${id}`}>Return to the live room</Link>
       <Link className="show-button" href={`/control/${id}/latency?from=${encodeURIComponent(hourAgo)}`}>Show the last hour</Link>
       <Link className="show-button" href={`/control/${id}/latency`}>Show the last 12 hours</Link></div>
@@ -47,5 +48,5 @@ export default async function LatencyPage({ params, searchParams }: { params: Pr
           <tbody>{report.sessions.map(s => <tr key={s.id}><th scope="row">{s.title}</th><td>{s.under_second} of {s.measured}</td><td>{seconds(s.p95)}</td></tr>)}</tbody></table>}
       </div>
     </section>
-  </main>;
+  </main></div>;
 }

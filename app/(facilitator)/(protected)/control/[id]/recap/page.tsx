@@ -1,3 +1,4 @@
+import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -15,5 +16,5 @@ export default async function RecapPage({ params }: { params: Promise<{ id: stri
   const show = await readShow(client, id); if (!show) notFound();
   const { data, error } = await client.rpc("results_recap", { p_engagement: id });
   if (error || !data || data.status !== "ok") notFound();
-  return <RecapView engagement={id} context={show.context} initial={data as Recap} />;
+  return <div className="admin-after"><EngagementNavigation id={id} /><RecapView engagement={id} context={show.context} initial={data as Recap} /></div>;
 }
