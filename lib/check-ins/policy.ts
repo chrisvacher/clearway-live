@@ -56,20 +56,28 @@ export function longDate(iso: string | null | undefined): string {
   return match ? `${months[Number(match[2]) - 1]} ${Number(match[3])}, ${match[1]}` : "";
 }
 
+// The day a moment fell on in the church's time zone, as YYYY-MM-DD. A page that prints a date from a moment (sign-off, a check-in going out) uses this, so
+// 10:30 PM on November 8 in Toronto reads as November 8 and not the UTC day after. Without a zone it is the Toronto day.
+export function dayInZone(iso: string | null | undefined, zone?: string | null): string {
+  const at = iso ? new Date(iso) : null; if (!at || Number.isNaN(at.getTime())) return "";
+  const pick = (z: string) => new Intl.DateTimeFormat("en-CA", { timeZone: z, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+  try { return pick(zone || "America/Toronto"); } catch { return pick("America/Toronto"); }
+}
+
 export const tokenShape = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]{20,64}$/.test(value);
 
 // The same shapes the database returns.
 export type PhoneItem = { id: string; text?: string; title?: string; due?: string | null; end?: string | null; answer: string | null; note: string | null };
 export type PhoneView =
-  | { status: "ok"; church: string; first: string; name: string; day: number; editable: boolean; newest_day: number | null; newest_sent_at: string | null; sent_at: string | null; next_on: string | null; help: string | null; answered_at: string | null; steps: PhoneItem[]; goals: PhoneItem[] }
+  | { status: "ok"; timezone?: string; church: string; first: string; name: string; day: number; editable: boolean; newest_day: number | null; newest_sent_at: string | null; sent_at: string | null; next_on: string | null; help: string | null; answered_at: string | null; steps: PhoneItem[]; goals: PhoneItem[] }
   | { status: "ended"; church: string }
   | { status: "unknown" };
 
 export type ResultStep = { id: string; text: string; due: string | null; answer: StepAnswer | null; note: string | null; answer_id: string | null; followed_up_at: string | null; answered_at: string | null };
 export type ResultGoal = { id: string; title: string; end: string | null; answer: GoalAnswer | null; note: string | null; answer_id: string | null; followed_up_at: string | null; answered_at: string | null };
-export type ResultRecipient = { id: string; name: string; email: string; send_result: "sent" | "practice_address" | "failed" | null; sent_at: string | null; opened_at: string | null; answered_at: string | null; help: string | null; practice: boolean; steps: ResultStep[]; goals: ResultGoal[] };
+export type ResultRecipient = { id: string; name: string; send_result: "sent" | "practice_address" | "failed" | null; sent_at: string | null; opened_at: string | null; answered_at: string | null; help: string | null; practice: boolean; steps: ResultStep[]; goals: ResultGoal[] };
 export type ResultRound = { id: string; day: 30 | 60 | 90; due_on: string; status: "scheduled" | "sending" | "sent" | "off"; superseded: boolean; sent_at: string | null; sent_by: string | null; recipients: ResultRecipient[] };
-export type CheckInState = { status: "ok"; server_time: string; type: string; engagement_status: string; eligible: boolean; practice: boolean; retreat_closed_on: string | null; can_switch_on: boolean; owners: number; rounds: ResultRound[] };
+export type CheckInState = { status: "ok"; timezone?: string; server_time: string; type: string; engagement_status: string; eligible: boolean; practice: boolean; retreat_closed_on: string | null; can_switch_on: boolean; owners: number; rounds: ResultRound[] };
 
 // One line for the After hub: where the next round stands.
 export function checkInLine(state: CheckInState): string {

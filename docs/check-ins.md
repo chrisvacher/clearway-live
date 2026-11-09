@@ -60,3 +60,10 @@ Facilitators only (the lead and co-facilitators). Each round with its due date, 
 ## Tests
 
 `supabase/tests/database/check_ins.test.sql` (roles, rounds, send, phone, practice reset), `tests/unit/check-ins.test.ts` (email, grouping, clock, CSV), `npm run test:check-ins` (the browser kit, with the harness mailbox as Resend).
+
+## Overnight acceptance fixes, batch c (November 9)
+
+Migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`.
+
+- **No emails in the facilitator's results.** `check_in_state` (and `GET /api/control/<id>/check-ins`) no longer carries an owner's email: a recipient is its id, name, send result, times, the practice flag and answers. A name that is only the email is shown as "Unnamed owner". The CSV and Open as this person need no email and work as before. Test: `check_ins.test.sql`.
+- **Dates in the church's time zone.** The state, and the phone page read, now carry `timezone`; "sent" dates use `dayInZone` (`lib/check-ins/policy.ts`), so a send at 10:30 PM on November 8 Eastern reads November 8. Test: `tests/unit/check-ins.test.ts`.

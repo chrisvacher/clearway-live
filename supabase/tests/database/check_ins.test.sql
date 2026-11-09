@@ -302,6 +302,7 @@ set local role authenticated;
 select tests.login(1);
 select is((select count(*) from jsonb_array_elements(tests.state()->'rounds'->0->'recipients') r where r->'steps'->0->>'answer'='stuck'),1::bigint,'The lead sees the stuck step');
 select is(tests.state()->'rounds'->0->'recipients'->0->>'name','Ben Ortiz','with each person by name');
+select is(position('@' in tests.state()::text),0,'and no owner''s email reaches the browser');
 reset role;
 create function tests.answer_of(step uuid) returns uuid language sql security definer set search_path='' as $$ select id from private.check_in_answers where first_step_id=step or goal_id=step limit 1 $$;
 grant execute on function tests.answer_of(uuid) to authenticated;

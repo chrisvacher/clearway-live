@@ -54,3 +54,7 @@ Lead only, idempotent by a client-made id. It needs every outcome reviewed and e
 - Only the lead publishes; co-facilitators review and edit.
 - Reviewed means one facilitator marked the outcome; a lock never blocks Publish for a holder who has left (40 second expiry).
 - `reset_practice_room` does not yet clear the overnight tables.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+Migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`. The easel photo captions (file names) sent to the draft model pass the report's name check (`private.report_names`, `discover_has_name`); a caption with a name is replaced by "Easel photo" on the run's inputs. `overnight_claim` is renamed `overnight_claim_pre_privacy` and wrapped. Test: `overnight_review.test.sql`.

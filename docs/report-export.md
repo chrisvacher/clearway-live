@@ -60,3 +60,8 @@ Step 1 keeps `private.report_signed_for_view` in the `private` schema, which the
 - The cover is white with the dark logo (the standard cover), not the navy cover in the pass 7 mock, because the standard and Chris's October preferences govern the file. The panel's preview shows the white cover.
 - No attribution under a quote, so quotes stay anonymous as the report has them.
 - The preview shows the logo mark, not the wordmark, to avoid a second copy of the logo in `public`.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+- **Word.** The contents page is a plain list of links to bookmarked headings, with no page numbers, and the file sets no `updateFields`, so Word does not ask to update fields on open. A report with no contents page has neither.
+- **PDF page breaks.** A heading is drawn inside a box that cannot split, together with the start of what it heads (a whole card, a table's header and first row, a list's first item), so it is never the last thing on a page. A table's last two rows stay together. Test: `tests/unit/report-export.test.ts` sweeps filler text through the document and checks no page ends on a heading or a table header.

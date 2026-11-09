@@ -82,3 +82,7 @@ Migration `supabase/migrations/20261107020000_m6_fixes_b.sql`, tested in `supaba
 
 - **Silent themes waiting.** `signal_state.held` is the strong accepted themes that have no card at all in this step (any kind, dismissed or not). It used to subtract the themes with an aligned or divergent card from the strong count, so a divergent card on a thin theme took one off a strong theme the room had never spoken of. It now equals what a silent card can still come for, and is 0 once phones are down.
 - **The TV's question layer.** Once the neutral question has faded out (700 ms, or the reduced-motion fade), the text and the step title are removed from `.tv-ask`. The layer stays in place, empty and `aria-hidden`, and the words stay for the whole fade so the cross-fade is unchanged.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+Migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`. The neutral question may not name any accepted theme of the engagement, not only the card's own: `private.signal_neutral(text,text,uuid)` adds the engagement's accepted theme labels (four letters or more) to the own-label check, and `signal_act` uses it. The same `names_signal` message answers. Test: `signal.test.sql`.
