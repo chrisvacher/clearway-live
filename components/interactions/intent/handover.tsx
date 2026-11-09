@@ -10,7 +10,7 @@ import "./handover.css";
 type Person = { id: string; first: string };
 type Access = { id: string; state: FollowupState; attendee: string; first?: string; email?: string; opens_at: string; closes_at: string; tv?: boolean; remote?: boolean };
 type Panel = { status: string; remote: RemoteState; followup: { status: string; access: Access | null }; people: Person[] };
-const messages: Record<string, string> = { ...followupStatusText, moved: "The room moved on. Check what is live and try again.", missing: "That person or step is not available.", invalid_state: "Go live on the first step of the block, then hand over.", denied: "Only the lead facilitator can do that.", exists: "A follow-up is already issued. Revoke it or reissue it.", unavailable: "The room didn’t answer. Try again." };
+const messages: Record<string, string> = { ...followupStatusText, moved: "The room moved on. Check what is live and try again.", missing: "That person or step is not available.", invalid_state: "Go live on the hand-over step or a step in the block, then hand over.", denied: "Only the lead facilitator can do that.", exists: "A follow-up is already issued. Revoke it or reissue it.", unavailable: "The room didn’t answer. Try again." };
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 // The lead's side of the remote changing hands (D2-11): who holds it, Take back, Hand over, and the

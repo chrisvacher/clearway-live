@@ -55,7 +55,7 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
       if (d.owner) facts.push(<><User className="scr-icon" aria-hidden="true" />{d.owner}</>); else facts.push(<><User className="scr-icon" aria-hidden="true" />No owner named</>);
       if (d.date) facts.push(<><Calendar className="scr-icon" aria-hidden="true" />{d.date}</>);
     }
-    if (card.kind === "mitigation" && d.risk) facts.push(<><Link2 className="scr-icon" aria-hidden="true" />{card.linked === false ? `Not on a risk yet: ${d.risk}` : `Linked to ${d.risk}`}</>);
+    if (card.kind === "mitigation" && d.risk) facts.push(<><Link2 className="scr-icon" aria-hidden="true" />{card.linked === true ? `Linked to ${d.risk}` : card.linked === false ? `Not on a risk yet: ${d.risk}` : `Risk: ${d.risk}`}</>);
     if (card.has_speaker && surface !== "feed") facts.push(<><Lock className="scr-icon" aria-hidden="true" />Speaker kept for the record</>);
   }
   const editable = surface === "console" && card && !card.pending && state !== "queued";

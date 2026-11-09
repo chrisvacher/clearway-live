@@ -475,7 +475,7 @@ select is((select session_ids from tests.team_blocks where id=(select team_led_b
 select is(public.team_remote_state(tests.id(100))->>'holder','team','The team facilitator holds the remote');
 reset role;
 select tests.login(3); set local role authenticated;
-select is(tests.ctl(61,'next')->>'status','ok','Priya moves from the hand-over step into the block with Next');
+select is(tests.ctl(61,'next')->>'status','ok','Priya moves from the hand-over step to the block with Next');
 select is(tests.live(),tests.id(612),'The TV is on commander''s intent');
 reset role;
 select tests.login(1); set local role authenticated;
@@ -485,6 +485,11 @@ select is((select session_ids from tests.team_blocks where id=(select team_led_b
 select is(tests.hand(73,'end')->>'status','ok','The lead ends it again');
 select is(tests.ctl(63,'go_live',jsonb_build_object('session',tests.id(601)))->>'status','ok','The lead goes live on a step that is not team-led');
 select is(tests.hand(74,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','invalid_state','A step that is not team-led still cannot hand over the remote');
+select is(tests.ctl(80,'go_live',jsonb_build_object('session',tests.id(611)))->>'status','ok','The lead goes live on the hand-over step again');
+select is(tests.hand(82,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','ok','and hands the remote over from it');
+select is(tests.ctl(81,'go_live',jsonb_build_object('session',tests.id(601)))->>'status','ok','The lead moves the room to a step outside the block');
+select is((select remote_holder_id from tests.room()),null,'The remote came back to the lead when the room left the hand-over step for a step outside the block');
+select is((select count(*) from tests.team_blocks where ended_at is null and via='room'),0::bigint,'No room block is left open');
 reset role;
 
 select * from finish();

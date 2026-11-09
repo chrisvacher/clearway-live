@@ -6,7 +6,7 @@ D2-07 to D2-10 and INT-15. Migration `20261104130000_premortem_goals.sql`; brows
 - The grid's Pre-mortem preset takes the prompt "It's {base year + 3} and this plan failed. Why?". Reasons are grid items placed on likelihood and impact.
 - Participants add reasons from their phones (`reason_add`). Each reason mirrors into `private.risks`, so goals can link to risks.
 - AI merges duplicate reasons (`merge-reasons@2`, job `merge_reasons`) under the existing merge limits. Merges are written to `grid_merges` with `made_by = 'ai'`. Unmerge undoes one; "Undo AI merges" undoes all, and AI does not merge what was undone.
-- The facilitator records mitigations from the control surface (`reasons_control`). Each row stores `recorded_by` (`facilitator` or `scribe`) so a scribe can tag them later. They show under the reason on the TV.
+- The facilitator records mitigations from the control surface (`reasons_control`). Each row stores `recorded_by` (`facilitator` or `scribe`). A scribe's Mitigation card writes its own row (`card_id`, `recorded_by = scribe`) under the risk it names, within the same limit of three (see `docs/scribe-console.md`). They show under the reason on the TV.
 
 ## CORE goal builder (`goals` kind)
 - TV cards (November 5): two columns where the list is wide enough (`goalColumns`), one at the default size; each card goes in the shorter column (`goalPlaces`) and glides across and down. A card shows its title, the letters, the owner's first name and end date, and one line: `needsLine` (for example "Needs owner, date") or the result. Four cards show at Medium with six goals.
