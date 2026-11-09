@@ -83,6 +83,39 @@ set local role authenticated;
 select tests.login(4);
 select is(public.decide_room_join(current_setting('tests.admin_join')::uuid,true),true,'Clearway admin can approve a door request without assignment');
 select is((select device_count::integer from public.room_presence(tests.id(10)) where attendee_id=tests.id(30)),1,'Clearway admin can read presence without assignment');
+
+-- Reset practice room puts away every AI record and the applied What We Heard words (overnight acceptance, finding 1).
+reset role;
+select set_config('tests.p','90000000-0000-4000-8000-000000000010',true);
+insert into sessions(id,engagement_id,title,interaction,state) values(tests.id(500),current_setting('tests.p')::uuid,'Words','word_cloud','ready'),(tests.id(501),current_setting('tests.p')::uuid,'Reasons','grid','ready');
+insert into sessions(id,engagement_id,title,interaction,state,prompt,phone_depth,options)
+ values(tests.id(502),current_setting('tests.p')::uuid,'What we heard: Survey','content','ready','Giving is up (edited by me)','Detail I typed','{"screen":"headline","source":"Congregational survey · 87 respondents","number":"87%"}');
+insert into private.ai_runs(id,engagement_id,session_id,job,model,prompt_version,inputs,status) values(tests.id(510),current_setting('tests.p')::uuid,tests.id(500),'combine_words','fake','v1','{}','running'),(tests.id(511),current_setting('tests.p')::uuid,tests.id(501),'merge_reasons','fake','v1','{}','ok');
+insert into private.ai_word_merges(engagement_id,session_id,survivor_key,member_key,run_id) values(current_setting('tests.p')::uuid,tests.id(500),'ministry','ministries',tests.id(510));
+insert into private.ai_groups(engagement_id,session_id,label,ai_label,run_id) values(current_setting('tests.p')::uuid,tests.id(500),'Old label','Old label',tests.id(510));
+insert into private.ai_summaries(engagement_id,session_id,text,answers,cut_at,run_id) values(current_setting('tests.p')::uuid,tests.id(500),'The room said something nobody wrote',3,now(),tests.id(510));
+insert into private.grid_merges(engagement_id,session_id,item_key,into_key,made_by,run_id) values(current_setting('tests.p')::uuid,tests.id(501),'a1','a2','ai',tests.id(511)),(current_setting('tests.p')::uuid,tests.id(501),'b1','b2','facilitator',null);
+insert into private.ai_sessions(session_id,engagement_id,summary_shown,combine_seen) values(tests.id(500),current_setting('tests.p')::uuid,true,4);
+insert into engagements(id,church_id,title,status) values(tests.id(12),tests.id(21),'Room C','retreat');
+insert into sessions(id,engagement_id,title,interaction,state) values(tests.id(503),tests.id(12),'Other words','word_cloud','ready');
+insert into private.ai_runs(id,engagement_id,session_id,job,model,prompt_version,inputs,status) values(tests.id(512),tests.id(12),tests.id(503),'combine_words','fake','v1','{}','ok');
+insert into private.ai_summaries(engagement_id,session_id,text,answers,cut_at,run_id) values(tests.id(12),tests.id(503),'Another room''s summary',3,now(),tests.id(512));
+set local role authenticated;
+select tests.login(2);
+select is(public.reset_practice_room(),true,'The lead resets the practice room again, with AI records in it');
+reset role;
+select is((select count(*)::integer from private.ai_word_merges where engagement_id=current_setting('tests.p')::uuid and not deleted),0,'Reset puts away the AI word combines');
+select is((select count(*)::integer from private.ai_groups where engagement_id=current_setting('tests.p')::uuid and not deleted),0,'and the AI groups');
+select is((select count(*)::integer from private.ai_summaries where engagement_id=current_setting('tests.p')::uuid and not deleted),0,'and the AI summaries');
+select is((select count(*)::integer from private.grid_merges where engagement_id=current_setting('tests.p')::uuid and not deleted),0,'and the grid merges, including the ones the AI made');
+select is((select count(*)::integer from private.ai_runs where engagement_id=current_setting('tests.p')::uuid and not deleted),0,'and the runs');
+select is((select status from private.ai_runs where id=tests.id(510)),'stale','A run still going is stale, so a late answer is refused');
+select is((select summary_shown::text||combine_seen::text from private.ai_sessions where session_id=tests.id(500)),'false0','The session starts clean for the next run');
+select is((select prompt||'|'||phone_depth||'|'||coalesce(options->>'number','none')||'|'||(options->>'source')||'|'||state from sessions where id=tests.id(502)),'|The detail under this headline.|none|Congregational survey|draft','The applied What We Heard words are off the step, which is a Draft again');
+select is((select count(*)::integer from private.ai_summaries where engagement_id=tests.id(12) and not deleted),1,'Another engagement keeps its AI records');
+-- Clear test answers puts away the AI grid merges of the sessions its test answers touched, and keeps a facilitator's own merge.
+select ok(pg_get_functiondef('private.rehearsal_control(uuid,uuid,text)'::regprocedure) like '%grid_merges%made_by=''ai''%','Clear test answers puts away the grid merges the AI made');
+select ok(pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%ai_reset_room%','and the reset calls the AI clearing');
 reset role;
 select * from finish();
 rollback;

@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { interactionKinds, isReservedKind, kindLabels, screenIds } from "../../lib/interactions/kinds";
 import { prompts, promptVersions, type ReadBackFoldInputs } from "../../lib/ai/prompts";
 import { scripted } from "../../lib/ai/fake";
 import { decisionSubjects } from "../../lib/wayfinding/decision";
 import {
-  changeLimit, checkText, correctionOf, maxReadBackLines, missingLimit, ownAnswers, phoneOf, readBackOf, readBackPress, readBackState, scribeReadOf, share, shownReadBack,
+  changeLimit, checkText, correctionOf, decisionHint, maxReadBackLines, missingLimit, ownAnswers, phoneOf, readBackOf, readBackPress, readBackState, scribeReadOf, share, shownReadBack,
 } from "../../lib/interactions/read-back";
 
 const uid = (n: number) => `75000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -112,4 +113,13 @@ test("fold-read-back@1 changes one line or adds one, in the room's words, and na
   assert.equal((p.parse('{"line":"new","text":"A new one."}', inputs) as { line: string }).line, "new");
   const out = JSON.parse(scripted({ system: p.system, user, maxTokens: 400, timeoutMs: 1000 })) as { line?: string; text?: string };
   assert.ok(out.line === "new" || out.line === "l1");
+});
+
+test("Mark a decision with no words leaves the wording to the database, which says 'Confirmed with changes' after a fold", () => {
+  assert.equal(decisionHint({ version: 1 }), "Confirmed");
+  assert.equal(decisionHint({ version: 2 }), "Confirmed with changes");
+  const press = readBackPress({ id: "00000000-0000-4000-8000-000000000001", action: "decide", decision: "", reasons: "" });
+  assert.ok(press && press.action === "decide" && (press.p as { decision: string }).decision === "", "a blank decision reaches the server blank, so its default applies");
+  const panel = readFileSync("components/interactions/read-back/read-back-panel.tsx", "utf8");
+  assert.ok(!/useState\("Confirmed"\)/.test(panel) && !/setWord\("Confirmed"\)/.test(panel), "the panel never pre-fills the word");
 });

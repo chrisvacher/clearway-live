@@ -20,6 +20,7 @@ export function zonedInstant(value:unknown,zone:string):string|null {
 export function setupInput(body:Record<string,unknown>){
   const church=body.church as Record<string,unknown>,eng=body.engagement as Record<string,unknown>;
   if(!church || !eng)throw new Error("Check the engagement details.");
+  if(typeof eng.how_the_room_decides!=="string" || !eng.how_the_room_decides.trim())throw new Error("Explain how the room decides before saving.");
   const timezone=text(church.timezone,100,true);try{new Intl.DateTimeFormat("en",{timeZone:timezone});}catch{throw new Error("Use a valid IANA time zone, such as America/Toronto.");}
   const start=date(eng.start_date),end=date(eng.end_date),retreatStart=date(eng.retreat_start_date),retreatEnd=date(eng.retreat_end_date);
   if((start && end && end<start)||(retreatStart && retreatEnd && retreatEnd<retreatStart))throw new Error("The end date must follow the start date.");

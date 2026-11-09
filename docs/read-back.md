@@ -31,3 +31,5 @@ Redefined as supersets of the newest definitions: `ai_runs_job_check`, `ai_on`, 
 - `supabase/tests/database/read_back.test.sql`: by role.
 - `tests/unit/read-back.test.ts` and the `fold_read_back` cases in `tests/unit/ai-live.test.ts` with Riverside fixtures and a scripted stand-in in `lib/ai/fake.ts`.
 - `npm run test:read-back` (`tests/browser/read-back.ts`): a paired TV and 50 simulated phones, 95 of 100 phone-to-TV times under a second, no row jumps, a scribe correction accepted and folding in as a tracked change, the tally restarting at zero, an AI fold, Undo, an offline scribe, Mark a decision, the Map reading the changed text, and screenshots with `KIT_SHOTS`. The practice room takes one room-wide lock, so the kit opens the control surface after the 100 answers, as the lens summary kit does.
+
+The Mark a decision field starts empty, with a hint saying what the database will write ("Confirmed", or "Confirmed with changes" once a correction folded in). Typing nothing leaves the wording to the database, so a changed item is never recorded as plain "Confirmed".
