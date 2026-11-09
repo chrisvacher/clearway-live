@@ -43,7 +43,7 @@ select is((select count(*)::integer from device_sessions),0,'A guest grant alone
 -- Open joining (November 9): a name-only join on a real engagement, only when the admin setting is on.
 select is(public.practice_guest(tests.payload(5,11)||jsonb_build_object('name','Open guest'))->>'status','invalid_request','A room without open joining refuses a name-only join');
 reset role;
-insert into engagements(id,church_id,title,status,type) values(tests.id(13),tests.id(21),'Open workshop','retreat','team_workshop');
+insert into engagements(id,church_id,title,status,type,how_the_room_decides) values(tests.id(13),tests.id(21),'Open workshop','retreat','team_workshop','By consensus');
 insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(13),tests.id(303),'lead');
 -- Only an admin changes open joining, by any path.
 set local role authenticated;
