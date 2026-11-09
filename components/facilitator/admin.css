@@ -59,3 +59,8 @@
 @media print { .engagement-nav { display:none; } }
 
 .admin-after { min-width:0; }
+@media(max-width:1100px) {
+  .admin-after .ovr { grid-template-rows:auto minmax(0,1fr); }
+  .admin-after .ovr-nav { align-content:flex-start; align-items:center; }
+  .admin-after .ovr-nav a, .admin-after .ovr-nav button { min-height:44px; }
+}

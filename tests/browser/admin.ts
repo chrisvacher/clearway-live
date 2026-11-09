@@ -11,7 +11,8 @@ async function main() {
     await sql.connect();
     const room=await engagement(sql,["Ruth","Ben"]), fac=await facilitator(env,sql,room.id);
     await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
-    await sql.query("update public.engagements set title='Staff planning workshop',type='team_workshop',start_date='2027-02-20',end_date='2027-02-20' where id=$1",[room.id]);
+    const afterArea=process.env.KIT_AREA==="d";
+    await sql.query("update public.engagements set title=$2,type=$3::public.engagement_type,start_date='2027-02-20',end_date='2027-02-20' where id=$1",[room.id,afterArea?"Riverside Wayfinding retreat":"Staff planning workshop",afterArea?"wayfinding":"team_workshop"]);
     if(process.env.KIT_AREA==="c") await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
@@ -33,6 +34,10 @@ async function main() {
           if(area==="c" && path.endsWith("/door")) {
             assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
             assert.equal(await page.getByText("Joined by name · Not signed in",{exact:true}).count(),0);
+          }
+          if(area==="d" && width===390) {
+            const sidebar=page.locator(".admin-after .ovr-nav");
+            if(await sidebar.count()) assert.ok((await sidebar.boundingBox())!.height<220,`${path} navigation stays compact`);
           }
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/setup");
           if(path==="/setup") for(const label of ["Edit setup","Open run of show","Open the live room","Open door list","Open After the retreat"])
