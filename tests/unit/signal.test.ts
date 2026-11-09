@@ -59,7 +59,7 @@ test("The recorded Riverside reply: unknown kinds, themes and refs are dropped, 
 
 test("A reply that is not a whole answer is empty and retires nothing", () => {
   assert.deepEqual(p.parse("not json", riverside.inputs), { cards: [], complete: false });
-  assert.deepEqual(p.parse("{\"cards\":[]}", riverside.inputs), { cards: [], complete: true });
+  assert.deepEqual(p.parse("{\"cards\":[]}", { ...riverside.inputs, phones_down: false }), { cards: [], complete: true });
   assert.deepEqual(p.parse("{\"cards\":\"x\"}", riverside.inputs), { cards: [], complete: false });
   assert.equal((p.parse("{\"cards\":[],\"complete\":false}", riverside.inputs) as { complete: boolean }).complete, false);
 });
@@ -113,4 +113,32 @@ test("The worker runs the signal on the deeper model with a longer timeout and n
   assert.equal((apply.args.p_usage as { model: string }).model, "fake-script", "the model it used goes back with the reply");
   assert.deepEqual((calls[0].args.p_versions as Record<string, string>).alignment_signal, p.version, "the prompt version goes with every claim");
   assert.ok((apply.args.p_output as { cards: unknown[] }).cards.length > 0);
+});
+
+// The November 9 acceptance run: a strong theme nobody spoke of, two signal runs after Phones down, and the model said nothing about it both times.
+test("After Phones down, a strong theme with no card gets a silent card even when the model omits it", () => {
+  const strong = riverside.inputs.themes.filter(t => t.strong).map(t => t.ref);
+  const out = p.parse("{\"cards\":[]}", { ...riverside.inputs, raised: [] }) as { cards: { kind: string; theme: string; room: string[]; title: string; line: string }[]; complete: boolean };
+  assert.equal(out.complete, true);
+  assert.deepEqual(out.cards.map(c => c.theme), strong.slice(0, 3), "strongest first, at most 3");
+  for (const c of out.cards) {
+    assert.equal(c.kind, "silent"); assert.deepEqual(c.room, []);
+    assert.ok(!/\d/.test(`${c.title} ${c.line}`) && !/["“”–—]/.test(`${c.title} ${c.line}`) && !/\b(wrong|should|must|mistake|contradict|ignore)/i.test(`${c.title} ${c.line}`));
+  }
+  assert.deepEqual(p.parse("{\"cards\":[]}", { ...riverside.inputs, phones_down: false }), { cards: [], complete: true }, "never while phones are up");
+  assert.deepEqual(p.parse("{\"cards\":[],\"complete\":false}", { ...riverside.inputs, raised: [] }), { cards: [], complete: false }, "not on a reply that is not whole");
+  assert.deepEqual(p.parse("not json", { ...riverside.inputs, raised: [] }), { cards: [], complete: false });
+});
+
+test("A strong theme the model raised a card on, or that already has a card (dismissed too), gets no extra silent card", () => {
+  const strong = riverside.inputs.themes.filter(t => t.strong).map(t => t.ref);
+  const reply = JSON.stringify({ cards: [{ kind: "aligned", theme: strong[0], title: "Small groups echoed", line: "The room's words point the same way.", room: [riverside.inputs.room[0].ref] }] });
+  const raised = [{ kind: "divergent" as const, theme: strong[1], dismissed: true }];
+  const out = p.parse(reply, { ...riverside.inputs, raised }) as { cards: { kind: string; theme: string }[] };
+  assert.deepEqual(out.cards.map(c => `${c.kind}:${c.theme}`), [`aligned:${strong[0]}`, ...strong.slice(2, 5).map(r => `silent:${r}`)]);
+});
+
+test("The prompt asks for a silent card for every strong theme the room has not spoken to once phones are down", () => {
+  assert.match(p.system, /go through every strong theme/);
+  assert.match(p.system, /never leave one out/);
 });

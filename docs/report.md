@@ -66,3 +66,7 @@ The model sees refs only (`f1` survey finding, `t1` accepted theme, `q1` quote, 
 - A section with nothing to read is marked Thin data without calling the model.
 - A sign-off snapshots every sentence's text and sources; `report_signed_for_view` strips the sources.
 - Anyone who is a lead or co-facilitator can draft, edit and review; only the lead signs off.
+
+## Sign-off numbers after a reset (live-5, November 9)
+
+`private.report_sign_offs.n` is the version number of a signed report. Reset practice room and Clear test answers put sign-offs away (deleted), and the next number used to be worked out over them too, so the first sign-off after a reset was version 5. It is now the highest standing number plus one, and the unique index on (engagement, n) holds only for standing sign-offs (`where not deleted`). Migration `20261109060000_overnight_four_lists_signal.sql` rewrites `private.report_sign_off_pre_visibility_plan`, the function the step 3 wrapper `report_sign_off` calls. Test: `supabase/tests/database/report.test.sql` ("Sign-off numbers count the sign-offs that stand").

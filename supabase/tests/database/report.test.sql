@@ -696,6 +696,18 @@ reset role;
 select is((select n from private.report_sign_offs where engagement_id=tests.id(100) order by n desc limit 1),3,'as version 3');
 create temp table snap as select snapshot as s from private.report_sign_offs where engagement_id=tests.id(100) and n=3;
 grant all on snap to public;
+-- Sign-off numbers count the sign-offs that stand: a reset puts sign-offs away (deleted), and the next one is version 1, not the next number after them.
+update private.report_sign_offs set deleted=true where engagement_id=tests.id(100);
+set local role authenticated;
+select tests.login(1);
+select is(public.report_sign_off(tests.id(100),tests.id(620))->>'status','ok','After every sign-off is put away the lead signs off again');
+reset role;
+select is((select n from private.report_sign_offs where engagement_id=tests.id(100) and not deleted),1,'and it is version 1, as the put-away versions 1 to 3 do not count');
+select is((select count(*)::integer from private.report_sign_offs where engagement_id=tests.id(100) and n=1),2,'the put-away version 1 is still kept beside it');
+select ok((select indexdef like '%WHERE%NOT deleted%' from pg_indexes where schemaname='private' and indexname='report_sign_offs_n_idx'),'The unique number holds only for standing sign-offs');
+update private.report_sign_offs set deleted=true where engagement_id=tests.id(100) and not deleted;
+update private.report_sign_offs set deleted=false where engagement_id=tests.id(100) and n in(2,3);
+update private.report_sign_offs set deleted=false where engagement_id=tests.id(100) and n=1 and request_id=tests.id(603);
 select ok((select (s::text) like '%Our volunteers burn out well before the groups begin.%' from snap),'The snapshot holds the edited risk');
 select ok((select (private.report_signed_for_view(tests.id(100)))::text not like '%Volunteers burn out before the groups start.%'),'and not its old wording, in what the report shows');
 select ok((select (private.report_signed_for_view(tests.id(100)))::text not like '%The building is not ready for the crowd.%'),'The removed risk row is not in it');

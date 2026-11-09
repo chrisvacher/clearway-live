@@ -39,6 +39,17 @@ export type SignalInputs = { session: { title: string; prompt: string; kind: str
 export type SignalKind = "aligned" | "divergent" | "silent" | "thin";
 // The Day 2 read-back (D2-03): one item on the TV (a signed-off lens summary or a reviewed outcome), its lines (l1..) with the
 // sentences behind each, and a correction the room agreed that names no line. The model changes one line or adds one.
+// Once phones are down, a strong theme that has no card at all (none raised this run, none already on the panel, dismissed or not) and that
+// the model said nothing about is a silent card. The model is asked for it; this is the floor under that ask, because a reply that simply
+// omits the theme would otherwise leave it unmentioned for good (the signal runs again only on new input, and phones down means none).
+// The words name no number and no person, so the database's own checks pass them. At most 3 a run, strongest first (t1 is the strongest).
+export function quietThemeCards(i: SignalInputs, cards: { theme: string }[]): SignalOutput["cards"] {
+  if (!i.phones_down) return [];
+  const covered = new Set<string>([...cards.map(c => c.theme), ...i.raised.flatMap(r => (r.theme ? [r.theme] : []))]);
+  return i.themes.filter(t => t.strong && !covered.has(t.ref)).slice(0, 3).map(t => ({
+    kind: "silent" as const, theme: t.ref, title: `${t.label.split(/\s+/).slice(0, 9).join(" ")} has not come up`,
+    line: "Nothing the room said stood out as speaking to this theme.", ask: "What do you notice about this part of church life?", room: [], also: [] }));
+}
 export type ReadBackFoldInputs = { job: "fold"; kind: "lens" | "outcome"; heading: string; lens_name?: string | null; horizon: string; base_year: number; year: number; max_chars: number; max_lines: number;
   lines: { ref: string; text: string; sources: string[] }[]; wording: string; reason: string; item?: string; correction?: string; version?: string; ids?: unknown };
 export type AiInputs = CombineInputs | GroupInputs | LensInputs | SummaryInputs | FoldInputs | ReasonInputs | LensDraftInputs | LensFoldInputs | CandidateInputs | FourListsInputs | SignalInputs | ReadBackFoldInputs;
@@ -385,7 +396,7 @@ export const prompts: Record<AiJob, Prompt> = {
       "Raise a card only when something stands out. Four kinds:",
       "aligned: the room's words point the same way as a strong theme. Name the theme and what the room said that matches it.",
       "divergent: the room's words are heading a different way from a theme, or toward something no theme holds. Describe the direction in neutral terms and name the theme it departs from. Never say the room is wrong, mistaken or off track.",
-      "silent: a strong theme the room has not touched. Only when phones_down is true. Give no room refs.",
+      "silent: a strong theme the room has not touched. Only when phones_down is true. Give no room refs. When phones_down is true, go through every strong theme: each one either has an aligned, divergent or thin card (new or already raised) because the room spoke to it, or it gets a silent card. A strong theme the room has not spoken to is the most useful thing to tell the facilitator once phones are down, so never leave one out because it seems obvious or the room is busy with something else.",
       "thin: a theme with little behind it that the room has just spoken to. Say plainly that the data behind it is thin.",
       "Notice and describe. Never correct, rank, grade or judge an idea, and never tell the facilitator what to decide. Do not write should, must, wrong, mistake, contradicts or ignores.",
       "Each card: a title of at most 12 words, and one plain sentence for the line, in sentence case, with no number, share or count (the app counts). No quotation marks. Never name a person, and never guess who said something.",
@@ -408,8 +419,9 @@ export const prompts: Record<AiJob, Prompt> = {
         if (!kinds.has(kind) || !themeRefs.has(theme) || !title || !line) return [];
         return [{ kind: kind as SignalKind, theme, title, line, ...(ask ? { ask } : {}), room: refList(o.room, roomRefs), also: refList(o.also, themeRefs).filter(r => r !== theme).slice(0, 2) }];
       });
-      // A reply that is not a whole answer cannot retire anything.
-      return { cards, complete: Array.isArray(raw) && body.complete !== false };
+      const complete = Array.isArray(raw) && body.complete !== false;
+      // A reply that is not a whole answer cannot retire anything, and cannot raise a silent card either.
+      return { cards: complete ? [...cards, ...quietThemeCards(i, cards)] : cards, complete };
     },
   },
   // The read-back fold. The room agreed new wording; the model puts it in the right place. One line changes, or one is added;

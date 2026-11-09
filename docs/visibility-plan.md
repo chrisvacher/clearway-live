@@ -49,3 +49,7 @@ A report sentence or a plan row must never name a person, and an ordinary lowerc
 - A month name that is also a given name is not a name inside a date: "June 14", "June 2027", "14 June", "in June", "mid-June".
 
 Tests: `supabase/tests/database/plan_name_check.test.sql`.
+
+## A row added by hand keeps its place through Draft again (live-5, section 43, November 9)
+
+Draft again keeps the facilitator's rows where they are. Edited, moved and reviewed rows are set among the new rows by the outward order, as before. A row added by hand holds the number it had: the 5th row stays the 5th (or the last, when fewer rows stand), because a stage of its own (other) sorts last in the outward order and would otherwise be pushed behind every new row. Migration `20261109060000_overnight_four_lists_signal.sql` (`private.visibility_plan_apply`, rewritten from the name check's definition, 20261108090000). Test: `supabase/tests/database/visibility_plan.test.sql` ("A row added by hand keeps its place through Draft again").
