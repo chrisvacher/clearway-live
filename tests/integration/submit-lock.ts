@@ -9,7 +9,7 @@
 // Against the local stack only; it leaves its own rows behind.
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { Pool } from "pg";
 import { createClient } from "@supabase/supabase-js";
@@ -128,7 +128,7 @@ async function main() {
     await holder.query("commit"); holder.release();
     assert.equal((await writing.settled).data.status, "missing", "and answers once it has the lock");
     await db.query("insert into private.followup_access(engagement_id,attendee_id,email,session_ids,token_hash,code_hash,opens_at,closes_at,issued_by) values($1,$2,'priya@example.org',array[$3::uuid],$4,$4,now()-interval '3 hours',now()-interval '1 hour',$5)",
-      [room, person, step, "a".repeat(64), facId]);
+      [room, person, step, randomBytes(32).toString("hex"), facId]);
     holder = await holdRoomLock();
     const sweeping = pending(poll());
     await blocked("followup_manage");

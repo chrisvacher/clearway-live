@@ -49,3 +49,11 @@ test("only a statement timeout is repeated, and the repeat stops once its time b
   await queuedWrite(async () => { writes++; clock += 9000; return timedOut; }, { now: () => clock, budgetMs: 10000, log: () => {} });
   assert.equal(writes, 2, "after 18 seconds of waiting there is no third try");
 });
+test("a repeat gets its attempt number, so it can carry the queued time, and a lock timeout is repeated too", async () => {
+  const seen: number[] = [], lockTimeout = { error: { code: "55P03", message: "canceling statement due to lock timeout" } };
+  await queuedWrite(async attempt => { seen.push(attempt); return attempt < 2 ? (attempt ? lockTimeout : timedOut) : { error: null }; }, { log: () => {} });
+  assert.deepEqual(seen, [0, 1, 2]);
+  const queued = (attempt: number) => attempt ? "2026-11-09T05:20:00Z" : null;
+  assert.equal(queued(seen[0]), null, "the first attempt keeps the original queued time");
+  assert.ok(queued(seen[1]) && queued(seen[2]), "attempt 1 and later carry the sent time as the queued time");
+});
