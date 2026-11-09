@@ -18,7 +18,7 @@ async function places(engagements: ListedEngagement[]): Promise<Map<string, HubP
 export default async function SetupPage() {
   const { profile, client } = await requireFacilitator();
   const { data, error } = await client.from("engagements")
-    .select("id,title,type,status,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches(name,timezone)")
+    .select("id,title,type,status,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)")
     .eq("deleted", false).order("created_at", { ascending: false });
   const engagements = (data ?? []) as unknown as ListedEngagement[];
   const where = await places(engagements);
