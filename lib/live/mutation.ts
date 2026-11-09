@@ -52,3 +52,21 @@ export async function roomMutation<T extends RpcResult>(client: SupabaseClient, 
   try { close = await connect(client, engagement); } catch { return result; }
   try { return await write(); } finally { try { await close(); } catch { /* The committed result must survive socket cleanup. */ } }
 }
+
+// A write that queues behind the room lock (a phone's answer or agree) can be cancelled by the database's own
+// statement time limit while it waits, when a whole room sends at once. Nothing has been written then, and the
+// write is keyed by the phone's own id and revision, so sending it again stores it once: a second send of a stored
+// answer comes back as a duplicate. The same bounded repeat the phone's outbox makes, made here so the room never
+// shows a card as unavailable for waiting its turn. Only code 57014 is repeated, never another failure.
+export const QUEUE_RETRIES = 2;
+export async function queuedWrite<T extends RpcResult>(write: () => PromiseLike<T>, options: { retries?: number; budgetMs?: number; now?: () => number; log?: (line: Record<string, unknown>) => void } = {}): Promise<T> {
+  const retries = options.retries ?? QUEUE_RETRIES, budget = options.budgetMs ?? 24000, now = options.now ?? Date.now, log = options.log ?? (line => console.warn("Room lock wait", line));
+  const started = now();
+  for (let attempt = 0; ; attempt++) {
+    const result = await write();
+    if (result.error?.code !== "57014") return result;
+    const waited = now() - started;
+    log({ code: "57014", attempt: attempt + 1, waited_ms: waited });
+    if (attempt >= retries || waited > budget) return result;
+  }
+}

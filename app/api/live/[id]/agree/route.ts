@@ -4,6 +4,8 @@ import { castAgree, myAgrees } from "@/lib/interactions/four-lists-server";
 import { uuid } from "@/lib/room/identity";
 
 export const dynamic = "force-dynamic";
+// An agree may wait its turn behind a room full of answers; see queuedWrite.
+export const maxDuration = 60;
 // A phone's own agrees on Four Helpful Lists cards, so it can show and toggle them. With ?session= it also
 // returns that self-paced step's top cards, because a phone outside the live frame has no results to follow.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {

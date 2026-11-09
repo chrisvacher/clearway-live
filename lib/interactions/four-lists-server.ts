@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { roomMutation } from "@/lib/live/mutation";
+import { queuedWrite, roomMutation } from "@/lib/live/mutation";
 import { agreeBody, outboxStatus } from "./four-lists";
 
 // A phone's Four Helpful Lists calls (agree, its own agrees), under its own room sign-in. phoneQa carries the cookies.
@@ -10,8 +10,8 @@ const statusCode = (status: string) => ["accepted", "duplicate", "ok"].includes(
 export async function castAgree(client: SupabaseClient, engagement: string, raw: Record<string, unknown> | null) {
   const input = agreeBody(raw);
   if (!input) return { data: { status: "invalid_request" }, status: 422 };
-  const { data, error } = await roomMutation(client, engagement, () => client.rpc("four_lists_agree", { p_engagement: engagement, p_id: input.id, p_card: input.card, p_revision: input.revision,
-    p_on: input.on, p_sent: input.sentAt, p_queued: input.queuedAt, p_uncertainty: input.uncertaintyMs }));
+  const { data, error } = await queuedWrite(() => roomMutation(client, engagement, () => client.rpc("four_lists_agree", { p_engagement: engagement, p_id: input.id, p_card: input.card, p_revision: input.revision,
+    p_on: input.on, p_sent: input.sentAt, p_queued: input.queuedAt, p_uncertainty: input.uncertaintyMs })));
   if (error) throw error;
   const status = outboxStatus(data.status);
   return { data: { ...data, status, reason: data.status }, status: statusCode(status) };

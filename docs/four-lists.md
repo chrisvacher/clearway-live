@@ -45,6 +45,22 @@ Deviation: `show_write`, `template_write` (which also anchors a saved template o
 - `private.four_lists_share_word(a, b)` (with `four_lists_stems`) is the word check. `ai_apply` (step 2's body, reached as `ai_apply_pre_signal`) refuses a group as `unrelated` when a member shares no meaningful word with the survivor. "Roles of staff are confusing" under "Elder and staff roles are unclear" shares "staff" and "roles" and stands.
 - `private.four_lists_board` no longer adds the writers of folded cards to a survivor's agree count. It had, so that two people who wrote the same words showed as two; the result was an agree nobody pressed, which Undo took away.
 
+## Load on the room lock (November 9, `20261109070000_four_lists_submit_load`)
+
+The 50-phone load test on the live practice room (3 cards each) refused 26 of 150 cards as unavailable. Hosted Postgres cancelled
+them with 57014: the `authenticator` role's 8 second statement limit ended requests that were still waiting for the practice
+room's lock (the advisory lock keyed on the room, logged as `advisory lock [5,1302358647,492023929,1]`). Every answer, agree, follow-up
+status poll, AI apply and TV heartbeat for the room takes that lock or the room row lock, one at a time.
+- The follow-up status poll (each open control surface makes it about twice a second) took the lock though it writes nothing.
+  `private.followup_manage` now reads without the lock when the action is `status` and no lapsed grant needs sweeping. Writes,
+  and a status with a grant to sweep, lock first as before. Statuses and results are unchanged.
+- A phone's answer or agree that the database cancels at the statement limit while it waits is sent again by the server up to twice
+  (`queuedWrite` in `lib/live/mutation.ts`). Both are keyed by the phone's id and revision, so a repeat stores once. Only 57014 is
+  repeated, within 24 seconds. Each repeat is logged as `Room lock wait`.
+- Every check that reads room state stays under the lock in `private.live_submit`. `npm run test:submit-lock` holds the lock on one
+  connection while a lens summary vote waits on another: a new version or a sign-off, or the person's removal, in between must make
+  the vote stale or denied and store nothing.
+
 ## Known limits
 
 - `ai_apply` refuses a whole group (`kept_apart`) if the facilitator ever separated one of its members, so the AI never re-folds what a person pulled apart.
