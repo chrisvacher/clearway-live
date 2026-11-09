@@ -32,6 +32,7 @@ Closing Day 1 (`close_part`) opens an `overnight_rounds` row through a trigger o
 - Concurrency: every draft has a `revision`; a stale edit is refused with a plain message.
 - Restore the room's words: one action returns a bullet to the room's own wording when it rests on one room bullet.
 - Version history: every version is kept (`draft_versions` is append-only, enforced by a trigger). Restoring a version makes a new one.
+The version note written when the tidy lands reads "Tidied from 9 bullets, 16 scribe cards and 1 easel photo": the singular for one (`private.ov_count`, migration `20261109040000_overnight_setup_reset.sql`).
 - "Drafts ready" shows on the review screen, the control surface and the remote.
 
 ## Publish (OVN-03)
@@ -54,3 +55,7 @@ Lead only, idempotent by a client-made id. It needs every outcome reviewed and e
 - Only the lead publishes; co-facilitators review and edit.
 - Reviewed means one facilitator marked the outcome; a lock never blocks Publish for a holder who has left (40 second expiry).
 - `reset_practice_room` does not yet clear the overnight tables.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+Migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`. The easel photo captions (file names) sent to the draft model pass the report's name check (`private.report_names`, `discover_has_name`); a caption with a name is replaced by "Easel photo" on the run's inputs. `overnight_claim` is renamed `overnight_claim_pre_privacy` and wrapped. Test: `overnight_review.test.sql`.

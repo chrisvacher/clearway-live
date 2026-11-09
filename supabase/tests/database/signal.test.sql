@@ -207,6 +207,7 @@ select is(tests.act(1,10,tests.card('divergent','Welcoming culture'),'ask','{"te
 select is(tests.act(1,11,tests.card('divergent','Welcoming culture'),'ask','{"text":"Do 60% of us agree?"}')->>'status','names_signal','and one with a figure');
 select is(tests.act(1,12,tests.card('divergent','Welcoming culture'),'ask','{"text":"The signal says we diverge. Why?"}')->>'status','names_signal','and one that names the signal');
 select is(tests.act(1,13,tests.card('divergent','Welcoming culture'),'ask','{"text":"This is shit?"}')->>'status','filtered','Words the filter refuses stay off the TV');
+select is(tests.act(1,14,tests.card('divergent','Welcoming culture'),'ask','{"text":"Is the Young families theme why we need a third service?"}')->>'status','names_signal','A question that names another accepted theme is refused too');
 reset role;
 update room_states set spotlight_key='sample' where engagement_id=tests.id(100);
 set local role authenticated;

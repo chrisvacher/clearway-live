@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { checkInEmail } from "../../lib/email/check-in";
-import { followUps, groupRecipients, resultsCsv, roundCounts, shortDate, today, tokenShape, type Owned, type ResultRound } from "../../lib/check-ins/policy";
+import { dayInZone, followUps, groupRecipients, resultsCsv, roundCounts, shortDate, today, tokenShape, type Owned, type ResultRound } from "../../lib/check-ins/policy";
 
 const owned = (kind: "step" | "goal", id: string, label: string, email: string, name: string | null = null, ord = 0, attendee: string | null = null): Owned => ({ kind, id, label, date: "2026-11-27", email, name, attendee, ord });
 
@@ -82,10 +82,10 @@ test("links are shaped like tokens, dates read short, and the middleware leaves 
 });
 
 const round = (day: 30 | 60 | 90): ResultRound => ({ id: "r" + day, day, due_on: "2027-01-06", status: "sent", superseded: false, sent_at: null, sent_by: "schedule", recipients: [
-  { id: "p1", name: "Priya Shah", email: "p@x.example", send_result: "sent", sent_at: null, opened_at: null, answered_at: "2027-01-07", help: null, practice: false,
+  { id: "p1", name: "Priya Shah", send_result: "sent", sent_at: null, opened_at: null, answered_at: "2027-01-07", help: null, practice: false,
     steps: [{ id: "s1", text: "Step one", due: null, answer: "stuck", note: "Need a sign off, \"soon\"", answer_id: "a1", followed_up_at: null, answered_at: null }],
     goals: [{ id: "g1", title: "Goal one", end: null, answer: "off_track", note: null, answer_id: "a2", followed_up_at: "2027-01-08", answered_at: null }] },
-  { id: "p2", name: "Daniel Brooks", email: "d@x.example", send_result: "practice_address", sent_at: null, opened_at: null, answered_at: null, help: null, practice: true,
+  { id: "p2", name: "Daniel Brooks", send_result: "practice_address", sent_at: null, opened_at: null, answered_at: null, help: null, practice: true,
     steps: [{ id: "s2", text: "=SUM(A1)", due: null, answer: null, note: null, answer_id: null, followed_up_at: null, answered_at: null }], goals: [] }] });
 
 test("follow-ups are stuck steps and goals at risk or off track, and counts say who answered", () => {
@@ -109,4 +109,14 @@ test("the email says the round's day after the retreat, with no day count and no
   for (const part of [a.text, a.html]) assert.doesNotMatch(part, /days since|Wayfinding|It has been/);
   assert.deepEqual(a, b, "a resumed send builds the identical subject, text and html");
   assert.notEqual(checkInEmail({ ...input, nextOn: "2027-03-07" }).text, a.text, "the next date is in the body, so it must come from the round's snapshot");
+});
+
+test("a moment prints as the church's day, not the UTC day", () => {
+  // 10:30 PM on November 8 in Toronto is already November 9 in UTC.
+  assert.equal(dayInZone("2026-11-09T03:30:00Z", "America/Toronto"), "2026-11-08");
+  assert.equal(dayInZone("2026-11-09T03:30:00Z", "America/Vancouver"), "2026-11-08");
+  assert.equal(dayInZone("2026-11-09T03:30:00Z", "Europe/London"), "2026-11-09");
+  assert.equal(dayInZone("2026-11-09T03:30:00Z"), "2026-11-08");
+  assert.equal(dayInZone("2026-11-09T03:30:00Z", "Not/AZone"), "2026-11-08");
+  assert.equal(dayInZone(null, "America/Toronto"), "");
 });

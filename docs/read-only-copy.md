@@ -57,3 +57,7 @@ The migration sets `day2_closed_at` for engagements already in follow-up with a 
 If the page cannot read its data (a failed call or a missing setting), it shows the plain unavailable page and logs an error code, never the token.
 
 **Overnight acceptance fix (November 9).** The Share page names the button as it reads, Close Day 2. A day and a half closes the same way, because its half day is Day 2.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+The public view carries the church's `timezone` (migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`), and "Signed off on" prints the church's day (`dayInZone`), not the UTC day.

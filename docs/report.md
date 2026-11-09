@@ -66,3 +66,7 @@ The model sees refs only (`f1` survey finding, `t1` accepted theme, `q1` quote, 
 - A section with nothing to read is marked Thin data without calling the model.
 - A sign-off snapshots every sentence's text and sources; `report_signed_for_view` strips the sources.
 - Anyone who is a lead or co-facilitator can draft, edit and review; only the lead signs off.
+
+## Overnight acceptance fixes, batch c (November 9)
+
+Migration `supabase/migrations/20261109030000_overnight_after_privacy.sql`. `report_source_set` matches the excerpt the facilitator picked, so a theme's quote can be added next to the theme's summary (they share a kind and a ref), and the quote is stored as the room's own words so Use the room's words has something to use. Taking a source off with an excerpt removes that source only; with none, every source of the record comes off as before. Test: `report.test.sql`.

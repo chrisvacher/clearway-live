@@ -461,5 +461,36 @@ select tests.login(7); set local role authenticated;
 select is(public.followup_manage(tests.id(101),'status')->'access','null'::jsonb,'Their own room has no access');
 reset role;
 
+-- ---------- Hand over from the first step of the team-led block (the PRD's 1:00 row) ----------
+select tests.login(1); set local role authenticated;
+select is(tests.save(611,'content','{"screen":"holding"}','Follow-up')->>'status','ok','The facilitator saves the step where the team takes the remote');
+select is(tests.save(612,'intent','{"assign":"remote"}','Follow-up')->>'status','ok','The facilitator saves a second commander''s intent step');
+select is(tests.save(613,'sign','{}','Follow-up')->>'status','ok','The facilitator saves a second affirming step');
+reset role;
+update public.sessions set team_led=true where id in(tests.id(611),tests.id(612),tests.id(613));
+select tests.login(1); set local role authenticated;
+select is(tests.ctl(60,'go_live',jsonb_build_object('session',tests.id(611)))->>'status','ok','The facilitator goes live on the step where the team takes the remote');
+select is(tests.hand(70,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','ok','The remote can be handed over from the first step of the team-led block');
+select is((select session_ids from tests.team_blocks where id=(select team_led_block_id from tests.room())),array[tests.id(612),tests.id(613)],'The block is the intent step and the affirming step, not the hand-over step');
+select is(public.team_remote_state(tests.id(100))->>'holder','team','The team facilitator holds the remote');
+reset role;
+select tests.login(3); set local role authenticated;
+select is(tests.ctl(61,'next')->>'status','ok','Priya moves from the hand-over step to the block with Next');
+select is(tests.live(),tests.id(612),'The TV is on commander''s intent');
+reset role;
+select tests.login(1); set local role authenticated;
+select is(tests.hand(71,'end')->>'status','ok','The lead ends the handover');
+select is(tests.hand(72,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','ok','The remote can still be handed over from the commander''s intent step');
+select is((select session_ids from tests.team_blocks where id=(select team_led_block_id from tests.room())),array[tests.id(612),tests.id(613)],'The block is the same from the intent step');
+select is(tests.hand(73,'end')->>'status','ok','The lead ends it again');
+select is(tests.ctl(63,'go_live',jsonb_build_object('session',tests.id(601)))->>'status','ok','The lead goes live on a step that is not team-led');
+select is(tests.hand(74,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','invalid_state','A step that is not team-led still cannot hand over the remote');
+select is(tests.ctl(80,'go_live',jsonb_build_object('session',tests.id(611)))->>'status','ok','The lead goes live on the hand-over step again');
+select is(tests.hand(82,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','ok','and hands the remote over from it');
+select is(tests.ctl(85,'go_live',jsonb_build_object('session',tests.id(601)))->>'status','ok','The lead moves the room to a step outside the block');
+select is((select remote_holder_id from tests.room()),null,'The remote came back to the lead when the room left the hand-over step for a step outside the block');
+select is((select count(*) from tests.team_blocks where ended_at is null and via='room'),0::bigint,'No room block is left open');
+reset role;
+
 select * from finish();
 rollback;

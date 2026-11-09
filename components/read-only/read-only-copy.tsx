@@ -1,6 +1,7 @@
 import { CircleDashed, Eye, FileText } from "lucide-react";
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { mapDate } from "@/lib/wayfinding/map";
+import { dayInZone } from "@/lib/check-ins/policy";
 import { seasonCells } from "@/lib/report/policy";
 import { goalStatusLine, type RoField, type RoGoal, type RoSection, type RoView } from "@/lib/read-only/policy";
 import { PrintButton } from "./print-button";
@@ -18,7 +19,7 @@ const Status = ({ goal }: { goal: RoGoal }) => {
   return s ? <span className={`ro-status is-${goal.status}`} data-testid="ro-goal-status"><b>{s.label}</b>{s.on ? <span>, {s.on}</span> : null}</span> : null;
 };
 
-function Report({ report }: { report: NonNullable<RoView["report"]> }) {
+function Report({ report, zone }: { report: NonNullable<RoView["report"]>; zone?: string }) {
   const Section = ({ s }: { s: RoSection }) => {
   // The scribe's action cards stand under the table as their own list, as they do in the Word and PDF export: they have no who, when or who tells them.
   const rows = s.table?.rows ?? [], actions = rows.filter(r => r.group === "actions" && r.parts.some(p => p.text)), plan = rows.filter(r => r.group !== "actions");
@@ -39,7 +40,7 @@ function Report({ report }: { report: NonNullable<RoView["report"]> }) {
   };
   return <section className="ro-sec" id="report" data-testid="ro-report">
     <h2>The report</h2>
-    <p className="ro-note">Signed off on {mapDate(report.signed_at.slice(0, 10))}. This is the version as it was signed.</p>
+    <p className="ro-note">Signed off on {mapDate(dayInZone(report.signed_at, zone))}. This is the version as it was signed.</p>
     <div className="ro-report">{report.sections.map(s => <Section key={s.key} s={s} />)}</div>
   </section>;
 }
@@ -94,7 +95,7 @@ export function ReadOnlyCopy({ view }: { view: RoView }) {
         </article>)}
       </section>
 
-      {view.report ? <Report report={view.report} />
+      {view.report ? <Report report={view.report} zone={view.timezone} />
         : <section className="ro-sec" id="report"><h2>The report</h2><p className="ro-note" data-testid="ro-no-report"><FileText size={14} aria-hidden="true" /> The report will appear here once Clearway has signed it off.</p></section>}
 
       <footer className="ro-foot"><Eye size={14} aria-hidden="true" /><span>This copy can&rsquo;t be edited. It shows the plan as Clearway has it, and each goal&rsquo;s status as its owner last reported it. The link can be turned off at any time.</span></footer>

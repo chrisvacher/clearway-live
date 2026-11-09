@@ -145,6 +145,9 @@ reset role;
 
 -- The model's inputs: text, counts and images under short refs; never a speaker, an owner, an attendee or an id the model needs.
 set local role service_role;
+reset role;
+update private.scribe_files set name='Tasha-board.heic' where id=tests.id(4102);
+set local role service_role;
 select is(public.overnight_due(tests.id(100)),true,'The server sees the round is due');
 select is(public.overnight_claim(tests.id(100),tests.id(950),'fake-model','{"overnight_draft":"overnight-draft@1"}')->>'status','claimed','The worker claims it');
 reset role;
@@ -156,6 +159,8 @@ select is((select jsonb_array_length(inputs->'cards') from private.ai_runs where
 select is((select jsonb_array_length(inputs->'photos') from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),2,'and two easel photos');
 select is((select inputs->'photos'->0->>'caption' from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),'easel-1.jpg','with their captions');
 select is((select (inputs->'photos'->1->>'readable')::boolean from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),false,'and says which the model cannot read');
+select is((select inputs->'photos'->1->>'caption' from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),'Easel photo','A caption that carries a name is replaced before the model sees it');
+update private.scribe_files set name='easel-2.heic' where id=tests.id(4102);
 select is((select position('Tasha' in inputs::text)+position('Daniel' in inputs::text)+position('Ben Ortiz' in inputs::text)+position('Sam Lee' in inputs::text)+position('Krista' in inputs::text)+position('attendee' in inputs::text)+position('speaker' in inputs::text)+position('owner' in inputs::text) from private.ai_runs where job='overnight_draft' and engagement_id=tests.id(100)),0,'No speaker, owner or attendee reaches the model');
 set local role service_role;
 select is(public.overnight_claim(tests.id(100),tests.id(952),'fake-model','{"overnight_draft":"overnight-draft@1"}')->>'status','busy','A second worker waits for the lease');
@@ -203,6 +208,9 @@ select is((select count(*)::integer from private.draft_notes n where n.kind='voi
 select is((select count(*)::integer from private.draft_outcomes where round_id=(select id from private.overnight_rounds where engagement_id=tests.id(100)) and tidy='tidied'),3,'All three outcomes are tidied (a thin one stays thin)');
 select is((select array_length(unreadable,1) from private.overnight_rounds where engagement_id=tests.id(100)),2,'Two easel photos are flagged: the format it cannot read, and the one the model named');
 select is((select count(*)::integer from private.draft_versions v join private.draft_outcomes d on d.id=v.draft_outcome_id where v.kind='ai' and d.engagement_id=tests.id(100) and v.actor_id is null),3,'The tidy is a version of each, by no person');
+select is(private.ov_count('1','bullet')||'|'||private.ov_count('1','scribe card')||'|'||private.ov_count('1','easel photo'),'1 bullet|1 scribe card|1 easel photo','The version note says one in the singular');
+select is(private.ov_count('0','bullet')||'|'||private.ov_count('16','scribe card')||'|'||private.ov_count(null,'easel photo'),'0 bullets|16 scribe cards|0 easel photos','and zero or many in the plural');
+select is((select count(*)::integer from private.draft_versions v where v.kind='ai' and v.engagement_id=tests.id(100) and v.what ~ '^Tidied from [0-9]+ bullets?, [0-9]+ scribe cards? and [0-9]+ easel photos?$' and v.what !~ '(^| )1 (bullets|scribe cards|easel photos)'),3,'Each tidy note reads right for its counts');
 select is((select count(*)::integer from private.draft_sources where kind='photo' and ref_id is null),0,'(photos link by id)');
 
 -- The review as the facilitators see it.

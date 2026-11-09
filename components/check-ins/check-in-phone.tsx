@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check, CircleCheck, CircleDashed, CircleX, HandHelping, Loader, Send, TrendingUp, TriangleAlert, WifiOff } from "lucide-react";
-import { answerLabel, goalAnswers, longDate, noteLimit, shortDate, stepAnswers, type PhoneItem, type PhoneView } from "@/lib/check-ins/policy";
+import { answerLabel, dayInZone, goalAnswers, longDate, noteLimit, shortDate, stepAnswers, type PhoneItem, type PhoneView } from "@/lib/check-ins/policy";
 import "./check-ins.css";
 
 type Ok = Extract<PhoneView, { status: "ok" }>;
@@ -130,7 +130,7 @@ export function CheckInPhone({ token, view }: { token: string; view: Ok }) {
       <div className="ph-body">
         <h1 className="ph-headline">{locked === "ended" ? "This check-in is closed" : justSent ? "Thank you" : locked ? "Your answers" : "You already answered"}</h1>
         {locked === "ended" && <p className="ph-text">{view.church}&rsquo;s engagement has ended, so the check-ins have stopped. Thank you for the work.</p>}
-        {locked !== "ended" && locked && <p className="ph-text">{newest ? `This is the ${view.day}-day check-in, and it can no longer be changed. Your ${view.newest_day}-day check-in is open now: use the link in the newest email we sent${view.newest_sent_at ? ` on ${shortDate(view.newest_sent_at)}` : ""}.` : `This check-in can no longer be changed.`}</p>}
+        {locked !== "ended" && locked && <p className="ph-text">{newest ? `This is the ${view.day}-day check-in, and it can no longer be changed. Your ${view.newest_day}-day check-in is open now: use the link in the newest email we sent${view.newest_sent_at ? ` on ${shortDate(dayInZone(view.newest_sent_at, view.timezone))}` : ""}.` : `This check-in can no longer be changed.`}</p>}
         {!locked && <p className="ph-text">Your {view.day}-day check-in is in.{view.day < 90 ? (nextOn ? ` The next one comes by email on ${nextOn}.` : " The next one comes by email.") : " That was the last one, so the check-ins end here. Thank you for the work."}</p>}
         <ul className="ph-answers ci-summary" aria-label="Your answers">
           {answered.length === 0 && <li className="ph-answer"><span className="ph-answer-row">No answers were sent.</span></li>}
@@ -139,7 +139,7 @@ export function CheckInPhone({ token, view }: { token: string; view: Ok }) {
             {it.note && <p className="ci-note-read">{it.note}</p>}</li>)}
         </ul>
         {help.trim() && <p className="ph-text"><strong>Anything else that would help:</strong> {help}</p>}
-        {view.sent_at && <p className="ph-muted">Sent {longDate(view.sent_at)}</p>}
+        {view.sent_at && <p className="ph-muted">Sent {longDate(dayInZone(view.sent_at, view.timezone))}</p>}
         {stateLine}
       </div>
       <div className="ph-foot">{!locked && <div className="ph-actions"><button className="ph-send" type="button" onClick={() => { setJustSent(false); setPage(0); setMode("items"); }}>Change my answers</button></div>}

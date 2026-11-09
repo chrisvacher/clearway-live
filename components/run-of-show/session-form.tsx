@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Check, LockKeyhole, Trash2, X } from "lucide-react";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
-import { defaultWindow } from "@/lib/run-of-show/builder";
+import { defaultWindow, readyState } from "@/lib/run-of-show/builder";
 import { parts, type SessionInput, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
 import { contentOf, fallbackKinds, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { kindDefaults, optionEditors } from "@/components/interactions/option-editors";
@@ -70,7 +70,9 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
     event.preventDefault(); setTimeError("");
     // Inline, Done marks the session Ready and Save as draft keeps it a Draft.
     const intent = ((event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null)?.value;
-    const state = inline && !running && (intent === "ready" || intent === "draft") ? intent : value.state;
+    // A Scripture, Headline or Image step with no words or image stays a Draft (docs/templates.md).
+    const wanted = inline && !running && (intent === "ready" || intent === "draft") ? intent : value.state;
+    const state = running ? wanted : readyState(value, wanted) as ShowSession["state"];
     try {
       const instant = (v: string) => { try { return zonedInstant(v, context.timezone); } catch { throw new Error("Check the session times. During a daylight saving clock change, choose a different time."); } };
       await onSave({ ...value, state, revision: fresh ? null : revision !== undefined ? revision : session.revision, planned_start: instant(start), opens_at: instant(opens), closes_at: instant(closes) });

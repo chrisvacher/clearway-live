@@ -30,7 +30,7 @@ export function TeamRemote({ block, room, holds, send, ends, pairs }: { block: T
     <p className="ctl-label">{now ? now.title : "Not in your block yet"}</p>
     <div className="hi-row">
       <button type="button" className="show-button" disabled={off || i < 1} onClick={() => void go("back")}><ChevronLeft size={18} aria-hidden="true" />Back</button>
-      <button type="button" className="show-button is-primary" disabled={off || i < 0 || i >= block.length - 1} onClick={() => void go("next")}>Next<ChevronRight size={18} aria-hidden="true" /></button>
+      <button type="button" className="show-button is-primary" disabled={off || block.length === 0 || i >= block.length - 1} onClick={() => void go("next")}>Next<ChevronRight size={18} aria-hidden="true" /></button>
       <button type="button" className="show-button" disabled={off || !now} onClick={() => void go(room?.phones_down ? "open_phones" : "phones_down")}>{room?.phones_down ? <><SmartphoneNfc size={18} aria-hidden="true" />Open phones</> : <><Smartphone size={18} aria-hidden="true" />Phones down</>}</button>
     </div>
     {now?.interaction === "intent" && <>

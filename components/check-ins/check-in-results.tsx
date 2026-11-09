@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, Check, CircleCheck, CircleDashed, CircleX, Download, Flag, HandHelping, Loader, Mail, MailX, Minus, Send, TrendingUp, TriangleAlert, UserRound } from "lucide-react";
-import { answerLabel, followUps, goalAnswers, longDate, roundCounts, shortDate, type CheckInState, type ResultRound } from "@/lib/check-ins/policy";
+import { answerLabel, dayInZone, followUps, goalAnswers, longDate, roundCounts, shortDate, type CheckInState, type ResultRound } from "@/lib/check-ins/policy";
 import "./check-ins.css";
 
 const icon = (answer: string | null) => {
@@ -114,7 +114,7 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
         <section className="cir-card" aria-label={`${round.day}-day round`}>
           <div className="cir-head"><div><p className="ctl-eyebrow">Round {rounds.findIndex(r => r.id === round.id) + 1} of {rounds.length}</p><h2>The {round.day}-day check-in</h2></div>
             <span className={`cir-chip${round.status === "sent" ? " is-done" : round.status === "off" || round.superseded ? "" : " is-info"}`}>{round.status === "sent" ? "Sent" : round.status === "sending" ? "Sending" : round.superseded ? "Skipped" : round.status === "off" ? "Switched off" : "Scheduled"}</span></div>
-          <p className="cir-meta"><span>{round.superseded ? "Skipped because a later check-in has gone out. This one will not be sent." : round.status === "off" ? "Switched off. Nothing will be emailed for this one until check-ins are switched on." : round.status === "scheduled" ? `Goes out ${longDate(round.due_on)}, in the morning around 8 or 9 am Eastern.` : `Due ${longDate(round.due_on)}${round.sent_at ? `, sent ${longDate(round.sent_at)}` : ""}${round.sent_by && round.sent_by !== "schedule" ? " by a facilitator" : round.sent_by === "schedule" ? " by the schedule" : ""}.`}</span></p>
+          <p className="cir-meta"><span>{round.superseded ? "Skipped because a later check-in has gone out. This one will not be sent." : round.status === "off" ? "Switched off. Nothing will be emailed for this one until check-ins are switched on." : round.status === "scheduled" ? `Goes out ${longDate(round.due_on)}, in the morning around 8 or 9 am Eastern.` : `Due ${longDate(round.due_on)}${round.sent_at ? `, sent ${longDate(dayInZone(round.sent_at, state.timezone))}` : ""}${round.sent_by && round.sent_by !== "schedule" ? " by a facilitator" : round.sent_by === "schedule" ? " by the schedule" : ""}.`}</span></p>
           {counts && counts.people > 0 && <div className="cir-sum"><div><span className="n">{counts.sent}</span><span className="cir-muted">{`of ${counts.people} emailed${counts.practice ? `, ${counts.practice} practice ${counts.practice === 1 ? "address" : "addresses"} not sent` : ""}`}</span></div>
             <div><span className="n">{counts.answered}</span><span className="cir-muted">of {counts.people} answered</span></div>
             <div><span className="n">{stepsDone}</span><span className="cir-muted">of {steps.length} first steps done</span></div>

@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
       { key: "X-Content-Type-Options", value: "nosniff" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
+      // Nothing in the app frames any of its own pages (the TV is its own browser window), so no page may be framed by another site.
+      { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+      { key: "X-Frame-Options", value: "DENY" },
     ] }, { source: "/v/:path*", headers: [
       { key: "Referrer-Policy", value: "no-referrer" },
       { key: "Cache-Control", value: "private, no-store" },

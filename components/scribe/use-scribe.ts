@@ -101,8 +101,9 @@ export function useScribe(engagement: string, blobs?: BlobStore) {
     if (!where || where.team_led) return;
     outbox.current?.add({ type: "capture", id: newId(), session: where.id, kind: input.kind, text: input.text, detail: input.detail, speaker: input.speaker, capturedAt: new Date().toISOString() });
   }, []);
-  const edit = useCallback((card: ShownCard, next: { text: string; detail: CaptureInput["detail"]; speaker: string }) => {
-    outbox.current?.add({ type: "edit", id: card.id, text: next.text, detail: next.detail, speaker: next.speaker, revision: card.revision });
+  // The revision is the one the scribe saw when Edit was opened, so an edit on an old copy is refused (SCR-01).
+  const edit = useCallback((card: ShownCard, next: { text: string; detail: CaptureInput["detail"]; speaker: string; revision: number }) => {
+    outbox.current?.add({ type: "edit", id: card.id, text: next.text, detail: next.detail, speaker: next.speaker, revision: next.revision });
   }, []);
   const correct = useCallback((input: { item: string; line: string | null; wording: string; reason: string }) => {
     outbox.current?.add({ type: "correction", id: newId(), item: input.item, line: input.line, wording: input.wording, reason: input.reason });

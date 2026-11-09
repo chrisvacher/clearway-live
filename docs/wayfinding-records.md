@@ -11,7 +11,7 @@ All sit in the `private` schema, hang off the engagement, and use forced row-lev
 | `lens_openings` | Which lens is open (1 to 5). Seeded sentences become readable when their lens opens |
 | `lens_sentences` | Sentences with lens and source (`seeded` or `live`), plus the author for the record |
 | `vision_outcomes`, `outcome_indicators` | Title, description, provisional or confirmed, what we'll stop, order. Indicators are the 3-year Vision bullets |
-| `risks`, `risk_mitigations` | Pre-mortem risks (likelihood and impact) and mitigations, recorded by the facilitator or later the scribe |
+| `risks`, `risk_mitigations` | Pre-mortem risks (likelihood and impact) and mitigations, recorded by the facilitator or the scribe (a scribe row carries its `card_id`) |
 | `goals`, `goal_risks` | 1-year goals with result, one owner, end date and the risks they answer. The CORE letters are checked in code (`goal_core`) |
 | `intent_cards`, `intent_card_people`, `first_steps` | Commander's intent, pairs, and first steps with owner and date flags (`first_step_flags`) |
 | `key_metrics`, `celebrations` | Ranked success measures and celebrations |
