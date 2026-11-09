@@ -10,3 +10,5 @@ Local fictional Riverside engagement. Full-page screenshots at 1440px desktop an
 [Linked Team Hub engagement and workshop fields](after-b/setup-new-linked-workshop-390.png).
 
 The linked picker UI uses a local HTTP fixture. Duplicate conflict handling, workshop saving, authorization and field switching are checked against the local app/database. The Team Hub production reader is never used.
+
+The Discover browser kit also passed all 10 checks against this intermediate PR, including its setup navigation and unavailable-state path. Its run-of-show link selector follows the approved engagement navigation.

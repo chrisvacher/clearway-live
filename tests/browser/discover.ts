@@ -184,7 +184,7 @@ async function main() {
       try {
         await seen("Discover isn't ready yet.", "text");
         await page.goto(`${app.origin}/setup/${room.id}`);
-        await page.getByRole("link", { name: "Edit run of show" }).waitFor({ timeout: 15000 });
+        await page.getByRole("link", { name: "Open run of show", exact: true }).waitFor({ timeout: 15000 });
       } finally { await sql.query("alter function public.discover_state_off(uuid) rename to discover_state"); await reload(); }
       await seen("Survey findings", "heading");
     });
