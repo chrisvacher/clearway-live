@@ -48,6 +48,8 @@ export const dropOptions: Partial<Record<InteractionKind, Record<string, unknown
   form: { questions: [{ key: "q1", text: "What would make this time a win for you?" }] },
   sign: {},
   intent: { assign: "remote" },
+  lens: { lens: 1 }, lens_summary: { lens: 1 }, goals: { risk_links: "required" },
+  bullets: {}, confirm: {}, four_lists: {},
   candidates: { ai: true, cut: 5 },
   read_back: { ai: true },
 };
@@ -56,9 +58,23 @@ export const dropOptions: Partial<Record<InteractionKind, Record<string, unknown
 export const dropPrompts: Partial<Record<InteractionKind, string>> = { read_back: "Did we hear you right?" };
 // The read-back's 60 sends and 280 characters are the template step's: one Yes or change per item and several "What's missing?" answers
 // for each of up to ten items must never run into the limit.
-const limits: Partial<Record<InteractionKind, [number, number, number]>> = { wall: [3, 280, 50], qa: [10, 200, 50], four_lists: [12, 140, 30], read_back: [60, 280, 50] };
+const limits: Partial<Record<InteractionKind, [number, number, number]>> = {
+  wall: [3, 280, 50], qa: [10, 200, 50], four_lists: [12, 140, 30], read_back: [60, 280, 50],
+  lens: [8, 200, 50], lens_summary: [1, 140, 50], bullets: [12, 200, 50], confirm: [1, 280, 50], candidates: [1, 200, 50],
+};
 // Content screens that need their words before they can run start as drafts.
 const readyScreens: ContentScreen[] = ["prayer", "holding", "screen_check"];
+
+// A Scripture, Headline or Image step with nothing to show is a Draft, whatever button was pressed: Done marks a session Ready only
+// when it has its words (the passage or the headline) or its image. Other screens and every interaction need nothing more.
+export function hasContent(session: Pick<ShowSession, "interaction" | "prompt" | "options">): boolean {
+  if (session.interaction !== "content") return true;
+  const screen = (session.options as { screen?: unknown }).screen ?? "headline";
+  if (screen === "image") return typeof (session.options as { media?: unknown }).media === "string" && Boolean((session.options as { media: string }).media);
+  if (screen === "scripture" || screen === "headline") return session.prompt.trim().length > 0;
+  return true;
+}
+export const readyState = (session: Pick<ShowSession, "interaction" | "prompt" | "options">, wanted: string): string => wanted === "ready" && !hasContent(session) ? "draft" : wanted;
 
 // A self-paced session (PRD "Mode") opens on phones between two times, outside the live
 // room. Dropped as self-paced, it starts as a Draft with a window from the next whole hour

@@ -13,6 +13,7 @@ import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/poli
 import { clearwayEmail } from "@/lib/auth/policy";
 import { fictionalEmail, practiceId } from "@/lib/room/practice";
 import { uuid } from "@/lib/room/policy";
+import { deliberate,SetupRefusal } from "@/lib/setup/errors";
 const answer=(data:Record<string,unknown>,status=200)=>privateResponse(NextResponse.json(data,{status}));
 type InviteBatch={id:string;status:string;payload:InvitationSnapshot};
 // The invite links to every self-paced session that is ready and not yet closed (step 6a).
@@ -37,7 +38,8 @@ export async function POST(request:NextRequest){
     const body=await limitedJson(request,262144),{client,profile}=fac,action=body.action;
     const scoped=async()=>{if(!uuid(body.id))throw new Error("missing");const {data,error}=await client.from("engagements").select("*").eq("id",body.id).eq("deleted",false).maybeSingle();if(error||!data)throw new Error("missing");return data;};
     const admin=()=>{if(!profile.is_admin)throw new Error("denied");};
-    const rpc=async(name:string,args:Record<string,unknown>)=>{const {data,error}=await client.rpc(name,args);if(error)throw new Error("save");return data;};
+    const refuse=(error:Parameters<typeof deliberate>[0])=>{const failure=deliberate(error);throw failure?new SetupRefusal(failure):new Error("save");};
+    const rpc=async(name:string,args:Record<string,unknown>)=>{const {data,error}=await client.rpc(name,args);if(error)refuse(error);return data;};
     if(action==="hub_clients"){admin();return answer({ok:true,clients:await teamHubReader().searchClients(typeof body.search==="string"?body.search:"")});}
     if(action==="hub_engagements"){admin();if(!uuid(body.client))return answer({ok:false},400);const hub=teamHubReader();return answer({ok:true,client:await hub.client(body.client),engagements:await hub.engagements(body.client)});}
     if(action==="hub_members"){admin();return answer({ok:true,members:(await teamHubReader().members()).filter(m=>clearwayEmail(m.email))});}
@@ -85,7 +87,11 @@ export async function POST(request:NextRequest){
     if(action==="edit_attendee"||action==="remove_attendee"){
       const e=await scoped();if(!uuid(body.attendee))return answer({ok:false},400);
       const person=action==="edit_attendee"?validatePeople([body.person]).people[0]:null;
-      const {error}=await client.from("attendees").update(person?{name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}:{deleted:true}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)throw new Error("save");const notice=await serviceClient().rpc("tv_presence_sync",{p_engagement:e.id});if(notice.error)console.error("TV roster notification unavailable",{code:notice.error.code});return answer({ok:true});
+      if(person){const {error}=await client.from("attendees").update({name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)refuse(error);}
+      // Removing a person is a soft delete through a function, so the lead and co-facilitator can do it as well as an admin: the table's read
+      // rule hides a removed row from a non-admin, which refuses a plain update to deleted.
+      else{const removed=await rpc("remove_attendee",{p_engagement:e.id,p_attendee:body.attendee}) as {status?:string}|null;if(removed?.status==="missing")return answer({ok:false,message:"That person isn’t in this engagement."},404);if(removed?.status!=="ok")throw new Error("save");}
+      const notice=await serviceClient().rpc("tv_presence_sync",{p_engagement:e.id});if(notice.error)console.error("TV roster notification unavailable",{code:notice.error.code});return answer({ok:true});
     }
     if(action==="reset_practice"){
       const e=await scoped();if(e.id!==practiceId)return answer({ok:false},400);
@@ -104,9 +110,10 @@ export async function POST(request:NextRequest){
     }
     return answer({ok:false},400);
   }catch(error){
+    if(error instanceof SetupRefusal)return answer({ok:false,message:error.failure.message},error.failure.status);
     const message=error instanceof Error?error.message:"";
     if(message==="denied")return answer({ok:false},403);if(message==="missing")return answer({ok:false},404);
-    const allowed=/^(Use |Choose |Check |Each |The (end|CSV)|Give |Add a CSV|Close every|Import up to|Paste up to|Name all|That local|Keep the)/.test(message);
+    const allowed=/^(Use |Choose |Check |Each |The (end|CSV)|Give |Add a CSV|Close every|Import up to|Paste up to|Name all|That local|Keep the|Explain how)/.test(message);
     return answer({ok:false,message:allowed?message:"We couldn’t finish that. Check the connection and try again."},allowed?400:503);
   }
 }

@@ -41,10 +41,11 @@ async function main() {
     await press(fac, sql, practiceRoom, "nothing_live");
     // The Four Helpful Lists step under the same load (acceptance finding live-4 23.8: 26 of 150 cards were refused as unavailable on the live room).
     // Every card must land, the agrees too, and nothing may be refused. The script already picks the kind from the live step.
-    const lists = (await sql.query(`insert into public.sessions(engagement_id,title,part,position,interaction,prompt,state,max_sends,max_characters,max_words) values($1,$2,'Discover',901,'four_lists','Four lists under load','ready',5,280,50) returning id`,
+    const lists = (await sql.query(`insert into public.sessions(engagement_id,title,part,position,interaction,prompt,state,max_sends,max_characters,max_words) values($1,$2,'Discover',901,'four_lists','Four lists under load','ready',6,280,50) returning id`,
       [practiceRoom, `Load test lists ${randomUUID().slice(0, 6)}`])).rows[0].id as string;
     await press(fac, sql, practiceRoom, "go_live", { session: lists });
-    const cards = await runLoad({ origin: app.origin, phones: 50, bursts: 3, gapSeconds: 2, spreadSeconds: 10, log: () => {} });
+    // The room's init limit is 120 joins per 10 minutes for one address, and the two runs above joined 100 phones, so this step uses 15 phones in 4 bursts.
+    const cards = await runLoad({ origin: app.origin, phones: 15, bursts: 4, gapSeconds: 2, spreadSeconds: 10, log: () => {} });
     console.log(`Four Helpful Lists: ${cards.accepted} of ${cards.sent} cards accepted, refused ${JSON.stringify(cards.refused)}, agrees ${cards.agrees?.accepted} of ${cards.agrees?.sent}.`);
     assert.equal(cards.accepted, cards.sent, "every Four Helpful Lists card accepted");
     assert.deepEqual(cards.refused, {}, "no card refused as unavailable or anything else");

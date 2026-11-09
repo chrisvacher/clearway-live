@@ -4,7 +4,7 @@ import { Check, ChevronLeft, ChevronRight, EyeOff, Plus, RefreshCw, Undo2 } from
 import type { ControlPanelProps } from "@/components/interactions/control-panels";
 import { AiIcon, AiMark } from "@/components/interactions/ai/ai-icon";
 import { pressMessages } from "@/lib/interactions/goals";
-import { aiLine, changeText, correctionLimit, failureLine, missingText, readBackState, reasonLimit, yesText, type Correction, type ReadBackState } from "@/lib/interactions/read-back";
+import { aiLine, changeText, correctionLimit, decisionHint, failureLine, missingText, readBackState, reasonLimit, yesText, type Correction, type ReadBackState } from "@/lib/interactions/read-back";
 import { pressId } from "@/lib/control/own-presses";
 import "@/components/interactions/ai/ai.css";
 import "@/components/interactions/lens-summary/lens-summary.css";
@@ -71,7 +71,7 @@ function Queue({ c, lines, busy, act }: { c: Correction; lines: ReadBackState["i
 export function ReadBackPanel({ room }: ControlPanelProps) {
   const engagement = room.show.context.id, session = room.frame?.session, live = session?.interaction === "read_back";
   const { data, load } = useReadBack(engagement, live, room.frame?.version);
-  const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [word, setWord] = useState("Confirmed"), [reasons, setReasons] = useState("");
+  const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [word, setWord] = useState(""), [reasons, setReasons] = useState("");
   const [nLine, setNLine] = useState(""), [nWording, setNWording] = useState(""), [nReason, setNReason] = useState("");
   async function act(body: Record<string, unknown>) {
     setBusy(true); setMessage("");
@@ -137,9 +137,9 @@ export function ReadBackPanel({ room }: ControlPanelProps) {
         <p role="status" data-decision><Check size={16} aria-hidden="true" /> {it.decision.decision}{it.decision.reasons ? <small> · {it.decision.reasons}</small> : null}</p>
         <button type="button" className="show-button is-small" disabled={busy} onClick={() => void act({ action: "undecide" })}><Undo2 size={16} aria-hidden="true" />Take back to the screen</button>
       </> : <>
-        <label className="lsm-field">What the room decided<input id={readBackDecisionField} maxLength={400} value={word} onChange={e => setWord(e.target.value)} /></label>
+        <label className="lsm-field">What the room decided<input id={readBackDecisionField} maxLength={400} value={word} placeholder={decisionHint(it)} onChange={e => setWord(e.target.value)} /></label>
         <label className="lsm-field">Reasons, if any<textarea rows={2} maxLength={1000} value={reasons} onChange={e => setReasons(e.target.value)} /></label>
-        <button type="button" className="show-button is-primary" disabled={busy || !it || !word.trim()} onClick={() => void act({ action: "decide", decision: word, reasons }).then(s => { if (s === "ok") { setReasons(""); setWord("Confirmed"); } })} data-decide><Check size={18} aria-hidden="true" />Mark a decision</button>
+        <button type="button" className="show-button is-primary" disabled={busy || !it} onClick={() => void act({ action: "decide", decision: word, reasons }).then(s => { if (s === "ok") { setReasons(""); setWord(""); } })} data-decide><Check size={18} aria-hidden="true" />Mark a decision</button>
         <p className="ai-note">A decision works with any count. It settles this item and the underlines become plain words.</p>
       </>}
     </div>

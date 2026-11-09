@@ -53,4 +53,4 @@ Deviation: `show_write`, `template_write` (which also anchors a saved template o
 
 ## Load check
 
-`npm run load -- --origin <origin> [--room <room id>]` sends 3 bursts of 50 phones to whichever of word cloud, wall, lens or Four Helpful Lists is live. `npm run test:load` runs the word cloud and then the Four Helpful Lists (150 cards, 50 agrees) and fails on any refusal.
+`npm run load -- --origin <origin> [--room <room id>]` sends 3 bursts of 50 phones to whichever of word cloud, wall, lens or Four Helpful Lists is live. `npm run test:load` runs the word cloud and then the Four Helpful Lists (60 cards from 15 phones) and fails on any refusal.

@@ -32,6 +32,7 @@ Closing Day 1 (`close_part`) opens an `overnight_rounds` row through a trigger o
 - Concurrency: every draft has a `revision`; a stale edit is refused with a plain message.
 - Restore the room's words: one action returns a bullet to the room's own wording when it rests on one room bullet.
 - Version history: every version is kept (`draft_versions` is append-only, enforced by a trigger). Restoring a version makes a new one.
+The version note written when the tidy lands reads "Tidied from 9 bullets, 16 scribe cards and 1 easel photo": the singular for one (`private.ov_count`, migration `20261109040000_overnight_setup_reset.sql`).
 - "Drafts ready" shows on the review screen, the control surface and the remote.
 
 ## Publish (OVN-03)
