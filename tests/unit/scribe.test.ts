@@ -163,3 +163,31 @@ test("a card that has just been sent stays on the screen, as Synced, until the s
   const once = shownCards(state({ cards: [{ id: id(7), session_id: id(900), kind: "mitigation", text: "Card 7", detail: { risk: "Volunteer burnout" }, has_speaker: false, captured_at: "2026-11-04T14:00:00.000Z", received_at: "2026-11-04T14:00:01.000Z", seq: "7", revision: 0, refiled: false }] }), sent, true, "2026-11-04T14:00:05.000Z");
   assert.equal(once.length, 1, "never doubled once the server holds it");
 });
+
+test("an edit the server refused stays on the card with its reason, and shows the server's words after Dismiss", async () => {
+  const held = { id: id(30), session_id: id(900), kind: "decision" as const, text: "Rae's wording", detail: {}, has_speaker: false, captured_at: "2026-11-04T14:00:00.000Z", received_at: "2026-11-04T14:00:01.000Z", seq: "30", revision: 1, refiled: false };
+  const edit: OutboxEntry = { item: { type: "edit", id: id(30), text: "Thomas's wording", detail: {}, speaker: "", revision: 0 }, state: "failed", reason: settledReason("conflict") ?? "" };
+  const refused = shownCards(state({ cards: [held] }), [edit], true, "2026-11-04T14:00:05.000Z");
+  assert.equal(refused.length, 1);
+  assert.equal(refused[0].state, "failed", "the refusal reaches the card, not Saved on this laptop");
+  assert.match(refused[0].reason ?? "", /changed somewhere else/);
+  assert.equal(refused[0].text, "Thomas's wording", "his words stay in view so they can be copied");
+  const waiting = shownCards(state({ cards: [held] }), [{ ...edit, state: "saved", reason: undefined }], false, "2026-11-04T14:00:05.000Z");
+  assert.equal(waiting[0].state, "queued"); assert.equal(waiting[0].reason, undefined);
+  // The real outbox: the server refuses the edit, the entry fails, and Dismiss takes it away.
+  const box = new ScribeOutbox("edit-refused", async () => ({ status: "conflict" }), () => {}, () => {}, memory(), () => true);
+  box.add(edit.item); await wait(20);
+  assert.equal(box.entries[0].state, "failed");
+  const failed = shownCards(state({ cards: [held] }), box.entries, true, "2026-11-04T14:00:05.000Z");
+  assert.equal(failed[0].state, "failed");
+  box.dismiss(id(30)); assert.equal(box.entries.length, 0);
+  const after = shownCards(state({ cards: [held] }), box.entries, true, "2026-11-04T14:00:05.000Z");
+  assert.deepEqual([after[0].state, after[0].text, after[0].reason], ["synced", "Rae's wording", undefined]);
+  box.stop();
+});
+
+test("a refused re-file leaves the card where the server holds it", () => {
+  const held = { id: id(31), session_id: id(900), kind: "quote" as const, text: "Words", detail: {}, has_speaker: false, captured_at: "2026-11-04T14:00:00.000Z", received_at: "2026-11-04T14:00:01.000Z", seq: "31", revision: 0, refiled: false };
+  const shown = shownCards(state({ cards: [held] }), [{ item: { type: "refile", id: id(31), session: id(901) }, state: "failed", reason: "The team had the room, so this didn’t go in." }], true, "2026-11-04T14:00:05.000Z");
+  assert.deepEqual([shown[0].state, shown[0].session_id, shown[0].refiled], ["failed", id(900), false]);
+});

@@ -71,13 +71,26 @@ export function shownCards(state: Pick<ScribeState, "cards"> | null, outbox: Out
     waiting.push({ id: item.id, session_id: item.session, kind: item.kind, text: item.text, detail: item.detail, has_speaker: Boolean(item.speaker), captured_at: item.capturedAt, received_at: now,
       seq: "", revision: 0, refiled: false, state: cardState(entry, online), order: entry.state === "sent" ? undefined : order, reason: entry.reason, pending: true });
   }
+  // What this device has made for each synced card: the last edit and re-file, and what became of them.
   const edits = new Map<string, Extract<OutboxEntry["item"], { type: "edit" }>>();
   const refiles = new Map<string, string>();
-  for (const entry of outbox) { if (entry.item.type === "edit") edits.set(entry.item.id, entry.item); if (entry.item.type === "refile") refiles.set(entry.item.id, entry.item.session); }
-  const pendingEdit = (list: OutboxEntry[], id: string) => list.some(e => e.state !== "sent" && e.item.id === id && (e.item.type === "edit" || e.item.type === "refile"));
+  const mine = new Map<string, { pending: boolean; reason?: string }>();
+  for (const entry of outbox) {
+    const item = entry.item;
+    if (item.type !== "edit" && item.type !== "refile") continue;
+    if (item.type === "edit") edits.set(item.id, item);
+    // A re-file the server refused is not shown as a move: the card stays where the server holds it.
+    if (item.type === "refile") { if (entry.state === "failed") refiles.delete(item.id); else refiles.set(item.id, item.session); }
+    const was = mine.get(item.id) ?? { pending: false };
+    if (entry.state === "failed") mine.set(item.id, { ...was, reason: entry.reason ?? "This couldn’t be saved." });
+    else if (entry.state !== "sent") mine.set(item.id, { ...was, pending: true });
+  }
+  // A refused edit keeps the scribe's own wording on the card, marked as not saved with the reason, until it is dismissed.
+  // Then the card shows what the server holds.
   const held = [...server.values()].map<ShownCard>(c => {
-    const edit = edits.get(c.id), session = refiles.get(c.id);
-    return { ...c, ...(edit ? { text: edit.text, detail: edit.detail } : {}), ...(session ? { session_id: session, refiled: true } : {}), state: edit || session ? (pendingEdit(outbox, c.id) ? "queued" : "synced") : "synced" };
+    const edit = edits.get(c.id), session = refiles.get(c.id), made = mine.get(c.id);
+    const state: CardState = made?.pending ? "queued" : made?.reason ? "failed" : "synced";
+    return { ...c, ...(edit ? { text: edit.text, detail: edit.detail } : {}), ...(session ? { session_id: session, refiled: true } : {}), state, ...(state === "failed" ? { reason: made?.reason } : {}) };
   });
   return [...waiting.reverse(), ...held];
 }
