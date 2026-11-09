@@ -60,7 +60,7 @@ export function ScribeCard({ card, file, engagement, surface, sessions = [], ses
   }
   const editable = surface === "console" && card && !card.pending && state !== "queued";
   const meta = `${time(item.captured_at)}${sessionTitle && surface !== "console" ? ` · ${sessionTitle}` : ""}`;
-  return <article className={`scr-card is-${kind}${promote?.on ? " is-promoted" : ""}${state === "queued" ? " is-queued" : ""}${state === "failed" ? " is-failed" : ""}${isNew ? " is-new" : ""}`} aria-label={kind === "photo" ? "Photo" : kind === "file" ? "File" : kindInfo[kind].label} data-state={state}>
+  return <article className={`scr-card is-${kind}${promote?.on ? " is-promoted" : ""}${state === "queued" ? " is-queued" : ""}${state === "failed" ? " is-failed" : ""}${isNew ? " is-new" : ""}`} aria-label={kind === "photo" ? "Photo" : kind === "file" ? "File" : kindInfo[kind].label} data-state={state} data-card-id={item.id}>
     <div className="scr-top">
       {item.order ? <span className="scr-order" aria-label={`Sends number ${item.order}`}>{item.order}</span> : null}
       <KindChip kind={kind} />

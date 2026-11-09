@@ -238,7 +238,7 @@ async function main() {
       await card.getByRole("button", { name: "Edit this card" }).click();
       await card.locator("textarea").fill("Who owns the food bank, Community or Operations?");
       await card.getByRole("button", { name: "Save the edit" }).click();
-      await until(async () => (await sql.query("select revision,text from private.scribe_cards where text like 'Who owns the food bank, %'", [])).rows.length === 1, "the edit is saved");
+      await until(async () => (await sql.query("select revision,text from private.scribe_cards where engagement_id=$1 and text like 'Who owns the food bank, %'", [room.id])).rows.length === 1, "the edit is saved");
       await card.getByRole("button", { name: "Re-file to another session" }).click();
       await card.locator("select").selectOption({ label: "Close the day" });
       await card.getByRole("button", { name: "Re-file", exact: true }).click();
@@ -246,7 +246,9 @@ async function main() {
     });
 
     await step("An edit on an old copy is refused and says so, and Dismiss shows the server's wording", async () => {
-      const card = cardsOnLaptop().filter({ hasText: "We will meet monthly." }).first();
+      const cardId = (await sql.query("select id from private.scribe_cards where engagement_id=$1 and text='We will meet monthly.'", [room.id])).rows[0].id as string;
+      // Located by id: the words change under it, so a text filter would lose the card.
+      const card = laptop.locator(`[data-testid=scribe-cards] [data-card-id="${cardId}"]`);
       await card.getByRole("button", { name: "Edit this card" }).click();
       // Another scribe saves the same card while this form is still open. The console's poll then reads the new revision.
       await sql.query("update private.scribe_cards set text='Rae kept it weekly', revision=revision+1 where engagement_id=$1 and text='We will meet monthly.'", [room.id]);
