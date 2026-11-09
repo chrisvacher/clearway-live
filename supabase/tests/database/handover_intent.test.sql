@@ -487,7 +487,7 @@ select is(tests.ctl(63,'go_live',jsonb_build_object('session',tests.id(601)))->>
 select is(tests.hand(74,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','invalid_state','A step that is not team-led still cannot hand over the remote');
 select is(tests.ctl(80,'go_live',jsonb_build_object('session',tests.id(611)))->>'status','ok','The lead goes live on the hand-over step again');
 select is(tests.hand(82,'give',jsonb_build_object('attendee',tests.id(503)))->>'status','ok','and hands the remote over from it');
-select is(tests.ctl(81,'go_live',jsonb_build_object('session',tests.id(601)))->>'status','ok','The lead moves the room to a step outside the block');
+select is(tests.ctl(85,'go_live',jsonb_build_object('session',tests.id(601)))->>'status','ok','The lead moves the room to a step outside the block');
 select is((select remote_holder_id from tests.room()),null,'The remote came back to the lead when the room left the hand-over step for a step outside the block');
 select is((select count(*) from tests.team_blocks where ended_at is null and via='room'),0::bigint,'No room block is left open');
 reset role;
