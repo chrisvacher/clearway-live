@@ -22,7 +22,7 @@ export function DoorList({ engagement, requests, attendees }: { engagement: stri
       <div className="actions"><button className="button-link" disabled={busy} onClick={()=>act("approve",{request:request.id})}>Let in</button><button className="button-link secondary" disabled={busy} onClick={()=>act("decline",{request:request.id})}>Decline request</button></div>
     </li>)}</ul> : <p>No one is waiting to join.</p>}
     <h2>Sign someone in by hand</h2><form className="form-stack" onSubmit={manual}>
-      <label htmlFor="manual-attendee">Person on the attendee list</label><select id="manual-attendee" name="attendee" required><option value="">Choose a person</option>{attendees.map(a=><option key={a.id} value={a.id}>{a.name} ({a.email})</option>)}</select>
+      <label htmlFor="manual-attendee">Person on the attendee list</label><select id="manual-attendee" name="attendee" required><option value="">Choose a person</option>{attendees.map(a=><option key={a.id} value={a.id}>{a.name} ({/@guest\.clearway\.invalid$/i.test(a.email)?"joined by name":a.email})</option>)}</select>
       <label htmlFor="manual-code">Device code on their phone</label><input id="manual-code" name="code" autoComplete="off" required maxLength={9} pattern="[A-HJ-NP-Za-hj-np-z2-9 ]{8,9}" />
       <button className="button-link" type="submit" disabled={busy}>Sign in this device</button>
     </form><p role="status" aria-live="polite">{message}</p>

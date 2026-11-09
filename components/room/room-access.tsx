@@ -31,7 +31,7 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   // Open joining: name only by default, with email sign-in one tap away for people on the list.
-  const [useEmail, setUseEmail] = useState(false);
+  const [useEmail, setUseEmail] = useState(Boolean(initialEmail));
   const needsFacilitator = submitting !== "send" && ["not_listed", "check_facilitator", "declined"].includes(state.status);
   const claiming = useRef(false);
   const waitingMessage = useRef<HTMLDivElement>(null);
@@ -100,7 +100,7 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
     {ai&&<AiSignInNote />}
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
   </section>;
-  if(openJoin&&!useEmail)return <section className="form-stack"><p>Join with your name. You won’t need an email or a sign-in code.</p>
+  if(openJoin&&!useEmail&&!["pending","declined"].includes(state.status))return <section className="form-stack"><p>Join with your name. You won’t need an email or a sign-in code.</p>
     <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="open-name">Your name</label><input id="open-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the room</button></form>
     {ai&&<AiSignInNote />}
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
@@ -127,7 +127,8 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
       <button className="button-link" disabled={busy || code.length !== 6 || !email} type="submit">Sign in</button>
     </form>
     {ai && <AiSignInNote />}
-    {["not_listed", "check_facilitator", "declined"].includes(state.status) && <form className="form-stack" onSubmit={event => submit(event, "join")}>
+    {openJoin && <button type="button" className="text-link" onClick={() => { setUseEmail(false); setState({ status: "ready" }); }}>Join with your name instead</button>}
+    {!openJoin && ["not_listed", "check_facilitator", "declined"].includes(state.status) && <form className="form-stack" onSubmit={event => submit(event, "join")}>
       <label htmlFor="room-name">Your name</label><input id="room-name" autoComplete="name" maxLength={200} value={name} onChange={e => setName(e.target.value)} required />
       <button className="button-link" type="submit" disabled={busy}>Ask to join</button>
     </form>}
