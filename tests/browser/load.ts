@@ -39,6 +39,22 @@ async function main() {
     assert.equal(spike.report!.measured, spike.sent, "every spike answer reached the TV");
     console.log(`Spike, 50 in the same instant (not gated): ${verdict(spike.report!).label} 95th ${spike.report!.phone_tv.p95} ms.`);
     await press(fac, sql, practiceRoom, "nothing_live");
+    // The Four Helpful Lists step under the same load (acceptance finding live-4 23.8: 26 of 150 cards were refused as unavailable on the live room).
+    // Every card must land, the agrees too, and nothing may be refused. The script already picks the kind from the live step.
+    const lists = (await sql.query(`insert into public.sessions(engagement_id,title,part,position,interaction,prompt,state,max_sends,max_characters,max_words) values($1,$2,'Discover',901,'four_lists','Four lists under load','ready',6,280,50) returning id`,
+      [practiceRoom, `Load test lists ${randomUUID().slice(0, 6)}`])).rows[0].id as string;
+    await press(fac, sql, practiceRoom, "go_live", { session: lists });
+    // The room's init limit is 120 joins per 10 minutes for one address, and the two runs above joined 100 phones, so this step uses 15 phones in 4 bursts.
+    const cards = await runLoad({ origin: app.origin, phones: 15, bursts: 4, gapSeconds: 2, spreadSeconds: 10, log: () => {} });
+    console.log(`Four Helpful Lists: ${cards.accepted} of ${cards.sent} cards accepted, refused ${JSON.stringify(cards.refused)}, agrees ${cards.agrees?.accepted} of ${cards.agrees?.sent}.`);
+    assert.equal(cards.accepted, cards.sent, "every Four Helpful Lists card accepted");
+    assert.deepEqual(cards.refused, {}, "no card refused as unavailable or anything else");
+    // An agree with one's own card (own) or a repeat (duplicate) is refused by design; an agree the database could not take would be unavailable or an HTTP error.
+    assert.ok(cards.agrees && cards.agrees.sent > 0 && cards.agrees.accepted > 0, "the phones agreed with cards");
+    assert.deepEqual(Object.keys(cards.agrees!.other).filter(k => !["own", "duplicate"].includes(k)), [], "no agree failed for any reason but own or duplicate");
+    const stored = (await sql.query("select count(*)::int as n from public.submissions where session_id=$1 and not deleted and not withdrawn", [lists])).rows[0].n as number;
+    assert.equal(stored, cards.sent, "every card is stored");
+    await press(fac, sql, practiceRoom, "nothing_live");
     console.log("Load script: 50 simulated phones in 3 bursts plus a spike, measured from the latency log. Loopback only; venue acceptance is the practice-room run.");
   } catch (error) {
     console.error(app.output().slice(-3000)); throw error;

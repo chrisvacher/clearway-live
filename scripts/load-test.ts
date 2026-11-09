@@ -2,7 +2,7 @@
 // and send answers in bursts through the real app endpoints, then the latency
 // log reports how many reached the TV in under one second.
 //
-//   npm run load -- --origin https://<preview> [--phones 50] [--bursts 3] [--gap 15] [--spread 10]
+//   npm run load -- --origin https://<preview> [--room <practice room id>] [--phones 50] [--bursts 3] [--gap 15] [--spread 10]
 //
 // A burst is a time with phones out, as in the PRD: every phone sends one answer
 // at a random moment within --spread seconds. --spread 0 is the extreme: all
@@ -180,8 +180,8 @@ export function describe(result: LoadResult) {
 if (process.argv[1]?.endsWith("load-test.ts")) {
   const arg = (name: string) => { const i = process.argv.indexOf(`--${name}`); return i > 0 ? process.argv[i + 1] : undefined; };
   const origin = arg("origin");
-  if (!origin) { console.error("Usage: npm run load -- --origin https://<preview> [--phones 50] [--bursts 3] [--gap 15] [--spread 10]"); process.exit(2); }
-  runLoad({ origin, phones: Number(arg("phones") ?? 50), bursts: Number(arg("bursts") ?? 3), gapSeconds: Number(arg("gap") ?? 15), spreadSeconds: Number(arg("spread") ?? 10),
+  if (!origin) { console.error("Usage: npm run load -- --origin https://<preview> [--room <practice room id>] [--phones 50] [--bursts 3] [--gap 15] [--spread 10]"); process.exit(2); }
+  runLoad({ origin, room: arg("room"), phones: Number(arg("phones") ?? 50), bursts: Number(arg("bursts") ?? 3), gapSeconds: Number(arg("gap") ?? 15), spreadSeconds: Number(arg("spread") ?? 10),
     reportCookie: process.env.LOAD_REPORT_COOKIE, bypass: process.env.VERCEL_AUTOMATION_BYPASS_SECRET })
     .then(result => { console.log(describe(result)); if (result.accepted < result.sent || (result.report && !verdict(result.report).met)) process.exitCode = 1; })
     .catch(error => { console.error(error instanceof Error ? error.message : error); process.exit(1); });

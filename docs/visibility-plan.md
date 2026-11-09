@@ -50,6 +50,10 @@ A report sentence or a plan row must never name a person, and an ordinary lowerc
 
 Tests: `supabase/tests/database/plan_name_check.test.sql`.
 
+## A row added by hand keeps its place through Draft again
+
+A row added by hand holds the number it had (the 5th stays the 5th, or the last when fewer rows stand); other kept rows are placed among the new rows as before. Migration `20261109060000_overnight_four_lists_signal.sql`. Test: `visibility_plan.test.sql`.
+
 ## Overnight acceptance fixes, batch c (November 9)
 
 Redraft the plan (and Try again, and Keep them and redraft the rest) stay disabled from the press until the page has read the state back, so a second draft cannot be started while the first runs.
