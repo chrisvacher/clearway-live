@@ -50,19 +50,17 @@ are recorded rather than repeated unnecessarily.
    independent remote. Capture the farthest-seat readability check and the
    95-in-100 under-one-second result. The Word/Google Docs/PDF checks in
    section 42 need real application/device evidence.
-2. **Build the nightly practice reset required by the PRD.** On-demand reset is
-   implemented, but `vercel.json` schedules only `/api/cron/check-ins` and there
-   is no nightly practice-reset route or scheduled database job in tracked
-   source. Choose and document the reset time and time zone, protect the job,
-   reuse the existing reset transaction, and verify that other engagements
-   remain intact and that an active rehearsal is handled deliberately.
-3. **Build the full-engagement JSON archive required by the PRD.** The export
-   route currently offers one session or all reached sessions as CSV.
-   `format=model` on the report route is a report-preview model, not an
-   engagement archive. Define its contents and version, enforce facilitator
-   authorization, and verify private data and authorship access. The Map
-   already offers browser Print or save as PDF and Markdown download,
-   as documented in [Map and templates](map-templates.md).
+2. **Activate and accept the nightly practice reset.** Implemented on
+   `codex/practice-reset-json-archive`, using the existing reset chain at
+   09:17 UTC, recent-activity guards and a once-per-day ledger. Apply the
+   reviewed Live-only migration and deploy the schedule after checks pass.
+   See [implementation and tests](practice-reset-archive.md).
+3. **Accept the full-engagement JSON archive.** Implemented on the same branch:
+   a versioned, facilitator-only snapshot from Results recap, with explicit
+   record/column allowlists and unopened-lens protection. File metadata is
+   included, file bytes are not. Verify the download against the migrated
+   preview. See [archive format and tests](practice-reset-archive.md). The Map
+   continues to offer browser Print or save as PDF and Markdown download.
 4. **Finish or retire social sharing PR #102.** Resolve conflicts against
    current main, review the image/metadata and crawler rules, and run checks.
    It is separate from core live facilitation acceptance.

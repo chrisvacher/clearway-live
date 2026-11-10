@@ -3,16 +3,20 @@ import { getFacilitator } from "@/lib/server/facilitator";
 import { privateResponse } from "@/lib/auth/response";
 import { uuid } from "@/lib/room/identity";
 import { allSessionsCsv, csvName, sessionCsv, type SessionExport } from "@/lib/export/csv";
+import { archiveName, archiveStream } from "@/lib/export/archive";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300;
 const answer = (data: unknown, status = 200) => privateResponse(NextResponse.json(data, { status }));
 
 // Facilitator-only: one session's input as CSV, or every reached session's (?session=all).
 // The database decides who may export and which rows carry names.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) return answer({ status: "missing" }, 404);
+  const format = request.nextUrl.searchParams.get("format") ?? "csv";
+  if (!["csv", "json"].includes(format)) return answer({ status: "invalid_request" }, 422);
   const session = request.nextUrl.searchParams.get("session");
-  if (session !== "all" && !uuid(session)) return answer({ status: "invalid_request" }, 422);
+  if (format === "csv" && session !== "all" && !uuid(session)) return answer({ status: "invalid_request" }, 422);
   const fac = await getFacilitator(); if (!fac) return answer({ status: "denied" }, 401);
   const { client } = fac;
   const read = async (sid: string) => {
@@ -21,6 +25,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return data as SessionExport | { status: string };
   };
   try {
+    if (format === "json") {
+      const { data, error } = await client.rpc("engagement_archive", { p_engagement: id });
+      if (error) throw error;
+      if (data?.status !== "ok") return answer({ status: data?.status ?? "unavailable" }, data?.status === "denied" ? 403 : data?.status === "missing" ? 404 : 503);
+      return privateResponse(new NextResponse(archiveStream(data), { headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${archiveName(id)}"`,
+        "X-Content-Type-Options": "nosniff",
+      } }));
+    }
     let body: string, name: string;
     if (session === "all") {
       const { data, error } = await client.rpc("results_recap", { p_engagement: id });

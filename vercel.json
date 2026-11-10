@@ -8,6 +8,10 @@
   },
   "crons": [
     {
+      "path": "/api/cron/practice-reset",
+      "schedule": "17 9 * * *"
+    },
+    {
       "path": "/api/cron/check-ins",
       "schedule": "7 13 * * *"
     }

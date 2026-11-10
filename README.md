@@ -103,6 +103,11 @@ and [milestone 2 room engine](docs/live-room-engine.md).
   review the [visibility plan](docs/visibility-plan.md), [share the plan](docs/read-only-copy.md),
   and review [check-ins](docs/check-ins.md).
 
+Results recap also offers a facilitator-only **Download engagement JSON**
+archive. The practice room has a protected nightly reset that skips recent
+activity. Both require the migration and checks in
+[practice reset and engagement archives](docs/practice-reset-archive.md).
+
 The app reads restricted church, engagement and people records from Team Hub.
 Survey findings are entered by hand from Team Hub's report. The app never reads
 survey responses or connects to CORE. Clearway's team enters the plan into CORE

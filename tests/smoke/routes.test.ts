@@ -75,6 +75,16 @@ before(async () => {
     res.setHeader("Content-Type", "application/json");
     const send = (value: unknown, status = 200) => { res.statusCode = status; res.end(JSON.stringify(value)); };
     const mode = modeOf(req.headers.authorization);
+    if (url.pathname === "/rest/v1/rpc/nightly_practice_reset") {
+      assert.equal(req.headers.apikey, tripwire);
+      return send({ status: "already_reset", reset_on: "2026-11-10" });
+    }
+    if (url.pathname === "/rest/v1/rpc/engagement_archive") {
+      assert.notEqual(req.headers.apikey, tripwire, "archive uses the facilitator's own session");
+      let raw = ""; for await (const chunk of req) raw += chunk;
+      if (mode !== "allowed" || JSON.parse(raw).p_engagement !== roomId) return send({ status: "denied" });
+      return send({ status: "ok", format: "clearway.engagement", version: 1, engagement_id: roomId, records: { notes: [{ text: "Private facilitator words 🌱" }] } });
+    }
     if (url.pathname === "/auth/v1/authorize") {
       expectedChallenge=url.searchParams.get("code_challenge")!;
       const callback=new URL(url.searchParams.get("redirect_to")!);callback.searchParams.set("code","allowed");
@@ -265,7 +275,7 @@ before(async () => {
   assert.ok(authAddress && typeof authAddress !== "string");
   authOrigin = `http://127.0.0.1:${authAddress.port}`;
   server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)], {
-    env: { ...process.env, APP_ORIGIN: origin, SUPABASE_URL: authOrigin, SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture", SUPABASE_SERVICE_ROLE_KEY: tripwire, TEAM_HUB_DATABASE_URL: tripwire, RESEND_API_KEY: tripwire, EMAIL_FROM: "Clearway <hello@clearway.co>", RESEND_API_URL: authOrigin },
+    env: { ...process.env, APP_ORIGIN: origin, SUPABASE_URL: authOrigin, SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture", SUPABASE_SERVICE_ROLE_KEY: tripwire, TEAM_HUB_DATABASE_URL: tripwire, RESEND_API_KEY: tripwire, EMAIL_FROM: "Clearway <hello@clearway.co>", RESEND_API_URL: authOrigin, CRON_SECRET: tripwire },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout?.on("data", chunk => { output += chunk; });
@@ -827,4 +837,35 @@ test("How we use AI is public; the sign-in line and the invite paragraph follow 
       assert.equal(text.includes("AI"), ai);
     }
   } finally { fixtureAi = false; }
+});
+
+test("nightly practice reset requires the cron secret and returns the database result", async () => {
+  const endpoint = origin + "/api/cron/practice-reset";
+  const beforeCalls = calls.filter(p => p.endsWith("nightly_practice_reset")).length;
+  for (const authorization of [undefined, "Bearer wrong", "Bearer " + "x".repeat(tripwire.length)]) {
+    const result = await fetch(endpoint, { headers: authorization ? { authorization } : {} });
+    assert.equal(result.status, 401);
+    assert.match(result.headers.get("cache-control")!, /no-store/);
+  }
+  assert.equal(calls.filter(p => p.endsWith("nightly_practice_reset")).length, beforeCalls);
+  const result = await fetch(endpoint, { headers: { authorization: `Bearer ${tripwire}` } });
+  assert.equal(result.status, 200);
+  assert.equal((await result.json()).status, "already_reset");
+});
+
+test("engagement JSON downloads privately through the facilitator session, with cross-engagement refusal", async () => {
+  const endpoint = `${origin}/api/control/${roomId}/export?format=json`;
+  assert.equal((await fetch(endpoint)).status, 401);
+  const { jar } = await finishLogin("allowed");
+  const headers = { cookie: cookieHeader(jar) };
+  const result = await fetch(endpoint, { headers });
+  assert.equal(result.status, 200);
+  assert.match(result.headers.get("cache-control")!, /private.*no-store/);
+  assert.match(result.headers.get("content-disposition")!, /attachment; filename="clearway-engagement-.*\.json"/);
+  assert.match(result.headers.get("content-type")!, /application\/json/);
+  const archive = await result.json();
+  assert.equal(archive.version, 1);
+  assert.equal(archive.records.notes[0].text, "Private facilitator words 🌱");
+  assert.equal((await fetch(endpoint.replace(roomId, roomAttendee), { headers })).status, 403);
+  assert.equal((await fetch(endpoint.replace("format=json", "format=xml"), { headers })).status, 422);
 });

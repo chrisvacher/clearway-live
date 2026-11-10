@@ -24,6 +24,8 @@ Implementation notes describe the code now in the repository.
 [facilitator authentication](facilitator-auth.md), [engagement setup](engagement-setup.md),
 [room sign-in and open joining](room-sign-in.md), [practice room](practice-room.md),
 [restricted Team Hub reader](team-hub-reader.md), [public front page](front-page.md).
+[Nightly practice reset and full-engagement archive](practice-reset-archive.md)
+cover the scheduled cleanup and facilitator JSON download.
 
 ## Live room and general interactions
 
