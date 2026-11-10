@@ -1,10 +1,12 @@
 # Nightly practice reset and engagement archives
 
-Implemented November 10, 2026. Migration:
-`supabase/migrations/20261110113434_practice_reset_archive.sql`.
-The migration must be applied to the isolated test/preview database before
-running the checks below. Production activation requires the reviewed migration
-on Clearway Live and a deployment of this revision. No Team Hub or CORE changes.
+Implemented and verified in production November 10, 2026. Migration:
+`supabase/migrations/20261110121926_practice_reset_archive.sql`.
+The migration is applied to Clearway Live. Supabase assigned version
+`20261110121926`, and the repository filename matches that history. The deployed
+production routes were checked with the real facilitator session and Vercel cron
+controls. See [production evidence](evidence/production/2026-11-10-practice-reset-archive.md).
+No Team Hub or CORE changes were made.
 
 ## Nightly reset
 

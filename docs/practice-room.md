@@ -13,7 +13,7 @@ Reset practice room also puts away every AI record of the practice engagement (`
 
 An assigned facilitator or Clearway admin uses **Reset practice room**, then **Confirm reset** on the practice setup page. The database accepts no caller-supplied engagement id for reset. It soft-deletes practice attendees, requests and sign-in proofs, revokes practice device sessions, deletes only the Auth sessions bound to that practice engagement, and reopens it in setup status. It preserves the permanent engagement, facilitator assignments, audit rows, unrelated Auth sessions and Riverside’s eight people.
 
-Guest grants and every practice proof/claim operation share a database advisory lock with reset. An in-flight claim cannot restore a revoked device after reset. Open phones discover the missing device, initialize a new device, and show the name form again. They can rejoin immediately. The [nightly reset](practice-reset-archive.md) runs at 09:17 UTC, skips recent activity and records at most one successful scheduled reset per UTC date. It needs its migration and a deployed schedule before it runs in production.
+Guest grants and every practice proof/claim operation share a database advisory lock with reset. An in-flight claim cannot restore a revoked device after reset. Open phones discover the missing device, initialize a new device, and show the name form again. They can rejoin immediately. The [nightly reset](practice-reset-archive.md) runs at 09:17 UTC, skips recent activity and records at most one successful scheduled reset per UTC date. The migration and active production schedule were verified on November 10. See [production evidence](evidence/production/2026-11-10-practice-reset-archive.md).
 
 # Acceptance
 

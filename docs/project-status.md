@@ -6,12 +6,16 @@ remote `main`, including admin refresh PRs #133 to #136. The [PRD](prd.md)
 governs behaviour. This review records implementation evidence and gaps,
 and does not change Chris's decisions or confer milestone acceptance.
 
+The reset and archive were activated in production later on November 10.
+Their verification is recorded below and in the linked evidence.
+
 ## Repository state
 
 The active working copy is `/Users/chrisvacher/Documents/ChatGPT/clearway-live`.
 It was an empty Git repository and was populated from
 `https://github.com/chrisvacher/clearway-live.git`. Documentation updates are
-on `codex/docs-project-review`. The earlier iCloud working copy was left intact.
+merged to `main` along with the reset/archive implementation at `51076ba`.
+Both PRs #137 and #138 are merged. The earlier iCloud working copy was left intact.
 Reads of its Git metadata and AGENTS.md timed out, so its uncommitted work and
 branch state could not be reconciled with this copy. Preserve it until those
 files are available and its status has been compared.
@@ -50,35 +54,33 @@ are recorded rather than repeated unnecessarily.
    independent remote. Capture the farthest-seat readability check and the
    95-in-100 under-one-second result. The Word/Google Docs/PDF checks in
    section 42 need real application/device evidence.
-2. **Activate and accept the nightly practice reset.** Implemented on
-   `codex/practice-reset-json-archive`, using the existing reset chain at
-   09:17 UTC, recent-activity guards and a once-per-day ledger. Apply the
-   reviewed Live-only migration and deploy the schedule after checks pass.
-   See [implementation and tests](practice-reset-archive.md).
-3. **Accept the full-engagement JSON archive.** Implemented on the same branch:
-   a versioned, facilitator-only snapshot from Results recap, with explicit
-   record/column allowlists and unopened-lens protection. File metadata is
-   included, file bytes are not. Verify the download against the migrated
-   preview. See [archive format and tests](practice-reset-archive.md). The Map
-   continues to offer browser Print or save as PDF and Markdown download.
-4. **Finish or retire social sharing PR #102.** Resolve conflicts against
+2. **Nightly reset and JSON archive: production verification complete.** The
+   Live-only migration `20261110121926_practice_reset_archive.sql` is applied.
+   Vercel's active 09:17 UTC job reset the idle practice room, and a repeat
+   retained one ledger entry. The real facilitator JSON download parsed and
+   excluded credentials and cross-engagement records. See
+   [production evidence](evidence/production/2026-11-10-practice-reset-archive.md).
+   A future automatic time-based run has not yet been observed. These two build
+   gaps are closed, while real-device acceptance remains separate.
+3. **Finish or retire social sharing PR #102.** Resolve conflicts against
    current main, review the image/metadata and crawler rules, and run checks.
    It is separate from core live facilitation acceptance.
-5. **Verify production readiness against the accepted revision.** Check the
+4. **Verify production readiness against the accepted revision.** Check the
    deployed commit, Live-only migration history through
-   `20261109080000_open_join.sql`, per-PR database isolation, Google auth,
+   `20261110121926_practice_reset_archive.sql`, per-PR database isolation, Google auth,
    restricted Team Hub reader, email configuration, AI configuration and the
    authenticated check-in schedule. Confirm `CRON_SECRET` is set in Production
    without displaying it. Verify Supabase backup coverage and a restore
    procedure. Source files do not prove these operational checks are complete.
-   This review did not inspect or change hosted configuration.
-6. **Complete error monitoring.** The PRD calls for server and client error
+   The reset schedule and archive route were verified November 10. Broader
+   production configuration, backup and restore checks remain outstanding.
+5. **Complete error monitoring.** The PRD calls for server and client error
    capture. The repository logs server errors, but no external monitoring SDK
    or client capture integration was found in dependencies or app code.
    Confirm whether platform tooling meets the requirement, then document it
    or implement remaining capture. Adding a paid service or changing an
    external service still needs Chris's approval.
-7. **Resolve first-use product decisions.** The PRD leaves privacy and retention,
+6. **Resolve first-use product decisions.** The PRD leaves privacy and retention,
    language scope and the final product name open before a church uses/sees
    the app. Record Chris's decisions and implement resulting changes. This
    review does not make a legal assessment. Granola import is also open,
