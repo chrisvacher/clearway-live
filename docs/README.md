@@ -1,28 +1,69 @@
-# Docs
+# Documentation
 
-- `milestone-2-brief.md`: milestone 2, the live room.
-- `live-controls.md`: the control surface and remote (milestone 2, step 4), including late answers and segments.
-- `live-phones.md`: the participant's phone in the live room (milestone 2, step 5).
-- `live-board.md`: the word cloud and wall on the TV, the word filter and the phone texture (milestone 2, step 6).
-- `failure-states.md`: the failure states, the latency report, the load script and the browser failure kit (milestone 2, step 7).
-- `milestone-3-brief.md`: milestone 3, the interaction library: the work order, the engine contract every kind follows, and what can run in parallel.
-- `interaction-engine.md`: the room engine for every interaction, and the content screens (milestone 3, step 1).
-- `bar-family.md`: multiple choice, scale, ranking with Add an option, 100 points and statements on one live bar component (milestone 3, step 2).
-- `grid-form-sign.md`: the 2x2 grid, the private form and sign together (milestone 3, step 3).
-- `qa.md`: Q&A with votes and folding, Spotlight over any session and Questions any time (INT-03, milestone 3, step 4).
-- `self-paced.md`: self-paced sessions (on time, from the room link and the invite email), rehearsals and Clear test answers, each session's CSV and the results recap (milestone 3, step 6a).
-- `templates.md`: the run of show built by dragging (SET-07, pass 3 change 15) and templates with the team workshop template (SET-08) (milestone 3, step 6b).
-- `lens-wall.md`: lens seeding and the lens wall (milestone 4, step 2).
-- `four-lists.md`: the Four Helpful Lists, INT-11 and SET-05 (milestone 6, step 2).
-- `ai-live.md`: AI, live: word cloud combines, wall groups and Show summary, Q&A folding by AI, the merge limits in code, and FAIL-09 (milestone 3, step 5).
-- `milestone-4-brief.md`: milestone 4, the Wayfinding session tools: what it builds, the engine contract each Wayfinding kind follows, the work order and what can run in parallel, and the questions for Chris.
-- `discover-survey-source.md`: research for milestone 6. The Team Hub survey tables Clearway Live would read, how a survey links to an engagement, reader options for Chris, volume and privacy.
-- `core-schema-check.md`: research for milestone 7. `core-reference.json` and the PRD's Write to CORE table checked against CORE's repository and production schema, and what Publish to CORE needs.
-- `acceptance-kit.md`: every kind through the live-screen rules with 50 simulated phones, and the failure kit on the new kinds (milestone 3, step 7a).
-- `practice-room-script.md`: the milestone 2 acceptance run for Chris, on real devices and venue wifi.
-- `prd.md`: the full PRD. Export it from the PRD doc in Claude (Export, Markdown) and save it here as `prd.md`. It is the source of truth.
+Start with the [PRD](prd.md) for behaviour and the
+[project status and remaining work](project-status.md) for implementation,
+acceptance evidence, gaps and next actions. Milestone briefs describe build
+order and requirements. Their work-order lists are not completion checklists.
+Implementation notes describe the code now in the repository.
 
-Design files live in `design/`:
+## Plan and acceptance
 
-- `design/clearway-base/`: the Clearway Design System's tokens and fonts.
-- `design/clearway-live/`: the Clearway Live design system (tokens, rules, reference code). Refresh this folder whenever Clearway Live is republished.
+- Milestone briefs: [1](milestone-1-brief.md), [2](milestone-2-brief.md),
+  [3](milestone-3-brief.md), [4](milestone-4-brief.md),
+  [5](milestone-5-brief.md), [6](milestone-6-brief.md), [7](milestone-7-brief.md).
+- [Milestone 1 acceptance](milestone-1-acceptance.md),
+  [automated acceptance and failure kits](acceptance-kit.md), and
+  [Chris's practice-room script](practice-room-script.md).
+- [Admin refresh](admin-refresh-audit.md) and evidence:
+  [home and accounts](evidence/admin/area-a.md), [create and edit](evidence/admin/area-b.md),
+  [setup tools](evidence/admin/area-c.md), [After pages](evidence/admin/area-d.md).
+
+## Foundation and access
+
+[Foundation](foundation.md), [database and local checks](database.md),
+[facilitator authentication](facilitator-auth.md), [engagement setup](engagement-setup.md),
+[room sign-in and open joining](room-sign-in.md), [practice room](practice-room.md),
+[restricted Team Hub reader](team-hub-reader.md), [public front page](front-page.md).
+
+## Live room and general interactions
+
+[Room engine](live-room-engine.md), [TV pairing](tv-pairing.md),
+[controls and remote](live-controls.md), [phones](live-phones.md),
+[word cloud and wall](live-board.md), [interaction engine and content screens](interaction-engine.md),
+[bar family](bar-family.md), [grid, private form and sign together](grid-form-sign.md),
+[Q&A](qa.md), [live AI](ai-live.md), [self-paced sessions, exports and recap](self-paced.md),
+[run of show](run-of-show.md), [templates](templates.md), [failure states](failure-states.md).
+
+## Wayfinding, scribe and overnight
+
+[Wayfinding records](wayfinding-records.md), [lens wall](lens-wall.md),
+[lens summaries](lens-summary.md), [candidate priorities](candidates.md),
+[outcome bullets and confirm](outcome-bullets-confirm.md), [pre-mortem and goals](premortem-goals.md),
+[handover, intent and follow-up access](handover-intent.md), [Map and templates](map-templates.md),
+[scribe console](scribe-console.md), [overnight review](overnight-review.md), [read-back](read-back.md).
+
+## Discover and the private signal
+
+[Survey findings and conversation notes](discover-records.md),
+[Four Helpful Lists](four-lists.md), [themes](discover-themes.md),
+[What We Heard](what-we-heard.md), [alignment signal](signal.md).
+Survey findings are entered by hand. The app does not read Team Hub's survey.
+
+## After the retreat
+
+[Report](report.md), [Word and PDF export](report-export.md),
+[document standard](clearway-document-standard.md), [visibility plan](visibility-plan.md),
+[read-only copy](read-only-copy.md), [check-ins](check-ins.md).
+
+## Design references and historical research
+
+The shared base is in `design/clearway-base/`. Live tokens and reference
+components are in `design/clearway-live/`. Later passes extend the original
+TV/phone design into the other surfaces. Read the relevant handoff:
+[2](design-pass-2-handoff.md), [4](design-pass-4-handoff.md),
+[4b](design-pass-4b-handoff.md), [5](design-pass-5-handoff.md),
+[6](design-pass-6-handoff.md), [7](design-pass-7-handoff.md).
+
+[Survey source research](discover-survey-source.md) was superseded November 5.
+[CORE schema research](core-schema-check.md) was superseded November 4.
+Both are historical references, not current integration work.

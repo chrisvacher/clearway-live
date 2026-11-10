@@ -5,9 +5,10 @@ The Clearway live app (working name) is Clearway Church Solutions' live facilita
 ## Read first, in this order
 
 1. `docs/prd.md`: the PRD. The source of truth for behaviour. Where anything else disagrees, the PRD wins.
-2. `docs/milestone-1-brief.md`: what to build now.
-3. `design/clearway-live/README.md`: the design system rules.
-4. `design/clearway-live/live_tokens.css`: the token file. Load it after `design/clearway-base/colors_and_type.css`.
+2. `docs/project-status.md`: current implementation, acceptance evidence and remaining work. Milestone 1 is accepted and implementations for milestones 1 to 7 are present. Read the brief for the work being changed, rather than restarting the foundation.
+3. `docs/README.md`: the documentation index and relevant milestone brief.
+4. `design/clearway-live/README.md`: the design system rules, followed by the relevant later design-pass handoff in `docs/`.
+5. `design/clearway-live/live_tokens.css`: the token file. Load it after `design/clearway-base/colors_and_type.css`.
 
 ## The three surfaces
 

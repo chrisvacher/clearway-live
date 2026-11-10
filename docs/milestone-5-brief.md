@@ -2,7 +2,7 @@
 
 The PRD governs behaviour ("Scribe capture", "Overnight review and the read-back", "AI", the data model, "Milestones > 5"). Design pass 5 governs look: `docs/design-pass-5-handoff.md` and the export in `design/clearway-live/pass-5/` (start with its `README.md`, `screens.html`, `docs/screen-index.md` and `docs/motion-spec.md`). Where this brief and the PRD disagree, the PRD wins, except for Chris's November 3 decisions below, which are newer than the PRD.
 
-Screens: SCR-01, SCR-02, the scribe feed on FAC-01, FAIL-03, OVN-01 to OVN-03, D2-03, D2-04 and INT-14. Not in this milestone: Discover and the alignment signal (milestone 6), the report, the communication plan and Publish to CORE (milestone 7).
+Screens: SCR-01, SCR-02, the scribe feed on FAC-01, FAIL-03, OVN-01 to OVN-03, D2-03, D2-04 and INT-14. Not in this milestone: Discover and the alignment signal (milestone 6), the report and visibility plan (milestone 7). Publish to CORE was removed from the app on November 4.
 
 ## What milestone 5 builds
 

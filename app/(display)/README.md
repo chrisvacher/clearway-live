@@ -1,5 +1,10 @@
 # Display boundary
 
-Reserve `/tv` here for milestone 2. Keep its layout separate from the phone and
-control routes so the future TV shell never reloads as sessions change.
-No TV route, live room engine, or pairing flow ships in milestone 1.
+`/tv` is the paired display on the separate computer connected to the TV or
+projector. It follows the server's room state independently of the facilitator's
+laptop. Its layout stays separate from the phone and control routes, and the
+live view animates as input arrives and sessions change.
+
+Pairing and persisted display sessions are in `docs/tv-pairing.md`. The room
+engine, reconnect behaviour and latency checks are in
+`docs/live-room-engine.md` and `docs/failure-states.md`.

@@ -31,7 +31,7 @@ Every prompt fills its years from the engagement's base year (10-year Future 203
 | This Year's Priorities | Left for the church's Annual Planning, not named in the retreat. The draft Map shows that field empty |
 | The day-and-a-half follow-up | On video, within two weeks of the half day, with a team facilitator holding the remote |
 | Grouped responses on the TV | One color for every group, so no group looks more significant than another. Lens clusters use the wall's group styling (one panel color, outlined number, the count in the filled marker), as design pass 4's review changes have it |
-| Discover survey (milestone 6) | Team Hub's survey builder, sent before the event. The app shows the survey data from Team Hub and doesn't run real-time surveys |
+| Discover survey (milestone 6) | November 3 decision superseded November 5: Team Hub runs the survey and its report. Live does not read the survey. The facilitator adds key findings by hand |
 
 ## Decisions (November 3, second set)
 

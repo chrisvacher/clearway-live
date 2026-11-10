@@ -2,7 +2,7 @@
 
 The PRD governs behaviour ("Discover", "The alignment signal", "AI", the data model, "Milestones > 6"). Design pass 6 governs look: `docs/design-pass-6-handoff.md` and the export in `design/clearway-live/pass-6/` (start with its `README.md`, `screens.html`, `docs/screen-index.md` and `docs/motion-spec.md`). Where this brief and the PRD disagree, the PRD wins.
 
-Screens: SET-05, INT-11, SET-06, PRE-08 (What We Heard), FAC-02 and the FAC-03 signal list, plus a survey findings form in setup. Shelved (November 5): SET-04, SET-04 results, SET-10 and the SurveyLink, ResponseCount, QuestionResult, SurveyResultScreen, SegmentFilter and DuplicateFlag components. Not in this milestone: the report, the communication plan, the read-only copy and check-ins (milestone 7).
+Screens: SET-05, INT-11, SET-06, PRE-08 (What We Heard), FAC-02 and the FAC-03 signal list, plus a survey findings form in setup. Shelved (November 5): SET-04, SET-04 results, SET-10 and the SurveyLink, ResponseCount, QuestionResult, SurveyResultScreen, SegmentFilter and DuplicateFlag components. Not in this milestone: the report, the visibility plan, the read-only copy and check-ins (milestone 7).
 
 ## What milestone 6 builds
 

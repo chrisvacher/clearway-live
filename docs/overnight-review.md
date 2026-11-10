@@ -54,7 +54,7 @@ Lead only, idempotent by a client-made id. It needs every outcome reviewed and e
 
 - Only the lead publishes; co-facilitators review and edit.
 - Reviewed means one facilitator marked the outcome; a lock never blocks Publish for a holder who has left (40 second expiry).
-- `reset_practice_room` does not yet clear the overnight tables.
+- Practice reset clears the overnight draft records, withdraws publications and removes review presence through the reset chain introduced in `20261104160000_lens_summary.sql` and extended by later migrations. Nightly scheduling is still outstanding, as recorded in `docs/project-status.md`.
 
 ## Overnight acceptance fixes, batch c (November 9)
 

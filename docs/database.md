@@ -1,4 +1,14 @@
-# Milestone 1, PR 2: Database and row-level security
+# Database access and local checks
+
+The schema now includes the live room, interactions, Wayfinding, scribe,
+overnight, Discover, report, sharing, check-ins and workshop open joining.
+Replay all tracked migrations in filename order on an isolated local database.
+The access model below describes the seven foundation tables. Feature-specific
+private tables, RPCs and tests are documented in the [documentation index](README.md).
+The PR 2 counts and production observations below are historical evidence,
+not a current production audit or full-schema test count.
+
+## Foundation scope, milestone 1 PR 2
 
 This PR adds only churches, engagements, Clearway users, engagement facilitators,
 attendees, join requests, and device sessions. There are no live-room, survey,
@@ -73,10 +83,17 @@ functions and anonymous callers receive no execution grants.
 Use Supabase CLI **2.72.7** and a running Docker-compatible local runtime:
 
 ```sh
-npm run db:start
+supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 npm run db:reset
 npm run check:db
+npm run db:seed
 ```
+
+This is the isolated Auth, Storage and Realtime stack used by CI and the browser
+harness. `npm run db:start` maps to `supabase db start`, while the full-stack
+command above is the one to use for authenticated browser and integration checks.
+The seed command targets loopback only. Do not reset or seed a shared or hosted
+database while following these local instructions.
 
 The commands explicitly target local Postgres 17, never `--linked`. CI starts a
 fresh database, replays the migration, lints both schemas, and runs pgTAP role

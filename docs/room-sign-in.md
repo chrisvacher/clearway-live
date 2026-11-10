@@ -1,5 +1,20 @@
 # Milestone 1, PR 4: Room sign-in and the door list
 
+## Open joining for team workshops, November 9
+
+An admin can enable Open joining while creating or editing a team workshop.
+It is off by default and unavailable for Wayfinding engagements. Anyone with
+that workshop's room code can then join with a name and no email/code. The
+phone receives its own guest identity, preserving per-person answer rules.
+Listed people can still choose **Sign in with your email instead**. Guests
+show as **Joined by name** in setup and the door list. The database enforces
+admin-only changes independently of the form. See
+`supabase/migrations/20261109080000_open_join.sql` and
+`supabase/tests/database/practice_room.test.sql`. The admin browser audit in
+`tests/browser/admin.ts` also checks the guest label on the door list.
+
+The email/code flow below remains the default for engagements without open joining.
+
 Phones open `/room/<engagement UUID>`. A public projection returns only the church
 name, engagement title/type, whether it is closed, consensus copy and a neutral
 join-message flag. It never returns the roster, settings object or integration ids.

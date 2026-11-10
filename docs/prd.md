@@ -2,7 +2,7 @@
 
 Oct 29, 2026 · @Chris Vacher
 
-Version 2, October 29, 2026, with decisions to November 5, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it.
+Version 2, October 29, 2026, with decisions to November 9, 2026. The build guide for the Clearway app: Claude Design designs from it, Codex builds from it, and Chris accepts each milestone against it. See `docs/project-status.md` for implementation status, acceptance evidence and remaining work as of November 10.
 
 ## Summary
 
@@ -1411,7 +1411,7 @@ These come from the references and earlier conversations and are deliberately le
 - Personal attendee pages, registration, check-in desks, agenda and walk-in pages driven by an event program, and program sync from a Google Doc.
 - People sync from Planning Center, Eventbrite, Airtable or Google Sheets (Team Hub, CSV and pasted lists cover it).
 - Event messaging beyond invites, sign-in and check-in emails.
-- Quizzes, who-will-win predictions and a statements vote (unless Chris adds them, see Open questions).
+- Quizzes and who-will-win predictions. The statements vote (INT-17) is included, decided November 2.
 - Video sessions played on the TV.
 - Hearts and private notes to the facilitator from phones, and a personal take-home of the session with a person's own notes.
 - Answering for someone else on the same phone, and chosen names.

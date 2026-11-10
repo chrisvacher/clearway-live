@@ -12,7 +12,7 @@ Screens: INT-01 to INT-10, INT-17, the content screens, SET-07, SET-08 (team wor
 | Names in free text sent to AI | Sent as written. Attendee identity fields are never sent |
 | Scripture text | The facilitator pastes the passage. Reference and translation are separate fields; the translation defaults from the engagement |
 | Mentimeter coverage | The ten general interactions plus the statements vote (INT-17). No quizzes or predictions |
-| AI disclosure | Drafted, waiting on approval. Invite email, room sign-in, a "How we use AI" page on phones, the survey intro. Needed before first use with a church |
+| AI disclosure | Approved November 3: invite email, room sign-in and the "How we use AI" page on phones. Survey intro withdrawn November 5 because the app does not run or read the survey |
 
 ## The engine contract (step 1)
 

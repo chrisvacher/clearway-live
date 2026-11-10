@@ -1,5 +1,10 @@
 # CORE schema check
 
+**Superseded November 4, 2026.** Chris removed all CORE integration from the
+app. Clearway's team enters the plan into CORE after the retreat. This research
+is historical, and its proposed writes and open decisions are not current work.
+See the PRD's Integrations section and `docs/milestone-7-brief.md`.
+
 Research for milestone 7, read only, November 3. CORE's repository (`chrisvacher/clearway-core`) was read at commit `5830ba88a0a618d26e1916fe91448d8a6c9d9501` (October 30). CORE's production database (`clearway-core`, `hecdzipeokpioisdcegr`) was inspected for structure only: table and column lists, constraints, enums, indexes, policies and functions, plus a few counts. No rows were read and nothing in CORE was changed.
 
 ## Summary for Chris
