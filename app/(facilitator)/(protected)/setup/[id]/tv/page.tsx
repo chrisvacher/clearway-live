@@ -1,3 +1,4 @@
+import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
@@ -9,5 +10,5 @@ export default async function TvSetup({ params }: { params: Promise<{ id: string
   const { id } = await params; if (!uuid(id)) notFound(); const { client } = await requireFacilitator();
   const { data, error } = await client.rpc("tv_manage", { p_engagement: id, p_action: "list", p: {} });
   if (error) throw new Error("Paired screens unavailable"); if (data.status !== "ok") notFound();
-  return <main id="main" className="tv-manager"><Link className="show-button" href={`/setup/${id}/run-of-show`}>Return to run of show</Link><TvManager id={id} initial={data as TvManagerData} /></main>;
+  return <><EngagementNavigation id={id} /><main id="main" className="tv-manager"><Link className="show-button" href={`/setup/${id}/run-of-show`}>Return to run of show</Link><TvManager id={id} initial={data as TvManagerData} /></main></>;
 }

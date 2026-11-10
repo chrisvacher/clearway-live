@@ -15,6 +15,12 @@ export function localEnv(): Env {
   const status = execFileSync("supabase", ["status", "-o", "env"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
   const env = Object.fromEntries([...status.matchAll(/^([A-Z_]+)="(.*)"$/gm)].map(m => [m[1], m[2]]));
   for (const key of ["API_URL", "DB_URL"]) assert.equal(new URL(env[key]).hostname, "127.0.0.1", `${key} must be loopback`);
+  // The CLI can print configured ports even when this checkout differs from the running stack.
+  // Check actual project-specific bindings before a fixture can connect to another local project.
+  for (const [key, container, port] of [["DB_URL", "supabase_db_clearway-live", "5432/tcp"], ["API_URL", "supabase_kong_clearway-live", "8000/tcp"]]) {
+    const bindings = JSON.parse(execFileSync("docker", ["inspect", container, "--format", "{{json .NetworkSettings.Ports}}"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) as Record<string, { HostPort: string }[] | null>;
+    assert.ok(bindings[port]?.some(binding => binding.HostPort === new URL(env[key]).port), `${key} must match the running Clearway Live container. Check this checkout’s supabase/config.toml ports.`);
+  }
   return env;
 }
 export async function freePort() {

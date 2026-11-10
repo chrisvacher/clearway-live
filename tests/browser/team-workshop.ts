@@ -60,17 +60,17 @@ async function main() {
     const facContext = await browser.newContext({ viewport: { width: 1440, height: 1100 }, acceptDownloads: true });
     await facContext.addCookies(fac.cookies(app.origin));
     const setup = await facContext.newPage();
-    await step("Start an engagement from the team workshop template", async () => {
+    await step("Use a template from the team workshop template", async () => {
       await setup.goto(`${app.origin}/setup/templates?engagement=${room.id}`);
       const card = setup.locator(".tpl-card", { hasText: "Team workshop" }).filter({ hasText: "Ships with the app" });
       await card.waitFor({ timeout: 15000 });
       await card.getByRole("button", { name: "Preview" }).click();
       await setup.locator(".tpl-panel").getByRole("button", { name: "Use this template" }).click();
-      const dialog = setup.getByRole("dialog", { name: "Start an engagement" });
+      const dialog = setup.getByRole("dialog", { name: "Use a template" });
       await dialog.waitFor();
       const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
       await dialog.locator("#start-time").fill(`${tomorrow}T19:00`);
-      await dialog.getByRole("button", { name: "Start engagement" }).click();
+      await dialog.getByRole("button", { name: "Apply template" }).click();
       await setup.waitForURL(`**/setup/${room.id}/run-of-show**`, { timeout: 15000 });
       await setup.getByText("Started from the template: 11 sessions added.").waitFor();
       const copied = await sessions();

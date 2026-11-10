@@ -29,8 +29,8 @@ async function main() {
 
     await step("The setup page links to Discover, and Discover starts empty and private", async () => {
       await page.goto(`${app.origin}/setup/${room.id}`);
-      await page.getByRole("link", { name: "Discover" }).waitFor({ timeout: 15000 });
-      await page.getByRole("link", { name: "Discover" }).click();
+      await page.getByRole("link", { name: "Open Discover", exact: true }).waitFor({ timeout: 15000 });
+      await page.getByRole("link", { name: "Open Discover", exact: true }).click();
       await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
       const text = await page.locator("main").innerText();
       assert.ok(text.includes("Only you see this"), "marked private");
@@ -173,7 +173,7 @@ async function main() {
       assert.equal(crossOrigin.status(), 403, "a request from another origin is refused");
     });
 
-    await step("Before the migration is run, the page says Discover isn't ready and setup is unchanged", async () => {
+    await step("When Discover is unavailable, the page gives a plain message and setup stays available", async () => {
       // The API caches the function list, so tell it to look again after each rename and load the page until it agrees.
       const reload = () => sql.query("notify pgrst, 'reload schema'");
       const seen = async (text: string | RegExp, role: "heading" | "text") => until(async () => {
@@ -182,7 +182,7 @@ async function main() {
       }, `the page shows ${text}`, 45000);
       await sql.query("alter function public.discover_state(uuid) rename to discover_state_off"); await reload();
       try {
-        await seen("Discover isn't ready yet.", "text");
+        await seen("Discover isn’t available yet. Please try again later.", "text");
         await page.goto(`${app.origin}/setup/${room.id}`);
         await page.getByRole("link", { name: "Open run of show", exact: true }).waitFor({ timeout: 15000 });
       } finally { await sql.query("alter function public.discover_state_off(uuid) rename to discover_state"); await reload(); }
