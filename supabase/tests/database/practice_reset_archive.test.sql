@@ -33,7 +33,9 @@ insert into engagements(id,church_id,title,type) values('90000000-0000-4000-8000
 insert into sessions(id,engagement_id,title) values(tests.id(310),tests.id(10),'Archive session');
 insert into private.session_notes(session_id,engagement_id,notes) values(tests.id(310),tests.id(10),'PRIVATE-FACILITATOR-NOTES');
 insert into private.vision_outcomes(engagement_id,title) values(tests.id(10),'One outcome'),(tests.id(11),'OTHER-ENGAGEMENT-OUTCOME');
-insert into private.lens_sentences(engagement_id,lens,source,text) values(tests.id(10),1,'seeded','HIDDEN-LENS-SENTENCE');
+insert into submissions(id,engagement_id,session_id,attendee_id,text,answers,phone_sent_at) values(tests.id(701),tests.id(10),tests.id(310),tests.id(30),'HIDDEN-SUBMISSION-TEXT','[]',now());
+insert into private.lens_sentences(engagement_id,lens,source,text,submission_id) values(tests.id(10),1,'seeded','HIDDEN-LENS-SENTENCE',tests.id(701));
+insert into private.session_media(engagement_id,session_id,mime,width,height,data) values(tests.id(10),tests.id(310),'image/png',1,1,'\x616263');
 -- A future private field must not become part of an existing archive version.
 alter table public.attendees add column archive_future_secret text default 'FUTURE-SECRET';
 select ok((select relrowsecurity and relforcerowsecurity from pg_class where oid='private.practice_reset_runs'::regclass),'Nightly ledger forces RLS');
@@ -62,11 +64,14 @@ select doesnt_match(public.engagement_archive(tests.id(10))::text,'FUTURE-SECRET
 select doesnt_match(public.engagement_archive(tests.id(10))::text,'auth_user_id','No auth identity column');
 select doesnt_match(public.engagement_archive(tests.id(10))::text,'token_hash','No bearer-token hash columns');
 select doesnt_match(public.engagement_archive(tests.id(10))::text,'HIDDEN-LENS-SENTENCE','Archive cannot reveal unopened seeded lens text');
+select doesnt_match(public.engagement_archive(tests.id(10))::text,'HIDDEN-SUBMISSION-TEXT','Archive cannot reveal unopened seeded submissions');
+select ok(not ((public.engagement_archive(tests.id(10))#>'{records,session_media,0}') ? 'data'),'Image metadata excludes binary file contents');
 reset role;
 insert into private.lens_openings(engagement_id,lens,session_id) values(tests.id(10),1,tests.id(310));
 set local role authenticated;
 select tests.login(2);
 select matches(public.engagement_archive(tests.id(10))::text,'HIDDEN-LENS-SENTENCE','Opened lens sentences can be archived');
+select matches(public.engagement_archive(tests.id(10))::text,'HIDDEN-SUBMISSION-TEXT','Opened seeded submissions can be archived');
 reset role;
 insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(10),tests.id(303),'co_facilitator');
 set local role authenticated;

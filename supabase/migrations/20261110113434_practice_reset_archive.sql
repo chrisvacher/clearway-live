@@ -201,7 +201,7 @@ begin
   ('private','room_controls',array['id','engagement_id','actor_id','action','session_id','room_version','created_at','updated_at','deleted']),
   ('private','scribe_cards',array['id','engagement_id','session_id','kind','text','detail','speaker','attendee_id','captured_at','queued_at','received_at','seq','revision','refiled_from','created_at','updated_at','deleted','test','promoted_session','promoted_text','promoted_at']),
   ('private','scribe_files',array['id','engagement_id','session_id','kind','name','content_type','bytes','storage_path','uploaded_at','attendee_id','captured_at','queued_at','received_at','seq','refiled_from','created_at','updated_at','deleted','test']),
-  ('private','session_media',array['id','engagement_id','session_id','mime','width','height','data','created_at','updated_at','deleted']),
+  ('private','session_media',array['id','engagement_id','session_id','mime','width','height','created_at','updated_at','deleted']),
   ('private','session_notes',array['session_id','engagement_id','notes','created_at','updated_at','deleted']),
   ('private','signals',array['id','engagement_id','session_id','kind','theme_id','evidence','dismissed_at','saved_as_citation_at','neutral_question_sent_at','ai_run','test','seq','created_at','updated_at','deleted','title','line','ask','ask_sent','on_tv']),
   ('private','survey_findings',array['id','engagement_id','title','figure','rests_on','seq','created_at','updated_at','deleted']),

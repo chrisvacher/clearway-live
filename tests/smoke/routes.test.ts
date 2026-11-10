@@ -868,4 +868,5 @@ test("engagement JSON downloads privately through the facilitator session, with 
   assert.equal(archive.records.notes[0].text, "Private facilitator words 🌱");
   assert.equal((await fetch(endpoint.replace(roomId, roomAttendee), { headers })).status, 403);
   assert.equal((await fetch(endpoint.replace("format=json", "format=xml"), { headers })).status, 422);
+  assert.equal((await fetch(endpoint + `&session=${roomAttendee}`, { headers })).status, 422);
 });

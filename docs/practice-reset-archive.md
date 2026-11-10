@@ -61,10 +61,10 @@ allowlists prevent future schema additions from silently expanding version 1.
 
 Auth/device bindings, sign-in proofs, access-token hashes, job leases, invitation
 payloads and global templates are excluded. File records carry private Storage
-paths and metadata, not file bytes or signed URLs. `file_bytes_included` is
+paths and metadata, not file bytes or signed URLs. Session images include their
+metadata without the database's binary data column. `file_bytes_included` is
 false. This JSON download is a record archive, with no restore/import operation.
-Preserve the private Storage objects separately when a complete file backup is
-needed.
+Preserve original uploads and database backups separately for complete file recovery.
 
 The response is an attachment with private/no-store headers and is streamed
 in chunks. A missing migration returns a private 503 response, and does not
@@ -78,6 +78,9 @@ prevent the rest of Results recap from loading.
   assignment checks, private notes/authorship, lens visibility and a future
   secret column excluded from the existing archive version.
 - `tests/unit/archive.test.ts`: streamed large records and Unicode round-trip.
+- `npm run test:practice-reset-lock`: two real database connections verify that
+  a scheduled reset returns `busy` while a room operation holds its lock and
+  leaves the daily ledger unchanged. The harness refuses nonlocal services.
 - `tests/smoke/routes.test.ts`: cron authentication, no database calls on
   refusal, database result handling, archive download headers and own-session
   authorization. `npm run check` includes these tests.

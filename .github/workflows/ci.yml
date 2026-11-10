@@ -66,6 +66,8 @@ jobs:
         run: npm run test:ai-claim-race
       - name: Test the room lock, stale votes and the follow-up poll
         run: npm run test:submit-lock
+      - name: Test that nightly practice reset skips a concurrent room operation
+        run: npm run test:practice-reset-lock
       - name: Test Team Hub reader against a disposable fixture only
         run: npm run test:team-hub
       - name: Test idempotent seeds and native practice sign-in/reset

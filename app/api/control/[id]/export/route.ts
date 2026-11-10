@@ -16,6 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const format = request.nextUrl.searchParams.get("format") ?? "csv";
   if (!["csv", "json"].includes(format)) return answer({ status: "invalid_request" }, 422);
   const session = request.nextUrl.searchParams.get("session");
+  if (format === "json" && session !== null && session !== "all") return answer({ status: "invalid_request" }, 422);
   if (format === "csv" && session !== "all" && !uuid(session)) return answer({ status: "invalid_request" }, 422);
   const fac = await getFacilitator(); if (!fac) return answer({ status: "denied" }, 401);
   const { client } = fac;

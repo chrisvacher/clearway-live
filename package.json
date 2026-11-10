@@ -29,6 +29,7 @@
     "test:controls": "node --import tsx tests/integration/live-controls.ts",
     "test:ai-claim-race": "node --import tsx tests/integration/ai-claim-race.ts",
     "test:submit-lock": "node --import tsx tests/integration/submit-lock.ts",
+    "test:practice-reset-lock": "node --import tsx tests/integration/practice-reset-lock.ts",
     "test:browser": "node --import tsx tests/browser/failures.ts",
     "test:load": "node --import tsx tests/browser/load.ts",
     "test:content": "node --import tsx tests/browser/content.ts",
