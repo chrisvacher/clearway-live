@@ -1,7 +1,9 @@
 # File protection and app monitoring
 
-Implemented November 10, 2026. Production activation and verification are recorded
-below once the reviewed migration and deployment are live.
+Implemented November 10, 2026. The Live-only migrations are applied:
+`20261110180606_operations_backups_monitoring.sql` and
+`20261110181339_private_operations_helpers.sql`. Their repository filenames match
+Supabase history. Production activation and verification are recorded separately.
 
 ## File copies
 

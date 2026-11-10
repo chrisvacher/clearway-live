@@ -68,3 +68,5 @@
 .admin-operations .admin-panel + .admin-panel { margin-top:var(--space-6); }
 .admin-operations code { overflow-wrap:anywhere; word-break:break-word; }
 .admin-operations .admin-card { overflow-wrap:anywhere; }
+
+.admin-operations .admin-card > .admin-button { align-self:start; }
