@@ -77,6 +77,10 @@ export async function verifyFileRecovery() {
     await rpc(db, "ops_backup_run", { p_run: run, p_failed: 1 });
     throw new Error("File recovery check unavailable");
   } finally {
-    await db.storage.from("scribe").remove([path]).catch(() => {});
+    const cleanup = await db.storage.from("scribe").remove([path]).catch(() => ({ error: true }));
+    if (cleanup.error) {
+      await rpc(db, "ops_backup_run", { p_run: run, p_failed: 1 });
+      throw new Error("Recovery test cleanup unavailable");
+    }
   }
 }

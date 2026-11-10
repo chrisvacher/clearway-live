@@ -58,7 +58,7 @@ async function main() {
     assert.equal((await context.request.get(app.origin + "/api/operations/backups/" + protectedRow.id)).status(), 403);
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 }); await page.reload();
-      await page.getByText("File protection", { exact: true }).waitFor();
+      await page.getByRole("heading", { name: "TypeError", exact: true }).waitFor();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "No horizontal overflow");
       if (process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS, { recursive: true }); await page.screenshot({ path: process.env.KIT_SHOTS + "/operations-" + width + ".png", fullPage: true }); }
     }

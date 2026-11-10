@@ -94,7 +94,7 @@ language plpgsql security definer set search_path='' as $$
 declare b private.file_backups; raw bytea;
 begin
  select * into b from private.file_backups where id=p_backup for update;
- if not found or b.completed_at is not null or p_part is null or p_part<0 or p_part>=ceil(b.bytes/1048576.0) or p_data is null or length(p_data)>1398104 then return false; end if;
+ if not found or b.completed_at is not null or p_part is null or p_part<0 or p_part>=ceil(b.bytes/1048576.0) or p_data is null or length(p_data)>1500000 then return false; end if;
  raw:=decode(p_data,'base64');
  if octet_length(raw)<>least(1048576,b.bytes-p_part*1048576) then return false; end if;
  insert into private.file_backup_chunks values(p_backup,p_part,raw) on conflict(backup_id,part) do update set data=excluded.data;
