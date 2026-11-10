@@ -8,6 +8,8 @@ and does not change Chris's decisions or confer milestone acceptance.
 
 The reset and archive were activated in production later on November 10.
 Their verification is recorded below and in the linked evidence.
+The subsequent [production readiness audit](production-readiness.md) checked
+hosted configuration and identified the remaining church-use gates.
 
 ## Repository state
 
@@ -41,51 +43,60 @@ Its social metadata and images are not present on this baseline.
 
 The major feature groups from all seven briefs are implemented. The table does
 not imply that every PRD requirement or operational gate is complete. Missing
-acceptance records should first be checked with Chris, so completed venue runs
-are recorded rather than repeated unnecessarily.
+acceptance records were checked with Chris on November 10. He confirmed the later
+milestone testing so far was agent testing in Claude. Real-device acceptance for
+milestones 2, 3, 5, 6 and 7 remains outstanding. The historical milestone 1 and
+milestone 4 acceptance records remain as recorded, with their evidence limits.
 
 ## Remaining work, in order
 
-1. **Close the acceptance record.** Confirm which real-device runs Chris has
-   completed for milestones 2, 3, 5, 6 and 7. Record date, revision, environment,
+1. **Complete real-device acceptance.** Chris confirmed the later milestone
+   testing so far was agent testing in Claude. Run milestones 2, 3, 5, 6 and 7
+   on the required devices. Record date, revision, environment,
    devices, latency results and failed rows. Use the existing
    [practice-room script](practice-room-script.md), including venue wifi,
    iPhone/Android, HDMI, mirroring, video sharing, offline recovery and the
    independent remote. Capture the farthest-seat readability check and the
    95-in-100 under-one-second result. The Word/Google Docs/PDF checks in
    section 42 need real application/device evidence.
-2. **Nightly reset and JSON archive: production verification complete.** The
-   Live-only migration `20261110121926_practice_reset_archive.sql` is applied.
-   Vercel's active 09:17 UTC job reset the idle practice room, and a repeat
-   retained one ledger entry. The real facilitator JSON download parsed and
-   excluded credentials and cross-engagement records. See
-   [production evidence](evidence/production/2026-11-10-practice-reset-archive.md).
-   A future automatic time-based run has not yet been observed. These two build
-   gaps are closed, while real-device acceptance remains separate.
-3. **Finish or retire social sharing PR #102.** Resolve conflicts against
-   current main, review the image/metadata and crawler rules, and run checks.
-   It is separate from core live facilitation acceptance.
-4. **Verify production readiness against the accepted revision.** Check the
-   deployed commit, Live-only migration history through
-   `20261110121926_practice_reset_archive.sql`, per-PR database isolation, Google auth,
-   restricted Team Hub reader, email configuration, AI configuration and the
-   authenticated check-in schedule. Confirm `CRON_SECRET` is set in Production
-   without displaying it. Verify Supabase backup coverage and a restore
-   procedure. Source files do not prove these operational checks are complete.
-   The reset schedule and archive route were verified November 10. Broader
-   production configuration, backup and restore checks remain outstanding.
-5. **Complete error monitoring.** The PRD calls for server and client error
-   capture. The repository logs server errors, but no external monitoring SDK
-   or client capture integration was found in dependencies or app code.
-   Confirm whether platform tooling meets the requirement, then document it
-   or implement remaining capture. Adding a paid service or changing an
-   external service still needs Chris's approval.
-6. **Resolve first-use product decisions.** The PRD leaves privacy and retention,
+2. **Complete recovery coverage.** Daily database backups are present. Files
+   are excluded from those backups and the JSON archive. Establish private file
+   backup coverage and complete an isolated restore drill using the
+   [recovery procedure](backup-recovery.md). Record acceptable data loss and
+   measured recovery time.
+3. **Complete error monitoring.** Server logs and Vercel request logs exist,
+   but client exception capture is missing. The platform log-drain query returned
+   404, so it does not establish whether an external drain exists. Add client
+   capture, verify a controlled error reaches the monitor and assign the response
+   owner. Adding a paid service or changing external configuration needs Chris's
+   approval.
+4. **Resolve first-use product decisions.** The PRD leaves privacy and retention,
    language scope and the final product name open before a church uses/sees
    the app. Record Chris's decisions and implement resulting changes. This
-   review does not make a legal assessment. Granola import is also open,
-   while paste and Word/PDF/text notes already work. Treat direct import as
-   optional until Chris decides it is required.
+   review does not make a legal assessment. Chris deferred optional integrations
+   on November 10. Paste and Word/PDF/text notes already work, while direct
+   Granola import, people sync and Google Doc program sync stay for later.
+5. **Close release-process work.** Authenticated previews have no database
+   credentials, while CI has an isolated local stack. Configure isolated
+   authenticated previews before relying on them to review private workflows.
+   The complete browser CI run must finish before calling the audited revision
+   fully green. Social-sharing PR #102 can be finished or retired separately
+   from church-use acceptance.
+
+## Hosted work verified November 10
+
+The [production audit](production-readiness.md) verified deployment, all 69
+migrations, RLS on all 111 app tables, Google Auth configuration/initiation,
+Production-only credential metadata, the app's restricted Team Hub reader,
+historical email/AI evidence and a successful empty authenticated check-in cron
+run. Daily database backup coverage is present, with the recovery gaps above.
+
+The nightly reset and JSON archive are active. Migration
+`20261110121926_practice_reset_archive.sql` is applied. Vercel's 09:17 UTC job
+reset the idle practice room, and a repeat retained one ledger entry. The real
+facilitator JSON download parsed and excluded credentials and cross-engagement
+records. See [production evidence](evidence/production/2026-11-10-practice-reset-archive.md).
+The next automatic reset, November 11 at 09:17 UTC, has not yet been observed.
 
 ## Scope already settled
 
@@ -97,7 +108,11 @@ are recorded rather than repeated unnecessarily.
 - Table mode, additional integrations, native apps and other items under the
   PRD's "Not in the first release" remain deferred.
 
-## Verification for this review
+## Original source review verification
+
+This section records the initial repository review before the hosted work later
+on November 10. Current hosted results are in [production readiness](production-readiness.md)
+and [reset/archive evidence](evidence/production/2026-11-10-practice-reset-archive.md).
 
 - Pulled remote main at the baseline above. Open PR and issue state was read
   through connected GitHub tools on November 10.

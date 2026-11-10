@@ -1442,7 +1442,7 @@ Only Chris can answer these. Each names when it's needed, and nothing blocks ear
 | Outcome bullets on the TV | Decided November 3: letter by letter as people type, with field locks and batching | Resolved |
 | Video follow-up access | Decided November 3: the team's own facilitator pairs the shared TV view and takes the remote without a Clearway sign-in, through a follow-up link and code issued by the facilitator for that block only | Resolved |
 | Discover survey | Decided November 3: Team Hub's survey builder, sent to the congregation before the event. Decided November 5: Clearway runs the data report in Team Hub ahead of Wayfinding, and the app doesn't read the survey. Its only polls are quick in-room polls | Resolved |
-| Conversation notes | Upload and paste only, or also import Granola transcripts | Milestone 6 |
+| Conversation notes | Decided November 10: retain upload and paste. Direct Granola transcript import is deferred with the other optional integrations | Resolved |
 | Publish to CORE | Decided November 4: not part of the app. Clearway's team enters the plan into CORE after the retreat. The questions about how the app would write to CORE are withdrawn | Resolved |
 | AI disclosure | Decided November 3: Chris approved the wording for the invite email, room sign-in, a "How we use AI" page on phones and the survey intro (see "AI"). The survey intro is withdrawn, since the app doesn't run or read the survey (November 5) | Resolved |
 | The AI icon's license | Decided November 3: the free license with the credit "The AI mark is the Generative icon by LAFS from Flaticon." as the last line of the "How we use AI" page only | Resolved |

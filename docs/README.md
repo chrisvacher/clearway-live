@@ -26,6 +26,9 @@ Implementation notes describe the code now in the repository.
 [restricted Team Hub reader](team-hub-reader.md), [public front page](front-page.md).
 [Nightly practice reset and full-engagement archive](practice-reset-archive.md)
 cover the scheduled cleanup and facilitator JSON download.
+[Production readiness](production-readiness.md) records the hosted checks and
+church-use gates. [Backup and recovery](backup-recovery.md) documents coverage,
+the remaining file-backup gap and the restore procedure awaiting a drill.
 
 ## Live room and general interactions
 
