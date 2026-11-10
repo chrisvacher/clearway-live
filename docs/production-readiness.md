@@ -1,16 +1,21 @@
 # Production readiness
 
-Reviewed November 10, 2026, America/Toronto, against production revision
+Initial audit November 10, 2026, America/Toronto, against production revision
 `aecc735f84b381070d1017589e56316343a38d53` at `https://live.clearway.co`.
 Remote `main` and the working copy matched at the start of this audit.
 
+Updated later November 10, America/Chicago, for the deployed operations work at
+`cba45a27527f33288173c082a8c679942dfed2e6`. File-loss recovery, client error capture
+and email alerting are now verified. The original hosted audit below remains a
+dated baseline. See the subsequent operations checks for current counts.
+
 The hosted app is operating, and the configuration checks below passed. Release
-to a church still has acceptance, recovery, monitoring and product-decision gates.
+to a church still has acceptance, recovery and product-decision gates.
 Chris confirmed on November 10 that the later milestone checks so far were agent
 testing in Claude. That evidence does not complete real-device acceptance.
 The historical [milestone 1 acceptance](milestone-1-acceptance.md) remains recorded.
 
-## Hosted checks
+## Original hosted checks
 
 | Area | Evidence | Status and limit |
 | --- | --- | --- |
@@ -30,6 +35,23 @@ The historical [milestone 1 acceptance](milestone-1-acceptance.md) remains recor
 | Nightly reset and JSON archive | Applied and checked November 10, including actual facilitator download, practice-only reset and repeat protection | [Production evidence](evidence/production/2026-11-10-practice-reset-archive.md). Next automatic reset is November 11 at 09:17 UTC and has not yet been observed |
 | Database backups | Supabase shows daily physical snapshots for November 3 through 10. Latest: November 10, 11:29:55 UTC, 6:29:55 am Toronto. Organization is Pro. PITR is not enabled | Nightly database coverage passed. Files and restore drill remain open below |
 
+## Subsequent operations checks
+
+Verified November 10 at 18:21 to 18:24 UTC, 12:21 to 12:24 pm America/Chicago.
+[Detailed evidence](evidence/production/2026-11-10-operations.md) records the
+methods, revision, checksum, isolated test results and limits.
+
+| Area | Evidence | Status and limit |
+| --- | --- | --- |
+| Deployment and migrations | Production `dpl_BTXhtnuPqVorsKjhsmaVgvCVvPjG` is Ready at `cba45a2`. All 71 local migration versions match Live history | Passed |
+| Private operations data | All 117 app tables have RLS enabled. The six new tables also force RLS and deny direct browser access. Public admin readers delegate to guarded private functions | Passed. Role and spoofed-claim cases also passed isolated CI |
+| File protection | Active non-practice uploads get versioned private Postgres copies, full SHA-256 validation and admin downloads | Implemented. No active church upload existed at activation. Practice data is intentionally excluded |
+| File-loss recovery | Harmless test original removed, bytes recovered and reuploaded, checksum matched. Downloaded protected copy matched independently. No test object remains in Storage | Passed production drill. A full database/Auth snapshot restore remains open |
+| Operations sweep | `/api/cron/operations` Active at `37 * * * *`. Vercel Run returned 200 and recorded an `ok` run with zero failures. Unsigned request returned 401 | Passed configured production route. Next automatic hourly invocation has not yet been observed |
+| Error capture and alert | Controlled client event appeared privately with revision `cba45a2`. Resend sent the approved alert and Gmail independently received it at `chris@clearway.co` | Passed. Chris owns the response. At most one alert per UTC hour, with no input text or error messages |
+| Access | Anonymous operations status/download requests returned 403; cross-origin ingestion returned 403 | Passed |
+| Operations layout | Final revision's isolated screenshots reviewed at 1440px and 390px, with populated records and downloads | Passed for this page. Not a fresh all-admin workflow review |
+
 ## Checks that do not establish full readiness
 
 - CI uses disposable local PostgreSQL 17/Auth and a Team Hub fixture, with no
@@ -39,14 +61,18 @@ The historical [milestone 1 acceptance](milestone-1-acceptance.md) remains recor
   and the Supabase dashboard shows no branches. Authenticated preview testing is
   therefore not configured. CI isolation is present, but an isolated database for
   each authenticated preview remains a delivery-process gap.
-- On the audited main revision, [CI run 42815876665](https://github.com/chrisvacher/clearway-live/actions/runs/42815876665)
-  passed lint, types, dependency audit, unit tests, build and HTTP smoke. Migration
-  replay, database lint and all database-role tests passed. The long browser suite
-  was still running when this record was prepared. Do not describe the entire
-  revision as fully green until that run completes.
+- The earlier baseline's [CI run 42818353841](https://github.com/chrisvacher/clearway-live/actions/runs/42818353841)
+  completed successfully. The operations revision's
+  [CI run 42873437574](https://github.com/chrisvacher/clearway-live/actions/runs/42873437574)
+  passed lint, types, dependency audit, unit tests, build, HTTP smoke, migration
+  replay, database lint, role tests and the new operations browser kit. The wider
+  browser regression suite was still running at this update. Do not describe
+  that entire run as fully green until it completes.
 - Supabase health advisors are empty. Its existing leaked-password-protection
-  warning remains. The 79 RLS-without-policy notices concern intentionally private
-  RPC-only tables. Performance advisors report three multiple-policy warnings on
+  warning remains. The operations migrations bring the RLS-without-policy notices
+  from 79 to 85, all intentionally private RPC-only tables. Two intermediate
+  public-definer findings were fixed by moving the admin readers into the private
+  schema. Performance advisors in the original audit reported three multiple-policy warnings on
   the lens-summary tables, plus informational missing/unused indexes. These are
   recorded follow-up work, rather than evidence of a data leak or an observed
   latency failure. Advisor references:
@@ -62,19 +88,18 @@ The historical [milestone 1 acceptance](milestone-1-acceptance.md) remains recor
   error/fatal logs or runtime error clusters. This is a bounded observation, not
   proof of a clean venue run. A requested 24-hour Vercel log window was rejected
   by the platform, so the query was narrowed to 30 minutes.
-- Vercel's log-drain API returned 404. No external monitor was proved absent from
-  that response alone. The repository has server error logging but no client
-  exception capture, monitoring SDK, instrumentation file or client error boundary
-  reporting. Platform request logs cover the server, but do not satisfy the PRD's
-  client-error requirement.
+- Vercel's original log-drain API read returned 404, which did not prove an
+  external monitor absent. Live now provides its own private client/server error
+  capture, boundaries, rate limits and approved Resend alerting. The controlled
+  production check above closes the observed client-monitoring gap without a new
+  external provider.
 
 ## Gates before use with a church
 
 | Gate | What remains | How to close it |
 | --- | --- | --- |
 | Real-device acceptance | Milestones 2, 3, 5, 6 and 7 have agent evidence, with no completed real-device acceptance confirmed by Chris | Run the [practice-room script](practice-room-script.md) on iPhone and Android, the independent remote, venue wifi, HDMI/mirroring and video sharing. Record 95-in-100 phone-to-TV arrivals under one second, no blank/redraw, back-row readability, offline recovery and Word/Google Docs/PDF checks. Record revision, date, devices and failed rows |
-| Complete recovery coverage | Database backups exclude Storage file bytes. The two current stored objects have no independently verified backup. The JSON archive also excludes bytes. No restore drill or measured recovery time is recorded | Establish private file backups with a manifest and retention owner. Complete an approved isolated restore drill using the [recovery procedure](backup-recovery.md), including files and Auth. Set acceptable data loss and recovery time |
-| Error monitoring | Client errors are not captured by the current implementation, and an alert/response arrangement has not been verified | Add client and server error capture, verify a controlled error reaches it, and assign who watches it during an engagement. Choose a service before configuring anything external |
+| Complete recovery assurance | File copies and production Storage-loss recovery are verified. Newly copied bytes still await observation in the next daily snapshot. Whole-project loss needs independent exports. A full database/Auth snapshot restore and measured recovery time remain unverified | Observe the next snapshot, keep approved independent private exports, and complete an approved isolated restore drill using the [recovery procedure](backup-recovery.md). Set acceptable data loss and recovery time |
 | Privacy and retention | The PRD requires checked consent wording and a retention decision before church use. The approved AI disclosure exists, but does not resolve retention | Chris records the reviewed wording and retention/deletion decision, then resulting app changes are implemented and checked |
 | Language and name | The PRD still leaves English-only versus French support, and the public product name open | Chris confirms the first-use language scope and name, then the PRD and any affected copy are updated |
 

@@ -29,8 +29,10 @@ cover the scheduled cleanup and facilitator JSON download.
 [File protection and app monitoring](operations.md) covers protected copies,
 recovery downloads, private error reports and operational alerts.
 [Production readiness](production-readiness.md) records the hosted checks and
-church-use gates. [Backup and recovery](backup-recovery.md) documents coverage,
-the remaining file-backup gap and the restore procedure awaiting a drill.
+church-use gates. [Operations evidence](evidence/production/2026-11-10-operations.md)
+records the production recovery, download, monitoring and email checks.
+[Backup and recovery](backup-recovery.md) documents coverage, independent-export
+limits and the full database/Auth restore procedure awaiting a drill.
 
 ## Live room and general interactions
 

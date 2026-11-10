@@ -3,7 +3,9 @@
 Implemented November 10, 2026. The Live-only migrations are applied:
 `20261110180606_operations_backups_monitoring.sql` and
 `20261110181339_private_operations_helpers.sql`. Their repository filenames match
-Supabase history. Production activation and verification are recorded separately.
+Supabase history. The changes are deployed to `live.clearway.co` at `cba45a2`.
+Production recovery, protected download, monitoring and alert delivery passed.
+See [production evidence](evidence/production/2026-11-10-operations.md).
 
 ## File copies
 
@@ -96,4 +98,6 @@ external Anthropic test skipped. All 43 HTTP smoke tests passed. CI includes rol
 corruption, retry, immutability, Storage-loss recovery, grouping and limit tests.
 The browser kit tests real Storage, the authenticated recovery download, global
 error capture, privacy, local email delivery, admin-only access and populated
-operations screens at 1440px and 390px. Hosted results are recorded separately.
+operations screens at 1440px and 390px. The production revision's CI passed
+migration replay, database lint, role tests and this operations kit. The wider
+browser regression suite was still running when the evidence was recorded.

@@ -10,6 +10,8 @@ The reset and archive were activated in production later on November 10.
 Their verification is recorded below and in the linked evidence.
 The subsequent [production readiness audit](production-readiness.md) checked
 hosted configuration and identified the remaining church-use gates.
+File protection and private error monitoring were deployed and verified later
+that day at `cba45a2`. The current operations update uses America/Chicago times.
 
 ## Repository state
 
@@ -21,6 +23,10 @@ Both PRs #137 and #138 are merged. The earlier iCloud working copy was left inta
 Reads of its Git metadata and AGENTS.md timed out, so its uncommitted work and
 branch state could not be reconciled with this copy. Preserve it until those
 files are available and its status has been compared.
+
+The operations implementation from [PR #139](https://github.com/chrisvacher/clearway-live/pull/139)
+is also on `main`. Production at `cba45a2` includes its security follow-up,
+matching migration filenames and final Operations copy/layout fixes.
 
 GitHub reported no open issues and one open pull request at review time:
 [#102, social share image](https://github.com/chrisvacher/clearway-live/pull/102).
@@ -59,24 +65,20 @@ milestone 4 acceptance records remain as recorded, with their evidence limits.
    independent remote. Capture the farthest-seat readability check and the
    95-in-100 under-one-second result. The Word/Google Docs/PDF checks in
    section 42 need real application/device evidence.
-2. **Complete recovery coverage.** Daily database backups are present. Files
-   are excluded from those backups and the JSON archive. Establish private file
-   backup coverage and complete an isolated restore drill using the
-   [recovery procedure](backup-recovery.md). Record acceptable data loss and
-   measured recovery time.
-3. **Complete error monitoring.** Server logs and Vercel request logs exist,
-   but client exception capture is missing. The platform log-drain query returned
-   404, so it does not establish whether an external drain exists. Add client
-   capture, verify a controlled error reaches the monitor and assign the response
-   owner. Adding a paid service or changing external configuration needs Chris's
-   approval.
-4. **Resolve first-use product decisions.** The PRD leaves privacy and retention,
+2. **Complete recovery assurance.** Active church uploads now get versioned,
+   private database copies, with an hourly catch-up sweep. Production file-loss
+   recovery and the authenticated download passed. Observe the next daily
+   snapshot containing the new records, keep approved independent private exports
+   for whole-project loss, and complete an isolated database/Auth restore drill
+   using the [recovery procedure](backup-recovery.md). Record acceptable data loss
+   and measured recovery time. JSON exports still exclude file bytes.
+3. **Resolve first-use product decisions.** The PRD leaves privacy and retention,
    language scope and the final product name open before a church uses/sees
    the app. Record Chris's decisions and implement resulting changes. This
    review does not make a legal assessment. Chris deferred optional integrations
    on November 10. Paste and Word/PDF/text notes already work, while direct
    Granola import, people sync and Google Doc program sync stay for later.
-5. **Close release-process work.** Authenticated previews have no database
+4. **Close release-process work.** Authenticated previews have no database
    credentials, while CI has an isolated local stack. Configure isolated
    authenticated previews before relying on them to review private workflows.
    The complete browser CI run must finish before calling the audited revision
@@ -97,6 +99,17 @@ reset the idle practice room, and a repeat retained one ledger entry. The real
 facilitator JSON download parsed and excluded credentials and cross-engagement
 records. See [production evidence](evidence/production/2026-11-10-practice-reset-archive.md).
 The next automatic reset, November 11 at 09:17 UTC, has not yet been observed.
+
+The later [operations verification](evidence/production/2026-11-10-operations.md)
+checked all 71 migration versions, RLS on all 117 app tables, the production
+file-loss recovery drill and protected download, and the active hourly operations
+sweep returning 200. A controlled client event reached the private dashboard with
+the deployment revision, and its alert arrived at `chris@clearway.co`. Chris owns
+the response. Client error capture and alerting are no longer an open gate. No
+paid service was added. The new Operations screen was visually reviewed at
+1440px and 390px. The [admin audit](admin-refresh-audit.md) describes the existing
+20-view review and its limits. A fresh review of every admin workflow has not
+been completed.
 
 ## Scope already settled
 

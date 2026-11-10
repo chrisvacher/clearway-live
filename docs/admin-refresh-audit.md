@@ -38,4 +38,8 @@ acceptance of all private application workflows.
 
 The new Operations page is covered separately by the operations browser kit at
 1440px and 390px, including populated monitoring data, controls and downloads.
+Codex visually reviewed the final `cba45a2` captures at
+[1440px](evidence/admin/operations-1440.png) and
+[390px](evidence/admin/operations-390.png), and inspected the production desktop
+page during the [recovery and monitoring checks](evidence/production/2026-11-10-operations.md).
 This does not replace the outstanding venue/device acceptance.
