@@ -41,7 +41,13 @@ export async function POST(request:NextRequest){
     const refuse=(error:Parameters<typeof deliberate>[0])=>{const failure=deliberate(error);throw failure?new SetupRefusal(failure):new Error("save");};
     const rpc=async(name:string,args:Record<string,unknown>)=>{const {data,error}=await client.rpc(name,args);if(error)refuse(error);return data;};
     if(action==="hub_clients"){admin();return answer({ok:true,clients:await teamHubReader().searchClients(typeof body.search==="string"?body.search:"")});}
-    if(action==="hub_engagements"){admin();if(!uuid(body.client))return answer({ok:false},400);const hub=teamHubReader();return answer({ok:true,client:await hub.client(body.client),engagements:await hub.engagements(body.client)});}
+    if(action==="hub_engagements"){
+      admin();if(!uuid(body.client))return answer({ok:false},400);const hub=teamHubReader();
+      const [church,engagements,linked]=await Promise.all([hub.client(body.client),hub.engagements(body.client),client.from("engagements").select("id,team_hub_engagement_id").eq("deleted",false).eq("team_hub_client_id",body.client)]);
+      if(linked.error)throw new Error("save");
+      const live=new Map((linked.data??[]).map(e=>[e.team_hub_engagement_id,e.id]));
+      return answer({ok:true,client:church,engagements:engagements.map(e=>({...e,live_id:live.get(e.id)??null}))});
+    }
     if(action==="hub_members"){admin();return answer({ok:true,members:(await teamHubReader().members()).filter(m=>clearwayEmail(m.email))});}
     if(action==="add_clearway_user"){
       admin();if(!uuid(body.member))return answer({ok:false},400);const m=(await teamHubReader().members()).find(m=>m.id===body.member&&clearwayEmail(m.email));if(!m)return answer({ok:false},400);
@@ -51,6 +57,9 @@ export async function POST(request:NextRequest){
       const input=setupInput(body);if(!profile.is_admin)delete (input.engagement.settings as Record<string,unknown>).open_join;let id:string|null=null,linkedClient:string|null=null,linkedEngagement:string|null=null;
       if(action==="create"){
         admin();if(!uuid(body.hub_client)||!uuid(body.hub_engagement))return answer({ok:false,message:"Choose a church and engagement from Team Hub."},400);
+        const existing=await client.from("engagements").select("id").eq("team_hub_engagement_id",body.hub_engagement).eq("deleted",false).maybeSingle();
+        if(existing.error)throw new Error("save");
+        if(existing.data)return answer({ok:false,message:"This engagement is already in Live. Open it from your engagements.",existing_id:existing.data.id},409);
         const hub=teamHubReader();const [c,e]=await Promise.all([hub.client(body.hub_client),hub.engagement(body.hub_engagement,body.hub_client)]);if(!c||!e)return answer({ok:false},400);linkedClient=c.id;linkedEngagement=e.id;
       }else{const existing=await scoped();id=existing.id;linkedClient=existing.team_hub_client_id;linkedEngagement=existing.team_hub_engagement_id;}
       const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});

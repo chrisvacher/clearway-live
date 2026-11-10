@@ -10,6 +10,7 @@ const RAW = /constraint|violates|relation|column|policy|row-level|function|schem
 export function deliberate(error: DatabaseError | null | undefined): Failure | null {
   if (!error) return null;
   const message = (error.message ?? "").trim();
+  if (error.code === "23505" && message.includes("engagements_team_hub_unique")) return { message: "This engagement is already in Live. Open it from your engagements.", status: 409 };
   // The one unique index a facilitator can hit by editing a person: two people in an engagement, one email address.
   if (error.code === "23505" && message.includes("attendees_email_unique")) return { message: "Someone in this engagement already has that email address.", status: 409 };
   // A row-level security refusal names the table, so the page gets a plain line instead.

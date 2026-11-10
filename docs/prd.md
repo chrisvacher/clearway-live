@@ -431,6 +431,8 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 **Engagement settings** (SET-02): church, type, dates and time zone, lead facilitator and co-facilitator, base year for the horizons, lens names, the governance body's name, whether AI is on, the Scripture translation, the TV theme, texture and room size.
 
+**Setup forms** (Decided November 9): create and edit show fields by engagement type. A team workshop uses its workshop date and optional end date. Pre-call time, retreat dates, base year, Five Lenses, governance body and Scripture translation are shown for Wayfinding. Hidden values are retained when the type changes. Linked Team Hub engagements are marked Already in Live with a link to their existing setup. Duplicate creation returns a clear conflict rather than a connection failure. Open joining remains admin-only and team-workshop-only.
+
 **Templates** (SET-08): a template is a saved run of show. Starting an engagement from a template copies its sessions, prompts, interaction settings, timings and presenter notes, all editable. The Wayfinding and day-and-a-half templates ship with the app (see "Wayfinding sessions"). Facilitators can save any run of show as a new template.
 
 **The run of show** (SET-07) is an ordered list of sessions grouped by part (Pre-call, Day 1, Day 2, Follow-up). Each session has:

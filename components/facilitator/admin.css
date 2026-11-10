@@ -25,3 +25,18 @@
 .engagement-nav-links { display:flex; gap:var(--space-2); flex-wrap:wrap; }
 .engagement-nav a { font-weight:var(--fw-medium); }
 @media(max-width:700px) { .admin-page { padding:var(--space-6) var(--space-4); } .admin-card { grid-template-columns:minmax(0,1fr); gap:var(--space-3); } .admin-panel,.admin-card { padding:var(--space-4); } .admin-actions { align-items:stretch; } .admin-card .admin-actions { max-width:none; } .admin-card .admin-button { flex:1 1 140px; } .engagement-nav { padding:var(--space-4); } }
+
+.admin-editor .form-stack { gap:var(--space-6); }
+.admin-editor fieldset, .admin-editor .setup-section { border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-card); padding:var(--space-6); min-width:0; }
+.admin-editor legend { font-size:var(--cwl-fs-app-section-title); font-weight:var(--fw-bold); padding-inline:var(--space-2); }
+.admin-editor .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-4); }
+.admin-editor input:not([type="checkbox"]), .admin-editor select, .admin-editor textarea { min-width:0; width:100%; min-height:44px; background:var(--cwl-app-card); color:var(--cwl-app-text); border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); padding:var(--space-3); }
+.admin-editor label { font-size:var(--cwl-fs-app-label); }
+.admin-editor .check-row { align-items:flex-start; }
+.admin-editor .check-row input { flex:none; margin-top:var(--space-1); }
+.admin-editor .button-link { font-size:var(--cwl-fs-app-label); min-height:44px; }
+.admin-editor .admin-panel, .room-details { margin-bottom:var(--space-6); }
+.admin-feedback:not(:empty) { padding:var(--space-4); background:var(--cwl-app-info-bg); border-radius:var(--cwl-radius-card); }
+@media(max-width:700px) { .admin-editor .form-grid { grid-template-columns:minmax(0,1fr); } .admin-editor fieldset { padding:var(--space-4); } }
+
+.admin-page > .setup-section:not(.admin-editor) { padding:var(--space-6); background:var(--cwl-app-card); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); }
