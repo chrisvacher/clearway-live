@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: { default: "Clearway Live", template: "%s | Clearway Live" },
   description: "A shared space for your church team to listen, discern and decide together.",
   robots: { index: false, follow: false },
+  other: { "clearway-release": process.env.VERCEL_GIT_COMMIT_SHA || "unknown" },
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 

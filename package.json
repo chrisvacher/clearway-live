@@ -66,7 +66,8 @@
     "test:report": "node --import tsx tests/browser/report.ts",
     "test:read-only": "node --import tsx tests/browser/read-only.ts",
     "test:visibility-plan": "node --import tsx tests/browser/visibility-plan.ts",
-    "load": "node --import tsx scripts/load-test.ts"
+    "load": "node --import tsx scripts/load-test.ts",
+    "test:operations": "node --import tsx tests/browser/operations.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",

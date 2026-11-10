@@ -64,3 +64,6 @@
   .admin-after .ovr-nav { align-content:flex-start; align-items:center; }
   .admin-after .ovr-nav a, .admin-after .ovr-nav button { min-height:44px; }
 }
+
+.admin-operations .admin-panel + .admin-panel { margin-top:var(--space-6); }
+.admin-operations code { overflow-wrap:anywhere; word-break:break-word; }

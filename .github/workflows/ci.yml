@@ -80,6 +80,10 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Make the screenshot folder for the kits
         run: mkdir -p "${{ runner.temp }}/kit-shots"
+      - name: Test file backup recovery and private client error monitoring
+        run: npm run test:operations
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/kit-shots
       - name: Test the failure states in real browsers (milestone 2, then the kinds and failures of milestones 3 to 7)
         run: npm run test:browser
         env:

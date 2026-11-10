@@ -1,5 +1,7 @@
 import "server-only";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
+import { runFileBackups } from "@/lib/operations/backups";
+import { sendOperationsAlert } from "@/lib/operations/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { authConfig, sameOrigin } from "@/lib/auth/policy";
 import { facilitatorClient } from "@/lib/auth/client";
@@ -74,6 +76,9 @@ export async function writeScribe(client: SupabaseClient, engagement: string, bo
   if (body.action === "file_done") {
     const { data, error } = await call(() => client.rpc("scribe_file_done", { p_engagement: engagement, p_id: body.id }));
     if (error) throw error;
+    if (["ok", "duplicate"].includes(data.status) && engagement !== "90000000-0000-4000-8000-000000000010") {
+      after(async () => { try { await runFileBackups(body.id); await sendOperationsAlert(); } catch { console.error("File backup unavailable"); } });
+    }
     return { data, status: statusCode(data.status) };
   }
   // file_begin: the row first, then a signed address to put the bytes at. The scribe's own session
