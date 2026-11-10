@@ -80,7 +80,7 @@ revoke all on private.practice_reset_runs from public,anon,authenticated,service
 
 create function private.nightly_practice_reset() returns jsonb
 language plpgsql security definer set search_path='' set lock_timeout='1s' as $$
-declare eng constant uuid:='90000000-0000-4000-8000-000000000010';
+declare eng constant uuid:='90000000-0000-4000-8000-000000000010'::uuid;
  at_time timestamptz:=clock_timestamp(); day_key date:=(at_time at time zone 'UTC')::date;
 begin
  -- The same lock as guest claims, submissions and manual reset, before reading.
@@ -120,7 +120,7 @@ grant execute on function private.nightly_practice_reset(),public.nightly_practi
 -- allowlists are fixed at version 1 so future private columns cannot leak by default.
 create function private.engagement_archive(p_engagement uuid) returns jsonb
 language plpgsql stable security definer set search_path='' as $$
-declare spec record; rows jsonb; records jsonb:='{}'; filter text;
+declare spec record; rows jsonb; records jsonb:='{}'::jsonb; filter text;
 begin
  if not ((select private.is_admin()) or private.can_facilitate(p_engagement)) then
   return jsonb_build_object('status','denied');
