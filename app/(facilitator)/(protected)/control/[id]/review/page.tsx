@@ -1,3 +1,4 @@
+import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -12,5 +13,5 @@ export default async function OvernightReviewPage({ params }: { params: Promise<
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
   const show = await readShow(client, id); if (!show) notFound();
-  return <OvernightReview engagement={id} church={show.context.church} title={show.context.title} timezone={show.context.timezone} />;
+  return <div className="admin-after"><EngagementNavigation id={id} /><OvernightReview engagement={id} church={show.context.church} title={show.context.title} timezone={show.context.timezone} /></div>;
 }
