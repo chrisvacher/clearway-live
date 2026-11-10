@@ -26,3 +26,26 @@ test("server-side telemetry validation drops unknown fields and unsafe frames", 
 test("unknown thrown values do not disclose their content", () => {
   assert.deepEqual(eventFromError("private text", "rejection", "/", "https://live.clearway.co"), { kind: "rejection", name: "Error", route: "/", frames: [] });
 });
+
+test("browser reporting omits cookies and referrers and fails without disrupting its caller", async () => {
+  const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+  const originalFetch = globalThis.fetch;
+  let sent: RequestInit | undefined;
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { pathname: "/v/private-token", origin: "https://live.clearway.co" } } });
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { querySelector: () => null } });
+  try {
+    globalThis.fetch = async (_url, options) => { sent = options; return new Response(null, { status: 202 }); };
+    const { reportClientError } = await import("../../lib/operations/client");
+    assert.equal(await reportClientError(new Error("SECRET answer"), "test"), true);
+    assert.equal(sent?.credentials, "omit");
+    assert.equal(sent?.referrerPolicy, "no-referrer");
+    assert.doesNotMatch(String(sent?.body), /SECRET|private-token/);
+    globalThis.fetch = async () => { throw new Error("Offline"); };
+    assert.equal(await reportClientError(new Error("private"), "test"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalWindow) Object.defineProperty(globalThis, "window", originalWindow); else Reflect.deleteProperty(globalThis, "window");
+    if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument); else Reflect.deleteProperty(globalThis, "document");
+  }
+});

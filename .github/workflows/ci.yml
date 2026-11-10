@@ -84,6 +84,14 @@ jobs:
         run: npm run test:operations
         env:
           KIT_SHOTS: ${{ runner.temp }}/kit-shots
+      - name: Upload operations layout evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operations-screens
+          path: ${{ runner.temp }}/kit-shots/operations-*.png
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the failure states in real browsers (milestone 2, then the kinds and failures of milestones 3 to 7)
         run: npm run test:browser
         env:

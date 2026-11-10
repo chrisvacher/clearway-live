@@ -22,3 +22,20 @@ The live control surface, run of show and print view, remote, TV display, phones
 ## Validation
 
 Each area runs `npm run check`, the admin browser audit at 1440px and 390px, and applicable existing browser kits. Screenshot pairs live in `docs/evidence/admin`. PRs are stacked in A, B, C, D order so shared styles and navigation remain one implementation.
+
+## Review coverage clarified November 10
+
+The existing A to D evidence documents 20 views at 1440px and 390px. It covers
+navigation, headings, main landmarks, horizontal fit, empty states and the named
+form/layout fixes. Feature browser kits additionally exercise editing, sharing
+and export flows, as each area's record describes.
+
+Codex reviewed this evidence during the production audit. It has not independently
+completed a fresh visual and task-based UX review of every admin route and every
+state. Run of show, print, live controls, remote, TV and scribe were explicitly
+outside the four-area refresh. This evidence does not establish complete UX
+acceptance of all private application workflows.
+
+The new Operations page is covered separately by the operations browser kit at
+1440px and 390px, including populated monitoring data, controls and downloads.
+This does not replace the outstanding venue/device acceptance.

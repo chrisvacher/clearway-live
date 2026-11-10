@@ -14,7 +14,7 @@ export async function reportClientError(error: unknown, kind: ErrorKind = "error
     if (sent >= 10 || (kind !== "test" && seen.has(key))) return false;
     seen.set(key, now); sent++;
     const release = document.querySelector('meta[name="clearway-release"]')?.getAttribute("content") ?? "unknown";
-    const response = await fetch("/api/operations/errors", { method: "POST", credentials: "same-origin", keepalive: true,
+    const response = await fetch("/api/operations/errors", { method: "POST", credentials: "omit", referrerPolicy: "no-referrer", keepalive: true,
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...event, release }) });
     return response.ok;
   } catch { return false; } // Monitoring failure must never disrupt the room.

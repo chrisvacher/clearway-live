@@ -2,6 +2,8 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path=public,extensions;
 select no_plan();
+select ok(not (select prosecdef from pg_proc where oid='public.ops_state()'::regprocedure),'Public status wrapper is security invoker');
+select ok(not (select prosecdef from pg_proc where oid='public.ops_backup_chunk(uuid,integer)'::regprocedure),'Public download wrapper is security invoker');
 select ok(not has_function_privilege('authenticated','public.ops_backup_candidates(uuid)','execute'),'Browser cannot enumerate backup sources');
 select ok(not has_function_privilege('authenticated','public.ops_backup_put(uuid,integer,text)','execute'),'Browser cannot write backup bytes');
 select ok(not has_function_privilege('anon','public.ops_record_error(jsonb,text,text,text)','execute'),'Anonymous cannot bypass ingestion validation');
