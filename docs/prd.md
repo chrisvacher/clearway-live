@@ -415,6 +415,8 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 ## Engagements, templates and the run of show
 
+**Facilitator home and administration** (Decided November 9): `/setup` is the single facilitator home. `/control` redirects there. The home lists assigned engagements with church, event title, type, date and available place, upcoming first, and actions for setup, run of show, live room, door list and After. Clearway account administration lives at the admin-only `/setup/users`, linked from the home.
+
 **Engagement types.** Wayfinding is the first release. The other types are where the same tools serve Clearway's Mentimeter uses (Default list, which Chris can change).
 
 | Type | Shape | In the first release |

@@ -294,7 +294,7 @@ after(async () => {
 
 for (const [route, heading, surface] of [
   ["/", "Join your team", "phone"],
-  ["/sign-in", "Prepare the room.", "control"],
+  ["/sign-in", "Sign in to Clearway Live", "control"],
   ["/room", "Your place in the room.", "phone"],
 ]) {
   test(`${route} serves a complete production page with the correct surface`, async () => {
@@ -421,8 +421,9 @@ test("OAuth uses PKCE, then a verified allowlist claim opens setup and control",
   const sessionJson = Buffer.from(appCookie.slice(7), "base64url").toString();
   assert.doesNotMatch(sessionJson, /provider_token|provider_refresh_token|unused-google/);
   assert.ok(![...jar.keys()].some(k => /^cw-facilitator\.\d+$/.test(k)), "Old provider-token chunks are removed");
-  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Run the room."]]) {
+  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Your engagements"]]) {
     const page = await fetch(origin + path, { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
+    if (path === "/control") { assert.equal(page.status, 307); assert.equal(page.headers.get("location"), "/setup"); continue; }
     assert.equal(page.status, 200);
     assert.match(page.headers.get("cache-control")!, /no-store/);
     const html = await page.text();
