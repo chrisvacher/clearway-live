@@ -18,6 +18,7 @@ export function engagementGroups(e: ShellEngagement, fourLists = true): Group[] 
     { name: "Prepare", items: [
       { href: setup, label: "Overview", icon: <Home aria-hidden="true" size={s} /> },
       { href: `${setup}/details`, label: "Details", icon: <SlidersHorizontal aria-hidden="true" size={s} /> },
+      { href: `${setup}/joining`, label: "People and joining", icon: <Users aria-hidden="true" size={s} /> },
       { href: `${setup}/run-of-show`, label: "Run of show", icon: <ListOrdered aria-hidden="true" size={s} />, under: true },
       ...(wayfinding ? [{ href: `${setup}/discover`, label: "Discover", icon: <Search aria-hidden="true" size={s} /> }] : []),
       ...(wayfinding && fourLists ? [{ href: `${setup}/four-lists`, label: "Four Helpful Lists", icon: <Columns4 aria-hidden="true" size={s} /> }] : []),

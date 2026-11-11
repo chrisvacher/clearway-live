@@ -20,8 +20,8 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 | Step | What it is | Status |
 | --- | --- | --- |
 | 1 | The shell: `components/layout/app-shell.tsx` and `shell-nav.tsx`, engagement layouts, the lockup in the header | PR #140 |
-| 2 | Create flow, the Overview page and the Invite the room card | Built, see step 2 notes |
-| 3 | Setup split into Details, People and joining, Screens and Wayfinding settings, with the flexible joining model | After 2 |
+| 2 | Create flow, the Overview page and the Invite the room card | PR #141 |
+| 3 | Setup split into Details, People and joining and Screens, with the flexible joining model | Built, see step 3 notes |
 | 4 | Workshop clean-up: Discover, After and the live room's Wayfinding panels by engagement type, and After the workshop | After 3 |
 | 5 | Run of show: named sections, the grouped session editor, saved blocks | After 4 |
 | 6 | Consistency sweep | Last |
@@ -49,3 +49,23 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 - The type reads "Workshop", not "Team workshop". The database value is still `team_workshop`.
 - Not built in this step: creating without a Team Hub link, a printable door sign, and choosing the link name or
   room code (step 3, with its database change).
+
+## Step 3 notes
+
+- **People and joining** (`/setup/[id]/joining`) holds the link, who can join, the ways in, How the room decides and
+  the attendee list with invites. Each card saves on its own through `joining_save`.
+- **The link** is a name the facilitator chooses (3 to 24 letters or digits, lower case) or the generated room code.
+  The room code always keeps working beside a chosen name: the TV shows it, its QR code uses it and people type it at
+  live.clearway.co. A name can't be a word the app uses for its own pages, or look like a generated code.
+  `live.clearway.co/<name>` opens the room in any letter case. A name nobody chose is a not-found page.
+- **Make a new code** replaces the generated code after a confirmation. The old code and any printed QR code stop.
+- **Who can join** is the existing open joining setting, shown as a choice. It stays a team workshop setting that
+  only an admin changes (`20261109080000_open_join`): Wayfinding keeps the list so check-ins reach each person.
+- **Ways in** lists the link, the QR code and the typed room code. All three are always on. Turning one off would
+  change the TV's join screen, which belongs to the TV layout work, so it is not a setting yet.
+- **Details** (`/setup/[id]/details`) keeps the event, the church, AI and the Wayfinding fields. The TV theme and
+  size are only on Screens (`/setup/[id]/tv`) now.
+- Migration `20261111200000_join_link.sql`: `engagements.link_name` with a format check and a unique index,
+  `tv_room_link` resolving a name as well as a code, `joining_save` and `room_code_renew`. Tests:
+  `supabase/tests/database/join_link.test.sql`. The engagement JSON archive does not list `link_name` yet.
+- Not built: a logo upload and a time zone picker on Details, a link name field in the create flow, shorter room codes.

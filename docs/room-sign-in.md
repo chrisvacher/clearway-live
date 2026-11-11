@@ -15,6 +15,13 @@ admin-only changes independently of the form. See
 
 The email/code flow below remains the default for engagements without open joining.
 
+## A link name the facilitator chooses, November 11
+
+A facilitator can give an engagement a link name on People and joining, so `live.clearway.co/<name>` opens its
+room. The generated room code keeps working beside it. Names are 3 to 24 lower case letters or digits, unique among
+engagements, never a word the app uses for a page and never shaped like a generated code. See
+`supabase/migrations/20261111200000_join_link.sql`, `lib/room/join.ts` and `docs/design-pass-8-handoff.md`.
+
 Phones open `/room/<engagement UUID>`. A public projection returns only the church
 name, engagement title/type, whether it is closed, consensus copy and a neutral
 join-message flag. It never returns the roster, settings object or integration ids.

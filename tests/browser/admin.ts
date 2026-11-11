@@ -17,7 +17,7 @@ async function main() {
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
-    const paths:Record<string,string[]>={a:["/sign-in","/setup","/control",...(!before?["/setup/users"]:[])],b:["/setup/new",`/setup/${room.id}`,`/setup/${room.id}/details`],c:[`/setup/${room.id}/door`,`/setup/${room.id}/tv`,`/setup/${room.id}/discover`,`/setup/${room.id}/four-lists`,"/setup/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
+    const paths:Record<string,string[]>={a:["/sign-in","/setup","/control",...(!before?["/setup/users"]:[])],b:["/setup/new",`/setup/${room.id}`,`/setup/${room.id}/details`,`/setup/${room.id}/joining`],c:[`/setup/${room.id}/door`,`/setup/${room.id}/tv`,`/setup/${room.id}/discover`,`/setup/${room.id}/four-lists`,"/setup/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
       for (const path of (area==="all"?Object.values(paths).flat():paths[area])) {
@@ -54,7 +54,8 @@ async function main() {
       assert.equal(await page.getByLabel("Governance body’s name",{exact:true}).count(),0);
       assert.equal(await page.getByLabel("Scripture translation",{exact:true}).count(),0);
       assert.equal(await page.getByText("Add a Clearway user",{exact:true}).count(),0);
-      assert.equal(await page.getByText("This appears in workshop invites. Explain how the team will reach decisions.").count(),1);
+      assert.equal(await page.getByRole("checkbox",{name:/^Open joining:/}).count(),0,"joining lives on its own page");
+      assert.equal(await page.getByLabel("TV theme",{exact:true}).count(),0,"the screen's settings live on Screens");
       await page.getByRole("combobox",{name:/^Engagement type/}).selectOption("wayfinding");
       assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),1);
       await page.getByRole("combobox",{name:/^Engagement type/}).selectOption("team_workshop");
@@ -80,7 +81,18 @@ async function main() {
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/setup-new-linked-workshop-390.png`,fullPage:true});
       await page.unroute("**/api/setup");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
-      await page.goto(`${app.origin}/setup/${room.id}/details`); assert.equal(await page.getByRole("checkbox",{name:/^Open joining:/}).isDisabled(),true);
+      await page.goto(`${app.origin}/setup/${room.id}/joining`); assert.equal(await page.getByRole("radio",{name:/^Anyone who has the link or code/}).isDisabled(),true,"only an admin changes open joining");
+      // The lead names the link, and the name opens the room for a phone with no sign-in.
+      const linkName=`kit${room.id.replace(/-/g,"").slice(0,12)}`;
+      await page.getByRole("radio",{name:/^A name you choose/}).check();
+      await page.getByLabel("live.clearway.co/",{exact:true}).fill("ab"); assert.equal(await page.getByRole("button",{name:"Save the name",exact:true}).isDisabled(),true,"a name needs three characters");
+      await page.getByLabel("live.clearway.co/",{exact:true}).fill("Set Up!"); assert.equal(await page.getByLabel("live.clearway.co/",{exact:true}).inputValue(),"setup","only letters and digits are kept");
+      await page.getByRole("button",{name:"Save the name",exact:true}).click(); await page.getByText("That name is used by the app. Choose another.").waitFor();
+      await page.getByLabel("live.clearway.co/",{exact:true}).fill(linkName); await page.getByRole("button",{name:"Save the name",exact:true}).click();
+      await page.getByText("Saved. The new link works now.").waitFor();
+      const visitor=await browser.newPage(); await visitor.goto(`${app.origin}/${linkName.toUpperCase()}`); assert.equal(new URL(visitor.url()).pathname,`/room/${room.id}`,"the chosen name opens the room, in any case");
+      const lost=await visitor.goto(`${app.origin}/nosuchroomname`); assert.equal(lost?.status(),404,"a name nobody chose is a page that doesn't exist"); await visitor.close();
+      await page.goto(`${app.origin}/setup/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`live.clearway.co/${linkName}`),"the Overview shows the chosen link");
     }
     if(!before && area==="a") {
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);

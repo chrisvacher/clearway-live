@@ -118,3 +118,20 @@ label.create-option { flex-direction:row; }
 .admin-editor label.create-option { display:flex; flex-direction:row; align-items:flex-start; }
 .surface .admin-page h2.admin-section-name { margin:var(--space-6) 0 var(--space-3); font-size:var(--cwl-fs-app-micro); letter-spacing:0.06em; }
 .admin-editor.create-flow input:not([type="radio"]), .admin-editor.create-flow select { font-size:var(--cwl-fs-app-body); }
+
+/* Design pass 8, step 3: People and joining. */
+.joining { display:grid; gap:var(--space-6); max-width:920px; margin-bottom:var(--space-6); }
+.joining-line { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3); margin-bottom:var(--space-4); }
+.admin-editor .joining-line label { font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); }
+.admin-editor .joining-line input { width:240px; flex:0 1 240px; }
+.joining-ways { list-style:none; margin:0 0 var(--space-4); padding:0; display:grid; gap:var(--space-3); }
+.joining-ways li { display:flex; gap:var(--space-3); align-items:flex-start; }
+.joining-ways li > svg { margin-top:var(--space-1); flex:none; color:var(--cwl-app-text-muted); }
+.joining-ways strong { display:block; }
+.joining-ways span { color:var(--cwl-app-text-muted); font-size:var(--cwl-fs-app-label); overflow-wrap:anywhere; }
+.joining-ways span .invite-code { display:inline; font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text); }
+.joining .invite-code { font-size:var(--cwl-fs-app-section-title); }
+.admin-feedback.is-bad:not(:empty) { background:var(--cwl-app-warning-bg); }
+.admin-editor textarea { font:inherit; font-size:var(--cwl-fs-app-body); }
+.app-shell .admin-editor input:not([type="checkbox"]):not([type="radio"]), .app-shell .admin-editor select { font-size:var(--cwl-fs-app-body); }
+.app-shell .admin-editor form > .button-link { justify-self:start; width:auto; padding-inline:var(--space-6); }
