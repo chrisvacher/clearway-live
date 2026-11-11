@@ -77,7 +77,9 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
       - name: Install the pinned Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        # The system packages come from Ubuntu's archive. When it can't be reached, the runner image's own
+        # libraries are enough for Chromium, so install the browser alone rather than fail before any test runs.
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
       - name: Make the screenshot folder for the kits
         run: mkdir -p "${{ runner.temp }}/kit-shots"
       - name: Test file backup recovery and private client error monitoring
