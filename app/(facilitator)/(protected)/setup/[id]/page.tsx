@@ -24,7 +24,7 @@ function Row({ state, title, text, href, action }: { state: ReadyState; title: s
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
-  const { data: e } = await client.from("engagements").select("id,title,type,status,room_code,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)").eq("id", id).eq("deleted", false).maybeSingle();
+  const { data: e } = await client.from("engagements").select("id,title,type,status,room_code,link_name,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)").eq("id", id).eq("deleted", false).maybeSingle();
   if (!e) notFound();
   const church = e.church as unknown as { name: string; timezone: string } | null;
   const [sessions, attendees, presence, lead, tv] = await Promise.all([
@@ -42,7 +42,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const screens = ((tv.data as { screens?: unknown[] } | null)?.screens ?? []).length;
   const when = eventDate(e as unknown as ListedEngagement, church?.timezone);
   const leadName = ((lead.data ?? []) as unknown as { role: string; user: { name: string } | null }[]).find(f => f.role === "lead")?.user?.name;
-  const link = `live.clearway.co/${e.room_code}`, churchName = church?.name ?? "Church not named";
+  const link = `live.clearway.co/${e.link_name ?? e.room_code}`, churchName = church?.name ?? "Church not named";
   const ready = run.state === "ready" && joining.state === "ready";
   return <main id="main" className="admin-page">
     <header className="admin-heading"><div><div className="admin-kicker">{churchName} · {e.title}</div><h1>Overview</h1></div>
@@ -53,7 +53,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         <ul className="ready-list">
           <Row state={when ? "ready" : "todo"} title="Details" text={when ? `${typeName(e.type)}, ${when}${settings.ai_enabled ? ", AI on in live sessions" : ""}` : "No date yet. Add the date so it sorts with your upcoming engagements"} href={`/setup/${id}/details`} action="Edit details" />
           <Row state={run.state} title="Run of show" text={run.text} href={rows.length ? `/setup/${id}/run-of-show` : `/setup/templates?engagement=${id}`} action={rows.length ? "Open run of show" : "Use a template"} />
-          <Row state={joining.state} title="People and joining" text={joining.text} href={`/setup/${id}/details#attendees`} action="Change" />
+          <Row state={joining.state} title="People and joining" text={joining.text} href={`/setup/${id}/joining`} action="Change" />
           <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/setup/${id}/tv`} action="Pair a TV" />
         </ul>
       </section>

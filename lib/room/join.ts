@@ -12,6 +12,8 @@ const practice = (code: string) => code === practiceCode;
 // A path segment counts as a room link only when it is shaped like one, so a mistyped
 // page (live.clearway.co/remote) gets the app's not-found page instead of the join box.
 export const codeShaped = (segment: string) => { const code = typedRoomCode(segment); return roomCode(code) || practice(code); };
+// A link name a facilitator chose (live.clearway.co/hopeoakville): 3 to 24 letters or digits.
+export const nameShaped = (segment: string) => /^[a-z0-9]{3,24}$/i.test(segment.trim()) && !roomCode(segment.trim());
 
 export async function joinTarget(raw: unknown): Promise<JoinTarget> {
   const code = typedRoomCode(raw);
@@ -21,7 +23,7 @@ export async function joinTarget(raw: unknown): Promise<JoinTarget> {
   };
   if (!code) return back("empty");
   if (practice(code)) return { path: "/practice", found: true };
-  if (!roomCode(code)) return back("unknown");
+  if (!roomCode(code) && !nameShaped(code)) return back("unknown");
   try {
     const { data, error } = await serviceClient().rpc("tv_room_link", { p_code: code });
     if (error) return back("unavailable");

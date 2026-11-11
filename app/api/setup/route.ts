@@ -64,6 +64,18 @@ export async function POST(request:NextRequest){
       }else{const existing=await scoped();id=existing.id;linkedClient=existing.team_hub_client_id;linkedEngagement=existing.team_hub_engagement_id;}
       const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});
     }
+    if(action==="joining_save"||action==="room_code_renew"){
+      const e=await scoped();
+      if(action==="room_code_renew"){const out=await rpc("room_code_renew",{p_engagement:e.id}) as {status:string;room_code?:string};return out.status==="ok"?answer({ok:true,room_code:out.room_code}):answer({ok:false,message:"We couldn’t make a new code. Please try again."},400);}
+      const p:Record<string,unknown>={};
+      if(typeof body.link_name==="string")p.link_name=body.link_name.slice(0,60);
+      if(typeof body.open_join==="boolean"){if(body.open_join!==((e.settings as {open_join?:boolean}|null)?.open_join===true)){admin();p.open_join=body.open_join;}}
+      if(typeof body.neutral_join_message==="boolean")p.neutral_join_message=body.neutral_join_message;
+      if(typeof body.how_the_room_decides==="string")p.how_the_room_decides=body.how_the_room_decides;
+      const out=await rpc("joining_save",{p_engagement:e.id,p}) as {status:string;link_name?:string|null;room_code?:string};
+      const said:Record<string,string>={invalid_name:"Use 3 to 24 letters or numbers, with no spaces. A name can’t look like a generated room code.",reserved_name:"That name is used by the app. Choose another.",taken_name:"Another engagement uses that name. Choose another.",workshop_only:"Open joining is for workshops. Wayfinding uses the list, so check-ins can reach each person.",invalid_request:"Check How the room decides. It needs some words, up to 4,000 characters."};
+      return out.status==="ok"?answer({ok:true,link_name:out.link_name??null,room_code:out.room_code}):answer({ok:false,message:said[out.status]||"We couldn’t save that. Please try again."},400);
+    }
     if(action==="hub_people"||action==="hub_refresh"){
       const e=await scoped();if(!e.team_hub_client_id||!e.team_hub_engagement_id)return answer({ok:false,message:"This fictional engagement has no Team Hub link."},400);
       const hub=teamHubReader();if(!await hub.engagement(e.team_hub_engagement_id,e.team_hub_client_id))return answer({ok:false},404);
