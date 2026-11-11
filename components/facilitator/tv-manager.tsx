@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { EyeOff, Monitor, MonitorCheck } from "lucide-react";
+import { Monitor, MonitorCheck } from "lucide-react";
 import { pairingCode } from "@/lib/tv/policy";
 import type { TvManagerData } from "@/lib/tv/types";
 export function TvManager({ id, initial }: { id: string; initial: TvManagerData }) {
@@ -31,7 +31,6 @@ export function TvManager({ id, initial }: { id: string; initial: TvManagerData 
   };
   const pair = (event: FormEvent) => { event.preventDefault(); void change("pair", { code: pairingCode(code), label }); };
   return <>
-    <div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this</div>
     <header className="tv-manager-heading"><p className="show-eyebrow">{data.display.church} · {data.display.title}</p><h1>Pair a TV</h1><p>On the computer at the screen, open <a href="/tv" target="_blank" rel="noreferrer">live.clearway.co/tv</a>. Enter the code shown there.</p></header>
     {message && <p className={`show-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</p>}
     <div className="tv-manager-columns"><form onSubmit={pair} className="tv-manager-card show-fields">

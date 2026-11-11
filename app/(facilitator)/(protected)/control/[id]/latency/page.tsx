@@ -1,4 +1,3 @@
-import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EyeOff } from "lucide-react";
@@ -21,8 +20,8 @@ export default async function LatencyPage({ params, searchParams }: { params: Pr
   const report = data as LatencyReport, result = verdict(report), zone = show.context.timezone;
   const when = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
   const hourAgo = new Date(Date.now() - 3600e3).toISOString();
-  return <div className="admin-after"><EngagementNavigation id={id} /><main id="main" className="tv-manager latency-report">
-    <div className="ctl-row"><Link className="show-button" href={`/control/${id}`}>Return to the live room</Link>
+  return <div className="admin-after"><main id="main" className="tv-manager latency-report">
+    <div className="ctl-row">
       <Link className="show-button" href={`/control/${id}/latency?from=${encodeURIComponent(hourAgo)}`}>Show the last hour</Link>
       <Link className="show-button" href={`/control/${id}/latency`}>Show the last 12 hours</Link></div>
     <div className="tv-manager-heading"><p className="ctl-eyebrow">{show.context.church} · {show.context.title}</p><h1>Phone to TV</h1>

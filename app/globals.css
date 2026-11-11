@@ -701,3 +701,40 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .engagement-row h3 { margin-block: 0 var(--space-1); }
 .engagement-meta { color: var(--cwl-text-muted); }
 .engagement-row .actions { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+
+/* The app shell: one sidebar on every signed-in page (design pass 8). Run of show and Templates keep their own
+   window-filling layout and mount the same sidebar; every other page sits in .app-shell. Tokens only. */
+.surface:has(> .app-shell) > .header { display: none; }
+.app-shell { display: grid; grid-template-columns: var(--cwl-app-sidebar-w) minmax(0,1fr); min-height: 100svh; background: var(--cwl-app-page); color: var(--cwl-app-text); }
+.shell-main { min-width: 0; display: flex; flex-direction: column; }
+.shell-nav { align-self: stretch; }
+.shell-top { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-1) var(--space-3) var(--space-4); }
+.show-sidebar a.shell-mark { min-height: 0; padding: 0; border-radius: var(--cwl-radius-button); }
+.show-sidebar a.shell-mark:hover { background: transparent; }
+.shell-toggle { display: none; }
+.shell-links { display: flex; flex-direction: column; gap: var(--space-1); flex: 1; }
+.shell-who { display: flex; flex-direction: column; gap: var(--space-1); margin: 0 0 var(--space-2); padding: 0 var(--space-3) var(--space-4); border-bottom: 1px solid var(--cwl-app-border); overflow-wrap: anywhere; }
+.shell-who strong { font-size: var(--cwl-fs-app-body); }
+.shell-who span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
+.shell-group { display: flex; flex-direction: column; gap: var(--space-1); }
+.shell-group-name { margin: var(--space-3) 0 0; padding: 0 var(--space-3); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-bold); letter-spacing: 0.06em; text-transform: uppercase; color: var(--cwl-app-text-muted); }
+.shell-nav a[aria-current] { font-weight: var(--fw-bold); }
+.shell-nav a svg { flex: none; }
+.show-sidebar a.shell-back { margin-top: auto; color: var(--cwl-app-text-muted); }
+.shell-nav :focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.shell-main > .show-private { flex: none; }
+/* Pages designed with their own engagement column now take the full width of the shell. */
+.app-shell .ovr { grid-template-columns: minmax(0,1fr); min-height: 0; flex: 1; }
+.app-shell .ovr-nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--cwl-app-border); padding: var(--space-2) var(--cwl-app-gutter); }
+.app-shell .admin-page { width: 100%; }
+@media (max-width: 1100px) { .app-shell { grid-template-columns: 200px minmax(0,1fr); } }
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: minmax(0,1fr); min-height: 0; }
+  .show-sidebar.shell-nav { flex-direction: column; flex-wrap: nowrap; padding: var(--space-3) var(--space-4); border-right: 0; border-bottom: 1px solid var(--cwl-app-border); }
+  .shell-top { padding: 0; }
+  .shell-toggle { display: inline-flex; }
+  .shell-nav[data-open="false"] .shell-links { display: none; }
+  .shell-links { padding-top: var(--space-3); }
+}
+@media print { .shell-nav, .shell-main > .show-private { display: none !important; } .app-shell { display: block; min-height: 0; } }
+.shell-nav { font-size: var(--cwl-fs-app-table); }

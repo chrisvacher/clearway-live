@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, BadgeCheck, CalendarClock, CalendarDays, ChevronRight, CircleAlert, EyeOff, FileText, ListOrdered, Loader, PenLine, Plus, Radio, RefreshCw, Trash2, TriangleAlert, Undo2, UserCheck } from "lucide-react";
+import { ArrowDown, ArrowUp, BadgeCheck, CalendarClock, ChevronRight, CircleAlert, FileText, Loader, PenLine, Plus, RefreshCw, Trash2, TriangleAlert, Undo2 } from "lucide-react";
 import { AiMark } from "@/components/interactions/ai/ai-icon";
 import { SourceCard } from "@/components/report/sources-panel";
 import { afterPublic, inOutwardOrder, plural, roundView, blankedText, missingStages, rowsLeft, stageNames, stageOrder, statusNames, whenText, type PlanRowState, type Stage } from "@/lib/plan/policy";
@@ -124,15 +124,8 @@ export function PlanEditor({ engagement, church, title }: { engagement: string; 
   // The buttons stay off from the press until the page has read the state back, so there is no moment between the answer and the "drafting" state when a second draft could be started.
   const draft = async (confirm: boolean) => { setStarting(true); try { const r = await api.act({ action: "draft", id: crypto.randomUUID(), confirm }); setAsk(r.status === "confirm" ? r.kept ?? 0 : null); } finally { setStarting(false); } };
   return <div className="ovr" data-surface="plan" data-theme="light" data-testid="plan-editor">
-    <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
-      <Link href={`/control/${engagement}`}><Radio aria-hidden="true" />Live room</Link>
-      <Link href={`/setup/${engagement}/run-of-show`}><ListOrdered aria-hidden="true" />Run of show</Link>
-      <Link href={`/control/${engagement}/after`}><CalendarDays aria-hidden="true" />After the retreat</Link>
-      <Link href={`/control/${engagement}/report`}><FileText aria-hidden="true" />Report</Link>
-      <button type="button" className="is-on" aria-current="page"><UserCheck aria-hidden="true" />Visibility plan</button></nav>
     <main id="main" className="ovr-main">
-      <header className="ovr-head"><div className="grow"><div className="ovr-eyebrow">{church} · {title} · after the retreat</div><h1>Visibility plan</h1></div>
-        <span className="ovr-private"><EyeOff aria-hidden="true" />Private to the facilitators</span></header>
+      <header className="ovr-head"><div className="grow"><div className="ovr-eyebrow">{church} · {title} · after the retreat</div><h1>Visibility plan</h1></div></header>
       <div className="ovr-body">
         {api.message && <p className="ovr-banner is-warning" role="alert" data-testid="vp-message"><TriangleAlert aria-hidden="true" /><span>{api.message}</span></p>}
         {!state && <p className="ovr-muted">Reading the plan.</p>}

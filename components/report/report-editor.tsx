@@ -1,7 +1,6 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, CircleAlert, EyeOff, FileText, ListOrdered, Radio, TriangleAlert } from "lucide-react";
+import { CircleAlert, TriangleAlert } from "lucide-react";
 import { droppedLeft, roundView, plural, type ReportSection } from "@/lib/report/policy";
 import { useReport } from "./use-report";
 import { SectionList } from "./section-list";
@@ -33,14 +32,8 @@ export function ReportEditor({ engagement, church, title, timezone }: { engageme
   const left = ok ? droppedLeft(ok) : 0;
   const draftAll = () => void api.act({ action: "draft", id: crypto.randomUUID(), scope: "all", confirm: false });
   return <div className="ovr" data-surface="report" data-theme="light" data-testid="report-editor">
-    <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
-      <Link href={`/control/${engagement}`}><Radio aria-hidden="true" />Live room</Link>
-      <Link href={`/setup/${engagement}/run-of-show`}><ListOrdered aria-hidden="true" />Run of show</Link>
-      <Link href={`/control/${engagement}/after`}><CalendarDays aria-hidden="true" />After the retreat</Link>
-      <button type="button" className="is-on" aria-current="page"><FileText aria-hidden="true" />Report</button></nav>
     <main id="main" className="ovr-main">
-      <header className="ovr-head"><div className="grow"><div className="ovr-eyebrow">{church} · {title} · after the retreat</div><h1>Wayfinding report</h1></div>
-        <span className="ovr-private"><EyeOff aria-hidden="true" />Private to the facilitators</span></header>
+      <header className="ovr-head"><div className="grow"><div className="ovr-eyebrow">{church} · {title} · after the retreat</div><h1>Wayfinding report</h1></div></header>
       <div className="ovr-body">
         {api.message && <p className="ovr-banner is-warning" role="alert" data-testid="rpt-message"><TriangleAlert aria-hidden="true" /><span>{api.message}</span></p>}
         {!state && <p className="ovr-muted">Reading the report.</p>}
