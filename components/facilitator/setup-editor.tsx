@@ -30,7 +30,7 @@ export function SetupEditor({id,initial,members,admin,hubConfigured}:{id?:string
   </section>}
   <form className="form-stack" onSubmit={save}>
    <fieldset disabled={busy}><legend>Engagement</legend><div className="form-grid"><Field label="Engagement title" value={eng.title} onChange={v=>engagement("title",v)} required />
-    <label>Engagement type<select value={eng.type} disabled={eng.type==="practice"} onChange={e=>engagement("type",e.target.value)}><option value="wayfinding">Wayfinding</option><option value="day_and_a_half">Day and a half</option><option value="team_workshop">Team workshop</option>{eng.type==="practice"&&<option value="practice">Practice</option>}</select></label>
+    <label>Engagement type<select value={eng.type} disabled={eng.type==="practice"} onChange={e=>engagement("type",e.target.value)}><option value="wayfinding">Wayfinding</option><option value="day_and_a_half">Day and a half</option><option value="team_workshop">Workshop</option>{eng.type==="practice"&&<option value="practice">Practice</option>}</select></label>
     <label>Status<select value={eng.status} onChange={e=>engagement("status",e.target.value)}>{["setup","discover","pre_call","retreat","follow_up","closed"].map(s=><option key={s} value={s}>{statusName(s)}</option>)}</select></label>
     {wayfinding&&<Field label="Pre-call time in the church’s time zone" type="datetime-local" value={eng.pre_call_local} onChange={v=>engagement("pre_call_local",v)} />}
     <Field label={wayfinding?"Engagement start":"Workshop date"} type="date" value={eng.start_date} onChange={v=>engagement("start_date",v)} required={!wayfinding} />

@@ -22,6 +22,6 @@ test("the place is the city and province when Team Hub has them", () => {
   assert.equal(place(null), null);
 });
 test("types read in plain words", () => {
-  assert.equal(typeName("team_workshop"), "Team workshop");
+  assert.equal(typeName("team_workshop"), "Workshop");
   assert.equal(typeName("day_and_a_half"), "Wayfinding, day and a half");
 });

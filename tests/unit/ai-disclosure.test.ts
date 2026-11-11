@@ -63,7 +63,7 @@ test("AI is on by default for new engagements; only an explicit setting counts",
   const off = setupInput({ church: { name: "Riverside", timezone: "America/Toronto" }, engagement: { title: "Wayfinding", type: "wayfinding", status: "setup", start_date: "2026-11-01", end_date: "2027-09-01",
     base_year: "", lens_names: ["Congregation", "Community", "Leadership", "Operations", "Learning"], how_the_room_decides: "We decide together.", settings: { ai_enabled: false } } });
   assert.equal(off.engagement.settings.ai_enabled, false, "turned off stays off");
-  assert.match(readFileSync("app/(facilitator)/(protected)/setup/new/page.tsx", "utf8"), /settings:\{ai_enabled:true,/, "the new engagement form starts with AI on");
+  assert.match(readFileSync("components/facilitator/create-engagement.tsx", "utf8"), /settings: \{ ai_enabled: true,/, "the new engagement form starts with AI on");
   assert.equal(engagementAi({ ai_enabled: true }), true);
   for (const settings of [{ ai_enabled: false }, {}, null, { ai_enabled: "true" }]) assert.equal(engagementAi(settings), false);
 });

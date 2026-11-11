@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { Activity, BarChart3, CalendarDays, ClipboardCheck, Columns4, DoorOpen, FileText, FlaskConical, LayoutDashboard, LayoutTemplate, Link2, ListChecks, ListOrdered, Menu, Monitor, Radio, Search, SlidersHorizontal, UserCheck, Users } from "lucide-react";
+import { Activity, BarChart3, CalendarDays, ClipboardCheck, Columns4, DoorOpen, FileText, FlaskConical, Home, LayoutDashboard, LayoutTemplate, Link2, ListChecks, ListOrdered, Menu, Monitor, Radio, Search, SlidersHorizontal, UserCheck, Users } from "lucide-react";
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { practiceId } from "@/lib/room/practice";
 
@@ -16,7 +16,8 @@ export function engagementGroups(e: ShellEngagement, fourLists = true): Group[] 
   const s = 18;
   return [
     { name: "Prepare", items: [
-      { href: setup, label: "Setup", icon: <SlidersHorizontal aria-hidden="true" size={s} /> },
+      { href: setup, label: "Overview", icon: <Home aria-hidden="true" size={s} /> },
+      { href: `${setup}/details`, label: "Details", icon: <SlidersHorizontal aria-hidden="true" size={s} /> },
       { href: `${setup}/run-of-show`, label: "Run of show", icon: <ListOrdered aria-hidden="true" size={s} />, under: true },
       ...(wayfinding ? [{ href: `${setup}/discover`, label: "Discover", icon: <Search aria-hidden="true" size={s} /> }] : []),
       ...(wayfinding && fourLists ? [{ href: `${setup}/four-lists`, label: "Four Helpful Lists", icon: <Columns4 aria-hidden="true" size={s} /> }] : []),

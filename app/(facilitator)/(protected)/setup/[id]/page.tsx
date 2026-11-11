@@ -1,26 +1,63 @@
 import "@/components/facilitator/admin.css";
-import { readAll } from "@/lib/server/read-all";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CircleAlert, CircleCheck, Radio } from "lucide-react";
 import { requireFacilitator } from "@/lib/server/facilitator";
-import { SetupEditor } from "@/components/facilitator/setup-editor";
-import { AttendeeEditor } from "@/components/facilitator/attendee-editor";
-import { consensus,localTime } from "@/lib/setup/policy";
-import { teamHubConfigured } from "@/lib/server/team-hub";
 import { uuid } from "@/lib/room/policy";
-import type { EngagementForm } from "@/lib/setup/types";
-export default async function EditEngagement({params}:{params:Promise<{id:string}>}){
-  const {id}=await params;if(!uuid(id))notFound();const {client,profile}=await requireFacilitator();
-  const {data:e}=await client.from("engagements").select("*").eq("id",id).eq("deleted",false).maybeSingle();if(!e)notFound();
-  const [{data:c},{data:members},{data:assignments},attendees]=await Promise.all([
-    client.from("churches").select("*").eq("id",e.church_id).eq("deleted",false).maybeSingle(),
-    client.from("clearway_users").select("id,name,email").eq("deleted",false).order("name"),
-    client.from("engagement_facilitators").select("clearway_user_id,role").eq("engagement_id",id).eq("deleted",false),
-    readAll(after=>{const q=client.from("attendees").select("id,name,email,room_role,role_at_church,extra_fields").eq("engagement_id",id).eq("deleted",false).order("id").limit(500);return after?q.gt("id",after):q;}),
-  ]);if(!c)notFound();
-  const settings=e.settings as Partial<EngagementForm["settings"]>;
-  return <><main id="main" className="admin-page"><header className="admin-heading"><div><div className="admin-kicker">{c.name} · {e.title}</div><h1>Edit setup</h1></div></header>
-    <section className="admin-panel room-details" aria-label="Room joining"><h2>Join the room</h2>{e.status==="closed"&&<p>This engagement is closed. Reopen it before people join.</p>}<p>Room code: <strong>{e.room_code}</strong></p><p><a className="text-link" href={`https://live.clearway.co/${e.room_code}`}>live.clearway.co/{e.room_code}</a></p><p>{e.type==="team_workshop"&&settings.open_join===true?"Open joining is on. Guests join by name.":"Open joining is off. People sign in with their email."}</p></section>
-    <SetupEditor id={id} admin={profile.is_admin} hubConfigured={teamHubConfigured()} members={members||[]} initial={{church:{name:c.name,timezone:c.timezone,logo_url:c.logo_url||"",mission:c.mission,purpose:c.purpose,values:c.values.join("\n"),strategy:c.strategy,leadership_rhythms:c.leadership_rhythms.join("\n"),governance_body_name:c.governance_body_name},engagement:{title:e.title,type:e.type,status:e.status,start_date:e.start_date||"",end_date:e.end_date||"",retreat_start_date:e.retreat_start_date||"",retreat_end_date:e.retreat_end_date||"",pre_call_local:localTime(e.pre_call_at,c.timezone),base_year:String(e.base_year),lens_names:e.lens_names,how_the_room_decides:e.how_the_room_decides||consensus,settings:{neutral_join_message:settings.neutral_join_message===true,ai_enabled:settings.ai_enabled===true,scripture_translation:settings.scripture_translation||"",tv_theme:settings.tv_theme||"dark",texture:settings.texture!==false,room_size:settings.room_size||"very_small",open_join:settings.open_join===true}},lead:assignments?.find(f=>f.role==="lead")?.clearway_user_id||"",co:assignments?.find(f=>f.role==="co_facilitator")?.clearway_user_id||"",hub_client:e.team_hub_client_id||"",hub_engagement:e.team_hub_engagement_id||""}} />
-    <AttendeeEditor id={id} attendees={attendees.sort((a,b)=>a.name.localeCompare(b.name))} linked={Boolean(e.team_hub_client_id)} hubConfigured={teamHubConfigured()} closed={e.status==="closed"} />
-  </main></>;
+import { roomQr } from "@/lib/tv/qr";
+import { eventDate, statusName, typeName, type ListedEngagement } from "@/lib/setup/listing";
+import { inviteText, joiningLine, runLine, type ReadyState } from "@/lib/setup/overview";
+import { InviteCard } from "@/components/facilitator/invite-card";
+
+export const metadata = { title: "Overview" };
+export const dynamic = "force-dynamic";
+
+function Row({ state, title, text, href, action }: { state: ReadyState; title: string; text: string; href: string; action: string }) {
+  return <li className="ready-row">
+    <span className={`ready-chip is-${state}`}>{state === "ready" ? <><CircleCheck size={14} aria-hidden="true" />Ready</> : state === "todo" ? <><CircleAlert size={14} aria-hidden="true" />To do</> : "Optional"}</span>
+    <div><strong>{title}</strong><p>{text}</p></div>
+    <Link className="admin-button" href={href}>{action}<span className="sr-only">: {title}</span></Link>
+  </li>;
+}
+
+// Where an engagement opens: is this event ready, and how do people get in.
+export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params; if (!uuid(id)) notFound();
+  const { client } = await requireFacilitator();
+  const { data: e } = await client.from("engagements").select("id,title,type,status,room_code,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)").eq("id", id).eq("deleted", false).maybeSingle();
+  if (!e) notFound();
+  const church = e.church as unknown as { name: string; timezone: string } | null;
+  const [sessions, attendees, presence, lead, tv] = await Promise.all([
+    client.from("sessions").select("part,planned_minutes,state").eq("engagement_id", id).eq("deleted", false).limit(1000),
+    client.from("attendees").select("id", { count: "exact", head: true }).eq("engagement_id", id).eq("deleted", false),
+    client.rpc("room_presence", { p_engagement: id }),
+    client.from("engagement_facilitators").select("role,user:clearway_users(name)").eq("engagement_id", id).eq("deleted", false),
+    client.rpc("tv_manage", { p_engagement: id, p_action: "list", p: {} }),
+  ]);
+  const rows = sessions.data ?? [];
+  const run = runLine({ count: rows.length, minutes: rows.reduce((n, s) => n + s.planned_minutes, 0), notReady: rows.filter(s => s.state === "draft").length, sections: new Set(rows.map(s => s.part)).size });
+  const settings = (e.settings ?? {}) as { open_join?: boolean; ai_enabled?: boolean };
+  const open = e.type === "team_workshop" && settings.open_join === true;
+  const joining = joiningLine(open, attendees.count ?? 0, ((presence.data ?? []) as unknown[]).length);
+  const screens = ((tv.data as { screens?: unknown[] } | null)?.screens ?? []).length;
+  const when = eventDate(e as unknown as ListedEngagement, church?.timezone);
+  const leadName = ((lead.data ?? []) as unknown as { role: string; user: { name: string } | null }[]).find(f => f.role === "lead")?.user?.name;
+  const link = `live.clearway.co/${e.room_code}`, churchName = church?.name ?? "Church not named";
+  const ready = run.state === "ready" && joining.state === "ready";
+  return <main id="main" className="admin-page">
+    <header className="admin-heading"><div><div className="admin-kicker">{churchName} · {e.title}</div><h1>Overview</h1></div>
+      <div className="admin-actions"><span className={`ready-chip is-${ready ? "ready" : "optional"}`}>{e.status === "setup" && ready ? "Ready to share" : statusName(e.status)}</span><Link className="admin-button is-primary" href={`/control/${id}`}><Radio size={16} aria-hidden="true" />Open the live room</Link></div></header>
+    <div className="overview-columns">
+      <section className="admin-panel" aria-labelledby="ready-title"><h2 id="ready-title">Getting ready</h2>
+        <p>{[typeName(e.type), when ?? "No date yet", leadName].filter(Boolean).join(" · ")}</p>
+        <ul className="ready-list">
+          <Row state={when ? "ready" : "todo"} title="Details" text={when ? `${typeName(e.type)}, ${when}${settings.ai_enabled ? ", AI on in live sessions" : ""}` : "No date yet. Add the date so it sorts with your upcoming engagements"} href={`/setup/${id}/details`} action="Edit details" />
+          <Row state={run.state} title="Run of show" text={run.text} href={rows.length ? `/setup/${id}/run-of-show` : `/setup/templates?engagement=${id}`} action={rows.length ? "Open run of show" : "Use a template"} />
+          <Row state={joining.state} title="People and joining" text={joining.text} href={`/setup/${id}/details#attendees`} action="Change" />
+          <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/setup/${id}/tv`} action="Pair a TV" />
+        </ul>
+      </section>
+      <InviteCard id={id} code={e.room_code} link={link} qr={roomQr(e.room_code)} invite={inviteText(churchName, e.title, when, `https://${link}`, e.room_code)} closed={e.status === "closed"} />
+    </div>
+  </main>;
 }

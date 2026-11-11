@@ -19,8 +19,8 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 
 | Step | What it is | Status |
 | --- | --- | --- |
-| 1 | The shell: `components/layout/app-shell.tsx` and `shell-nav.tsx`, engagement layouts, the lockup in the header | This pull request |
-| 2 | Create flow, the Overview page and the Invite the room card | Next |
+| 1 | The shell: `components/layout/app-shell.tsx` and `shell-nav.tsx`, engagement layouts, the lockup in the header | PR #140 |
+| 2 | Create flow, the Overview page and the Invite the room card | Built, see step 2 notes |
 | 3 | Setup split into Details, People and joining, Screens and Wayfinding settings, with the flexible joining model | After 2 |
 | 4 | Workshop clean-up: Discover, After and the live room's Wayfinding panels by engagement type, and After the workshop | After 3 |
 | 5 | Run of show: named sections, the grouped session editor, saved blocks | After 4 |
@@ -35,3 +35,17 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 - The button row (`EngagementNavigation`), the back buttons and the per-page privacy markers are removed.
 - Under 900px the sidebar folds behind a Menu button.
 - Step 1 keeps today's routes: "Setup" is `/setup/[id]` and "Screens" is `/setup/[id]/tv` until steps 2 and 3 split them.
+
+## Step 2 notes
+
+- `/setup/[id]` is now the Overview: a readiness list (details, run of show, people and joining, screens) and the
+  Invite the room card with the link, the room code, a QR code, Copy link, Copy invite text and Download QR code.
+- The long editor moved, unchanged, to `/setup/[id]/details`. Step 3 splits it.
+- `/setup` groups engagements as Upcoming, No date yet, Past and Practice. Each row shows its room link with a copy
+  button and leads with one action that follows its status; the rest are under More.
+- `/setup/new` asks four things: the Team Hub church and engagement, the kind of event with the template to start
+  from, the date and first session time, and for a workshop how people join. It creates the engagement, applies the
+  template and opens the Overview.
+- The type reads "Workshop", not "Team workshop". The database value is still `team_workshop`.
+- Not built in this step: creating without a Team Hub link, a printable door sign, and choosing the link name or
+  room code (step 3, with its database change).
