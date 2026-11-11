@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Link2, Link2Off, Plus } from "lucide-react";
 import { stamp, type ShareLink, type ShareState } from "@/lib/read-only/policy";
@@ -43,7 +42,7 @@ export function ShareLinks({ engagement, church, title, initial }: { engagement:
   const active = state.links.filter(l => l.state === "active");
 
   return <main id="main" className="tv-manager recap">
-    <div className="shr-row recap-actions"><Link className="show-button" href={`/control/${engagement}/after`}>Back to After the retreat</Link></div>
+    
     <div className="tv-manager-heading"><p className="ctl-eyebrow">{church} · {title}</p><h1>Share</h1>
       <p className="show-help">Make a link for the elders, the board or anyone who should see the plan and how its goals stand. They can&rsquo;t change anything, and you can turn a link off at any time.</p></div>
     <div className="shr" data-theme="light">

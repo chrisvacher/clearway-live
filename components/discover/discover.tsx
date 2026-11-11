@@ -1,7 +1,6 @@
 "use client";
 import "./discover.css";
 import { Lock } from "lucide-react";
-import Link from "next/link";
 import type { DiscoverState } from "@/lib/discover/types";
 import { Findings, SurveyTotal } from "./findings";
 import { NotesUpload } from "./notes-upload";
@@ -23,8 +22,7 @@ export function Discover({ engagement, title, initial, closed, governance, initi
   // What We Heard reads again when a theme is accepted, renamed, merged or turned down above.
   const heard = useHeard(engagement, initialHeard, (themes.state?.themes ?? []).map(t => `${t.id}:${t.status}:${t.label}:${t.rests_on}`).join("|"));
   return <main id="main" className="dsc">
-    <header className="dsc-head"><span className="dsc-private"><Lock aria-hidden="true" />Only you see this</span><h1>Discover</h1><span className="dsc-muted">{title}</span>
-      <nav className="dsc-links" aria-label="Setup"><Link href={`/setup/${engagement}`}>Edit engagement</Link><Link href={`/setup/${engagement}/run-of-show`}>Edit run of show</Link></nav></header>
+    <header className="dsc-head"><span className="dsc-private"><Lock aria-hidden="true" />Only you see this</span><h1>Discover</h1><span className="dsc-muted">{title}</span></header>
     {closed ? <p className="dsc-empty" role="status">This engagement is closed. Discover is read only.</p> : null}
     <section className="dsc-part" aria-labelledby="dsc-survey"><h2 id="dsc-survey">Survey findings</h2>
       <p>The congregational survey runs in Team Hub. Add the report&apos;s key findings here, one at a time, as the report gives them. Each one becomes a theme.</p>

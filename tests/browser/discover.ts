@@ -29,8 +29,8 @@ async function main() {
 
     await step("The setup page links to Discover, and Discover starts empty and private", async () => {
       await page.goto(`${app.origin}/setup/${room.id}`);
-      await page.getByRole("link", { name: "Open Discover", exact: true }).waitFor({ timeout: 15000 });
-      await page.getByRole("link", { name: "Open Discover", exact: true }).click();
+      await page.getByRole("link", { name: "Discover", exact: true }).waitFor({ timeout: 15000 });
+      await page.getByRole("link", { name: "Discover", exact: true }).click();
       await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
       const text = await page.locator("main").innerText();
       assert.ok(text.includes("Only you see this"), "marked private");
@@ -184,7 +184,7 @@ async function main() {
       try {
         await seen("Discover isn’t available yet. Please try again later.", "text");
         await page.goto(`${app.origin}/setup/${room.id}`);
-        await page.getByRole("link", { name: "Open run of show", exact: true }).waitFor({ timeout: 15000 });
+        await page.getByRole("link", { name: "Run of show", exact: true }).waitFor({ timeout: 15000 });
       } finally { await sql.query("alter function public.discover_state_off(uuid) rename to discover_state"); await reload(); }
       await seen("Survey findings", "heading");
     });

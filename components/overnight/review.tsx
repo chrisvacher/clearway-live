@@ -1,7 +1,6 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { BadgeCheck, Bell, CircleAlert, EyeOff, Keyboard, ListChecks, ListOrdered, Radio, Telescope, TriangleAlert, Undo2 } from "lucide-react";
+import { BadgeCheck, Bell, CircleAlert, EyeOff, Keyboard, ListChecks, Telescope, TriangleAlert, Undo2 } from "lucide-react";
 import type { FileFact, OvernightState } from "./types";
 import { useOvernight } from "./use-overnight";
 import { OutcomeView } from "./outcome";
@@ -84,9 +83,7 @@ export function OvernightReview({ engagement, church, title, timezone }: { engag
   useEffect(() => { if (view !== effective) setView(effective); }, [view, effective]);
   const ready = ok && ok.round.status !== "pending" && ok.round.status !== "drafting";
   return <div className="ovr" data-surface="review" data-theme="light" data-testid="overnight-review">
-    <nav className="ovr-nav" aria-label="Engagement"><div className="brand">{church}</div>
-      <Link href={`/control/${engagement}`}><Radio aria-hidden="true" />Live room</Link>
-      <Link href={`/setup/${engagement}/run-of-show`}><ListOrdered aria-hidden="true" />Run of show</Link>
+    <nav className="ovr-nav" aria-label="Overnight review">
       <button type="button" className={effective !== "publish" ? "is-on" : ""} onClick={() => open("overview")}><ListChecks aria-hidden="true" />Overnight review</button>
       <button type="button" className={effective === "publish" ? "is-on" : ""} onClick={() => open("publish")} disabled={!ok}><BadgeCheck aria-hidden="true" />Publish for Day 2</button></nav>
     <main id="main" className="ovr-main">

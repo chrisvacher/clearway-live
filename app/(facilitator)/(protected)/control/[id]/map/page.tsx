@@ -1,4 +1,3 @@
-import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -14,5 +13,5 @@ export default async function MapPage({ params }: { params: Promise<{ id: string
   const { client } = await requireFacilitator();
   const { data, error } = await client.rpc("map_draft_read", { p_engagement: id });
   if (error || !data || data.status !== "ok") notFound();
-  return <div className="admin-after"><EngagementNavigation id={id} /><main id="main" className="admin-map"><ClearwayMap engagement={id} initial={data as MapDraft} /></main></div>;
+  return <div className="admin-after"><main id="main" className="admin-map"><ClearwayMap engagement={id} initial={data as MapDraft} /></main></div>;
 }

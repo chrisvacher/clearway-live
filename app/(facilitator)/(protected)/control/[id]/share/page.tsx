@@ -1,4 +1,3 @@
-import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -16,5 +15,5 @@ export default async function SharePage({ params }: { params: Promise<{ id: stri
   const show = await readShow(client, id); if (!show) notFound();
   const { data, error } = await client.rpc("share_state", { p_engagement: id });
   if (error || !data || data.status !== "ok") notFound();
-  return <div className="admin-after"><EngagementNavigation id={id} /><ShareLinks engagement={id} church={show.context.church} title={show.context.title} initial={data as ShareState & { status: "ok" }} /></div>;
+  return <div className="admin-after"><ShareLinks engagement={id} church={show.context.church} title={show.context.title} initial={data as ShareState & { status: "ok" }} /></div>;
 }

@@ -28,15 +28,15 @@ async function main() {
           assert.ok(await page.locator("h1").count(),`${path} has a heading`);
           assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} fits ${width}px`);
           if((area==="c" || area==="d") && path!=="/setup/templates") {
-            assert.equal(await page.getByRole("navigation",{name:"Engagement pages",exact:true}).count(),1);
-            assert.ok(await page.getByRole("navigation",{name:"Engagement pages",exact:true}).innerText().then(text=>text.includes("Riverside Church")));
+            assert.equal(await page.getByRole("navigation",{name:"Engagement",exact:true}).count(),1);
+            assert.ok(await page.locator(".shell-who").textContent().then(text=>(text ?? "").includes("Riverside Church")));
           }
           if(area==="c" && path.endsWith("/door")) {
             assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
             assert.equal(await page.getByText("Joined by name · Not signed in",{exact:true}).count(),0);
           }
           if(area==="d" && width===390) {
-            const sidebar=page.locator(".admin-after .ovr-nav");
+            const sidebar=page.locator(".shell-nav");
             if(await sidebar.count()) assert.ok((await sidebar.boundingBox())!.height<220,`${path} navigation stays compact`);
           }
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/setup");

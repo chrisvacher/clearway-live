@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import "@/components/facilitator/admin.css";
-import { LockKeyhole } from "lucide-react";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { teamHubConfigured, teamHubReader } from "@/lib/server/team-hub";
 import { compareEngagements, statusName, eventDate, place, typeName, type HubPlace, type ListedEngagement } from "@/lib/setup/listing";
@@ -24,8 +23,8 @@ export default async function SetupPage() {
   const engagements = ((data ?? []) as unknown as ListedEngagement[]).sort((a,b) => compareEngagements(a,b));
   const where = await places(engagements);
   return <main id="main" className="admin-page">
-    <header className="admin-heading"><div><div className="admin-kicker"><LockKeyhole size={18} aria-hidden="true" /> Private to the facilitators</div><h1>Your engagements</h1><p>Prepare your next engagement, open the room or follow up with the team.</p></div>
-    <div className="admin-actions"><Link className="admin-button" href="/setup/templates">Browse templates</Link>{profile.is_admin && <><Link className="admin-button" href="/setup/users">Manage Clearway users</Link><Link className="admin-button" href="/setup/operations">Check operations</Link><Link className="admin-button is-primary" href="/setup/new">Create an engagement</Link></>}</div></header>
+    <header className="admin-heading"><div><h1>Your engagements</h1><p>Prepare your next engagement, open the room or follow up with the team.</p></div>
+    <div className="admin-actions">{profile.is_admin && <Link className="admin-button is-primary" href="/setup/new">Create an engagement</Link>}</div></header>
     {error ? <section className="admin-panel" role="status"><h2>Engagements unavailable</h2><p>We couldn’t load your engagements. Please try again.</p><Link className="admin-button" href="/setup">Try again</Link></section> : engagements.length
       ? <ul className="admin-list">{engagements.map(e => {
           const when = eventDate(e, e.church?.timezone), at = place(e.team_hub_client_id ? where.get(e.team_hub_client_id) : null);

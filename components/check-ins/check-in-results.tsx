@@ -88,7 +88,7 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
   const sentNow = rounds.some(r => r.status === "sent");
 
   return <main id="main" className="tv-manager recap">
-    <div className="ctl-row recap-actions"><Link className="show-button" href={`/control/${engagement}`}>Return to the live room</Link>
+    <div className="ctl-row recap-actions">
       {rounds.length > 0 && <a className="show-button" href={`/api/control/${engagement}/check-ins?format=csv`} download><Download size={18} aria-hidden="true" />Download CSV</a>}</div>
     <div className="tv-manager-heading"><p className="ctl-eyebrow">{church} · {title}</p><h1>Check-ins</h1>
       <p className="show-help">At 30, 60 and 90 days after the retreat, each owner gets one email with a link to a short check-in on their own first steps and goals. You see what they say here.</p></div>

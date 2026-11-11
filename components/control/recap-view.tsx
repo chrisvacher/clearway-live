@@ -1,7 +1,6 @@
 "use client";
-import Link from "next/link";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { Download, EyeOff, Printer } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { recapCount, recapFrame, recapKey, type Recap, type RecapEntry } from "@/lib/export/recap";
 import { lensOf, lensOptions } from "@/lib/interactions/lens";
@@ -55,13 +54,12 @@ export function RecapView({ engagement, context, initial }: { engagement: string
   }), [recap]);
   const serverNow = now + offset;
   return <main id="main" className="tv-manager recap">
-    <div className="ctl-row recap-actions"><Link className="show-button" href={`/control/${engagement}`}>Return to the live room</Link>
+    <div className="ctl-row recap-actions">
       <button className="show-button" type="button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button>
       <a className="show-button" href={`/api/control/${engagement}/export?session=all`} download><Download size={18} aria-hidden="true" />Download all as CSV</a>
       <a className="show-button" href={`/api/control/${engagement}/export?format=json`} download><Download size={18} aria-hidden="true" />Download engagement JSON</a></div>
     <div className="recap-head"><div className="tv-manager-heading"><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>Results recap</h1>
-      <p>Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive.</p></div>
-      <p className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this</p></div>
+      <p>Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive.</p></div></div>
     {!cards.length && <p className="recap-empty">No session has taken answers yet. Results appear here once the room reaches a session or a self-paced session opens.</p>}
     {parts.map(part => {
       const list = cards.filter(c => c.entry.part === part);

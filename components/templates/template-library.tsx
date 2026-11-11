@@ -1,14 +1,14 @@
 "use client";
+import { ShellNav } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, EyeOff, FlaskConical, LayoutDashboard, LayoutTemplate, Play, Plus, Trash2, X } from "lucide-react";
+import { BadgeCheck, EyeOff, Play, Plus, Trash2, X } from "lucide-react";
 import { kindLabel } from "@/lib/interactions/kinds";
 import { clock } from "@/lib/run-of-show/builder";
 import { parts } from "@/lib/run-of-show/types";
 import { removeTemplateQuestion } from "@/lib/templates/policy";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
-import { practiceId } from "@/lib/room/practice";
 import type { Template, TemplateLibrary as Library } from "@/lib/templates/types";
 import "@/components/run-of-show/builder.css";
 
@@ -48,12 +48,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
     finally { setBusy(false); }
   }
   return <main id="main" className="show-app">
-    <nav className="show-sidebar" aria-label="Clearway">
-      <p className="show-brand">Clearway</p>
-      <Link href="/setup"><LayoutDashboard aria-hidden="true" size={18} />Engagements</Link>
-      <Link href="/setup/templates" aria-current="page"><LayoutTemplate aria-hidden="true" size={18} />Templates</Link>
-      <Link href={`/setup/${practiceId}`}><FlaskConical aria-hidden="true" size={18} />Practice room</Link>
-    </nav>
+    <ShellNav admin={admin} />
     <div className="show-workspace">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
       <header className="show-header"><div><p className="show-eyebrow">Library</p><h1>Templates</h1></div><div className="show-actions">

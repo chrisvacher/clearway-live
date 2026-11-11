@@ -1,4 +1,3 @@
-import { EngagementNavigation } from "@/app/(facilitator)/_components/engagement-navigation";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -42,5 +41,5 @@ export default async function AfterPage({ params }: { params: Promise<{ id: stri
     const state = data as ShareState | null;
     if (!error && state?.status === "ok") summary = { ...summary, share: { available: true, line: shareLine(state), closed: state.closed, closedOn: state.closed_on, canReopen: state.can_reopen, eligible: state.eligible } };
   } catch { /* Sharing is not here yet. */ }
-  return <div className="admin-after"><EngagementNavigation id={id} /><AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} /></div>;
+  return <div className="admin-after"><AfterHub engagement={id} church={show.context.church} title={show.context.title} summary={summary} /></div>;
 }

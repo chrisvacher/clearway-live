@@ -1,8 +1,9 @@
 "use client";
+import { ShellNav, type ShellEngagement } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, DoorOpen, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutDashboard, LayoutTemplate,
-  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, Radio, ScanLine, Search, Users, type LucideProps } from "lucide-react";
+import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutTemplate,
+  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, ScanLine, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
@@ -64,7 +65,7 @@ function useGlide(root: RefObject<HTMLElement | null>, key: string) {
   return measure;
 }
 
-export function ShowEditor({ initial, notice = "", fourLists = true }: { initial: RunOfShow; notice?: string; fourLists?: boolean }) {
+export function ShowEditor({ initial, notice = "", fourLists = true, shell = null }: { initial: RunOfShow; notice?: string; fourLists?: boolean; shell?: ShellEngagement | null }) {
   const [show, setShow] = useState(initial), [pending, setPending] = useState<Op[]>([]);
   const [message, setMessage] = useState(notice), [error, setError] = useState(false), [reloadNeeded, setReloadNeeded] = useState(false), [announce, setAnnounce] = useState("");
   const [openId, setOpenId] = useState<string | null>(null), [closingId, setClosingId] = useState<string | null>(null);
@@ -323,25 +324,13 @@ export function ShowEditor({ initial, notice = "", fourLists = true }: { initial
   const DragIcon = drag ? drag.source.type === "tile" ? iconOf(drag.source.entry.kind, drag.source.entry.screen) : iconOf(drag.source.session.interaction, contentOf(drag.source.session.options).screen) : null;
 
   return <main id="main" className="show-app">
-    <nav className="show-sidebar" aria-label="Engagement">
-      <p className="show-brand">Clearway</p>
-      <Link href={base}><LayoutDashboard aria-hidden="true" size={18} />Overview</Link>
-      <Link href={`${base}#attendees`}><Users aria-hidden="true" size={18} />Attendees</Link>
-      <Link href={`${base}/run-of-show`} aria-current="page"><ListOrdered aria-hidden="true" size={18} />Run of show</Link>
-      <Link href={`${base}/discover`}><Search aria-hidden="true" size={18} />Discover</Link>
-      <Link href={`/control/${ctx.id}`}><Radio aria-hidden="true" size={18} />Live room</Link>
-      <Link href={`${base}/tv`}><Monitor aria-hidden="true" size={18} />Pair a TV</Link>
-      <Link href={`${base}/door`}><DoorOpen aria-hidden="true" size={18} />Door list</Link>
-      {fourLists && <Link href={`${base}/four-lists`}><Columns4 aria-hidden="true" size={18} />Four Helpful Lists</Link>}
-      <Link href={`${base}/run-of-show/print`}><Printer aria-hidden="true" size={18} />Printouts</Link>
-      <Link href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate aria-hidden="true" size={18} />Templates</Link>
-      <Link href="/setup">View engagements</Link>
-    </nav>
+    <ShellNav engagement={shell ?? { id: ctx.id, title: ctx.title, church: ctx.church, type: "wayfinding" }} fourLists={fourLists} />
     <div className="show-workspace">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
       <header className="show-header"><div><p className="show-eyebrow">{ctx.church} · {ctx.title}</p><h1>Run of show</h1></div><div className="show-actions">
         {!empty && <span className="show-muted" aria-live="polite">{count} {count === 1 ? "session" : "sessions"} · {clock(total)}</span>}
         <button className="show-button" type="button" disabled={empty || locked || pending.length > 0} onClick={() => setSaveTemplate(true)}><Copy size={18} aria-hidden="true" />Save as template</button>
+        <Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={18} aria-hidden="true" />Use a template</Link>
         <Link className="show-button" href={`${base}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link>
       </div></header>
       <div className="show-toolbar"><span>Times in {tz}. Each session starts when the one before it ends.</span><button className="show-button" type="button" onClick={() => void reload()}>Reload run of show</button></div>
