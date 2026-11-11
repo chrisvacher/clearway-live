@@ -348,6 +348,8 @@ async function main() {
         const i = await info();
         assert.equal((await ctl("show", { to: i.items[5].id })).status, "ok");
         await until(async () => (await layer().locator(".rbk-h").innerText()).includes(outcomes[0].name), "the TV shows the first outcome", 8000);
+        // The heading changes a moment before the outcome's lines are in place, so wait for the lines rather than read them once.
+        await until(async () => (await tvLines()).join("|") === outcomes[0].bullets.map(b => b[0]).join("|"), "the TV shows the outcome's bullets", 8000).catch(() => undefined);
         assert.deepEqual(await tvLines(), outcomes[0].bullets.map(b => b[0]));
         const read = await phones[2].call(`/api/live/${room}/read-back?session=${rb}`, { cache: "no-store" });
         const body = await read.text();
