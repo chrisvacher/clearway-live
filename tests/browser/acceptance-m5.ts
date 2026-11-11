@@ -402,6 +402,9 @@ async function main() {
       const fills = await layer().locator(".rbk-bar i").evaluateAll(els => els.map(e => getComputedStyle(e).backgroundColor));
       assert.equal(new Set(fills).size, 1, `both bars share one colour, no leader: ${fills.join(" | ")}`);
       await until(async () => (await layer().locator("[data-missing]:not(.is-out)").count()) >= 1, "a missing answer is shown", 6000);
+      // The 50 missing answers reach the TV in a steady flow, so the count of the rest climbs for a moment. Wait for it to settle on all 50.
+      const settled = async () => { const n = await layer().locator("[data-missing]:not(.is-out)").count(); return (await layer().locator("[data-more-missing]").innerText()).trim() === `+ ${50 - n} more on phones`; };
+      await until(settled, "the TV counts all 50 missing answers", 8000).catch(() => undefined);
       const shown = await layer().locator("[data-missing]:not(.is-out)").count();
       assert.ok(shown >= 1 && shown <= 6, `at most 6 anonymous missing answers (${shown})`);
       assert.equal((await layer().locator("[data-more-missing]").innerText()).trim(), `+ ${50 - shown} more on phones`);
