@@ -17,7 +17,7 @@ async function main() {
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
-    const paths:Record<string,string[]>={a:["/sign-in","/setup","/control",...(!before?["/setup/users"]:[])],b:["/setup/new",`/setup/${room.id}`],c:[`/setup/${room.id}/door`,`/setup/${room.id}/tv`,`/setup/${room.id}/discover`,`/setup/${room.id}/four-lists`,"/setup/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
+    const paths:Record<string,string[]>={a:["/sign-in","/setup","/control",...(!before?["/setup/users"]:[])],b:["/setup/new",`/setup/${room.id}`,`/setup/${room.id}/details`],c:[`/setup/${room.id}/door`,`/setup/${room.id}/tv`,`/setup/${room.id}/discover`,`/setup/${room.id}/four-lists`,"/setup/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
       for (const path of (area==="all"?Object.values(paths).flat():paths[area])) {
@@ -40,14 +40,15 @@ async function main() {
             if(await sidebar.count()) assert.ok((await sidebar.boundingBox())!.height<220,`${path} navigation stays compact`);
           }
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/setup");
-          if(path==="/setup") for(const label of ["Edit setup","Open run of show","Open the live room","Open door list","Open After the retreat"])
-            assert.ok(await page.getByRole("link",{name:label,exact:true}).count(),label);
+          if(path==="/setup") { assert.ok(await page.getByRole("link",{name:/^(Continue setup|Open overview|Open the live room|Open results)$/}).count(),"each engagement leads with one action");
+            for(const label of ["Details","Run of show","Door list","Results"]) assert.ok(await page.locator(".admin-more-list a",{hasText:label}).count(),label); }
+          if(path===`/setup/${room.id}`) { assert.equal(await page.getByRole("heading",{name:"Invite the room",exact:true}).count(),1); assert.equal(await page.getByRole("button",{name:"Copy link",exact:true}).count(),1); assert.equal(await page.getByRole("img",{name:/^QR code for live\.clearway\.co\//}).count(),1); }
         }
         if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/${path.replace(room.id,"engagement").replaceAll("/","-").slice(1)}-${width}.png`,fullPage:true}); }
       }
     }
     if(!before && area==="b") {
-      await page.goto(`${app.origin}/setup/${room.id}`);
+      await page.goto(`${app.origin}/setup/${room.id}/details`);
       assert.equal(await page.getByLabel("Workshop date",{exact:true}).count(),1);
       assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),0);
       assert.equal(await page.getByLabel("Governance body’s name",{exact:true}).count(),0);
@@ -71,15 +72,15 @@ async function main() {
         return route.continue();
       });
       await page.goto(app.origin+"/setup/new"); await page.getByRole("button",{name:"Find churches",exact:true}).click();
-      await page.getByRole("combobox",{name:/^Church/}).selectOption(ids.team_hub_client_id);
-      const option=page.getByRole("option",{name:"Staff planning workshop · Already in Live",exact:true});
-      await option.waitFor({state:"attached"}); assert.equal(await option.evaluate(node=>(node as HTMLOptionElement).disabled),true);
+      await page.getByRole("button",{name:/^Riverside Church/}).click();
+      await page.getByText("Already in Live.").waitFor();
       assert.equal(await page.getByRole("link",{name:"Open Staff planning workshop",exact:true}).getAttribute("href"),`/setup/${room.id}`);
-      await page.getByRole("combobox",{name:/^Engagement type/}).selectOption("team_workshop");
+      assert.equal(await page.getByRole("button",{name:"Create engagement",exact:true}).isDisabled(),true,"a linked engagement can’t be created twice");
+      assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),0); assert.equal(await page.getByRole("radio",{name:/^Open workshop/}).isChecked(),true);
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/setup-new-linked-workshop-390.png`,fullPage:true});
       await page.unroute("**/api/setup");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
-      await page.goto(`${app.origin}/setup/${room.id}`); assert.equal(await page.getByRole("checkbox",{name:/^Open joining:/}).isDisabled(),true);
+      await page.goto(`${app.origin}/setup/${room.id}/details`); assert.equal(await page.getByRole("checkbox",{name:/^Open joining:/}).isDisabled(),true);
     }
     if(!before && area==="a") {
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);

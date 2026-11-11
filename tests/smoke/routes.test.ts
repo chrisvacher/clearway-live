@@ -431,7 +431,7 @@ test("OAuth uses PKCE, then a verified allowlist claim opens setup and control",
   const sessionJson = Buffer.from(appCookie.slice(7), "base64url").toString();
   assert.doesNotMatch(sessionJson, /provider_token|provider_refresh_token|unused-google/);
   assert.ok(![...jar.keys()].some(k => /^cw-facilitator\.\d+$/.test(k)), "Old provider-token chunks are removed");
-  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Your engagements"]]) {
+  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Engagements"]]) {
     const page = await fetch(origin + path, { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
     if (path === "/control") { assert.equal(page.status, 307); assert.equal(page.headers.get("location"), "/setup"); continue; }
     assert.equal(page.status, 200);
@@ -605,7 +605,7 @@ test("setup API enforces facilitator identity, CSRF and admin-only Team Hub disc
  assert.equal((await setupPost(new Map(),{action:"hub_clients"})).response.status,401);
  const {jar}=await finishLogin("allowed");assert.equal((await setupPost(jar,{action:"hub_clients"})).response.status,403);
  const cross=await fetch(origin+"/api/setup",{method:"POST",headers:{origin:"https://evil.example",cookie:cookieHeader(jar)},body:"{}"});assert.equal(cross.status,403);
- const page=await fetch(origin+`/setup/${roomId}`,{headers:{cookie:cookieHeader(jar)}});assert.equal(page.status,200);assert.match(await page.text(),/Review import|How the room decides/);
+ const page=await fetch(origin+`/setup/${roomId}/details`,{headers:{cookie:cookieHeader(jar)}});assert.equal(page.status,200);assert.match(await page.text(),/Review import|How the room decides/);
 });
 test("attendee import previews normalize duplicates, then save only reviewed source",async()=>{
  const {jar}=await finishLogin("allowed");const body={id:roomId,source:"paste",text:"Ann Lee <ANN@example.org>\nOther <ann@example.org>"};
@@ -629,7 +629,7 @@ test("one add-and-invite request saves recipients and safely retries a failed de
  const blocked=await setupPost(jar,{...body,batch:randomUUID(),person:{name:"Fictional",email:"person@riverside.example"}});assert.equal(blocked.response.status,400);assert.equal(combinedImports,before+1);
  const sentBefore=sentBatches.length;
  const saved=await setupPost(jar,{action:"import",id:roomId,source:"person",person:{name:"Ann Lee",email:"ann@example.org"}});assert.equal(saved.data.count,1);assert.equal(sentBatches.length,sentBefore);
- const page=await fetch(origin+`/setup/${roomId}`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
+ const page=await fetch(origin+`/setup/${roomId}/details`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
  assert.match(html,/Add and invite/);assert.match(html,/Add without inviting/);assert.match(html,/Send invite/);assert.doesNotMatch(html,/Review import|Save people/);
 });
 

@@ -8,7 +8,7 @@ export type ListedEngagement = {
 };
 export type HubPlace = { city: string | null; state_province: string | null; country: string | null };
 
-const typeNames: Record<string, string> = { wayfinding: "Wayfinding", day_and_a_half: "Wayfinding, day and a half", team_workshop: "Team workshop", practice: "Practice" };
+const typeNames: Record<string, string> = { wayfinding: "Wayfinding", day_and_a_half: "Wayfinding, day and a half", team_workshop: "Workshop", practice: "Practice" };
 export const typeName = (type: string) => typeNames[type] ?? "Engagement";
 
 const day = (iso: string, withYear: boolean) => new Intl.DateTimeFormat("en-CA", { timeZone: "UTC", weekday: "short", month: "short", day: "numeric", ...(withYear ? { year: "numeric" } : {}) }).format(new Date(`${iso}T12:00:00Z`)).replace(/\./g, "");
@@ -50,4 +50,24 @@ export function compareEngagements(a: ListedEngagement, b: ListedEngagement, now
   };
   const [ag, ad] = key(a), [bg, bd] = key(b);
   return ag - bg || (ag >= 2 ? bd.localeCompare(ad) : ad.localeCompare(bd)) || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
+}
+
+// The home page's sections. The practice room sits apart from real engagements.
+export type ListGroup = "upcoming" | "undated" | "past" | "practice";
+export function listGroup(e: ListedEngagement, now = new Date()): ListGroup {
+  if (e.type === "practice") return "practice";
+  if (e.status === "closed") return "past";
+  const zone = e.church?.timezone ?? "America/Toronto", ymd = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+  const retreat = e.type !== "team_workshop" && e.retreat_start_date;
+  const start = retreat || e.start_date || (e.pre_call_at ? ymd(new Date(e.pre_call_at)) : null);
+  if (!start) return "undated";
+  const end = (retreat ? e.retreat_end_date : e.end_date) ?? start;
+  return end >= ymd(now) ? "upcoming" : "past";
+}
+export const groupNames: Record<ListGroup, string> = { upcoming: "Upcoming", undated: "No date yet", past: "Past", practice: "Practice" };
+// The one action a row leads with, by where the engagement is.
+export function mainAction(e: Pick<ListedEngagement, "id" | "status">, group: ListGroup): { href: string; label: string } {
+  if (group === "past") return { href: `/control/${e.id}/recap`, label: "Open results" };
+  if (e.status === "retreat") return { href: `/control/${e.id}`, label: "Open the live room" };
+  return { href: `/setup/${e.id}`, label: e.status === "setup" ? "Continue setup" : "Open overview" };
 }
