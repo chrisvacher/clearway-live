@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
+import { wayfindingOnly } from "@/lib/server/shell";
 import { uuid } from "@/lib/room/policy";
 import { governanceWord } from "@/lib/discover/policy";
 import { readDiscover } from "@/lib/discover/server";
@@ -14,6 +15,7 @@ import { Discover } from "@/components/discover/discover";
 export default async function DiscoverPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
+  await wayfindingOnly(client, id, `/setup/${id}`);
   const { data: engagement } = await client.from("engagements").select("id,title,status,church_id").eq("id", id).eq("deleted", false).maybeSingle();
   if (!engagement) notFound();
   const { data: church } = await client.from("churches").select("governance_body_name").eq("id", engagement.church_id).maybeSingle();

@@ -22,7 +22,7 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 | 1 | The shell: `components/layout/app-shell.tsx` and `shell-nav.tsx`, engagement layouts, the lockup in the header | PR #140 |
 | 2 | Create flow, the Overview page and the Invite the room card | PR #141 |
 | 3 | Setup split into Details, People and joining and Screens, with the flexible joining model | Built, see step 3 notes |
-| 4 | Workshop clean-up: Discover, After and the live room's Wayfinding panels by engagement type, and After the workshop | After 3 |
+| 4 | Workshop clean-up: Discover, After and the live room's Wayfinding panels by engagement type, and After the workshop | Built, see step 4 notes |
 | 5 | Run of show: named sections, the grouped session editor, saved blocks | After 4 |
 | 6 | Consistency sweep | Last |
 
@@ -69,3 +69,24 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
   `tv_room_link` resolving a name as well as a code, `joining_save` and `room_code_renew`. Tests:
   `supabase/tests/database/join_link.test.sql`. The engagement JSON archive does not list `link_name` yet.
 - Not built: a logo upload and a time zone picker on Details, a link name field in the create flow, shorter room codes.
+
+## Step 4 notes
+
+- **After the workshop** is the Results page (`/control/[id]/recap`) for a workshop: a Summary card, then "Results, session by
+  session" with the same cards, CSV downloads and print to PDF as before. A Wayfinding engagement's Results page is unchanged.
+- **The summary** is drafted by AI only when the facilitator presses Draft a summary. The model is shown what the recap shows
+  (`lib/workshop/summary.ts`): session titles, prompts, counts, scale averages, bars, word cloud words and free-text answers.
+  Hidden answers and words are left out, and a structured kind (a signature, a placement) sends no answers, so no name goes.
+  The prompt is `workshop-summary@1` in `lib/ai/workshop-summary.ts`, on the deeper model, one call while the facilitator waits.
+  The facilitator edits it, writes it by hand where AI is off, removes it, and downloads it as Word (`lib/export/summary-docx.ts`).
+  Draft again asks first when the summary has been edited.
+- **Where a workshop has no page**, the link goes somewhere useful: After the retreat, Report, Visibility plan, Read-only copy,
+  Check-ins, Overnight review and the draft Clearway Map go to Results. Discover and Four Helpful Lists go to the Overview.
+- **The live room** leaves out the alignment signal, the Scribe feed, the Overnight review card, Draft Clearway Map and After
+  the retreat for a workshop. Everything else is the same.
+- Migration `20261112100000_workshop_summary.sql`: `private.workshop_summaries`, `workshop_summary_state`, `workshop_summary_save`
+  and `workshop_summary_clear`, and the AI run log accepts `draft_workshop_summary`. Until it is applied the Summary card is left
+  out and the rest of the page works. Tests: `supabase/tests/database/workshop_summary.test.sql`,
+  `tests/unit/workshop-summary.test.ts` and two steps in `tests/browser/team-workshop.ts`.
+- Not built: one PDF that holds the summary and the results as a file (Print or save as PDF does this from the browser), the
+  two-scale "before and after" comparison card from the design, and the summary in the engagement JSON archive.

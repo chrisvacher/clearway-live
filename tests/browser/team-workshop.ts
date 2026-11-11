@@ -425,6 +425,36 @@ async function main() {
       const every = readFileSync((await download.path())!, "utf8").replace(/^﻿/, "").trim().split("\r\n");
       assert.equal(every.length - 1, Object.values(expected).reduce((n, e) => n + e.rows, 0), "Download all has every row");
     });
+    await step("After the workshop: AI drafts a short summary from the room's answers, the facilitator edits it and downloads it as Word", async () => {
+      assert.equal(await recap.getByRole("heading", { name: "After the workshop", exact: true }).count(), 1);
+      const card = recap.getByTestId("workshop-summary");
+      await card.getByRole("button", { name: "Draft a summary", exact: true }).click();
+      await card.getByText("AI drafted this from the room\u2019s answers. Read it before you share it.").waitFor({ timeout: 20000 });
+      const drafted = await card.locator(".ws-body").innerText();
+      assert.match(drafted, /The room began with/); assert.ok(!/[\u2014\u2013]/.test(drafted), "no dashes in the summary");
+      const runs = await sql.query("select status,model,prompt_version,session_id from private.ai_runs where engagement_id=$1 and job='draft_workshop_summary'", [room.id]);
+      assert.deepEqual(runs.rows.map(r => [r.status, r.prompt_version, r.session_id]), [["ok", "workshop-summary@1", null]], "the draft is in the AI run log");
+      await card.getByRole("button", { name: "Edit", exact: true }).click();
+      await card.getByLabel("Summary", { exact: true }).fill("The team began unsure.\n\nIt ended with a commitment.");
+      await card.getByRole("button", { name: "Save summary", exact: true }).click();
+      await until(async () => await card.locator(".ws-body p").count() === 2, "the edit is shown as two paragraphs", 10000);
+      assert.equal(await card.getByText(/AI drafted this/).count(), 0, "an edited summary is the facilitator's");
+      const [download] = await Promise.all([recap.waitForEvent("download"), card.getByRole("link", { name: "Download as Word", exact: true }).click()]);
+      assert.match(download.suggestedFilename(), /summary\.docx$/);
+      const bytes = readFileSync(await download.path());
+      assert.equal(bytes.subarray(0, 2).toString(), "PK", "the Word file is a real document");
+      if (shots) await recap.screenshot({ path: `${shots}/team-after-the-workshop.png`, fullPage: true });
+    });
+    await step("A workshop has no Wayfinding pages: their links go to the results, and the live room leaves their panels out", async () => {
+      const page = await facContext.newPage();
+      for (const path of ["after", "report", "plan", "share", "check-ins", "review", "map"]) { await page.goto(`${app.origin}/control/${room.id}/${path}`); assert.equal(new URL(page.url()).pathname, `/control/${room.id}/recap`, path); }
+      await page.goto(`${app.origin}/setup/${room.id}/discover`); assert.equal(new URL(page.url()).pathname, `/setup/${room.id}`);
+      await page.goto(`${app.origin}/control/${room.id}`); await page.getByRole("heading", { name: "Live room", exact: true }).waitFor();
+      for (const title of ["Scribe", "Overnight review"]) assert.equal(await page.getByLabel(`${title}, only you see this`, { exact: true }).count(), 0, title);
+      assert.equal(await page.getByLabel("Room, only you see this", { exact: true }).count(), 1);
+      assert.equal(await page.getByRole("link", { name: "Draft Clearway Map", exact: true }).count(), 0);
+      await page.close();
+    });
     await step("Print the recap to PDF", async () => {
       await recap.emulateMedia({ media: "print" });
       assert.equal(await recap.locator(".recap-actions").isVisible(), false, "print leaves the buttons off");

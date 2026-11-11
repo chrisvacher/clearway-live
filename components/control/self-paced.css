@@ -29,3 +29,18 @@
 }
 .sp-rehearsing { background: var(--cwl-app-warning-bg); }
 .recap-card .show-state { text-transform: none; }
+
+/* After the workshop: the summary card above the results. */
+.ws-card { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-5); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.ws-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.ws-head h2 { margin: 0; font-size: var(--cwl-fs-app-section-title); }
+.ws-note { display: flex; align-items: center; gap: var(--space-2); margin: 0; font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); color: var(--cwl-app-text-muted); }
+.ws-body p { margin: 0 0 var(--space-3); max-width: 70ch; overflow-wrap: anywhere; }
+.ws-body p:last-child { margin-bottom: 0; }
+.ws-empty { margin: 0; color: var(--cwl-app-text-muted); max-width: 70ch; }
+.ws-message { margin: 0; }
+.ws-form { display: flex; flex-direction: column; gap: var(--space-2); }
+.ws-form label { font-weight: var(--fw-semibold); }
+.ws-form textarea { width: 100%; max-width: 80ch; padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-button); font: inherit; color: inherit; background: var(--cwl-app-card); }
+@media print { .ws-card { border: 0; padding: 0; } .ws-note, .ws-actions { display: none !important; } }
+.recap-results-title { margin: 0; font-size: var(--cwl-fs-app-section-title); }

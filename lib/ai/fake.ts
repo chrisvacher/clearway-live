@@ -6,6 +6,8 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
+import { workshopSummaryPrompt } from "./workshop-summary";
+import type { SummaryInputs } from "../workshop/summary";
 import { heardPrompt, overnightPrompt, planPrompt, planStages, prompts, replyJson, reportPromptList, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type ReportOutput, type OvernightOutput, type PlanInputs, type PlanOutput, type PlanRow, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
@@ -275,7 +277,17 @@ function scriptedSignal(input: Record<string, unknown>): string {
   return JSON.stringify({ cards: cards.slice(0, 6), complete: true });
 }
 
+// The workshop summary stand-in: two plain paragraphs made only from the session titles, counts and averages it was given.
+export const isWorkshopSummary = (call: Pick<AiCall, "system">) => call.system === workshopSummaryPrompt.system;
+function scriptedWorkshopSummary(call: AiCall): string {
+  const input = replyJson(call.user) as Partial<SummaryInputs>, sessions = input.sessions ?? [];
+  if (!sessions.length) return JSON.stringify({ paragraphs: [] });
+  const first = sessions[0], last = sessions[sessions.length - 1], line = (s: SummaryInputs["sessions"][number]) => `${s.title} had ${s.count}${s.average != null ? `, with an average of ${s.average}` : ""}.`;
+  return JSON.stringify({ paragraphs: [`The room began with ${first.title}. ${line(first)}`, sessions.length > 1 ? `It ended with ${last.title}. ${line(last)}` : "That was the one session that took answers."] });
+}
+
 export function scripted(call: AiCall): string {
+  if (isWorkshopSummary(call)) return scriptedWorkshopSummary(call);
   if (isOvernight(call)) return scriptedOvernight(call);
   if (isThemes(call)) return scriptedThemes(call);
   if (isHeard(call)) return scriptedHeard(call);
