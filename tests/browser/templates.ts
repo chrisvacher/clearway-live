@@ -395,11 +395,20 @@ async function main() {
       const grip = await editor.locator(`.rb-row:has-text("${mover}") .rb-grip`).first().boundingBox(), target = await editor.locator(".rb-row", { hasText: "Our commitment" }).locator(".rb-head").boundingBox();
       await editor.mouse.move(grip!.x + grip!.width / 2, grip!.y + grip!.height / 2); await editor.mouse.down();
       await editor.mouse.move(grip!.x + 20, grip!.y + 30, { steps: 4 }); await delay(450);
-      await editor.mouse.move(target!.x + 200, target!.y + 6, { steps: 8 }); await delay(450);
+      await editor.mouse.move(target!.x + 200, target!.y + 2, { steps: 8 }); await delay(450);
+      // Aim just under the section's header, where the editor reads it: in the run as it would be without the open gap. Rows settle
+      // on springs and the gap moves them, so the aim is read again until the gap sits under the header.
+      const aim = () => editor.evaluate(() => {
+        const row = [...document.querySelectorAll<HTMLElement>(".rb-row")].find(r => r.querySelector(".rb-name strong")?.textContent === "Our commitment")!, slot = document.querySelector<HTMLElement>(".rb-slot");
+        const style = slot ? getComputedStyle(slot) : null, shift = slot && style && slot.offsetTop < row.offsetTop ? slot.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom) : 0;
+        const run = document.querySelector<HTMLElement>(".rb-run")!;
+        return { y: run.getBoundingClientRect().top + row.offsetTop - shift + 2, under: Boolean(slot?.previousElementSibling?.matches(".rb-sec[data-sec-name='Send-off']")) && slot?.nextElementSibling === row };
+      });
+      await until(async () => { const at = await aim(); if (at.under) return true; await editor.mouse.move(target!.x + 200, at.y, { steps: 2 }); await delay(350); return (await aim()).under; }, "the gap opens under the section's header", 10000);
       await shot(editor, "sections-drop-gap", 0);
       await editor.mouse.up();
       await until(async () => await sectionOf(mover) === "Send-off", `${mover} joins the section it was dropped into`, 8000);
-      assert.equal((await rowTitles()).indexOf(mover), before - 1, "and keeps its place in the run");
+      await until(async () => (await rowTitles()).indexOf(mover) === before - 1 && (await titles()).indexOf(mover) === (await titles()).indexOf("Our commitment") - 1, "and keeps its place in the run", 8000);
       await shot(editor, "sections-run");
       assert.equal(await editor.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "the run still fits the window");
     });
