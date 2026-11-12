@@ -118,6 +118,25 @@ export function placeSession(sessions: ShowSession[], session: ShowSession, part
   return [...rest.filter(s => s.part !== part).map(s => from?.has(s.id) ? { ...s, position: from.get(s.id)! } : s), ...target.map(s => ({ ...s, position: order.get(s.id)! }))];
 }
 
+// ---------- Sections (design pass 8, step 5) ----------
+// A section is a run of sessions next to each other in a part that carry the same name. A part with no named section has none.
+export type Section = { key: string; name: string; sessions: ShowSession[] };
+export const sectionName = (s: ShowSession) => (s.section ?? "").trim();
+export function sectionsOf(group: ShowSession[]): Section[] {
+  const out: Section[] = [];
+  for (const s of group) { const name = sectionName(s), last = out[out.length - 1]; if (last && last.name === name) last.sessions.push(s); else out.push({ key: s.id, name, sessions: [s] }); }
+  return out;
+}
+export const hasSections = (group: ShowSession[]) => group.some(s => sectionName(s) !== "");
+// The section a session takes when it lands at an index among the rest of a part: the one above it, or the one below at the top.
+export function sectionAt(sessions: ShowSession[], part: Part, index: number, moving?: string): string {
+  const rest = partOf(sessions.filter(s => s.id !== moving), part);
+  const near = rest[Math.min(index, rest.length) - 1] ?? rest[0];
+  return near ? sectionName(near) : "";
+}
+// "2 sessions · 0:30", with live minutes only.
+export const sectionLine = (list: ShowSession[]) => `${list.length} ${list.length === 1 ? "session" : "sessions"} · ${clock(liveMinutes(list))}`;
+
 // Times from the durations (change 15). A part starts at its first live session's planned
 // start, or the earliest set; each live session starts when the one before it ends.
 // Self-paced sessions keep their own times and take no room time.
@@ -138,7 +157,7 @@ export const liveMinutes = (sessions: ShowSession[]) => sessions.filter(s => s.m
 export const clock = (minutes: number) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, "0")}`;
 
 // Every place a session can land, in run order: each part's gaps, top to bottom.
-export type Slot = { part: Part; index: number };
+export type Slot = { part: Part; index: number; section?: string };
 export function slots(sessions: ShowSession[], moving?: string): Slot[] {
   const rest = sessions.filter(s => s.id !== moving);
   return parts.flatMap(part => Array.from({ length: partOf(rest, part).length + 1 }, (_, index) => ({ part, index })));
@@ -153,6 +172,6 @@ export function stepSlot(all: Slot[], at: Slot, delta: number): Slot {
 const stable = (value: unknown): string => Array.isArray(value) ? `[${value.map(stable).join(",")}]`
   : value && typeof value === "object" ? `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stable((value as Record<string, unknown>)[k])}`).join(",")}}` : JSON.stringify(value ?? null);
 export function onlyMoved(before: ShowSession, after: ShowSession) {
-  const strip = (s: ShowSession) => ({ ...s, position: 0, planned_start: null, revision: 0 });
+  const strip = (s: ShowSession) => ({ ...s, position: 0, planned_start: null, revision: 0, section: "" });
   return stable(strip(before)) === stable(strip(after));
 }

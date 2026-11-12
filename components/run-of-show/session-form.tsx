@@ -85,14 +85,19 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
     <form onSubmit={save} className="show-form">
       <fieldset disabled={busy || blocked || context.closed}>
         <div className="show-fields">
+          <h3 className="is-full show-group">Basics</h3>
           <label className="is-full" htmlFor="session-title">Title<input ref={first} id="session-title" required maxLength={200} value={value.title} onChange={e => change("title", e.target.value)} /></label>
           <label className="is-full" htmlFor="session-segment">Segment<input id="session-segment" maxLength={100} value={value.segment ?? ""} onChange={e => change("segment", e.target.value)} /><span className="show-help">Steps in the same segment, like Five Lenses, keep taking answers until the room moves on from the segment.</span></label>
+          <label htmlFor="session-section">Section<input id="session-section" maxLength={100} list="session-sections" value={value.section ?? ""} onChange={e => change("section", e.target.value)} />
+            <datalist id="session-sections">{[...new Set(others.filter(s => s.part === value.part).map(s => (s.section ?? "").trim()).filter(Boolean))].map(name => <option key={name} value={name} />)}</datalist>
+            <span className="show-help">The named group it sits in on the run of show. Leave it empty for none.</span></label>
           <label htmlFor="session-part">Part<select id="session-part" value={value.part} onChange={e => change("part", e.target.value as ShowSession["part"])}>{parts.filter(part => part !== "Discover" || fourLists || session.part === "Discover").map(part => <option key={part}>{part}</option>)}</select></label>
           <label htmlFor="session-mode">Mode<select id="session-mode" disabled={running} value={value.mode} onChange={e => { const mode = e.target.value as ShowSession["mode"]; change("mode", mode); if (mode === "self_paced" && !opens && !closes) { const w = defaultWindow(Date.now()); setOpens(localTime(w.opens_at, context.timezone)); setCloses(localTime(w.closes_at, context.timezone)); } }}><option value="live">Live, in the room</option><option value="self_paced">Self-paced</option></select></label>
           {startNote !== undefined ? <p className="show-help" id="session-start">{startNote}</p> : <label htmlFor="session-start">Planned start<input id="session-start" type="datetime-local" value={start} onChange={e => setStart(e.target.value)} /></label>}
           <label htmlFor="session-length">Length in minutes<input id="session-length" type="number" min={1} max={1440} required value={value.planned_minutes} onChange={e => change("planned_minutes", Number(e.target.value))} /></label>
           <p className="show-help is-full">All times in {context.timezone}. Planned times stay private.</p>
           {value.mode === "self_paced" && <><label htmlFor="session-opens">Opens<input id="session-opens" type="datetime-local" required value={opens} onChange={e => setOpens(e.target.value)} /></label><label htmlFor="session-closes">Closes<input id="session-closes" type="datetime-local" required value={closes} onChange={e => setCloses(e.target.value)} /></label><p className="show-help is-full">It opens and closes on phones at these times, outside the live room. Next and Back skip it, and invite emails link to it.</p></>}
+          <h3 className="is-full show-group">On the TV and phones</h3>
           <label className="is-full" htmlFor="session-interaction">Interaction<select id="session-interaction" disabled={running} value={value.interaction} onChange={e => choose(e.target.value as InteractionKind)}>
             {kinds.map(k => <option key={k.kind} value={k.kind}>{k.label}</option>)}
             {!kinds.some(k => k.kind === value.interaction) && <option value={value.interaction}>{value.interaction}</option>}</select></label>
@@ -105,7 +110,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
           {value.prompt.includes("{base year") && <div className="show-preview is-full"><span className="show-help">Prompt preview</span><p>{fillYears(value.prompt, context.base_year)}</p></div>}
           <label className="is-full" htmlFor="session-depth">Phone depth<textarea id="session-depth" maxLength={20000} rows={4} value={value.phone_depth} onChange={e => change("phone_depth", e.target.value)} /><span className="show-help">Detail, sources or Scripture for phones only.</span></label>
           {kind?.input && <>
-            <h3 className="is-full">Settings</h3>
+            <h3 className="is-full show-group">Settings and limits</h3>
             {kind.named === "setting" ? <label className="show-check is-full" htmlFor="session-anonymous"><input id="session-anonymous" type="checkbox" checked={value.settings.anonymous} onChange={e => setting("anonymous", e.target.checked)} />Anonymous on the screen</label>
               : <p className="show-help is-full">{kind.named === "always" ? "Named by design: names show on the screen." : "Answers are anonymous on the screen."}</p>}
             <label className="show-check is-full" htmlFor="session-join"><input id="session-join" type="checkbox" checked={value.settings.join_strip} onChange={e => setting("join_strip", e.target.checked)} />Show the join strip on the TV</label>
@@ -114,6 +119,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
             {text && <><label htmlFor="session-characters">Characters per answer<input id="session-characters" type="number" min={1} max={280} required value={value.max_characters} onChange={e => change("max_characters", Number(e.target.value))} /></label>
               <label htmlFor="session-words">Words per answer<input id="session-words" type="number" min={1} max={50} required value={value.max_words} onChange={e => change("max_words", Number(e.target.value))} /></label></>}
           </>}
+          <h3 className="is-full show-group">Your notes</h3>
           <label className="is-full" htmlFor="session-notes"><span><LockKeyhole size={15} aria-hidden="true" /> Presenter notes</span><textarea id="session-notes" maxLength={30000} rows={5} value={value.notes} onChange={e => change("notes", e.target.value)} /><span className="show-help">Only facilitators see these. They never reach the TV or phones.</span></label>
           <label className="is-full" htmlFor="session-lands">Lands in<input id="session-lands" maxLength={200} value={value.lands_in} onChange={e => change("lands_in", e.target.value)} /></label>
           {!fresh && <label className="show-check is-full" htmlFor="session-team-led"><input id="session-team-led" type="checkbox" checked={teamLed} disabled={context.closed} onChange={e => void changeTeamLed(e.target.checked)} />Team-led step: turn the scribe console off while this step is live{teamLedNote && <span className="show-help" role="status"> {teamLedNote}</span>}</label>}

@@ -43,6 +43,6 @@ export function sessionInput(value: unknown): SessionInput {
   return { id: v.id, revision: v.revision as number | null, title: text("title", 200, true), part: v.part as SessionInput["part"],
     planned_start: instant("planned_start"), planned_minutes: integer("planned_minutes", 1, 1440), mode: v.mode as SessionInput["mode"], opens_at: opens, closes_at: closes,
     interaction: v.interaction as SessionInput["interaction"], prompt: text("prompt", 4000), phone_depth: text("phone_depth", 20000), notes: text("notes", 30000),
-    lands_in: text("lands_in", 200), segment: typeof v.segment === "string" ? text("segment", 100) : "", state: v.state as string, ...(v.seeded_from === undefined ? {} : { seeded_from: seededFrom(v.seeded_from) }), max_sends: integer("max_sends", 1, 100), max_characters: integer("max_characters", 1, 280), max_words: integer("max_words", 1, 50),
+    lands_in: text("lands_in", 200), segment: typeof v.segment === "string" ? text("segment", 100) : "", ...(typeof v.section === "string" ? { section: text("section", 100).replace(/\s+/g, " ") } : {}), state: v.state as string, ...(v.seeded_from === undefined ? {} : { seeded_from: seededFrom(v.seeded_from) }), max_sends: integer("max_sends", 1, 100), max_characters: integer("max_characters", 1, 280), max_words: integer("max_words", 1, 50),
     settings: { anonymous: settings.anonymous as boolean, burst_minutes: settings.burst_minutes as number, join_strip: settings.join_strip as boolean }, options: options as Record<string, unknown> };
 }

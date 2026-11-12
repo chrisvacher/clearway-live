@@ -59,7 +59,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
       <div className="tpl-body">
         <div className="tpl-grid" role="list" aria-label="Templates">
           {library.templates.map(t => <article key={t.id} role="listitem" className={`tpl-card${t.id === selected ? " is-on" : ""}`} aria-labelledby={`tpl-${t.id}`}>
-            <div className="tpl-card-head"><h2 id={`tpl-${t.id}`}>{t.name}</h2>{t.kind === "shipped" && <span className="rb-chip is-ready"><BadgeCheck aria-hidden="true" />Clearway</span>}</div>
+            <div className="tpl-card-head"><h2 id={`tpl-${t.id}`}>{t.name}</h2>{t.kind === "shipped" && <span className="rb-chip is-ready"><BadgeCheck aria-hidden="true" />Clearway</span>}{t.block && <span className="rb-chip">Block</span>}</div>
             <p className="show-muted">{length(t.minutes)} · {t.count} {t.count === 1 ? "session" : "sessions"}</p>
             <p className="show-help">{byLine(t)}</p>
             <div className="tpl-card-foot">

@@ -2,7 +2,7 @@ import { uuid } from "../room/identity";
 
 // What the templates API accepts. The database checks access and every session again.
 export type TemplateAction =
-  | { action: "save"; input: { engagement: string; name: string; description: string; shared: boolean } }
+  | { action: "save"; input: { engagement: string; name: string; description: string; shared: boolean; sessions?: string[] } }
   | { action: "apply"; input: { template: string; engagement: string; start: string | null } }
   | { action: "remove"; input: { template: string } };
 
@@ -15,7 +15,9 @@ export function templateInput(body: Record<string, unknown>): TemplateAction {
     const description = typeof v.description === "string" ? v.description.trim() : "";
     if ([...description].length > 500) throw new Error("Keep the description to 500 characters.");
     if (v.shared !== undefined && typeof v.shared !== "boolean") throw new Error("Choose whether to share the template.");
-    return { action: "save", input: { engagement: v.engagement, name, description, shared: v.shared !== false } };
+    // A saved block (design pass 8, step 5) is a template made from some of the run's sessions.
+    if (v.sessions !== undefined && (!Array.isArray(v.sessions) || !v.sessions.length || v.sessions.length > 500 || v.sessions.some(x => !uuid(x)) || new Set(v.sessions).size !== v.sessions.length)) throw new Error("Reload the run of show and try again.");
+    return { action: "save", input: { engagement: v.engagement, name, description, shared: v.shared !== false, ...(v.sessions ? { sessions: v.sessions as string[] } : {}) } };
   }
   if (body.action === "apply") {
     if (!uuid(v.template) || !uuid(v.engagement)) throw new Error("Choose a template and an engagement.");

@@ -362,6 +362,87 @@ async function main() {
       });
       await shot(tv, "template-choice-tv"); await shot(ruth, "template-choice-phone");
     });
+    await step("Sections: a session's Section names a group, the header renames it, and a drop between two sections joins the one the pointer is in", async () => {
+      await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+      await editor.locator(".rb-row").first().waitFor();
+      assert.equal(await editor.locator(".rb-sec").count(), 0, "a run with no named section shows no section headers");
+      const sectionOf = async (title: string) => (await sql.query("select section from public.sessions where engagement_id=$1 and title=$2 and not deleted", [room.id, title])).rows[0]?.section as string;
+      const row = editor.locator(".rb-row", { hasText: "Our commitment" });
+      await row.locator(".rb-tog").click();
+      const open = editor.locator(".rb-row.is-open .show-panel"); await open.waitFor();
+      for (const group of ["Basics", "On the TV and phones", "Settings and limits", "Your notes"]) assert.equal(await open.getByRole("heading", { name: group, exact: true }).count(), 1, `the options are grouped: ${group}`);
+      await open.locator("#session-section").fill("Closing");
+      await open.getByRole("button", { name: "Done", exact: true }).click();
+      await until(async () => await sectionOf("Our commitment") === "Closing", "the section is saved", 8000);
+      await until(async () => await editor.locator(".rb-sec").count() >= 2, "section headers appear once one is named", 8000);
+      const named = editor.locator(".rb-sec", { has: editor.locator("input[value='Closing']") });
+      assert.match(await named.innerText(), /1 session/);
+      // The session after it has no section yet. Naming its header joins the two.
+      const last = editor.locator(".rb-sec").last().getByLabel("Section name", { exact: true });
+      assert.equal(await last.inputValue(), "", "sessions with no section sit under a header waiting for a name");
+      await last.fill("Closing"); await last.press("Enter");
+      await until(async () => await sectionOf("Sending prayer") === "Closing", "naming a header names its sessions", 8000);
+      const size = (await rowTitles()).length - (await rowTitles()).indexOf("Our commitment");
+      await until(async () => (await editor.locator(".rb-sec").last().innerText()).includes(`${size} sessions`), "the two runs are one section", 8000);
+      // Rename it from the header.
+      const head = editor.locator(".rb-sec").last().getByLabel("Section name", { exact: true });
+      await head.fill("Send-off"); await head.blur();
+      await until(async () => await sectionOf("Our commitment") === "Send-off" && await sectionOf("Sending prayer") === "Send-off", "renaming a header renames every session in it", 8000);
+      await editor.getByText("Section named Send-off.").waitFor(); await delay(900);
+      // Dragging a row to the top of the section, below its header, joins it.
+      const before = (await rowTitles()).indexOf("Our commitment"), mover = (await rowTitles())[before - 1];
+      assert.notEqual(await sectionOf(mover), "Send-off");
+      const grip = await editor.locator(`.rb-row:has-text("${mover}") .rb-grip`).first().boundingBox(), target = await editor.locator(".rb-row", { hasText: "Our commitment" }).locator(".rb-head").boundingBox();
+      await editor.mouse.move(grip!.x + grip!.width / 2, grip!.y + grip!.height / 2); await editor.mouse.down();
+      await editor.mouse.move(grip!.x + 20, grip!.y + 30, { steps: 4 }); await delay(450);
+      await editor.mouse.move(target!.x + 200, target!.y + 2, { steps: 8 }); await delay(450);
+      // Aim just under the section's header, where the editor reads it: in the run as it would be without the open gap. Rows settle
+      // on springs and the gap moves them, so the aim is read again until the gap sits under the header.
+      const aim = () => editor.evaluate(() => {
+        const row = [...document.querySelectorAll<HTMLElement>(".rb-row")].find(r => r.querySelector(".rb-name strong")?.textContent === "Our commitment")!, slot = document.querySelector<HTMLElement>(".rb-slot");
+        const style = slot ? getComputedStyle(slot) : null, shift = slot && style && slot.offsetTop < row.offsetTop ? slot.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom) : 0;
+        const run = document.querySelector<HTMLElement>(".rb-run")!;
+        return { y: run.getBoundingClientRect().top + row.offsetTop - shift + 2, under: Boolean(slot?.previousElementSibling?.matches(".rb-sec[data-sec-name='Send-off']")) && slot?.nextElementSibling === row };
+      });
+      await until(async () => { const at = await aim(); if (at.under) return true; await editor.mouse.move(target!.x + 200, at.y, { steps: 2 }); await delay(350); return (await aim()).under; }, "the gap opens under the section's header", 10000);
+      await shot(editor, "sections-drop-gap", 0);
+      await editor.mouse.up();
+      await until(async () => await sectionOf(mover) === "Send-off", `${mover} joins the section it was dropped into`, 8000);
+      await until(async () => (await rowTitles()).indexOf(mover) === before - 1 && (await titles()).indexOf(mover) === (await titles()).indexOf("Our commitment") - 1, "and keeps its place in the run", 8000);
+      await shot(editor, "sections-run");
+      assert.equal(await editor.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "the run still fits the window");
+    });
+    await step("Saved blocks: a section saves as a block, the block adds its sessions to the run with their section, and it can be removed", async () => {
+      const blockName = `Send-off ${room.id.slice(0, 4)}`, count = (await titles()).length;
+      const size = (await sql.query("select count(*)::integer n from public.sessions where engagement_id=$1 and not deleted and section='Send-off'", [room.id])).rows[0].n as number;
+      await editor.locator(".rb-sec").last().locator(".rb-sec-menu summary").click();
+      await editor.getByRole("button", { name: "Save as a block", exact: true }).click();
+      const dialog = editor.getByRole("dialog", { name: "Save as a block" });
+      await dialog.locator("#template-name").fill(blockName);
+      assert.ok((await dialog.innerText()).includes(`${size} sessions with their prompts`));
+      await dialog.getByRole("button", { name: "Save block", exact: true }).click();
+      await dialog.getByText(`Saved ${blockName} with ${size} sessions.`).waitFor();
+      const saved = (await sql.query("select block,sessions from private.templates where name=$1 and not deleted", [blockName])).rows[0] as { block: boolean; sessions: { section: string }[] };
+      assert.equal(saved.block, true); assert.equal(saved.sessions.length, size); assert.ok(saved.sessions.every(x => x.section === "Send-off"));
+      await dialog.getByRole("button", { name: "Close" }).last().click();
+      await editor.getByRole("radio", { name: "Saved blocks", exact: true }).click();
+      const tile = editor.getByTestId("saved-blocks").locator(".rb-block", { hasText: blockName });
+      await tile.waitFor(); assert.ok((await tile.innerText()).includes(`${size} sessions`));
+      await shot(editor, "saved-blocks");
+      await tile.locator(".rb-tile").click();
+      await editor.getByText(`${blockName} added: ${size} sessions at the end of the run.`).waitFor({ timeout: 15000 });
+      await until(async () => (await titles()).length === count + size, "its sessions are added", 8000);
+      const tail = (await sql.query("select title,section,state from public.sessions where engagement_id=$1 and not deleted and part='Day 1' order by position desc limit $2", [room.id, size])).rows;
+      assert.ok(tail.every(r => r.section === "Send-off"), "the added sessions carry the block's section");
+      await until(async () => (await editor.locator(".rb-sec").last().innerText()).includes(`${size * 2} sessions`), "they join the section at the end of the run", 8000);
+      editor.once("dialog", d => void d.accept());
+      await tile.getByRole("button", { name: `Remove ${blockName}`, exact: true }).click();
+      await editor.getByText(`${blockName} removed.`).waitFor();
+      assert.equal(await editor.getByTestId("saved-blocks").locator(".rb-block", { hasText: blockName }).count(), 0);
+      assert.equal((await titles()).length, count + size, "removing a block leaves the run alone");
+      await editor.goto(`${app.origin}/setup/${room.id}/run-of-show/print`);
+      assert.equal(await editor.locator(".show-print-sec", { hasText: "Send-off" }).count(), 1, "the printed run of show names the section");
+    });
     console.log(`Templates and builder kit: ${passed.length} checks passed. Local checks on loopback.`);
   } finally { await browser?.close(); await app.stop(); await mail.close(); await sql.end(); }
 }

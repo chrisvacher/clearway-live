@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
@@ -21,14 +22,15 @@ export default async function PrintShowPage({ params }: { params: Promise<{ id: 
     <p className="show-muted">Room link: https://live.clearway.co/room/{id}</p>
     {parts.map(part => {
       const group = sessions.filter(s => s.part === part); if (!group.length) return null;
-      return <section key={part}><h2>{part}</h2><table><thead><tr><th scope="col">Time</th><th scope="col">Session</th><th scope="col">Prompt and phone depth</th><th scope="col">Presenter notes</th></tr></thead><tbody>{group.map(s => <tr key={s.id}>
+      const named = group.some(x => (x.section ?? "").trim() !== "");
+      return <section key={part}><h2>{part}</h2><table><thead><tr><th scope="col">Time</th><th scope="col">Session</th><th scope="col">Prompt and phone depth</th><th scope="col">Presenter notes</th></tr></thead><tbody>{group.map((s, i) => <Fragment key={s.id}>{named && (i === 0 || (group[i - 1].section ?? "") !== (s.section ?? "")) && <tr className="show-print-sec"><th colSpan={4} scope="colgroup">{s.section || "No section"}</th></tr>}<tr>
         <td>{date(s.planned_start)}<div>{s.planned_minutes} min</div></td>
         <td><strong>{s.title}</strong><div>{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Open text wall" : "Content")} · {s.mode === "live" ? "Live" : "Self-paced"} · {s.state.replaceAll("_", " ")}</div>
           {printDetails(s, context.kinds?.find(k => k.kind === s.interaction)?.input ?? s.interaction !== "content", date).map(line => <div key={line}>{line}</div>)}
           {s.lands_in && <div>Lands in: {s.lands_in}</div>}</td>
         <td><p>{fillYears(s.prompt, context.base_year)}</p>{s.phone_depth && <><strong>Phone depth</strong><p>{fillYears(s.phone_depth, context.base_year)}</p></>}</td>
         <td><p>{s.notes}</p></td>
-      </tr>)}</tbody></table></section>;
+      </tr></Fragment>)}</tbody></table></section>;
     })}
     {!sessions.length && <p>Add sessions before printing your run of show.</p>}
     <section className="show-fallback"><h2>If the tech fails</h2><p>The easel carries the room. Ask each prompt aloud and capture answers on sticky notes.</p></section>
