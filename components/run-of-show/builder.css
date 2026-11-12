@@ -114,3 +114,32 @@
 .tpl-sessions .rb-time { width: 48px; }
 @media (max-width: 1100px) { .tpl-body { grid-template-columns: minmax(0, 1fr); } .tpl-panel { position: static; max-height: none; } }
 @media (max-width: 480px) { .tpl-body { padding: var(--space-4); } }
+
+/* Sections (design pass 8, step 5): a header over each run of sessions that share a name. */
+.rb-sec { border-bottom: 1px solid var(--cwl-app-border); background: var(--cwl-app-sunken); }
+.rb-sec:first-child { border-radius: var(--cwl-radius-card) var(--cwl-radius-card) 0 0; }
+.rb-sec-head { display: flex; align-items: center; gap: var(--space-3); min-height: var(--space-12); padding: var(--space-1) var(--space-3) var(--space-1) var(--space-4); }
+.rb-sec-head input { flex: 1; min-width: 0; min-height: var(--space-10); padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text); font: inherit; font-weight: var(--fw-bold); }
+.rb-sec-head input:hover:not(:disabled) { border-color: var(--cwl-app-border-strong); }
+.rb-sec-head input:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 1px; background: var(--cwl-app-card); }
+.rb-sec-head > .show-muted { flex: none; font-size: var(--cwl-fs-app-micro); }
+.rb-sec.is-pending .rb-sec-head > .show-muted { flex: 1; }
+.rb-sec-menu { position: relative; flex: none; }
+.rb-sec-menu summary { width: var(--cwl-phone-touch); height: var(--space-10); display: grid; place-items: center; border-radius: var(--cwl-radius-button); color: var(--cwl-app-text-muted); cursor: pointer; list-style: none; }
+.rb-sec-menu summary::-webkit-details-marker { display: none; }
+.rb-sec-menu summary:hover { background: var(--cwl-app-hover); }
+.rb-sec-menu summary:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.rb-sec-menu > div { position: absolute; right: 0; top: 100%; z-index: 5; display: flex; flex-direction: column; min-width: 15rem; padding: var(--space-1); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); box-shadow: var(--shadow-dropdown); }
+.rb-sec-menu > div button { min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text); font: inherit; text-align: left; cursor: pointer; }
+.rb-sec-menu > div button:hover:not(:disabled) { background: var(--cwl-app-hover); }
+.rb-sec-new { display: inline-flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); min-height: var(--space-10); padding: var(--space-1) var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text-muted); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); cursor: pointer; }
+.rb-sec-new:hover { background: var(--cwl-app-hover); color: var(--cwl-app-text); }
+.rb-sec-new:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.rb-sec-add { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+.rb-sec-add label { font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); }
+.rb-sec-add input { flex: 1 1 12rem; min-height: var(--space-10); padding: var(--space-2) var(--space-3); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; }
+.rb-block { display: flex; align-items: center; gap: var(--space-2); }
+.rb-block .rb-tile { cursor: pointer; }
+.rb-block-remove { flex: none; min-height: var(--space-10); padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text-muted); font: inherit; font-size: var(--cwl-fs-app-micro); cursor: pointer; }
+.rb-block-remove:hover:not(:disabled) { background: var(--cwl-app-hover); color: var(--cwl-app-text); }
+.rb-mode + .rb-mode { margin-top: var(--space-2); }

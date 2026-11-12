@@ -37,7 +37,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const v = body.input as Record<string, unknown>;
       if (!v || !uuid(v.id) || !Number.isInteger(v.revision) || Number(v.revision) < 0 || !parts.includes(v.part as typeof parts[number]) || !Number.isInteger(v.index) || Number(v.index) < 0 || Number(v.index) > 5000)
         throw new Error("Reload the run of show before moving sessions.");
-      input = { id: v.id, revision: v.revision, part: v.part, index: v.index };
+      if (v.section !== undefined && (typeof v.section !== "string" || v.section.length > 100)) throw new Error("Keep the section name to 100 characters.");
+      input = { id: v.id, revision: v.revision, part: v.part, index: v.index, ...(typeof v.section === "string" ? { section: v.section.replace(/\s+/g, " ").trim() } : {}) };
     }
     else if (action === "remove") {
       const v = body.input as Record<string, unknown>;
@@ -48,6 +49,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (!v || !parts.includes(v.part as typeof parts[number]) || !Array.isArray(v.order) || v.order.length > 5000
         || v.order.some(x => !x || !uuid(x.id) || !Number.isInteger(x.revision) || x.revision < 0)) throw new Error("Reload the run of show before moving sessions.");
       input = { part: v.part, order: v.order.map(x => ({ id: x.id, revision: x.revision })) };
+    } else if (action === "section") {
+      // Name a set of sessions: rename a section, or take its name away.
+      const v = body.input as { ids: unknown; section: unknown };
+      if (!v || !Array.isArray(v.ids) || !v.ids.length || v.ids.length > 500 || v.ids.some(x => !uuid(x)) || new Set(v.ids).size !== v.ids.length) throw new Error("Reload the run of show before naming sections.");
+      if (typeof v.section !== "string" || v.section.replace(/\s+/g, " ").trim().length > 100) throw new Error("Keep the section name to 100 characters.");
+      input = { ids: v.ids, section: v.section.replace(/\s+/g, " ").trim() };
     } else throw new Error("Choose a session action.");
   } catch (error) { return answer({ status: "invalid_request", message: error instanceof Error ? error.message : "Check the session details." }, 422); }
   try {

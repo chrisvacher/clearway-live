@@ -472,9 +472,9 @@ select is((select count(*) from private.templates t cross join lateral jsonb_arr
 select is((select count(*) from private.templates t cross join lateral jsonb_array_elements(t.sessions) e where t.id='c1ea0000-0000-4000-8000-000000000002' and e->>'part'='Pre-call'),11::bigint,'The Pre-call keeps its eleven steps');
 
 -- ---------- Existing behaviour holds ----------
-select ok(pg_get_functiondef('private.show_write(uuid,text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','The run of show accepts the Discover part');
-select ok(pg_get_functiondef('private.template_write(text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','Templates start steps in the Discover part');
-select ok(pg_get_functiondef('private.template_write(text,jsonb)'::regprocedure) like '%mode=''live'' and part=''Pre-call''%','A saved template starts at its Pre-call, so Discover saves as days before it');
+select ok(pg_get_functiondef('private.show_write_pre_section(uuid,text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','The run of show accepts the Discover part');
+select ok(pg_get_functiondef('private.template_write_pre_section(text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','Templates start steps in the Discover part');
+select ok(pg_get_functiondef('private.template_write_pre_section(text,jsonb)'::regprocedure) like '%mode=''live'' and part=''Pre-call''%','A saved template starts at its Pre-call, so Discover saves as days before it');
 select ok(pg_get_functiondef('private.room_control(uuid,uuid,text,jsonb)'::regprocedure) like '%''Discover'',''Pre-call'',''Day 1'',''Day 2'',''Follow-up''%','Close part accepts the Discover part');
 select ok(tests.broadcasts()>0,'Every change is broadcast');
 set local role anon;

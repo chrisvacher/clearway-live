@@ -23,7 +23,7 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 | 2 | Create flow, the Overview page and the Invite the room card | PR #141 |
 | 3 | Setup split into Details, People and joining and Screens, with the flexible joining model | Built, see step 3 notes |
 | 4 | Workshop clean-up: Discover, After and the live room's Wayfinding panels by engagement type, and After the workshop | Built, see step 4 notes |
-| 5 | Run of show: named sections, the grouped session editor, saved blocks | After 4 |
+| 5 | Run of show: named sections, the grouped session editor, saved blocks | Built, see step 5 notes |
 | 6 | Consistency sweep | Last |
 
 ## Step 1 notes
@@ -90,3 +90,27 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
   `tests/unit/workshop-summary.test.ts` and two steps in `tests/browser/team-workshop.ts`.
 - Not built: one PDF that holds the summary and the results as a file (Print or save as PDF does this from the browser), the
   two-scale "before and after" comparison card from the design, and the summary in the engagement JSON archive.
+
+## Step 5 notes
+
+- **A section** is a run of sessions next to each other in a part that carry the same name (`public.sessions.section`). It is a
+  label for planning: it changes no time, no state and nothing on a phone or the TV. A segment still keeps late answers open, and
+  a part is still a day. A part with no named section looks exactly as it did.
+- **In the run of show**, each section has a header with its name (edited in place), its count and length, and a menu: Save as a
+  block, and Remove the section name. Sessions with no section in a part that has one sit under a header that asks for a name.
+  Add a section names a new one; it is kept once a session lands in it (click an element, or drag one in).
+- **Dropping between two sections**: above the lower section's header the session joins the section above, below it the one
+  below. From the keyboard a session takes the section above where it lands; the Section field in its options moves it.
+- **The options** are grouped under Basics, On the TV and phones, Settings and limits, and Your notes, all on one page, with a
+  Section field under Basics. The design showed these as tabs; they are headings so every field stays one scroll away.
+- **A saved block** is a template made from one section's sessions (`private.templates.block`). Saved blocks is a second tab in
+  Add to the run: click a block to add its sessions at the end of the part it was saved from, with their section names. Blocks
+  also show in Templates, marked Block. Whole templates keep their section names too.
+- **Database**: `20261112200000_run_sections.sql`. The run of show's functions are wrapped, not rewritten: `show_read`,
+  `show_write`, `template_write` and `template_public` are renamed to `..._pre_section` and called by new functions of the old
+  names. `show_write` gains the action `section` (name a set of sessions) and keeps a `section` sent with `save` or `place`.
+  It is safe in either order with the deploy: until it is applied the run of show works as before and section names are not kept.
+- **Tests**: `supabase/tests/database/run_sections.test.sql`, `tests/unit/run-sections.test.ts`, and two steps at the end of
+  `tests/browser/templates.ts`. Three source checks in `four_lists.test.sql` now read the `..._pre_section` functions.
+- **Not built**: section names in the live room's run list and on the results page; dragging a block to a place (it lands at
+  the end); the TV and phone preview beside the options; tabs in the options; reordering whole sections by dragging a header.

@@ -11,6 +11,8 @@ export type ShowSession = {
   shown_at?: string | null; closed_at?: string | null;
   max_sends: number; max_characters: number; max_words: number; revision: number;
   seeded_from?: string | null;
+  // The named section this session sits in (design pass 8, step 5). A label for planning: it changes nothing in the room.
+  section?: string;
   // A step the team leads on its own (the second half of Day 2). The scribe console is off while it is live.
   team_led?: boolean;
 };

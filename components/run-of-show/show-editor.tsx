@@ -3,12 +3,13 @@ import { ShellNav, type ShellEngagement } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutTemplate,
-  CheckCheck, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MousePointerClick, Newspaper, PencilLine, PenLine, Printer, ScanLine, type LucideProps } from "lucide-react";
+  CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, MousePointerClick, Newspaper, PencilLine, PenLine, Plus, Printer, ScanLine, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
 import { contentLabels, contentOf, fallbackKinds, type ContentScreen, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
-import { canSelfPace, clock, droppedSession, endOfRun, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, slots, stepSlot, type PaletteEntry, type Slot } from "@/lib/run-of-show/builder";
+import { canSelfPace, clock, droppedSession, endOfRun, hasSections, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, sectionAt, sectionLine, sectionName, sectionsOf, slots, stepSlot, type PaletteEntry, type Section, type Slot } from "@/lib/run-of-show/builder";
+import type { Template } from "@/lib/templates/types";
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
 import { windowLabel } from "@/lib/run-of-show/self-paced";
 import { springRate, springStep } from "@/lib/tv/motion";
@@ -65,6 +66,22 @@ function useGlide(root: RefObject<HTMLElement | null>, key: string) {
   return measure;
 }
 
+// A section's header: its name, edited in place, its count and length, and its menu. A section is the run of sessions under it.
+function SectionHead({ name, line, locked, onRename, onBlock }: { name: string; line: string; locked: boolean; onRename: (name: string) => void; onBlock: () => void }) {
+  const [value, setValue] = useState(name), menu = useRef<HTMLDetailsElement>(null);
+  useEffect(() => setValue(name), [name]);
+  const commit = () => { const next = value.replace(/\s+/g, " ").trim(); if (next !== name) onRename(next); else setValue(name); };
+  const act = (run: () => void) => { if (menu.current) menu.current.open = false; run(); };
+  return <div className="rb-sec-head">
+    <input aria-label="Section name" placeholder="Name this section" maxLength={100} value={value} disabled={locked} onChange={e => setValue(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); e.currentTarget.blur(); } else if (e.key === "Escape") setValue(name); }} />
+    <span className="show-muted">{line}</span>
+    <details className="rb-sec-menu" ref={menu}><summary aria-label={`More actions for ${name || "this section"}`}><MoreHorizontal size={18} aria-hidden="true" /></summary>
+      <div><button type="button" disabled={locked} onClick={() => act(onBlock)}>Save as a block</button>
+        {name && <button type="button" disabled={locked} onClick={() => act(() => onRename(""))}>Remove the section name</button>}</div></details>
+  </div>;
+}
+
 export function ShowEditor({ initial, notice = "", fourLists = true, shell = null }: { initial: RunOfShow; notice?: string; fourLists?: boolean; shell?: ShellEngagement | null }) {
   const [show, setShow] = useState(initial), [pending, setPending] = useState<Op[]>([]);
   const [message, setMessage] = useState(notice), [error, setError] = useState(false), [reloadNeeded, setReloadNeeded] = useState(false), [announce, setAnnounce] = useState("");
@@ -72,6 +89,10 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const [saving, setSaving] = useState<string | null>(null), [formFeedback, setFormFeedback] = useState<{ text: string; failed: boolean }>({ text: "", failed: false });
   const [dropMode, setDropMode] = useState<"live" | "self_paced">("live");
   const [dirty, setDirty] = useState<Set<string>>(() => new Set()), [drag, setDrag] = useState<Drag | null>(null), [saveTemplate, setSaveTemplate] = useState(false);
+  // Sections and saved blocks (design pass 8, step 5). A new section is kept once a session lands in it.
+  const [pendingSection, setPendingSection] = useState<{ part: Part; name: string } | null>(null), [adding, setAdding] = useState<{ part: Part; name: string } | null>(null);
+  const [blockOf, setBlockOf] = useState<{ name: string; ids: string[] } | null>(null), [paletteTab, setPaletteTab] = useState<"elements" | "blocks">("elements");
+  const [blocks, setBlocks] = useState<Template[] | null>(null), [blockBusy, setBlockBusy] = useState<string | null>(null);
   // The session as it was when its options opened (the form's starting point), the server
   // copy an open editor saves against, and unsaved edits kept while options are closed.
   const latest = useRef(show), queue = useRef(Promise.resolve()), drafts = useRef(new Map<string, FormDraft>()), bases = useRef(new Map<string, ShowSession>()), snapshots = useRef(new Map<string, ShowSession>());
@@ -171,19 +192,58 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
 
   // ---------- Changes ----------
   function insert(entry: PaletteEntry, slot: Slot) {
-    const s = droppedSession(entry, ctx.id, slot.part, kinds, crypto.randomUUID(), dropMode);
+    const section = slot.section ?? sectionAt(sessions, slot.part, slot.index);
+    const s = { ...droppedSession(entry, ctx.id, slot.part, kinds, crypto.randomUUID(), dropMode), section };
+    if (pendingSection && pendingSection.part === slot.part && pendingSection.name === section) setPendingSection(null);
     enqueue(list => placeSession(list, s, slot.part, slot.index), () => ({ action: "save", input: { ...s, revision: null, index: slot.index } }),
       ok => { if (!ok) { forget(s.id); if (nextOpen.current === s.id) nextOpen.current = null; if (pendingOpen.current === s.id) pendingOpen.current = null; if (openRef.current === s.id) setOpen(null); } });
     openOptions(s.id);
-    setAnnounce(`${entry.label} added to ${slot.part}, position ${slot.index + 1}. Its options are open.`);
+    setAnnounce(`${entry.label} added to ${section || slot.part}, position ${slot.index + 1}. Its options are open.`);
   }
   function place(session: ShowSession, slot: Slot) {
     const rest = partOf(sessions.filter(s => s.id !== session.id), slot.part);
     const now = partOf(sessions, session.part).findIndex(s => s.id === session.id);
-    if (slot.part === session.part && slot.index === now) return;
-    enqueue(list => { const s = list.find(x => x.id === session.id); return s ? placeSession(list, s, slot.part, slot.index) : list; },
-      current => { const cur = current.sessions.find(x => x.id === session.id); return cur ? { action: "place", input: { id: cur.id, revision: cur.revision, part: slot.part, index: slot.index } } : null; });
-    setAnnounce(`${session.title} moved to ${slot.part}, position ${Math.min(slot.index, rest.length) + 1}.`);
+    const section = slot.section ?? sectionAt(sessions, slot.part, slot.index, session.id);
+    if (slot.part === session.part && slot.index === now && section === sectionName(session)) return;
+    if (pendingSection && pendingSection.part === slot.part && pendingSection.name === section) setPendingSection(null);
+    enqueue(list => { const s = list.find(x => x.id === session.id); return s ? placeSession(list, { ...s, section }, slot.part, slot.index) : list; },
+      current => { const cur = current.sessions.find(x => x.id === session.id); return cur ? { action: "place", input: { id: cur.id, revision: cur.revision, part: slot.part, index: slot.index, section } } : null; });
+    setAnnounce(`${session.title} moved to ${section || slot.part}, position ${Math.min(slot.index, rest.length) + 1}.`);
+  }
+  // Rename a section, or take its name away: every session in it takes the new name.
+  function renameSection(sec: Section, name: string) {
+    const ids = new Set(sec.sessions.map(x => x.id));
+    enqueue(list => list.map(x => ids.has(x.id) ? { ...x, section: name } : x),
+      current => { const here = current.sessions.filter(x => ids.has(x.id)).map(x => x.id); return here.length ? { action: "section", input: { ids: here, section: name } } : null; },
+      ok => { if (ok) { setError(false); setMessage(name ? `Section named ${name}.` : "Section name removed. Its sessions stay."); } });
+  }
+  // Clicking an element adds it at the end of the run, or in the section just added.
+  const endSlot = (): Slot => pendingSection ? { part: pendingSection.part, index: partOf(sessions, pendingSection.part).length, section: pendingSection.name } : endOfRun(sessions);
+  async function loadBlocks() {
+    try { const response = await fetch("/api/templates", { cache: "no-store" }), data = await response.json() as { templates?: Template[] }; setBlocks(response.ok ? (data.templates ?? []).filter(t => t.block) : []); }
+    catch { setBlocks([]); }
+  }
+  // A saved block adds its sessions at the end of the part it was saved from, after every change still on its way.
+  function addBlock(t: Template) {
+    setBlockBusy(t.id);
+    queue.current = queue.current.then(async () => {
+      try {
+        const response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "apply", input: { template: t.id, engagement: ctx.id } }) });
+        const result = await response.json().catch(() => ({}));
+        if (response.ok && result.status === "ok") { setError(false); setMessage(`${t.name} added: ${result.count} ${result.count === 1 ? "session" : "sessions"} at the end of the run.`); }
+        else { setError(true); setMessage(result.message || "We couldn’t add that block. Please try again."); }
+        const next = await load(); latest.current = next; setShow(next);
+      } catch { setError(true); setMessage(messages.unavailable); }
+      setBlockBusy(null);
+    });
+  }
+  async function removeBlock(t: Template) {
+    if (!window.confirm(`Remove ${t.name}? Runs it was added to keep their sessions.`)) return;
+    try {
+      const response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove", input: { template: t.id } }) });
+      if (!response.ok) throw new Error("remove");
+      setBlocks(list => list?.filter(x => x.id !== t.id) ?? null); setError(false); setMessage(`${t.name} removed.`);
+    } catch { setError(true); setMessage("We couldn’t remove that block. Please try again."); }
   }
   function remove(session: ShowSession) {
     closeOptions(session.id); forget(session.id);
@@ -203,7 +263,8 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
     return new Promise<void>(resolve => {
       enqueue(list => list.map(s => s.id === id ? { ...s, ...value, revision: s.revision } : s),
         current => { const server = current.sessions.find(x => x.id === id), had = bases.current.get(id);
-          return { action: "save", input: { ...value, revision: had ? had.revision : server?.revision ?? null } }; },
+          const { section, ...rest } = value, changed = section !== undefined && section !== sectionName(snapshots.current.get(id) ?? server ?? ({} as ShowSession));
+          return { action: "save", input: { ...(changed ? value : rest), revision: had ? had.revision : server?.revision ?? null } }; },
         ok => {
           setSaving(null);
           if (ok) { forget(id); setError(false); setMessage("Session saved."); const focused = openRef.current === id; closeOptions(id); if (focused) requestAnimationFrame(() => returnFocus(id)); }
@@ -235,7 +296,15 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
     const rows = [...best.querySelectorAll<HTMLElement>("[data-row]")].filter(el => el.dataset.row !== moving);
     let index = rows.length;
     for (let i = 0; i < rows.length; i++) { const top = at(rows[i]), h = rows[i].querySelector<HTMLElement>(".rb-head")?.offsetHeight ?? rows[i].offsetHeight; if (y < top + h / 2) { index = i; break; } }
-    return { part, index };
+    // Between two sections the same place belongs to either: above the lower section's header it joins the one above, below it the one below.
+    const heads = [...best.querySelectorAll<HTMLElement>("[data-sec-head]")];
+    if (!heads.length) return { part, index };
+    const below = rows[index], above = rows[index - 1];
+    const headOf = (el: Element) => { let prev = el.previousElementSibling as HTMLElement | null; while (prev && (prev.classList.contains("rb-slot") || (prev.dataset.row && prev.dataset.row === moving))) prev = prev.previousElementSibling as HTMLElement | null; return prev && prev.dataset.secHead !== undefined ? prev : null; };
+    let section: string;
+    if (below) { const h = headOf(below); section = h && (!above || y >= at(h) + h.offsetHeight / 2) ? h.dataset.secName ?? "" : (above ?? below).dataset.sec ?? ""; }
+    else { const last = heads[heads.length - 1], after = !above || Boolean(above.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING); section = after && (!above || y >= at(last)) ? last.dataset.secName ?? "" : above?.dataset.sec ?? ""; }
+    return { part, index, section };
   }, []);
   function begin(source: Source, keys: boolean, gap: Slot | null = null) {
     openOptions(null);
@@ -257,11 +326,11 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
       if (!started) { if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 6) return; started = true; begin(source, false); }
       pointer.current = { x: ev.clientX, y: ev.clientY }; moveGhost(ev.clientX, ev.clientY);
       const gap = findGap(ev.clientX, ev.clientY, source);
-      setDrag(d => d && (d.gap?.part !== gap?.part || d.gap?.index !== gap?.index) ? { ...d, gap } : d);
+      setDrag(d => d && (d.gap?.part !== gap?.part || d.gap?.index !== gap?.index || d.gap?.section !== gap?.section) ? { ...d, gap } : d);
       if (ev.clientY < 72) window.scrollBy(0, -14); else if (ev.clientY > window.innerHeight - 72) window.scrollBy(0, 14);
     };
     const stop = () => { document.removeEventListener("pointermove", move); document.removeEventListener("pointerup", up); document.removeEventListener("pointercancel", cancel); document.removeEventListener("keydown", key); pointer.current = null; };
-    const up = () => { stop(); if (!started) { if (source.type === "tile") { const end = endOfRun(sessions); insert(source.entry, end); } return; } finish(true); };
+    const up = () => { stop(); if (!started) { if (source.type === "tile") insert(source.entry, endSlot()); return; } finish(true); };
     const cancel = () => { stop(); if (started) finish(false); };
     const key = (ev: KeyboardEvent) => { if (ev.key === "Escape") { ev.preventDefault(); cancel(); } };
     document.addEventListener("pointermove", move); document.addEventListener("pointerup", up); document.addEventListener("pointercancel", cancel); document.addEventListener("keydown", key);
@@ -298,7 +367,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   }, [drag?.keys, drag?.source, sessions]);
   function tileKey(e: ReactKeyboardEvent, entry: PaletteEntry) {
     if (locked || dragRef.current) return;
-    if (e.key === "Enter") { e.preventDefault(); insert(entry, endOfRun(sessions)); }
+    if (e.key === "Enter") { e.preventDefault(); insert(entry, endSlot()); }
     else if (e.key === " ") { e.preventDefault(); begin({ type: "tile", entry }, true, endOfRun(sessions)); }
   }
   function gripKey(e: ReactKeyboardEvent, s: ShowSession) {
@@ -309,7 +378,8 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
 
   // ---------- Drawing ----------
   const moving = drag?.source.type === "row" ? drag.source.session.id : null;
-  const glideKey = parts.map(p => `${p}:${partOf(sessions, p).map(s => s.id).join(",")}`).join("|") + (drag?.gap ? `#${drag.gap.part}:${drag.gap.index}` : "");
+  const glideKey = parts.map(p => `${p}:${partOf(sessions, p).map(s => `${s.id}${sectionName(s) ? `~${sectionName(s)}` : ""}`).join(",")}`).join("|") + (drag?.gap ? `#${drag.gap.part}:${drag.gap.index}:${drag.gap.section ?? ""}` : "") + (pendingSection ? `+${pendingSection.part}:${pendingSection.name}` : "");
+  useEffect(() => { if (paletteTab === "blocks" && blocks === null) void loadBlocks(); }, [paletteTab, blocks]);
   const remeasure = useGlide(runRef, glideKey);
   const tz = ctx.timezone, hour = useMemo(() => new Intl.DateTimeFormat("en-CA", { timeZone: tz, hour: "numeric", minute: "2-digit" }), [tz]);
   const kindLabel = (s: ShowSession) => s.interaction === "content" ? contentLabels[contentOf(s.options).screen] : kinds.find(k => k.kind === s.interaction)?.label ?? fallbackKinds[s.interaction]?.label ?? s.interaction;
@@ -343,15 +413,22 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
           {parts.filter(part => part !== "Discover" || fourLists || partOf(sessions, part).length > 0).map(part => {
             const group = partOf(sessions, part), times = partTimes(group), timed = group.some(s => s.mode === "live" && s.planned_start);
             const firstLive = group.find(s => s.mode === "live")?.id, target = drag?.gap?.part === part;
+            // Sections: a part with a named section shows a header over each run of sessions that share a name.
+            const pending = pendingSection?.part === part ? pendingSection.name : null, named = hasSections(group) || pending !== null;
+            const gapSection = target ? drag!.gap!.section ?? sectionAt(sessions, part, drag!.gap!.index, moving ?? undefined) : null;
             let shown = 0;
-            const rows = group.flatMap(s => {
+            const rows = sectionsOf(group).flatMap(sec => { let headed = !named; const head = () => { if (headed) return []; headed = true;
+              return [<li key={`sec:${sec.key}`} className="rb-sec" data-glide={`s:${sec.key}`} data-sec-head="" data-sec-name={sec.name}>
+                <SectionHead name={sec.name} line={sectionLine(sec.sessions)} locked={locked} onRename={name => renameSection(sec, name)} onBlock={() => setBlockOf({ name: sec.name || ctx.title, ids: sec.sessions.map(x => x.id) })} /></li>]; };
+             return sec.sessions.flatMap(s => {
               const out = [];
-              if (s.id !== moving) { if (drag?.gap?.part === part && drag.gap.index === shown) out.push(slotEl(part)); shown++; }
+              if (s.id !== moving) { if (target && drag!.gap!.index === shown) { if (!headed && gapSection !== sec.name) out.push(slotEl(part), ...head()); else out.push(...head(), slotEl(part)); } shown++; }
+              out.push(...head());
               const open = s.id === openId, mounted = open || s.id === closingId, t = times.get(s.id), Kind = iconOf(s.interaction, contentOf(s.options).screen);
               const time = s.mode !== "live" ? "Self-paced" : t?.at ? hour.format(new Date(t.at)) : clock(t?.offset ?? 0);
               const StateIcon = s.state === "draft" ? PencilLine : CircleCheck;
               const toggle = () => { if (!dragRef.current) openOptions(open ? null : s.id); };
-              out.push(<li key={s.id} data-row={s.id} data-glide={s.id} className={`rb-row${open ? " is-open" : ""}${s.id === moving ? " is-moving" : ""}`}>
+              out.push(<li key={s.id} data-row={s.id} data-sec={sec.name} data-glide={s.id} className={`rb-row${open ? " is-open" : ""}${s.id === moving ? " is-moving" : ""}`}>
                 <div className="rb-head" onClick={e => { if (!(e.target as HTMLElement).closest("button")) toggle(); }}>
                   <button type="button" className="rb-grip" aria-label={`Move ${s.title}`} aria-describedby="rb-move-help" disabled={locked} onPointerDown={e => pointerStart(e, { type: "row", session: s })} onKeyDown={e => gripKey(e, s)}><GripVertical size={18} aria-hidden="true" /></button>
                   <span className="rb-time">{time}</span>
@@ -368,25 +445,45 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                   onSave={done} onClose={() => closeOptions(s.id)} onRemove={() => remove(s)} />}</div></div>
               </li>);
               return out;
-            });
-            if (drag?.gap?.part === part && drag.gap.index >= shown) rows.push(slotEl(part));
+            }); });
+            const pendingHead = pending !== null ? <li key="sec:pending" className="rb-sec is-pending" data-glide={`s:pending:${part}`} data-sec-head="" data-sec-name={pending}>
+              <div className="rb-sec-head"><strong>{pending}</strong><span className="show-muted">Click an element to add it here, or drag one in.</span>
+                <button type="button" className="show-button is-small" onClick={() => setPendingSection(null)}>Cancel</button></div></li> : null;
+            if (target && drag!.gap!.index >= shown) { if (pendingHead && gapSection === pending) rows.push(pendingHead, slotEl(part)); else { rows.push(slotEl(part)); if (pendingHead) rows.push(pendingHead); } }
+            else if (pendingHead) rows.push(pendingHead);
             return <section key={part} className="rb-part" data-part={part} aria-labelledby={`part-${part}`}>
               <h2 id={`part-${part}`} data-glide={`h:${part}`}>{part}<span>{group.length ? `${group.length} ${group.length === 1 ? "session" : "sessions"} · ${clock(liveMinutes(group))}` : "No sessions"}</span></h2>
-              <ol className={`rb-list${target ? " is-target" : ""}${!group.length && !target ? " is-empty" : ""}`} aria-label={part}>
+              <ol className={`rb-list${target ? " is-target" : ""}${!group.length && !target && pending === null ? " is-empty" : ""}`} aria-label={part}>
                 {rows}
-                {!group.length && !target && (empty && part === "Day 1"
+                {!group.length && !target && pending === null && (empty && part === "Day 1"
                   ? <li className="rb-empty is-start" data-glide={`e:${part}`}><MousePointerClick aria-hidden="true" /><b>Start the run</b><span>Drag an interaction or content screen here from the right, or click one to add it at the end.</span><Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={18} aria-hidden="true" />Start from a template</Link></li>
                   : <li className="rb-empty" data-glide={`e:${part}`}>Drop a session here to add it to {part}.</li>)}
               </ol>
+              {!locked && (adding?.part === part
+                ? <form className="rb-sec-add" onSubmit={e => { e.preventDefault(); const name = adding.name.replace(/\s+/g, " ").trim(); if (name) { setPendingSection({ part, name }); setAdding(null); setAnnounce(`${name} added to ${part}. Click an element to add it there.`); } }}>
+                    <label htmlFor={`sec-new-${part}`}>New section name</label><input id={`sec-new-${part}`} autoFocus maxLength={100} value={adding.name} onChange={e => setAdding({ part, name: e.target.value })} />
+                    <button type="submit" className="show-button is-primary is-small" disabled={!adding.name.trim()}>Add section</button><button type="button" className="show-button is-small" onClick={() => setAdding(null)}>Cancel</button></form>
+                : (group.length > 0 || part === "Day 1") && pending === null && <button type="button" className="rb-sec-new" onClick={() => setAdding({ part, name: "" })}><Plus size={16} aria-hidden="true" />Add a section<span className="sr-only"> to {part}</span></button>)}
             </section>;
           })}
         </div>
         <aside className="rb-palette" aria-labelledby="rb-palette-title">
-          <div className="rb-palette-head"><p>Add to the run</p><h2 id="rb-palette-title">Drag into place, or click to add at the end</h2>
-            <div className="rb-mode" role="radiogroup" aria-label="Add sessions as">{([["live", "Live in the room"], ["self_paced", "Self-paced"]] as const).map(([value, label]) =>
+          <div className="rb-palette-head"><p>Add to the run</p><h2 id="rb-palette-title">{paletteTab === "blocks" ? "Click a block to add it at the end" : "Drag into place, or click to add at the end"}</h2>
+            <div className="rb-mode" role="radiogroup" aria-label="What to add">{([["elements", "Elements"], ["blocks", "Saved blocks"]] as const).map(([value, label]) =>
+              <button key={value} type="button" role="radio" aria-checked={paletteTab === value} className={paletteTab === value ? "is-on" : ""} onClick={() => setPaletteTab(value)}>{label}</button>)}</div>
+            {paletteTab === "elements" && <><div className="rb-mode" role="radiogroup" aria-label="Add sessions as">{([["live", "Live in the room"], ["self_paced", "Self-paced"]] as const).map(([value, label]) =>
               <button key={value} type="button" role="radio" aria-checked={dropMode === value} className={dropMode === value ? "is-on" : ""} onClick={() => setDropMode(value)}>{label}</button>)}</div>
-            {dropMode === "self_paced" && <p className="rb-help">Self-paced sessions open on phones between two times, outside the live room. Set the times, then press Done.</p>}</div>
-          <div className="rb-palette-body">
+            {dropMode === "self_paced" && <p className="rb-help">Self-paced sessions open on phones between two times, outside the live room. Set the times, then press Done.</p>}</>}</div>
+          {paletteTab === "blocks" ? <div className="rb-palette-body" data-testid="saved-blocks">
+            <div className="rb-group" role="group" aria-label="Your blocks"><h3>Your blocks</h3>
+              {blocks === null ? <p className="rb-help" role="status">Loading your blocks.</p> : blocks.length === 0 ? <p className="rb-help">No blocks yet. To save one, open a section&rsquo;s menu and choose Save as a block.</p>
+                : blocks.map(t => <div key={t.id} className="rb-block">
+                  <button type="button" className="rb-tile" disabled={locked || blockBusy !== null} onClick={() => addBlock(t)}>
+                    <span className="ic"><Layers size={18} aria-hidden="true" /></span><span className="tx"><b>{t.name}</b><span>{blockBusy === t.id ? "Adding" : `${t.count} ${t.count === 1 ? "session" : "sessions"} · ${clock(t.minutes)}`}</span></span></button>
+                  {t.can_remove && <button type="button" className="rb-block-remove" aria-label={`Remove ${t.name}`} disabled={blockBusy !== null} onClick={() => void removeBlock(t)}>Remove</button>}</div>)}
+            </div>
+            <p className="rb-help">A block lands at the end of the part it was saved from, with its section names. For a whole run, <Link className="text-link" href={`/setup/templates?engagement=${ctx.id}`}>use a template</Link>.</p>
+          </div> : <div className="rb-palette-body">
             {([["Interactions", tiles.interactions], ["Content screens", tiles.screens]] as const).map(([title, list]) => list.length > 0 && <div className="rb-group" key={title} role="group" aria-label={title}>
               <h3>{title}{title === "Content screens" && dropMode === "self_paced" ? ": in the room only" : ""}</h3>
               {list.map(entry => { const TileIcon = iconOf(entry.kind, entry.screen); const lifted = drag?.source.type === "tile" && drag.source.entry.id === entry.id;
@@ -396,11 +493,12 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                 </button>; })}
             </div>)}
             <p className="rb-help" id="rb-tile-help">Enter adds it at the end. Space picks it up to place with the arrow keys.</p>
-          </div>
+          </div>}
         </aside>
       </div>
     </div>
     {drag && !drag.keys && DragIcon && <div ref={ghost} className="rb-ghost" aria-hidden="true"><DragIcon aria-hidden="true" /><b>{sourceLabel(drag.source)}</b></div>}
+    {blockOf && <SaveTemplate engagement={ctx.id} name={blockOf.name} count={blockOf.ids.length} sessions={blockOf.ids} onClose={saved => { setBlockOf(null); if (saved) { setError(false); setMessage(saved); setBlocks(null); } }} />}
     {saveTemplate && <SaveTemplate engagement={ctx.id} name={ctx.title} count={count} onClose={saved => { setSaveTemplate(false); if (saved) { setError(false); setMessage(saved); } }} />}
   </main>;
 }

@@ -738,3 +738,8 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 }
 @media print { .shell-nav, .shell-main > .show-private { display: none !important; } .app-shell { display: block; min-height: 0; } }
 .shell-nav { font-size: var(--cwl-fs-app-table); }
+
+/* Session form groups and the printed run of show's section rows (design pass 8, step 5). */
+.show-fields .show-group { margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--cwl-app-border); font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); }
+.show-fields .show-group:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.show-print-sec th { text-align: left; font-weight: var(--fw-bold); background: var(--cwl-app-sunken); }
