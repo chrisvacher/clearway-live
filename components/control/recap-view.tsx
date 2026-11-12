@@ -7,6 +7,7 @@ import { lensOf, lensOptions } from "@/lib/interactions/lens";
 import { windowLabel } from "@/lib/run-of-show/self-paced";
 import { parts, type ShowContext } from "@/lib/run-of-show/types";
 import type { LiveSnapshot } from "@/lib/live/types";
+import { WorkshopSummary } from "./workshop-summary";
 import "./self-paced.css";
 
 // One card: the session's type, prompt and count, and the TV's own picture of its results.
@@ -26,7 +27,8 @@ const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry
   </article>;
 }, (a, b) => a.frame === b.frame && a.zone === b.zone && (a.entry.mode !== "self_paced" || Math.floor(a.now / 60000) === Math.floor(b.now / 60000)));
 
-export function RecapView({ engagement, context, initial }: { engagement: string; context: ShowContext; initial: Recap }) {
+// For a workshop this page is "After the workshop": the summary sits above the results and the session groups carry no Wayfinding part names.
+export function RecapView({ engagement, context, initial, workshop = false }: { engagement: string; context: ShowContext; initial: Recap; workshop?: boolean }) {
   const [recap, setRecap] = useState(initial);
   const [offset, setOffset] = useState(() => Date.parse(initial.server_time) - Date.now());
   const [now, setNow] = useState(() => Date.now());
@@ -58,13 +60,15 @@ export function RecapView({ engagement, context, initial }: { engagement: string
       <button className="show-button" type="button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button>
       <a className="show-button" href={`/api/control/${engagement}/export?session=all`} download><Download size={18} aria-hidden="true" />Download all as CSV</a>
       <a className="show-button" href={`/api/control/${engagement}/export?format=json`} download><Download size={18} aria-hidden="true" />Download engagement JSON</a></div>
-    <div className="recap-head"><div className="tv-manager-heading"><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>Results recap</h1>
-      <p>Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive.</p></div></div>
+    <div className="recap-head"><div className="tv-manager-heading"><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>{workshop ? "After the workshop" : "Results recap"}</h1>
+      <p>{workshop ? "A short summary, then every session that took answers, as it appeared on the TV. It keeps up as answers arrive." : "Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive."}</p></div></div>
+    {workshop && <WorkshopSummary engagement={engagement} answers={cards.length > 0} />}
+    {workshop && cards.length > 0 && <h2 className="recap-results-title">Results, session by session</h2>}
     {!cards.length && <p className="recap-empty">No session has taken answers yet. Results appear here once the room reaches a session or a self-paced session opens.</p>}
     {parts.map(part => {
       const list = cards.filter(c => c.entry.part === part);
       if (!list.length) return null;
-      return <section key={part} className="recap-part" aria-labelledby={`recap-${part}`}><h2 id={`recap-${part}`}>{part}</h2>
+      return <section key={part} className="recap-part" aria-labelledby={workshop ? undefined : `recap-${part}`} aria-label={workshop ? "Results" : undefined}>{!workshop && <h2 id={`recap-${part}`}>{part}</h2>}
         <div className="recap-grid">{list.map(({ entry, frame }) => <Card key={entry.session.id} entry={entry} frame={frame} engagement={engagement} zone={context.timezone} now={serverNow} />)}</div>
       </section>;
     })}

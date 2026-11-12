@@ -27,7 +27,8 @@ function Private({ title, children }: { title: string; children: React.ReactNode
 const time = (iso: string | null, zone: string) => iso ? new Intl.DateTimeFormat("en-CA", { hour: "numeric", minute: "2-digit", timeZone: zone }).format(new Date(iso)) : "";
 
 // FAC-01: run of show left, the confirmed TV and controls centre, private panels right.
-export function ControlSurface({ initial, door }: { initial: RunOfShow; door: React.ReactNode }) {
+// A workshop leaves out what only a Wayfinding retreat uses: the alignment signal, the scribe feed, the overnight review and After the retreat.
+export function ControlSurface({ initial, door, workshop = false }: { initial: RunOfShow; door: React.ReactNode; workshop?: boolean }) {
   const engagement = initial.context.id;
   const router = useRouter();
   // Join requests arrive while the room runs; refresh the door list quietly.
@@ -47,7 +48,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
   return <div className="ctl-app" data-room-version={frame?.version}>
     <header className="ctl-head">
       <div><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>Live room</h1></div>
-      <div className="ctl-row">{status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}<SyncChip room={room} /><Link className="show-button" href={`/remote/${engagement}`}><Smartphone size={18} aria-hidden="true" />Open the remote</Link><Link className="show-button" href={`/setup/${engagement}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link><Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />See results recap</Link><Link className="show-button" href={`/control/${engagement}/map`}><MapIcon size={18} aria-hidden="true" />Draft Clearway Map</Link><AfterLink engagement={engagement} /></div>
+      <div className="ctl-row">{status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}<SyncChip room={room} /><Link className="show-button" href={`/remote/${engagement}`}><Smartphone size={18} aria-hidden="true" />Open the remote</Link><Link className="show-button" href={`/setup/${engagement}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link><Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />{workshop ? "See results" : "See results recap"}</Link>{!workshop && <Link className="show-button" href={`/control/${engagement}/map`}><MapIcon size={18} aria-hidden="true" />Draft Clearway Map</Link>}{!workshop && <AfterLink engagement={engagement} />}</div>
     </header>
     <div className="ctl-cols">
       <nav className="ctl-col ctl-run" aria-label="Run of show">
@@ -87,7 +88,7 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
         </>}
       </main>
       <aside className="ctl-col ctl-side">
-        <SignalPanel room={room} />
+        {!workshop && <SignalPanel room={room} />}
         <AiPanel room={room} />
         <Private title="Room">
           <div className="ctl-stats">
@@ -98,8 +99,8 @@ export function ControlSurface({ initial, door }: { initial: RunOfShow; door: Re
           </div>
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
-        <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} live={room.frame?.state.live_session_id ?? null} promoted={room.frame?.promoted_quote?.text ?? null} /></Private>
-        <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>
+        {!workshop && <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} live={room.frame?.state.live_session_id ?? null} promoted={room.frame?.promoted_quote?.text ?? null} /></Private>}
+        {!workshop && <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>}
         <Private title="At the door"><div className="ctl-door">{door}</div></Private>
         <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>
         <Private title="Presenter notes">{current ? <><p className="ctl-label">{current.title}</p><p className="ctl-notes">{current.notes || "No presenter notes."}</p></> : <p className="ctl-notes">Nothing is live.</p>}</Private>

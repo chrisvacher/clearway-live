@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
+import { wayfindingOnly } from "@/lib/server/shell";
 import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
 import { AfterHub, type AfterSummary } from "@/components/report/after-hub";
@@ -15,6 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function AfterPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
+  await wayfindingOnly(client, id, `/control/${id}/recap`);
   const show = await readShow(client, id); if (!show) notFound();
   let summary: AfterSummary = { available: false, draft: false, reviewed: 0, total: 14, signed: null };
   try {
