@@ -102,7 +102,7 @@
 .admin-more-list a:hover { background:var(--cwl-app-hover); }
 @media(max-width:900px) { .overview-columns { grid-template-columns:minmax(0,1fr); } }
 @media(max-width:700px) { .ready-row { grid-template-columns:minmax(0,1fr); gap:var(--space-2); } .ready-chip { justify-self:start; } .admin-row { padding:var(--space-4); } .admin-more-list { position:static; } }
-.create-flow { display:grid; gap:var(--space-6); max-width:920px; }
+.create-flow { display:grid; gap:var(--space-6); max-width:var(--admin-form-max,980px); }
 .create-search div { display:flex; flex-wrap:wrap; gap:var(--space-2); }
 .create-search input { flex:1 1 240px; }
 .create-options { list-style:none; margin:var(--space-3) 0 0; padding:0; display:grid; gap:var(--space-2); }
@@ -120,7 +120,7 @@ label.create-option { flex-direction:row; }
 .admin-editor.create-flow input:not([type="radio"]), .admin-editor.create-flow select { font-size:var(--cwl-fs-app-body); }
 
 /* Design pass 8, step 3: People and joining. */
-.joining { display:grid; gap:var(--space-6); max-width:920px; margin-bottom:var(--space-6); }
+.joining { display:grid; gap:var(--space-6); max-width:var(--admin-form-max,980px); margin-bottom:var(--space-6); }
 .joining-line { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3); margin-bottom:var(--space-4); }
 .admin-editor .joining-line label { font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); }
 .admin-editor .joining-line input { width:240px; flex:0 1 240px; }
@@ -135,3 +135,32 @@ label.create-option { flex-direction:row; }
 .admin-editor textarea { font:inherit; font-size:var(--cwl-fs-app-body); }
 .app-shell .admin-editor input:not([type="checkbox"]):not([type="radio"]), .app-shell .admin-editor select { font-size:var(--cwl-fs-app-body); }
 .app-shell .admin-editor form > .button-link { justify-self:start; width:auto; padding-inline:var(--space-6); }
+
+/* Design pass 8, step 6 (batch 0): one frame, one button family and one field standard on signed-in pages.
+   Every rule is scoped under .app-shell so the phone, TV, room, public and sign-in pages (which share .button-link, .form-stack and .text-link) are unchanged. */
+.app-shell { --admin-form-max: 980px; }
+.app-shell .admin-page { max-width:none; margin-inline:0; padding:var(--space-8) var(--cwl-app-gutter); }
+.app-shell .admin-narrow { max-width:var(--admin-form-max); margin-inline:0; }
+.app-shell .admin-heading { display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:var(--space-4) var(--space-6); margin-bottom:var(--space-6); }
+.app-shell .admin-heading > div:first-child { flex:1 1 320px; min-width:0; }
+.app-shell .admin-heading .admin-actions { flex:none; justify-content:flex-end; max-width:100%; }
+.app-shell .admin-heading h1 { margin:var(--space-1) 0 var(--space-2); overflow-wrap:anywhere; }
+.app-shell .admin-heading p, .app-shell .admin-page .admin-lead { margin:0; max-width:70ch; font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); }
+.app-shell .admin-kicker { display:block; margin:0; font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); letter-spacing:0; text-transform:none; color:var(--cwl-app-text-muted); overflow-wrap:anywhere; }
+.app-shell .admin-actions { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); }
+.app-shell .admin-saved { font-size:var(--cwl-fs-app-micro); color:var(--cwl-app-text-muted); }
+
+.app-shell .button-link, .app-shell .admin-button { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; gap:var(--space-2); width:auto; min-height:44px; padding:var(--space-2) var(--space-4); border:1px solid var(--cwl-app-primary); border-radius:var(--cwl-radius-button); background:var(--cwl-app-primary); color:var(--cwl-app-on-primary); font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); text-decoration:none; cursor:pointer; box-shadow:none; }
+.app-shell .button-link:hover:not(:disabled) { background:var(--cwl-app-primary-hover); border-color:var(--cwl-app-primary-hover); color:var(--cwl-app-on-primary); box-shadow:none; }
+.app-shell .button-link.secondary, .app-shell .admin-button { background:var(--cwl-app-card); border-color:var(--cwl-app-border); color:var(--cwl-app-text); }
+.app-shell .button-link.secondary:hover:not(:disabled), .app-shell .admin-button:hover { background:var(--cwl-app-hover); border-color:var(--cwl-app-border); color:var(--cwl-app-text); }
+.app-shell .admin-button.is-primary { background:var(--cwl-app-primary); border-color:var(--cwl-app-primary); color:var(--cwl-app-on-primary); }
+.app-shell .admin-button.is-primary:hover { background:var(--cwl-app-primary-hover); border-color:var(--cwl-app-primary-hover); color:var(--cwl-app-on-primary); }
+.app-shell .button-link:disabled, .app-shell .button-link:disabled:hover, .app-shell .admin-button:disabled, .app-shell .admin-button:disabled:hover, .app-shell .admin-button.is-primary:disabled { background:var(--cwl-app-sunken); border-color:var(--cwl-app-border); color:var(--cwl-app-text-muted); cursor:not-allowed; box-shadow:none; }
+.app-shell .admin-button.is-small, .app-shell .button-link.is-small { min-height:var(--space-8); padding:var(--space-1) var(--space-3); font-size:var(--cwl-fs-app-micro); }
+.app-shell .form-stack > :is(.button-link,.admin-button,.show-button,button[type="submit"]), .app-shell .admin-editor form > .button-link { align-self:flex-start; justify-self:start; width:auto; }
+@media(max-width:700px) { .app-shell .admin-card .admin-button { flex:0 0 auto; } .app-shell .admin-heading .admin-actions { justify-content:flex-start; } .app-shell .admin-page { padding:var(--space-6) var(--space-4); } }
+
+.app-shell :is(.form-stack,.admin-editor,.admin-columns) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select, textarea) { min-height:44px; padding:var(--space-2) var(--space-3); border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); background:var(--cwl-app-card); color:var(--cwl-app-text); font-family:inherit; font-size:var(--cwl-fs-app-table); font-weight:var(--fw-regular); }
+.app-shell :is(.form-stack,.admin-editor,.admin-columns) textarea { min-height:calc(var(--space-8) * 3); }
+.app-shell :is(.form-stack,.admin-editor,.admin-columns) label:not(.check-row):not(.create-option) { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); }

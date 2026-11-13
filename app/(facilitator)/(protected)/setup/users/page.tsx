@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { teamHubConfigured } from "@/lib/server/team-hub";
 import { UserAdmin } from "@/components/facilitator/user-admin";
-import "@/components/facilitator/admin.css";
 export const metadata = { title: "Clearway users" };
 export default async function UsersPage() {
   const { profile, client } = await requireFacilitator();

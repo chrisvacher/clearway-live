@@ -1,4 +1,3 @@
-import "@/components/facilitator/admin.css";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { SetupEditor } from "@/components/facilitator/setup-editor";
