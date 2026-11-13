@@ -6,7 +6,7 @@ import { Activity, BarChart3, CalendarDays, ClipboardCheck, Columns4, DoorOpen, 
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { practiceId } from "@/lib/room/practice";
 
-export type ShellEngagement = { id: string; title: string; church: string; type: string };
+export type ShellEngagement = { id: string; title: string; church: string; type: string; fourLists?: boolean };
 type Item = { href: string; label: string; icon: ReactNode; under?: boolean };
 type Group = { name: string | null; items: Item[] };
 

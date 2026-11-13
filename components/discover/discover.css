@@ -1,14 +1,11 @@
 /* Discover setup (survey findings, SET-06 notes, themes). An app surface: light, facilitator only, never the room.
    Ported from design pass 6 (NotesUpload, ThinFlag, DiscoverTheme). Every color, size and duration is a Clearway Live token. */
-.dsc { width: min(100%, 1040px); margin-inline: auto; padding: 24px var(--cwl-app-gutter) 64px; display: flex; flex-direction: column; gap: 28px; color: var(--cwl-app-text); font-size: var(--cwl-fs-app-table); }
+.dsc { width: 100%; padding: var(--space-8) var(--cwl-app-gutter) 64px; display: flex; flex-direction: column; gap: 28px; color: var(--cwl-app-text); font-size: var(--cwl-fs-app-table); }
 .dsc h1, .dsc h2, .dsc h3 { margin: 0; color: var(--cwl-app-text); }
 .dsc h1 { font-size: var(--cwl-fs-app-page-title); font-weight: 700; }
-.dsc h2 { font-size: var(--cwl-fs-app-label); font-weight: 700; }
+.dsc h2 { font-size: var(--cwl-fs-app-section-title); font-weight: var(--fw-bold); }
 .dsc :focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
-.dsc-private { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text-muted); }
-.dsc-private svg { width: 14px; height: 14px; }
 .dsc-muted { font-size: var(--cwl-fs-app-micro); font-weight: 600; color: var(--cwl-app-text-muted); }
-.dsc-head { display: flex; flex-direction: column; gap: 6px; }
 .dsc-links { display: flex; gap: 16px; flex-wrap: wrap; font-size: var(--cwl-fs-app-table); }
 .dsc-links a { color: var(--cwl-app-link); font-weight: 600; }
 .dsc-part { display: flex; flex-direction: column; gap: 12px; }
@@ -18,13 +15,13 @@
 .dsc-row.is-between { justify-content: space-between; align-items: center; }
 .dsc-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .dsc-field.is-grow { flex: 1 1 220px; }
-.dsc-field.is-figure { flex: 0 0 150px; }
-.dsc-field.is-count { flex: 0 0 140px; }
-.dsc-field label { font-size: var(--cwl-fs-app-micro); font-weight: 700; color: var(--cwl-app-text); }
-.dsc-input, .dsc-select, .dsc-text { width: 100%; min-height: 36px; padding: 6px 10px; border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-table); }
+.dsc-field.is-figure { flex: 0 0 190px; }
+.dsc-field.is-count { flex: 0 0 200px; }
+.dsc-field label { font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); color: var(--cwl-app-text); }
+.dsc-input, .dsc-select, .dsc-text { width: 100%; min-height: 44px; padding: 6px 10px; border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-table); font-weight: var(--fw-regular); }
 .dsc-text { min-height: 160px; resize: vertical; line-height: 1.5; }
-.dsc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 0 14px; border-radius: var(--cwl-radius-button); border: 1px solid var(--cwl-app-border-strong); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: 700; cursor: pointer; white-space: nowrap; }
-.dsc-btn svg { width: 16px; height: 16px; flex: none; }
+.dsc-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 44px; padding: var(--space-2) var(--space-4); border-radius: var(--cwl-radius-button); border: 1px solid var(--cwl-app-border-strong); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); cursor: pointer; white-space: nowrap; }
+.dsc-btn svg { width: 18px; height: 18px; flex: none; }
 .dsc-btn.is-primary { background: var(--cwl-app-primary); border-color: var(--cwl-app-primary); color: var(--cwl-app-on-primary); }
 .dsc-btn.is-ghost { border-color: transparent; background: transparent; color: var(--cwl-app-link); }
 .dsc-btn:hover:not(:disabled) { background: var(--cwl-app-hover); }

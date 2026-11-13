@@ -394,14 +394,14 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const DragIcon = drag ? drag.source.type === "tile" ? iconOf(drag.source.entry.kind, drag.source.entry.screen) : iconOf(drag.source.session.interaction, contentOf(drag.source.session.options).screen) : null;
 
   return <main id="main" className="show-app">
-    <ShellNav engagement={shell ?? { id: ctx.id, title: ctx.title, church: ctx.church, type: "wayfinding" }} fourLists={fourLists} />
+    <ShellNav engagement={shell ?? { id: ctx.id, title: ctx.title, church: ctx.church, type: "wayfinding" }} fourLists={sessions.some(x => x.interaction === "four_lists")} />
     <div className="show-workspace">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
       <header className="show-header"><div><p className="show-eyebrow">{ctx.church} · {ctx.title}</p><h1>Run of show</h1></div><div className="show-actions">
         {!empty && <span className="show-muted" aria-live="polite">{count} {count === 1 ? "session" : "sessions"} · {clock(total)}</span>}
         <button className="show-button" type="button" disabled={empty || locked || pending.length > 0} onClick={() => setSaveTemplate(true)}><Copy size={18} aria-hidden="true" />Save as template</button>
         <Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={18} aria-hidden="true" />Use a template</Link>
-        <Link className="show-button" href={`${base}/run-of-show/print`}><Printer size={18} aria-hidden="true" />Print run of show</Link>
+        <Link className="show-button" href={`${base}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={18} aria-hidden="true" />Print run of show</Link>
       </div></header>
       <div className="show-toolbar"><span>Times in {tz}. Each session starts when the one before it ends.</span><button className="show-button" type="button" onClick={() => void reload()}>Reload run of show</button></div>
       {message && <div className={`show-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</div>}

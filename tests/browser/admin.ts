@@ -36,6 +36,8 @@ async function main() {
             assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
             assert.equal(await page.getByText("Joined by name · Not signed in",{exact:true}).count(),0);
           }
+          if(area==="c" && path.endsWith("/discover") && page.url().endsWith(path)) { assert.equal(await page.getByText("Only you see this",{exact:true}).count(),1,"Discover draws no privacy marker of its own"); assert.equal(await page.getByText("Back to the engagement").count(),0); assert.ok((await page.locator("main .admin-kicker").textContent() ?? "").includes("Riverside Church")); }
+          if(area==="c" && path.endsWith("/four-lists") && page.url().endsWith(path)) { assert.equal(await page.getByRole("link",{name:"Download CSV"}).count(),0,"no CSV without a Four Helpful Lists step"); assert.equal(await page.getByRole("button",{name:"Refresh lists",exact:true}).count(),1); assert.equal(await page.getByRole("navigation",{name:"Engagement",exact:true}).getByRole("link",{name:"Four Helpful Lists",exact:true}).count(),0,"the sidebar leaves out Four Helpful Lists without the step"); }
           if(area==="d" && width===390) {
             const sidebar=page.locator(".shell-nav");
             if(await sidebar.count()) assert.ok((await sidebar.boundingBox())!.height<220,`${path} navigation stays compact`);
