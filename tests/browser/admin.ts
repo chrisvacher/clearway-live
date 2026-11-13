@@ -101,6 +101,27 @@ async function main() {
       await page.goto(app.origin+"/setup"); assert.equal(await page.getByRole("link",{name:"Manage Clearway users"}).count(),0);
       const outsider=await browser.newPage(); await outsider.goto(app.origin+"/setup"); assert.equal(new URL(outsider.url()).pathname,"/sign-in"); await outsider.close();
     }
+    if(!before && (area==="c" || area==="all")) {
+      // Open joining: the Door list shows who joined by name, never says to add people in setup, has no Refresh button and keeps up on its own.
+      await sql.query("update public.engagements set type='team_workshop',settings=coalesce(settings,'{}'::jsonb)||'{\"open_join\":true}'::jsonb where id=$1",[room.id]);
+      await sql.query("delete from public.attendees where engagement_id=$1 and email like '%@guest.clearway.invalid'",[room.id]);
+      await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Kit Dana',$2)",[room.id,`guest-dana-${room.id}@guest.clearway.invalid`]);
+      await page.setViewportSize({width:1440,height:1000}); await page.goto(`${app.origin}/setup/${room.id}/door`); await page.waitForLoadState("networkidle");
+      assert.equal(await page.getByRole("heading",{name:"Door list",exact:true,level:1}).count(),1,"the title is the sidebar noun");
+      assert.equal(await page.getByRole("heading",{name:"In the room",exact:true}).count(),1,"open joining says who is in the room");
+      assert.equal(await page.getByText("Kit Dana",{exact:true}).count(),1,"a person who joined by name is listed by name");
+      assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
+      assert.equal(await page.getByText(/guest\.clearway\.invalid/).count(),0,"the guest address is never shown");
+      assert.equal(await page.getByText(/in setup/).count(),0,"the door list never sends people to setup");
+      assert.equal(await page.getByRole("button",{name:/Refresh/}).count(),0,"the door list needs no Refresh button");
+      await page.getByLabel("Device code on their phone").fill("ABCD2345");
+      await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Kit Lee',$2)",[room.id,`guest-lee-${room.id}@guest.clearway.invalid`]);
+      await page.getByText("Kit Lee",{exact:true}).waitFor({timeout:10000});
+      assert.equal(await page.getByLabel("Device code on their phone").inputValue(),"ABCD2345","what was typed survives the refresh");
+      await sql.query("delete from public.attendees where engagement_id=$1",[room.id]);
+      await page.getByText("No one has joined yet. People appear here as they join.").waitFor({timeout:10000});
+      await page.getByText("This is for people on a list.").waitFor({timeout:10000}); assert.equal(await page.getByLabel("Device code on their phone").count(),0,"nobody is on a list, so hand sign-in is one line");
+    }
     assert.equal(mail.count,0,"admin audit sends no email");
     console.log(`Admin ${area} kit passed at desktop and narrow widths${before?" (baseline)":""}.`);
   } finally {await browser.close(); app.stop(); await mail.close(); await sql.end();}

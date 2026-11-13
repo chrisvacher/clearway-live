@@ -132,6 +132,15 @@ label.create-option { flex-direction:row; }
 .joining-ways span .invite-code { display:inline; font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text); }
 .joining .invite-code { font-size:var(--cwl-fs-app-section-title); }
 .admin-feedback.is-bad:not(:empty) { background:var(--cwl-app-warning-bg); }
+.app-shell .admin-people > h2 { margin-bottom:var(--space-2); }
+.app-shell .admin-columns .admin-lead { margin-bottom:var(--space-3); }
+.app-shell .admin-people .admin-subsection { margin:var(--space-6) 0 0; padding:var(--space-6) 0 0; border:0; border-top:1px solid var(--cwl-app-border); border-radius:0; background:none; }
+.app-shell .admin-people .roster { padding:var(--space-6) 0 0; }
+.app-shell .admin-people .admin-subsection h3, .app-shell .admin-people .admin-subsection h4 { margin:0 0 var(--space-3); font-size:var(--cwl-fs-app-body); font-weight:var(--fw-semibold); }
+.app-shell .admin-people .roster-heading { padding-block:0 var(--space-2); }
+.app-shell .admin-people .roster-heading h3 { margin:0; }
+.app-shell .admin-people .roster-row .actions { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); }
+.app-shell .admin-people .roster-row .notice { margin:var(--space-3) 0 0; padding:var(--space-4); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-sunken); }
 .admin-editor textarea { font:inherit; font-size:var(--cwl-fs-app-body); }
 .app-shell .admin-editor input:not([type="checkbox"]):not([type="radio"]), .app-shell .admin-editor select { font-size:var(--cwl-fs-app-body); }
 .app-shell .admin-editor form > .button-link { justify-self:start; width:auto; padding-inline:var(--space-6); }
