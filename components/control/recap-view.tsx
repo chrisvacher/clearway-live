@@ -27,7 +27,7 @@ const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry
   </article>;
 }, (a, b) => a.frame === b.frame && a.zone === b.zone && (a.entry.mode !== "self_paced" || Math.floor(a.now / 60000) === Math.floor(b.now / 60000)));
 
-// For a workshop this page is "After the workshop": the summary sits above the results and the session groups carry no Wayfinding part names.
+// For a workshop this page is "After the workshop" (Wayfinding: "Results"): the summary sits above the results and the session groups carry no Wayfinding part names.
 export function RecapView({ engagement, context, initial, workshop = false }: { engagement: string; context: ShowContext; initial: Recap; workshop?: boolean }) {
   const [recap, setRecap] = useState(initial);
   const [offset, setOffset] = useState(() => Date.parse(initial.server_time) - Date.now());
@@ -55,13 +55,10 @@ export function RecapView({ engagement, context, initial, workshop = false }: { 
     return { entry, frame };
   }), [recap]);
   const serverNow = now + offset;
-  return <main id="main" className="tv-manager recap">
-    <div className="ctl-row recap-actions">
-      <button className="show-button" type="button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button>
-      <a className="show-button" href={`/api/control/${engagement}/export?session=all`} download><Download size={18} aria-hidden="true" />Download all as CSV</a>
-      <a className="show-button" href={`/api/control/${engagement}/export?format=json`} download><Download size={18} aria-hidden="true" />Download engagement JSON</a></div>
-    <div className="recap-head"><div className="tv-manager-heading"><p className="ctl-eyebrow">{context.church} · {context.title}</p><h1>{workshop ? "After the workshop" : "Results recap"}</h1>
-      <p>{workshop ? "A short summary, then every session that took answers, as it appeared on the TV. It keeps up as answers arrive." : "Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive."}</p></div></div>
+  return <main id="main" className="admin-page recap">
+    <header className="admin-heading"><div><div className="admin-kicker">{context.church} · {context.title}</div><h1>{workshop ? "After the workshop" : "Results"}</h1>
+      <p>{workshop ? "A short summary, then every session that took answers, as it appeared on the TV. It keeps up as answers arrive." : "Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive."}</p></div>
+      <div className="admin-actions recap-actions"><button className="admin-button" type="button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button></div></header>
     {workshop && <WorkshopSummary engagement={engagement} answers={cards.length > 0} />}
     {workshop && cards.length > 0 && <h2 className="recap-results-title">Results, session by session</h2>}
     {!cards.length && <p className="recap-empty">No session has taken answers yet. Results appear here once the room reaches a session or a self-paced session opens.</p>}
@@ -72,5 +69,12 @@ export function RecapView({ engagement, context, initial, workshop = false }: { 
         <div className="recap-grid">{list.map(({ entry, frame }) => <Card key={entry.session.id} entry={entry} frame={frame} engagement={engagement} zone={context.timezone} now={serverNow} />)}</div>
       </section>;
     })}
+    <section className="admin-panel recap-downloads" aria-labelledby="recap-downloads"><h2 id="recap-downloads">Downloads</h2>
+      <p className="admin-lead">Everything the room gave you, ready to send on.</p>
+      <div className="admin-actions">
+        <a className="admin-button" href={`/api/control/${engagement}/export?session=all`} download><Download size={18} aria-hidden="true" />Every answer as CSV</a>
+        <a className="admin-button" href={`/api/control/${engagement}/export?format=json`} download><Download size={18} aria-hidden="true" />Download everything</a></div>
+      <p className="admin-saved">Download everything is the full record of this engagement in one file, for safekeeping.</p>
+    </section>
   </main>;
 }

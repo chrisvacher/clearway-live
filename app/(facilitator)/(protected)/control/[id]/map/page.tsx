@@ -15,5 +15,5 @@ export default async function MapPage({ params }: { params: Promise<{ id: string
   await wayfindingOnly(client, id, `/control/${id}/recap`);
   const { data, error } = await client.rpc("map_draft_read", { p_engagement: id });
   if (error || !data || data.status !== "ok") notFound();
-  return <div className="admin-after"><main id="main" className="admin-map"><ClearwayMap engagement={id} initial={data as MapDraft} /></main></div>;
+  return <div className="admin-after"><main id="main" className="admin-page admin-map"><ClearwayMap engagement={id} initial={data as MapDraft} /></main></div>;
 }

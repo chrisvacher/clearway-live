@@ -48,6 +48,22 @@ async function main() {
         if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/${path.replace(room.id,"engagement").replaceAll("/","-").slice(1)}-${width}.png`,fullPage:true}); }
       }
     }
+    if(!before && area==="d") {
+      for(const [path,title] of [["recap","Results"],["share","Read-only copy"],["check-ins","Check-ins"],["after","After the retreat"],["latency","Phone to TV"],["map","Draft Clearway Map"]]) {
+        await page.goto(`${app.origin}/control/${room.id}/${path}`);
+        assert.equal(await page.getByRole("heading",{level:1}).count(),1,`${path} has one h1`);
+        assert.equal(await page.getByRole("heading",{level:1,name:title,exact:true}).count(),1,`${path} is titled ${title}`);
+        assert.equal(await page.locator("main .admin-heading .admin-kicker").count(),1,`${path} has a kicker in the standard frame`);
+        assert.equal(await page.getByText("Only you see this",{exact:true}).count(),1,`${path} has only the shell's band`);
+      }
+      await page.goto(`${app.origin}/control/${room.id}/recap`);
+      assert.equal(await page.getByRole("heading",{name:"Downloads",exact:true}).count(),1);
+      assert.equal(await page.getByRole("link",{name:"Every answer as CSV",exact:true}).getAttribute("href"),`/api/control/${room.id}/export?session=all`);
+      assert.equal(await page.getByRole("link",{name:"Download everything",exact:true}).getAttribute("href"),`/api/control/${room.id}/export?format=json`);
+      await page.goto(`${app.origin}/control/${room.id}/after`);
+      for(const id of ["after-results","after-report","after-visibility","after-share","after-checkins"]) assert.equal(await page.getByTestId(id).count(),1,id);
+      assert.equal(await page.getByTestId("after-share").getByText("Read-only copy",{exact:true}).count(),1,"the Share tile is called Read-only copy");
+    }
     if(!before && area==="b") {
       await page.goto(`${app.origin}/setup/${room.id}/details`);
       assert.equal(await page.getByLabel("Workshop date",{exact:true}).count(),1);

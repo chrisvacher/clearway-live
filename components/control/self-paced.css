@@ -11,8 +11,6 @@
 
 /* The results recap: one card per session, the TV's own picture of its results. */
 .recap { display: flex; flex-direction: column; gap: var(--space-6); padding-bottom: var(--space-12); }
-.recap-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
-.recap-head h1 { margin: 0; }
 .recap-part { display: flex; flex-direction: column; gap: var(--space-4); }
 .recap-part h2 { margin: 0; font-size: var(--cwl-fs-app-section-title); }
 .recap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); gap: var(--space-4); }
@@ -23,7 +21,7 @@
 .recap-count { font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
 .recap-empty { padding: var(--space-6); border: 1px dashed var(--cwl-app-border); border-radius: var(--cwl-radius-card); color: var(--cwl-app-text-muted); }
 @media print {
-  .recap-actions, .recap-card .show-button, .site-header, .skip-link { display: none !important; }
+  .recap-actions, .recap-downloads, .recap-card .show-button, .site-header, .skip-link { display: none !important; }
   .recap-grid { grid-template-columns: 1fr 1fr; }
   .recap-card { border-color: var(--cwl-app-border); }
 }

@@ -65,6 +65,29 @@
   .admin-after .ovr-nav a, .admin-after .ovr-nav button { min-height:44px; }
 }
 
+/* Design pass 8, step 6 (batch D): Results, Read-only copy, Check-ins, After the retreat, Phone to TV and the draft Map on the standard frame. */
+.app-shell .recap > .admin-heading, .app-shell .admin-map .map-app > .admin-heading { margin-bottom:0; }
+.app-shell .admin-map .map-app > .admin-heading p { color:var(--cwl-app-text-muted); }
+.app-shell .recap .ws-head h2, .app-shell .recap .recap-results-title, .app-shell .recap .recap-part h2 { margin:0; }
+.app-shell .recap .ws-empty, .app-shell .recap .recap-prompt { margin:0; }
+.app-shell .recap-downloads { display:flex; flex-direction:column; align-items:flex-start; gap:var(--space-3); }
+.app-shell .recap-downloads > * { margin:0; }
+.app-shell .latency-body { display:flex; flex-direction:column; gap:var(--space-4); }
+.app-shell .latency-body .latency-verdict { margin:0; }
+.app-shell .latency-body .ctl-stats b { font-size:var(--cwl-fs-app-section-title); }
+.app-shell .latency-body .latency-table { margin-top:0; }
+.app-shell .latency-body .latency-table td { white-space:nowrap; }
+.app-shell .admin-page .ctl-eyebrow { margin:0; }
+.app-shell .rpt-tile h2 { margin:0; }
+.app-shell .rpt-tile > span { margin:0; }
+.app-shell .admin-heading .shr-confirm { max-width:min(520px,100%); text-align:left; }
+.app-shell .ovr-head .ovr-eyebrow { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); letter-spacing:0; text-transform:none; }
+.app-shell .admin-page .shr-card h2, .app-shell .admin-page .cir-card h2, .app-shell .admin-page .cir-card h3 { margin:0; font-size:var(--cwl-fs-app-section-title); }
+.app-shell .admin-page .cir-goal-group h4 { font-size:var(--cwl-fs-app-body); }
+.app-shell .admin-map .map-page > h2 { margin:0; font-size:var(--cwl-fs-app-micro); font-weight:var(--fw-bold); letter-spacing:0.08em; text-transform:uppercase; color:var(--cwl-app-text-muted); }
+.app-shell .admin-map .map-lens h3 { margin:0; font-size:var(--cwl-fs-app-label); }
+@media print { .app-shell .admin-map { padding:0; } }
+
 .admin-operations .admin-panel + .admin-panel { margin-top:var(--space-6); }
 .admin-operations code { overflow-wrap:anywhere; word-break:break-word; }
 .admin-operations .admin-card { overflow-wrap:anywhere; }

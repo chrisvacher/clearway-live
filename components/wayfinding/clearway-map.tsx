@@ -32,11 +32,11 @@ export function ClearwayMap({ engagement, initial }: { engagement: string; initi
   }, [engagement]);
   const p = draft.pages, a = p.page1, b = p.page2;
   return <div className="map-app">
-    <header className="map-head">
-      <div><p className="ctl-eyebrow">{p.church} · {p.title}</p><h1>Draft Clearway Map</h1><p className="map-version">Version {draft.version}. Only facilitators see this.</p></div>
-      <div className="ctl-row map-actions">
-        <button className="show-button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button>
-        <a className="show-button" href={`/api/control/${engagement}/map?format=md`} download><Download size={18} aria-hidden="true" />Download text</a>
+    <header className="admin-heading map-head">
+      <div><div className="admin-kicker">{p.church} · {p.title}</div><h1>Draft Clearway Map</h1><p className="map-version">Version {draft.version}. Only facilitators see this.</p></div>
+      <div className="admin-actions map-actions">
+        <button className="admin-button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button>
+        <a className="admin-button" href={`/api/control/${engagement}/map?format=md`} download><Download size={18} aria-hidden="true" />Download text</a>
       </div>
     </header>
     <div className="map-doc" data-version={draft.version}>

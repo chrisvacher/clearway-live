@@ -5,7 +5,7 @@ import { CalendarCheck, Undo2 } from "lucide-react";
 import { longDate } from "@/lib/check-ins/policy";
 
 // Mark the retreat closed, for when Day 2 was not closed with Close Day 2 in the app, and Undo for a mistaken mark. It asks inside the panel first.
-export function RetreatClose({ engagement, closed, closedOn, canReopen, onChange }: { engagement: string; closed: boolean; closedOn: string | null; canReopen: boolean; onChange?: () => void | Promise<void> }) {
+export function RetreatClose({ engagement, closed, closedOn, canReopen, onChange, secondary = false }: { engagement: string; closed: boolean; closedOn: string | null; canReopen: boolean; onChange?: () => void | Promise<void>; secondary?: boolean }) {
   const router = useRouter();
   const [asking, setAsking] = useState(false), [busy, setBusy] = useState(false), [say, setSay] = useState<string | null>(null);
   const act = async (action: "mark_closed" | "reopen") => {
@@ -21,7 +21,7 @@ export function RetreatClose({ engagement, closed, closedOn, canReopen, onChange
     {closed ? <>
       <span className="shr-chip is-on" data-testid="retreat-closed"><CalendarCheck size={14} aria-hidden="true" />The retreat closed{closedOn ? ` on ${longDate(closedOn)}` : ""}</span>
       {canReopen && !asking && <button type="button" className="show-button" disabled={busy} onClick={() => setAsking(true)} data-testid="retreat-undo"><Undo2 size={16} aria-hidden="true" />Undo</button>}
-    </> : !asking && <button type="button" className="show-button is-primary" disabled={busy} onClick={() => setAsking(true)} data-testid="retreat-mark"><CalendarCheck size={16} aria-hidden="true" />Mark the retreat closed</button>}
+    </> : !asking && <button type="button" className={`show-button${secondary ? "" : " is-primary"}`} disabled={busy} onClick={() => setAsking(true)} data-testid="retreat-mark"><CalendarCheck size={16} aria-hidden="true" />Mark the retreat closed</button>}
     {asking && <div className="shr-confirm" role="group" aria-label={closed ? "Undo the close" : "Mark the retreat closed"}>
       {closed ? <p><strong>Undo the close?</strong> The check-in dates made from it are taken away, and links stop opening until you close the retreat again.</p>
         : <p><strong>Mark the retreat closed?</strong> Links for the elders can then be made, and the 30, 60 and 90-day check-ins are set up from today unless the retreat end date is set. You can undo this for an hour.</p>}

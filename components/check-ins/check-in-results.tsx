@@ -87,11 +87,10 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
   const off = rounds.some(r => r.status === "scheduled" && !r.superseded), canOn = !!state.can_switch_on;
   const sentNow = rounds.some(r => r.status === "sent");
 
-  return <main id="main" className="tv-manager recap">
-    <div className="ctl-row recap-actions">
-      {rounds.length > 0 && <a className="show-button" href={`/api/control/${engagement}/check-ins?format=csv`} download><Download size={18} aria-hidden="true" />Download CSV</a>}</div>
-    <div className="tv-manager-heading"><p className="ctl-eyebrow">{church} · {title}</p><h1>Check-ins</h1>
-      <p className="show-help">At 30, 60 and 90 days after the retreat, each owner gets one email with a link to a short check-in on their own first steps and goals. You see what they say here.</p></div>
+  return <main id="main" className="admin-page">
+    <header className="admin-heading"><div><div className="admin-kicker">{church} · {title}</div><h1>Check-ins</h1>
+      <p>At 30, 60 and 90 days after the retreat, each owner gets one email with a link to a short check-in on their own first steps and goals. You see what they say here.</p></div>
+      {rounds.length > 0 && <div className="admin-actions recap-actions"><a className="admin-button" href={`/api/control/${engagement}/check-ins?format=csv`} download><Download size={18} aria-hidden="true" />Download CSV</a></div>}</header>
     <div className="cir">
       {say && <p className={`cir-banner${say.tone === "warn" ? " is-warn" : ""}`} role="status">{say.text}</p>}
 

@@ -6,7 +6,7 @@ import { readShow } from "@/lib/run-of-show/server";
 import type { ShareState } from "@/lib/read-only/policy";
 import { ShareLinks } from "@/components/read-only/share-links";
 
-export const metadata = { title: "Share", robots: { index: false, follow: false } };
+export const metadata = { title: "Read-only copy", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 // AFT-03: the named links for the elders. Facilitators only. A database without this step's function shows nothing here instead of an error.
