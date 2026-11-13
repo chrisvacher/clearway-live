@@ -1,4 +1,5 @@
 import { uuid } from "../room/identity";
+import type { Template } from "./types";
 
 // What the templates API accepts. The database checks access and every session again.
 export type TemplateAction =
@@ -45,3 +46,11 @@ export const templateMessages: Record<string, string> = {
 // The question Remove template asks inside the panel. The name is the template's own, so the question
 // never adds the word "template" after it (a template named "Retreat template" would read twice).
 export const removeTemplateQuestion = (name: string) => `Remove ${name}? Engagements already started from it keep their sessions.`;
+
+// The line under a template's name in the library. Every part is its own piece, joined with a separator, so a name, a person
+// and a date never run together; a part that is missing or isn't a date is left out.
+export function templateByline(t: Pick<Template, "kind" | "mine" | "by" | "created_at">, timeZone?: string): string {
+  if (t.kind === "shipped") return "Ships with the app";
+  const time = Date.parse(t.created_at), date = Number.isFinite(time) ? new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone }).format(time) : "";
+  return [`Saved by ${t.mine ? "you" : t.by?.trim() || "a Clearway facilitator"}`, date].filter(Boolean).join(" · ");
+}

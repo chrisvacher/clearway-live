@@ -67,17 +67,17 @@ export function CreateEngagement({ lead, templates, hubConfigured }: { lead: str
           : <p>This church has no engagement in Team Hub yet. Add one there first.</p>}</>}
     </section>
     <form className="form-stack" onSubmit={create}>
-      <fieldset disabled={busy}><legend>2. What kind of event</legend>
+      <fieldset className="admin-panel create-step" disabled={busy}><legend>2. What kind of event</legend>
         <div className="create-kinds" role="radiogroup" aria-label="Kind of event">{kinds.map(([value, name, line]) => <label key={value} className={`create-option${kind === value ? " is-on" : ""}`}><input type="radio" name="kind" value={value} checked={kind === value} onChange={() => setKind(value)} /><span><strong>{name}</strong><span>{line}</span></span></label>)}</div>
         <div className="form-grid"><label>Event title<input value={title} required maxLength={200} onChange={e => setTitle(e.target.value)} /></label>
           <label>Start from<select value={template} onChange={e => setTemplate(e.target.value)}><option value="">A blank run of show</option>{templates.map(t => <option key={t.id} value={t.id}>{t.name} · {length(t.minutes)} · {t.count} {t.count === 1 ? "session" : "sessions"}</option>)}</select></label></div>
       </fieldset>
-      <fieldset disabled={busy}><legend>3. When</legend><div className="form-grid">
+      <fieldset className="admin-panel create-step" disabled={busy}><legend>3. When</legend><div className="form-grid">
         <label>{workshop ? "Date" : "Retreat starts"}<input type="date" value={date} required={workshop || Boolean(template)} onChange={e => setDate(e.target.value)} /></label>
         <label>First session starts<input type="time" value={time} required={Boolean(template)} onChange={e => setTime(e.target.value)} /></label></div>
         <p>Times are in the church’s time zone{client ? `, ${zone}` : ""}. You can leave the date for later unless you start from a template.</p>
       </fieldset>
-      {workshop && <fieldset disabled={busy}><legend>4. How people join</legend><p>A starting point. You can change it later.</p>
+      {workshop && <fieldset className="admin-panel create-step" disabled={busy}><legend>4. How people join</legend><p>A starting point. You can change it later.</p>
         <div className="create-kinds" role="radiogroup" aria-label="How people join">
           <label className={`create-option${open ? " is-on" : ""}`}><input type="radio" name="join" checked={open} onChange={() => setOpen(true)} /><span><strong>Open workshop</strong><span>Anyone with the link, QR code or room code joins with their name.</span></span></label>
           <label className={`create-option${!open ? " is-on" : ""}`}><input type="radio" name="join" checked={!open} onChange={() => setOpen(false)} /><span><strong>Invited team</strong><span>Only people on your list get in, with a sign-in code sent to their email.</span></span></label></div>
