@@ -421,7 +421,7 @@ async function main() {
         else assert.ok(!people.some(n => text.includes(`,${n},`)), `${title}: anonymous`);
         assert.match(download.suggestedFilename(), /^riverside-church-.+\.csv$/);
       }
-      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("link", { name: "Download all as CSV" }).click()]);
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("link", { name: "Every answer as CSV" }).click()]);
       const every = readFileSync((await download.path())!, "utf8").replace(/^﻿/, "").trim().split("\r\n");
       assert.equal(every.length - 1, Object.values(expected).reduce((n, e) => n + e.rows, 0), "Download all has every row");
     });

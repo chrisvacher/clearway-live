@@ -41,10 +41,9 @@ export function ShareLinks({ engagement, church, title, initial }: { engagement:
   const revoke = async (l: ShareLink) => { const out = await post({ action: "revoke", link: l.id }); setAsking(null); setSay(out.status === "ok" || out.status === "already" ? `${l.name} is turned off. It no longer opens.` : "That link could not be turned off. Try again."); };
   const active = state.links.filter(l => l.state === "active");
 
-  return <main id="main" className="tv-manager recap">
-    
-    <div className="tv-manager-heading"><p className="ctl-eyebrow">{church} · {title}</p><h1>Share</h1>
-      <p className="show-help">Make a link for the elders, the board or anyone who should see the plan and how its goals stand. They can&rsquo;t change anything, and you can turn a link off at any time.</p></div>
+  return <main id="main" className="admin-page">
+    <header className="admin-heading"><div><div className="admin-kicker">{church} · {title}</div><h1>Read-only copy</h1>
+      <p>Make a link for the elders, the board or anyone who should see the plan and how its goals stand. They can&rsquo;t change anything, and you can turn a link off at any time.</p></div></header>
     <div className="shr" data-theme="light">
       {say && <p className="shr-banner" role="status">{say}</p>}
       {!state.eligible && <p className="shr-banner">This kind of engagement has no read-only copy.</p>}

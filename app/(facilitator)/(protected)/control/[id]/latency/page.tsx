@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { EyeOff } from "lucide-react";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
@@ -20,14 +19,14 @@ export default async function LatencyPage({ params, searchParams }: { params: Pr
   const report = data as LatencyReport, result = verdict(report), zone = show.context.timezone;
   const when = (iso: string) => new Intl.DateTimeFormat("en-CA", { timeZone: zone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
   const hourAgo = new Date(Date.now() - 3600e3).toISOString();
-  return <div className="admin-after"><main id="main" className="tv-manager latency-report">
-    <div className="ctl-row">
-      <Link className="show-button" href={`/control/${id}/latency?from=${encodeURIComponent(hourAgo)}`}>Show the last hour</Link>
-      <Link className="show-button" href={`/control/${id}/latency`}>Show the last 12 hours</Link></div>
-    <div className="tv-manager-heading"><p className="ctl-eyebrow">{show.context.church} · {show.context.title}</p><h1>Phone to TV</h1>
+  return <main id="main" className="admin-page latency-report">
+    <header className="admin-heading"><div><div className="admin-kicker">{show.context.church} · {show.context.title}</div><h1>Phone to TV</h1>
       <p>From {when(report.from)} to {when(report.to)} ({zone}). Each answer counts once, when the slowest paired TV received it.</p></div>
-    <section className="ctl-private" aria-label="Phone to TV, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Latency log</span></div>
-      <div className="ctl-private-body">
+      <div className="admin-actions">
+        <Link className="admin-button" href={`/control/${id}/latency?from=${encodeURIComponent(hourAgo)}`}>Show the last hour</Link>
+        <Link className="admin-button" href={`/control/${id}/latency`}>Show the last 12 hours</Link></div></header>
+    <section className="admin-panel" aria-labelledby="latency-log"><h2 id="latency-log">Latency log</h2>
+      <div className="latency-body">
         <p className={`latency-verdict${result.met ? " is-met" : ""}`} role="status">{result.label}</p>
         <div className="ctl-stats">
           <div><b>{seconds(report.phone_tv.p50)}</b><span>Typical (median)</span></div>
@@ -47,5 +46,5 @@ export default async function LatencyPage({ params, searchParams }: { params: Pr
           <tbody>{report.sessions.map(s => <tr key={s.id}><th scope="row">{s.title}</th><td>{s.under_second} of {s.measured}</td><td>{seconds(s.p95)}</td></tr>)}</tbody></table>}
       </div>
     </section>
-  </main></div>;
+  </main>;
 }
