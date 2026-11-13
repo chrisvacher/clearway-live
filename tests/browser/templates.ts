@@ -247,6 +247,24 @@ async function main() {
       const card = editor.locator(".tpl-card", { hasText: tplName });
       assert.match(await card.innerText(), /Saved by you/);
     });
+    await step("SET-08: the name field starts as the engagement title; click once and type, or just type, replaces it", async () => {
+      const title = (await sql.query("select title from public.engagements where id=$1", [room.id])).rows[0].title as string;
+      for (const mode of ["click", "type"] as const) {
+        const typed = `Typed ${mode} ${room.id.slice(0, 4)}`;
+        await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+        await editor.getByRole("button", { name: "Save as template" }).click();
+        const dialog = editor.getByRole("dialog", { name: "Save as template" }), field = dialog.locator("#template-name");
+        assert.equal(await field.inputValue(), title, "the name starts as the engagement title");
+        if (mode === "click") await field.click();
+        await editor.keyboard.type(typed);
+        assert.equal(await field.inputValue(), typed, `${mode}: typing replaced the title`);
+        await dialog.getByRole("button", { name: "Save template" }).click();
+        await dialog.getByText(`Saved ${typed} with`, { exact: false }).waitFor();
+        const names = (await sql.query("select name from private.templates where not deleted and name like $1", [`%${typed}%`])).rows.map(r => r.name as string);
+        assert.deepEqual(names, [typed]); assert.ok(!names[0].startsWith(title), "the saved name does not start with the engagement title");
+        await sql.query("update private.templates set deleted=true where name=$1", [typed]);
+      }
+    });
     await step("SET-08: Use a template from it shifts live and self-paced times alike; 6a's rehearsal, self-paced list and export work", async () => {
       const second = await engagement(sql, ["Ben"]);
       await sql.query("update public.engagements set title='Board night' where id=$1", [second.id]);

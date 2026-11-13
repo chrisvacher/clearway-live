@@ -46,6 +46,6 @@ export function OperationsPanel() {
       <ul className="admin-list">{state?.errors.map(e => <li className="admin-card" key={e.id}><div><h3>{e.event.name}{e.event.kind === "test" ? " · Test" : ""}</h3><p>{e.event.route} · {e.occurrences} {e.occurrences === 1 ? "report" : "reports"} · {when(e.last_seen)}</p><p>Version: {e.release.slice(0, 7)}</p>{e.event.frames.map(frame => <p key={frame}><code>{frame}</code></p>)}</div></li>)}</ul>
     </section>
     <p role="status" aria-live="polite">{busy ? "Running the check…" : notice}</p>
-    <section className="admin-panel"><h2>Recent protected copies</h2><ul className="admin-list">{state?.backups.map(b => <li className="admin-card" key={b.id}><div><strong>{b.name}{b.probe ? " · Recovery test" : ""}</strong><p>{b.bytes.toLocaleString()} bytes · {when(b.completed_at)}</p><p><code>{b.sha256}</code></p></div><a className="admin-button" href={"/api/operations/backups/" + b.id}>Download protected copy</a></li>)}</ul></section>
+    <section className="admin-panel"><h2>Recent protected copies</h2>{state && !state.backups.length && <p>No protected copies yet.</p>}<ul className="admin-list">{state?.backups.map(b => <li className="admin-card" key={b.id}><div><strong>{b.name}{b.probe ? " · Recovery test" : ""}</strong><p>{b.bytes.toLocaleString()} bytes · {when(b.completed_at)}</p><p><code>{b.sha256}</code></p></div><a className="admin-button" href={"/api/operations/backups/" + b.id}>Download protected copy</a></li>)}</ul></section>
   </>;
 }

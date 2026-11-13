@@ -109,7 +109,23 @@ async function main() {
       assert.equal(await page.getByRole("link",{name:"Open Staff planning workshop",exact:true}).getAttribute("href"),`/setup/${room.id}`);
       assert.equal(await page.getByRole("button",{name:"Create engagement",exact:true}).isDisabled(),true,"a linked engagement can’t be created twice");
       assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),0); assert.equal(await page.getByRole("radio",{name:/^Open workshop/}).isChecked(),true);
+      // The four steps are four identical cards: the title sits inside the card at one size, and one button is primary.
+      const steps=await page.locator(".create-flow .admin-panel:has(h2, legend)").evaluateAll(cards=>cards.map(card=>{ const title=card.querySelector("h2, legend")!, box=card.getBoundingClientRect(), at=title.getBoundingClientRect(), style=getComputedStyle(card); return {inside:at.top>=box.top+parseFloat(style.paddingTop)-1&&at.left>=box.left+parseFloat(style.paddingLeft)-1,size:getComputedStyle(title).fontSize,border:style.borderTopWidth,radius:style.borderTopLeftRadius,pad:style.paddingTop}; }));
+      assert.equal(steps.length,4,"four step cards"); assert.ok(steps.every(x=>x.inside),"each title is inside its card"); for(const key of ["size","border","radius","pad"] as const) assert.equal(new Set(steps.map(x=>x[key])).size,1,`the four cards share one ${key}`);
+      assert.equal(await page.locator(".create-flow .admin-button.is-primary").count(),1,"one primary button on the page"); assert.equal(await page.getByRole("group",{name:/^2\. What kind of event/}).count(),1,"step 2 keeps its group name");
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/setup-new-linked-workshop-390.png`,fullPage:true});
+      await page.unroute("**/api/setup");
+      // Clearway users: the team fills the picker when the page opens, with no button pressed, and a failure offers Try again.
+      let teamFails=true; const member={id:"7e1a0000-0000-4000-8000-000000000001",name:"Mara Quinn",email:"mara.quinn@clearway.co"};
+      await page.route("**/api/setup",async route=>{ const data=route.request().postDataJSON(); if(data.action!=="hub_members") return route.continue(); return teamFails?route.fulfill({status:503,json:{ok:false,message:"The Team Hub connection is unavailable. Please try again later."}}):route.fulfill({json:{ok:true,members:[member]}}); });
+      await page.goto(app.origin+"/setup/users"); await page.getByRole("button",{name:"Try again",exact:true}).waitFor();
+      assert.equal(await page.getByRole("alert").filter({hasText:"The Team Hub connection is unavailable."}).count(),1,"a failed load says so"); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).isDisabled(),true);
+      teamFails=false; await page.getByRole("button",{name:"Try again",exact:true}).click();
+      await page.getByRole("combobox",{name:/^Team member/}).locator("option",{hasText:"Mara Quinn"}).waitFor({state:"attached"});
+      assert.equal(await page.getByRole("button",{name:"Load Clearway team"}).count(),0,"no button loads the team"); assert.equal(await page.getByRole("button",{name:"Try again",exact:true}).count(),0);
+      assert.equal(await page.getByRole("button",{name:"Add Clearway user",exact:true}).isDisabled(),true,"adding waits for a member");
+      await page.getByRole("combobox",{name:/^Team member/}).selectOption(member.id); assert.equal(await page.getByRole("button",{name:"Add Clearway user",exact:true}).isEnabled(),true);
+      await page.goto(app.origin+"/setup/users"); await page.getByRole("combobox",{name:/^Team member/}).locator("option",{hasText:"Mara Quinn"}).waitFor({state:"attached"}); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).isEnabled(),true,"the picker fills on open, with nothing pressed");
       await page.unroute("**/api/setup");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
       await page.goto(`${app.origin}/setup/${room.id}/joining`); assert.equal(await page.getByRole("radio",{name:/^Anyone who has the link or code/}).isDisabled(),true,"only an admin changes open joining");
@@ -126,6 +142,11 @@ async function main() {
       await page.goto(`${app.origin}/setup/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`live.clearway.co/${linkName}`),"the Overview shows the chosen link");
     }
     if(!before && area==="a") {
+      // Without a Team Hub connection the card says so in one line and draws no controls that can't work.
+      await page.goto(app.origin+"/setup/users"); await page.getByText("The Team Hub connection is unavailable. Please try again later.",{exact:true}).waitFor();
+      for(const name of ["Load Clearway team","Add Clearway user","Try again"]) assert.equal(await page.getByRole("button",{name}).count(),0,`no ${name} button without Team Hub`); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).count(),0);
+      await page.route("**/api/operations",route=>route.request().method()==="GET"?route.fulfill({json:{status:"ok",eligible_files:0,protected_files:0,protected_bytes:0,pending:0,last_run:null,last_recovery_check:null,last_alert:null,errors:[],backups:[]}}):route.continue());
+      await page.goto(app.origin+"/setup/operations"); await page.getByText("No protected copies yet.",{exact:true}).waitFor(); assert.equal(await page.getByRole("heading",{name:"Recent protected copies"}).count(),1); await page.unroute("**/api/operations");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
       const denied=await page.goto(app.origin+"/setup/users"); assert.equal(denied?.status(),404,"only admins reach user administration");
       await page.goto(app.origin+"/setup"); assert.equal(await page.getByRole("link",{name:"Manage Clearway users"}).count(),0);

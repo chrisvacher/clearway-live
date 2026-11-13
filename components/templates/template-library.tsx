@@ -3,11 +3,11 @@ import { ShellNav } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, EyeOff, Play, Plus, Trash2, X } from "lucide-react";
+import { BadgeCheck, EyeOff, Play, Trash2, X } from "lucide-react";
 import { kindLabel } from "@/lib/interactions/kinds";
 import { clock } from "@/lib/run-of-show/builder";
 import { parts } from "@/lib/run-of-show/types";
-import { removeTemplateQuestion } from "@/lib/templates/policy";
+import { removeTemplateQuestion, templateByline } from "@/lib/templates/policy";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import type { Template, TemplateLibrary as Library } from "@/lib/templates/types";
 import "@/components/run-of-show/builder.css";
@@ -18,8 +18,6 @@ export function length(minutes: number) {
   const h = Math.floor(minutes / 60), m = minutes % 60;
   return `${h} hours${m ? ` ${m} minutes` : ""}`;
 }
-const dated = (iso: string) => new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric" }).format(new Date(iso));
-const byLine = (t: Template) => t.kind === "shipped" ? "Ships with the app" : `Saved by ${t.mine ? "you" : t.by ?? "a Clearway facilitator"} · ${dated(t.created_at)}`;
 
 // A starting time a day ahead, at 9:00 in the engagement's time zone.
 function tomorrowAtNine(timezone: string) {
@@ -51,9 +49,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
     <ShellNav admin={admin} />
     <div className="show-workspace">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
-      <header className="show-header"><div><p className="show-eyebrow">Library</p><h1>Templates</h1></div><div className="show-actions">
-        <button className="show-button is-primary" type="button" disabled={!library?.templates.length} onClick={() => setStarting(current?.id ?? library?.templates[0]?.id ?? null)}><Plus size={18} aria-hidden="true" />Use a template</button>
-      </div></header>
+      <header className="show-header"><div><p className="show-eyebrow">Library</p><h1>Templates</h1></div></header>
       {message && <div className="show-message" role="status">{message}</div>}
       {!library ? <p className="show-message is-error" role="alert">We couldn’t load the templates. Reload the page to try again.</p> :
       <div className="tpl-body">
@@ -61,7 +57,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
           {library.templates.map(t => <article key={t.id} role="listitem" className={`tpl-card${t.id === selected ? " is-on" : ""}`} aria-labelledby={`tpl-${t.id}`}>
             <div className="tpl-card-head"><h2 id={`tpl-${t.id}`}>{t.name}</h2>{t.kind === "shipped" && <span className="rb-chip is-ready"><BadgeCheck aria-hidden="true" />Clearway</span>}{t.block && <span className="rb-chip">Block</span>}</div>
             <p className="show-muted">{length(t.minutes)} · {t.count} {t.count === 1 ? "session" : "sessions"}</p>
-            <p className="show-help">{byLine(t)}</p>
+            <p className="show-help">{templateByline(t)}</p>
             <div className="tpl-card-foot">
               <button type="button" className={`show-button${t.id === selected ? " is-primary" : ""}`} aria-label={`Use ${t.name}`} onClick={() => { setSelected(t.id); setStarting(t.id); }}><Play size={16} aria-hidden="true" />Use</button>
               <button type="button" className="show-button" aria-pressed={t.id === selected} onClick={() => setSelected(t.id)}>Preview</button>

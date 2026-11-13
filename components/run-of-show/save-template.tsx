@@ -10,7 +10,9 @@ export function SaveTemplate({ engagement, name, count, sessions, onClose }: { e
   const block = Boolean(sessions), noun = block ? "block" : "template";
   const [value, setValue] = useState(name), [shared, setShared] = useState(true), [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [saved, setSaved] = useState(false);
   const first = useRef<HTMLInputElement>(null);
-  useEffect(() => { first.current?.select(); }, []);
+  // The name starts as a suggestion. Opening focuses it with the text selected, and the first click selects it all again (a click would drop the selection), so click once and type replaces it. Later clicks place the caret.
+  const picked = useRef(false);
+  useEffect(() => { first.current?.focus(); first.current?.select(); }, []);
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key === "Escape" && !busy) onClose(); };
     document.addEventListener("keydown", key); return () => document.removeEventListener("keydown", key);
@@ -30,7 +32,7 @@ export function SaveTemplate({ engagement, name, count, sessions, onClose }: { e
       <div className="rb-modal-head"><h2 id="save-template-title">{block ? "Save as a block" : "Save as template"}</h2><button type="button" className="show-button is-icon" aria-label="Close" disabled={busy} onClick={() => onClose()}><X size={20} aria-hidden="true" /></button></div>
       <div className="rb-modal-body">
         {saved ? (block ? <p role="status">{message} Add it to any run of show from Saved blocks.</p> : <p role="status">{message} Start an engagement from it in <Link className="text-link" href="/setup/templates">Templates</Link>.</p>) : <>
-          <label htmlFor="template-name">Name<input ref={first} id="template-name" required maxLength={120} value={value} onChange={e => setValue(e.target.value)} /></label>
+          <label htmlFor="template-name">Name<input ref={first} id="template-name" required maxLength={120} value={value} onMouseDown={e => { if (picked.current) return; picked.current = true; e.preventDefault(); e.currentTarget.focus(); e.currentTarget.select(); }} onChange={e => { picked.current = true; setValue(e.target.value); }} /></label>
           <div><p className="show-help"><b>What it copies</b></p><p className="show-muted">{count} {count === 1 ? "session" : "sessions"} with their prompts, interaction settings, timings and presenter notes. Answers, attendees and dates are never copied.</p></div>
           <label className="show-check" htmlFor="template-shared">Share with the Clearway team<input id="template-shared" type="checkbox" checked={shared} onChange={e => setShared(e.target.checked)} /></label>
           {message && <p className="show-message is-error" role="alert">{message}</p>}

@@ -170,6 +170,15 @@ label.create-option { flex-direction:row; }
 .admin-editor label.create-option { display:flex; flex-direction:row; align-items:flex-start; }
 .surface .admin-page h2.admin-section-name { margin:var(--space-6) 0 var(--space-3); font-size:var(--cwl-fs-app-micro); letter-spacing:0.06em; }
 .admin-editor.create-flow input:not([type="radio"]), .admin-editor.create-flow select { font-size:var(--cwl-fs-app-body); }
+/* Batch A: the four create steps are one card. A step that is a fieldset keeps its legend for assistive tech, drawn as the card's title inside it. */
+.app-shell .create-flow .create-step { display:block; margin:0; }
+.app-shell .create-flow .create-step > legend { float:left; width:100%; margin:0 0 var(--space-3); padding:0; font-size:var(--cwl-fs-app-section-title); font-weight:var(--fw-bold); line-height:var(--lh-tight); }
+.app-shell .create-flow .create-step > legend + * { clear:both; }
+.app-shell .create-flow .admin-panel > p { margin-top:0; }
+.app-shell .create-flow > .admin-panel, .app-shell .create-flow .create-step { margin-bottom:0; }
+.app-shell .create-flow .create-step .form-grid + p { margin:var(--space-3) 0 0; }
+/* Batch A: the Engagements groups read as sentence-case headings, not shouted labels. */
+.app-shell .admin-page h2.admin-section-name { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); letter-spacing:0; text-transform:none; }
 
 /* Design pass 8, step 3: People and joining. */
 .joining { display:grid; gap:var(--space-6); max-width:var(--admin-form-max,980px); margin-bottom:var(--space-6); }
