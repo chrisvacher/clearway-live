@@ -21,7 +21,6 @@ export default async function JoiningPage({ params }: { params: Promise<{ id: st
   const attendees = await readAll(after => { const q = client.from("attendees").select("id,name,email,room_role,role_at_church,extra_fields").eq("engagement_id", id).eq("deleted", false).order("id").limit(500); return after ? q.gt("id", after) : q; });
   return <main id="main" className="admin-page"><header className="admin-heading"><div><div className="admin-kicker">{church} · {e.title}</div><h1>People and joining</h1><p>Choose the link, who can get in and what they read before they join.</p></div></header>
     <JoiningEditor admin={profile.is_admin} church={church} title={e.title} initial={{ id, type: e.type, roomCode: e.room_code, linkName: e.link_name, openJoin: open, neutral: settings.neutral_join_message === true, how: e.how_the_room_decides || consensus, closed: e.status === "closed" }} />
-    {open && <p className="admin-panel">Anyone can join by name, so a list isn’t needed. You can still add people below and invite them by email.</p>}
-    <AttendeeEditor id={id} attendees={attendees.sort((a, b) => a.name.localeCompare(b.name))} linked={Boolean(e.team_hub_client_id)} hubConfigured={teamHubConfigured()} closed={e.status === "closed"} />
+    <AttendeeEditor id={id} attendees={attendees.sort((a, b) => a.name.localeCompare(b.name))} linked={Boolean(e.team_hub_client_id)} hubConfigured={teamHubConfigured()} closed={e.status === "closed"} open={open} />
   </main>;
 }
