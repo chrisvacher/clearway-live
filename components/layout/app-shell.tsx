@@ -14,7 +14,7 @@ export function AppShell({ engagement, admin = false, children }: { engagement?:
   const pathname = usePathname();
   if (ownLayout(pathname) || (!engagement && engagementPath.test(pathname))) return <>{children}</>;
   return <div className="app-shell">
-    <ShellNav engagement={engagement} admin={admin} />
+    <ShellNav engagement={engagement} admin={admin} fourLists={engagement?.fourLists ?? true} />
     <div className="shell-main">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
       {children}

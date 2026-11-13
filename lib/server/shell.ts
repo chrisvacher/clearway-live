@@ -7,7 +7,15 @@ export async function readShellEngagement(client: SupabaseClient, id: string): P
   const { data } = await client.from("engagements").select("id,title,type,church:churches!engagements_church_id_fkey(name)").eq("id", id).eq("deleted", false).maybeSingle();
   if (!data) return null;
   const church = data.church as unknown as { name: string } | null;
-  return { id: data.id, title: data.title, type: data.type, church: church?.name ?? "Church not named" };
+  return { id: data.id, title: data.title, type: data.type, church: church?.name ?? "Church not named", fourLists: data.type === "team_workshop" ? true : await hasFourLists(client, id) };
+}
+
+// Whether the run of show has a Four Helpful Lists step: one indexed existence read. If it fails, the sidebar still shows the item.
+export async function hasFourLists(client: SupabaseClient, id: string): Promise<boolean> {
+  try {
+    const { data, error } = await client.from("sessions").select("id").eq("engagement_id", id).eq("interaction", "four_lists").eq("deleted", false).limit(1);
+    return error ? true : (data ?? []).length > 0;
+  } catch { return true; }
 }
 
 // A workshop has no Discover, overnight review, report, visibility plan, read-only copy or check-ins. A link to one of those pages

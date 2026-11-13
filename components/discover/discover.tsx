@@ -1,6 +1,5 @@
 "use client";
 import "./discover.css";
-import { Lock } from "lucide-react";
 import type { DiscoverState } from "@/lib/discover/types";
 import { Findings, SurveyTotal } from "./findings";
 import { NotesUpload } from "./notes-upload";
@@ -14,15 +13,15 @@ import type { HeardState } from "@/lib/discover/heard";
 import { useDiscover } from "./use-discover";
 
 // The Discover page for one engagement (SET-06 and the survey findings form). Facilitators only.
-export function Discover({ engagement, title, initial, closed, governance, initialThemes, initialHeard }: { engagement: string; title: string; initial: DiscoverState; closed: boolean; governance: string; initialThemes: ThemesState | null; initialHeard: HeardState | null }) {
+export function Discover({ engagement, title, church, initial, closed, governance, initialThemes, initialHeard }: { engagement: string; title: string; church: string; initial: DiscoverState; closed: boolean; governance: string; initialThemes: ThemesState | null; initialHeard: HeardState | null }) {
   // The notes and findings follow the database every few seconds; a note added or removed, here or elsewhere, reads the themes again so their
   // "of 8 conversations" counts and the "added since" line move with it.
   const { state, refresh, send } = useDiscover(engagement, initial);
   const themes = useThemes(engagement, initialThemes, state.findings.map(f => `${f.id}:${f.rests_on}:${f.title}`).join("|") + "#" + state.notes.map(n => n.id).join("|"));
   // What We Heard reads again when a theme is accepted, renamed, merged or turned down above.
   const heard = useHeard(engagement, initialHeard, (themes.state?.themes ?? []).map(t => `${t.id}:${t.status}:${t.label}:${t.rests_on}`).join("|"));
-  return <main id="main" className="dsc">
-    <header className="dsc-head"><span className="dsc-private"><Lock aria-hidden="true" />Only you see this</span><h1>Discover</h1><span className="dsc-muted">{title}</span></header>
+  return <main id="main" className="dsc admin-narrow">
+    <header className="admin-heading"><div><div className="admin-kicker">{church} · {title}</div><h1>Discover</h1><p>What the church told you before the retreat: survey findings, interview and input notes, and the themes drawn from them.</p></div></header>
     {closed ? <p className="dsc-empty" role="status">This engagement is closed. Discover is read only.</p> : null}
     <section className="dsc-part" aria-labelledby="dsc-survey"><h2 id="dsc-survey">Survey findings</h2>
       <p>The congregational survey runs in Team Hub. Add the report&apos;s key findings here, one at a time, as the report gives them. Each one becomes a theme.</p>

@@ -1,5 +1,4 @@
 import { Fragment } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -14,12 +13,14 @@ export default async function PrintShowPage({ params }: { params: Promise<{ id: 
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator(); const show = await readShow(client, id); if (!show) notFound();
   const { context, sessions } = show;
+  const { data: room } = await client.from("engagements").select("room_code,link_name").eq("id", id).maybeSingle();
+  const link = room ? `live.clearway.co/${room.link_name ?? room.room_code}` : null;
   const date = (v: string | null) => v ? new Intl.DateTimeFormat("en-CA", { timeZone: context.timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(v)) : "Unscheduled";
   return <main id="main" className="show-print">
-    <div className="show-print-actions"><Link className="show-button" href={`/setup/${id}/run-of-show`}>Return to run of show</Link><PrintButton /></div>
+    <div className="show-print-actions"><PrintButton /></div>
     <p className="show-eyebrow">{context.church} · Clearway</p><h1>{context.title}</h1><h2>Run of show</h2>
     <p className="show-muted">Only facilitators see these notes. Times in {context.timezone}.</p>
-    <p className="show-muted">Room link: https://live.clearway.co/room/{id}</p>
+    {link && <p className="show-muted">Room link: {link}</p>}
     {parts.map(part => {
       const group = sessions.filter(s => s.part === part); if (!group.length) return null;
       const named = group.some(x => (x.section ?? "").trim() !== "");

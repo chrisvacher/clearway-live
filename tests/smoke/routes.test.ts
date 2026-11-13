@@ -182,6 +182,7 @@ before(async () => {
       return send([{ id: "engagement-a", title: "Assigned engagement", status: "setup" }]);
     }
     // Step 6a: the invite links to the engagement's ready self-paced sessions.
+    if (url.pathname === "/rest/v1/sessions" && url.searchParams.get("interaction")==="eq.four_lists") return send([]); // the sidebar asks whether the run of show has a Four Helpful Lists step
     if (url.pathname === "/rest/v1/sessions"){assert.equal(url.searchParams.get("mode"),"eq.self_paced");return send([{id:"6a000000-0000-4000-8000-000000000001",title:"Before we meet",opens_at:"2026-11-01T14:00:00Z",closes_at:"2099-11-01T14:00:00Z"}]);}
     if (url.pathname === "/rest/v1/churches")return send([{id:roomId,name:"Fixture church",timezone:"America/Toronto",mission:"",purpose:"",values:[],strategy:"",leadership_rhythms:[],governance_body_name:""}]);
     if(url.pathname === "/rest/v1/engagement_facilitators")return send([{clearway_user_id:profile.id,role:"lead"}]);

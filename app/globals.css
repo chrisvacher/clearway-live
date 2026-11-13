@@ -163,7 +163,7 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .show-message { margin: var(--space-4) var(--space-6); padding: var(--space-4); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); border-radius: var(--cwl-radius-button); }
 .show-message.is-error { background: var(--cwl-app-error-bg); border: 1px solid var(--cwl-app-error); }
 .show-print { max-width: 1100px; margin: auto; padding: var(--space-10); color: var(--cwl-app-text); background: var(--cwl-app-card); }
-.show-print-actions { display: flex; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-8); }
+.show-print-actions { display: flex; justify-content: flex-end; gap: var(--space-3); margin-bottom: var(--space-8); }
 .show-print h2 { margin: var(--space-8) 0 var(--space-4); }
 .show-print p { color: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
 .show-print table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--cwl-fs-app-table); }

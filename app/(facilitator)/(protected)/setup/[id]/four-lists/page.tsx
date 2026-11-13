@@ -1,4 +1,5 @@
 import { RefreshPage } from "@/app/(facilitator)/_components/refresh-page";
+import { Download } from "lucide-react";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { wayfindingOnly } from "@/lib/server/shell";
@@ -15,10 +16,14 @@ export default async function FourListsReviewPage({ params }: { params: Promise<
   const { client } = await requireFacilitator();
   await wayfindingOnly(client, id, `/setup/${id}`);
   const { data, error } = await client.rpc("four_lists_review", { p_engagement: id });
-  if (fourListsMissing(error)) return <><main id="main" className="admin-page"><header className="admin-heading"><div><h1>Four Helpful Lists</h1></div><RefreshPage label="Refresh lists" /></header><p className="show-empty">Four Helpful Lists isn’t available yet. Please try again later.</p></main></>;
+  const lead = "Read only. Names never show. Pin, hide and undo a fold on the live control surface.";
+  if (fourListsMissing(error)) return <><main id="main" className="admin-page"><header className="admin-heading"><div><h1>Four Helpful Lists</h1><p>{lead}</p></div><div className="admin-actions"><RefreshPage label="Refresh lists" /></div></header><p className="show-empty">Four Helpful Lists isn’t available yet. Please try again later.</p></main></>;
   if (error || !data || data.status !== "ok") notFound();
   const review = data as FourReview;
-  return <><main id="main" className="admin-page"><header className="admin-heading"><div><h1>Four Helpful Lists</h1><p>{review.engagement.title}</p></div><RefreshPage label="Refresh lists" /></header>
-    <FourListsReview review={review} engagement={id} />
+  const { data: church } = await client.from("engagements").select("church:churches!engagements_church_id_fkey(name)").eq("id", id).maybeSingle();
+  const churchName = (church?.church as unknown as { name: string } | null)?.name ?? "Church not named";
+  return <><main id="main" className="admin-page"><header className="admin-heading"><div><div className="admin-kicker">{churchName} · {review.engagement.title}</div><h1>Four Helpful Lists</h1><p>{lead}</p></div>
+    <div className="admin-actions"><RefreshPage label="Refresh lists" />{review.sessions.length > 0 && <a className="admin-button" href={`/api/control/${id}/four-lists/export`} download><Download size={18} aria-hidden="true" />Download CSV</a>}</div></header>
+    <FourListsReview review={review} />
   </main></>;
 }
