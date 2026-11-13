@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import "@/components/facilitator/admin.css";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { teamHubConfigured, teamHubReader } from "@/lib/server/team-hub";
 import { compareEngagements, statusName, eventDate, place, typeName, listGroup, groupNames, mainAction, type HubPlace, type ListedEngagement, type ListGroup } from "@/lib/setup/listing";

@@ -17,7 +17,7 @@ async function main() {
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
-    const paths:Record<string,string[]>={a:["/sign-in","/setup","/control",...(!before?["/setup/users"]:[])],b:["/setup/new",`/setup/${room.id}`,`/setup/${room.id}/details`,`/setup/${room.id}/joining`],c:[`/setup/${room.id}/door`,`/setup/${room.id}/tv`,`/setup/${room.id}/discover`,`/setup/${room.id}/four-lists`,"/setup/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
+    const paths:Record<string,string[]>={a:["/sign-in","/setup","/control",...(!before?["/setup/users","/setup/operations"]:[])],b:["/setup/new",`/setup/${room.id}`,`/setup/${room.id}/details`,`/setup/${room.id}/joining`],c:[`/setup/${room.id}/door`,`/setup/${room.id}/tv`,`/setup/${room.id}/discover`,`/setup/${room.id}/four-lists`,"/setup/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
       for (const path of (area==="all"?Object.values(paths).flat():paths[area])) {
@@ -26,6 +26,7 @@ async function main() {
         if(!before) {
           assert.equal(await page.locator("#main").count(),1,`${path} has one main destination`);
           assert.ok(await page.locator("h1").count(),`${path} has a heading`);
+          const titleSize=await page.locator("h1").first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)); assert.ok(titleSize<=28,`${path} first h1 is page-title size or smaller (admin stylesheet loaded): ${titleSize}px`);
           assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} fits ${width}px`);
           if((area==="c" || area==="d") && path!=="/setup/templates") {
             assert.equal(await page.getByRole("navigation",{name:"Engagement",exact:true}).count(),1);

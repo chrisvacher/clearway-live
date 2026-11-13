@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { OperationsPanel } from "@/components/facilitator/operations-panel";
-import "@/components/facilitator/admin.css";
 export const metadata = { title: "Operations" };
 export default async function OperationsPage() {
   const { profile } = await requireFacilitator();

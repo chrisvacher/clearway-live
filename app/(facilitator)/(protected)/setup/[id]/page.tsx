@@ -1,4 +1,3 @@
-import "@/components/facilitator/admin.css";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CircleAlert, CircleCheck, Radio } from "lucide-react";
