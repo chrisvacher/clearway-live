@@ -57,11 +57,25 @@ async function main() {
       assert.equal(await page.getByText("Add a Clearway user",{exact:true}).count(),0);
       assert.equal(await page.getByRole("checkbox",{name:/^Open joining:/}).count(),0,"joining lives on its own page");
       assert.equal(await page.getByLabel("TV theme",{exact:true}).count(),0,"the screen's settings live on Screens");
-      await page.getByRole("combobox",{name:/^Engagement type/}).selectOption("wayfinding");
+      await page.getByRole("combobox",{name:/^Kind of event/}).selectOption("wayfinding");
       assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),1);
-      await page.getByRole("combobox",{name:/^Engagement type/}).selectOption("team_workshop");
+      await page.getByRole("combobox",{name:/^Kind of event/}).selectOption("team_workshop");
       await page.getByRole("button",{name:"Save engagement",exact:true}).click();
       await page.getByRole("status").filter({hasText:"Saved."}).waitFor();
+      // Logo upload: a small PNG shows a preview, saves, survives a reload and can be removed; a text file renamed .png is refused in plain words.
+      const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==","base64");
+      assert.equal(await page.getByText("No logo",{exact:true}).count(),1,"a church without a logo shows the empty box");
+      await page.locator('input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:png});
+      await page.getByRole("img",{name:"Church logo preview"}).waitFor();
+      await page.getByRole("status").filter({hasText:"Logo ready. Save to keep it."}).waitFor();
+      await page.getByRole("button",{name:"Save church",exact:true}).click(); await page.getByRole("status").filter({hasText:"Saved."}).waitFor();
+      await page.reload(); await page.getByRole("img",{name:"Church logo preview"}).waitFor();
+      assert.ok(await page.getByRole("img",{name:"Church logo preview"}).evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0),"the saved logo loads after a reload");
+      await page.locator('input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:Buffer.from("this is only text")});
+      await page.getByRole("status").filter({hasText:"Use a PNG, JPEG or WebP image."}).waitFor();
+      await page.getByRole("button",{name:"Remove logo",exact:true}).click(); await page.getByRole("button",{name:"Save church",exact:true}).click(); await page.getByRole("status").filter({hasText:"Saved."}).waitFor();
+      await page.reload(); await page.getByText("No logo",{exact:true}).waitFor();
+      assert.equal(await page.getByRole("combobox",{name:/^Time zone/}).inputValue(),"America/Toronto","the time zone is a picker that holds the stored zone");
       await sql.query("update public.churches set team_hub_client_id=id where id=(select church_id from public.engagements where id=$1)",[room.id]);
       const ids=(await sql.query("update public.engagements set team_hub_client_id=church_id,team_hub_engagement_id=gen_random_uuid() where id=$1 returning team_hub_client_id,team_hub_engagement_id",[room.id])).rows[0];
       const payload={action:"create",hub_client:ids.team_hub_client_id,hub_engagement:ids.team_hub_engagement_id,church:{name:"Riverside",timezone:"America/Toronto"},engagement:{title:"Planning",type:"team_workshop",status:"setup",start_date:"2027-02-20",end_date:"",retreat_start_date:"",retreat_end_date:"",base_year:"",lens_names:[],how_the_room_decides:"The team agrees together.",settings:{}}};

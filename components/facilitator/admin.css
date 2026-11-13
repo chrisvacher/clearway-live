@@ -36,6 +36,24 @@
 .admin-editor .check-row input { flex:none; margin-top:var(--space-1); }
 .admin-editor .button-link { font-size:var(--cwl-fs-app-label); min-height:44px; }
 .admin-editor .admin-panel, .room-details { margin-bottom:var(--space-6); }
+.admin-editor .admin-panel > h2 { margin:0 0 var(--space-4); font-size:var(--cwl-fs-app-section-title); }
+.admin-editor .admin-panel > * + :is(.form-grid,label,p,.hub-line,.logo-row) { margin-top:var(--space-4); }
+.admin-editor .admin-muted { display:block; margin:0; font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); font-weight:var(--fw-regular); }
+.admin-editor .admin-card-save { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-6); }
+.admin-editor .admin-chip { display:inline-flex; align-items:center; padding:var(--space-1) var(--space-3); border-radius:var(--cwl-radius-pill); background:var(--cwl-app-sunken); color:var(--cwl-app-text-muted); font-size:var(--cwl-fs-app-micro); font-weight:var(--fw-semibold); }
+.admin-editor .hub-line { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); }
+.admin-editor .hub-names { min-width:0; overflow-wrap:anywhere; }
+.admin-editor .logo-row { display:flex; align-items:flex-start; gap:var(--space-4); }
+.admin-editor .logo-preview { flex:none; display:flex; align-items:center; justify-content:center; width:96px; height:96px; overflow:hidden; background:var(--cwl-app-card); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-button); }
+.admin-editor .logo-preview img { max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain; }
+.admin-editor .logo-preview.is-empty { border-style:dashed; border-color:var(--cwl-app-border-strong); background:var(--cwl-app-sunken); padding:var(--space-2); text-align:center; font-size:var(--cwl-fs-app-micro); color:var(--cwl-app-text-muted); }
+.admin-editor .logo-actions { display:grid; gap:var(--space-3); min-width:0; flex:1 1 auto; justify-items:start; }
+.admin-editor .logo-actions p { margin:0; font-size:var(--cwl-fs-app-micro); }
+.admin-editor .logo-address { width:100%; font-size:var(--cwl-fs-app-label); }
+.admin-editor .logo-address summary { cursor:pointer; color:var(--cwl-app-link); font-weight:var(--fw-semibold); }
+.admin-editor .logo-address label { margin-top:var(--space-3); }
+.admin-editor .check-row > span { display:grid; gap:var(--space-1); }
+@media(max-width:700px) { .admin-editor .logo-row { flex-direction:column; } }
 .admin-feedback:not(:empty) { padding:var(--space-4); background:var(--cwl-app-info-bg); border-radius:var(--cwl-radius-card); }
 @media(max-width:700px) { .admin-editor .form-grid { grid-template-columns:minmax(0,1fr); } .admin-editor fieldset { padding:var(--space-4); } }
 
