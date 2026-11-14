@@ -5,6 +5,7 @@ import { ImageUp } from "lucide-react";
 import { contentLabels, contentOf, contentScreens, type ContentScreen } from "@/lib/interactions/kinds";
 import { fitSize, maxMediaBytes, mediaUrl } from "@/lib/interactions/media";
 import type { OptionsEditorProps } from "@/components/interactions/option-editors";
+import { Select } from "@/components/ui/select";
 
 // Fit the image to the TV in the browser, then send it once. A page keeps PNG (sharp
 // type); a photo becomes JPEG. Either way it stays under the database's 4 MB limit.
@@ -41,11 +42,11 @@ export function ContentOptions({ session, value, context, fresh, locked, onChang
     } catch (error) { setUpload({ busy: false, message: error instanceof Error ? error.message : "We couldn’t add that image." }); }
   }
   return <>
-    <label className="is-full" htmlFor="content-screen">Screen<select id="content-screen" value={o.screen} onChange={e => onChange({ screen: e.target.value as ContentScreen, ...(value.media ? { media: value.media } : {}) })}>
-      {contentScreens.map(screen => <option key={screen} value={screen}>{contentLabels[screen]}</option>)}</select></label>
+    <label className="is-full" htmlFor="content-screen">Screen<Select id="content-screen" value={o.screen} onChange={e => onChange({ screen: e.target.value as ContentScreen, ...(value.media ? { media: value.media } : {}) })}>
+      {contentScreens.map(screen => <option key={screen} value={screen}>{contentLabels[screen]}</option>)}</Select></label>
     {o.screen === "headline" && <>{text("number", "Big number (optional)", 12, "A number or short figure beside the headline, like 45%.")}{text("source", "Source", 200, "Shown small under the headline.", "Congregational survey · 87 answers")}</>}
     {o.screen === "scripture" && <>{text("reference", "Reference", 100, undefined, "Habakkuk 2:2")}{text("translation", "Translation", 100, "Defaults from the engagement.", context.scripture_translation || "NIV")}
-      <label className="is-full" htmlFor="content-size">Text size<select id="content-size" value={o.size ?? ""} onChange={e => set({ size: e.target.value === "body" ? "body" : undefined })}><option value="">Headline size</option><option value="body">Body size, beside the join link</option></select></label></>}
+      <label className="is-full" htmlFor="content-size">Text size<Select id="content-size" value={o.size ?? ""} onChange={e => set({ size: e.target.value === "body" ? "body" : undefined })}><option value="">Headline size</option><option value="body">Body size, beside the join link</option></Select></label></>}
     {o.screen === "holding" && <>{text("line", "Line under the welcome (optional)", 200, undefined, "Coffee is at the back. We start at 9:00.")}
       <label className="is-full" htmlFor="content-outline">The day’s outline (optional)<textarea id="content-outline" rows={5} maxLength={1000} value={String(value.outline ?? "")} onChange={e => set({ outline: e.target.value })} />
         <span className="show-help">One item per line, a time first if you like: 9:00 Welcome and prayer. Up to twelve lines; seven or more show in two columns. Shown in place of the line.</span></label></>}

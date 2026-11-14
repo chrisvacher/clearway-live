@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { Member } from "@/lib/setup/types";
+import { Select } from "@/components/ui/select";
 
 // The team is fetched once when the page opens. Nothing is pressed to load it.
 export function UserAdmin({ configured }: { configured: boolean }) {
@@ -32,7 +33,7 @@ export function UserAdmin({ configured }: { configured: boolean }) {
       {failed && <p role="alert">{failed} <button className="admin-button is-small" type="button" disabled={loading} onClick={() => void load()}>Try again</button></p>}
       {!failed && !loading && !members.length && <p>No Clearway team members were found.</p>}
       <form className="form-stack" onSubmit={add}>
-        <label>Team member<select value={member} disabled={busy || loading || !members.length} onChange={e => setMember(e.target.value)} required><option value="">{loading ? "Loading the team…" : "Choose a team member"}</option>{members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}</select></label>
+        <label>Team member<Select value={member} disabled={busy || loading || !members.length} onChange={e => setMember(e.target.value)} required><option value="">{loading ? "Loading the team…" : "Choose a team member"}</option>{members.map(m => <option key={m.id} value={m.id}>{m.name} ({m.email})</option>)}</Select></label>
         <button className="admin-button is-primary" type="submit" disabled={busy || !member}>Add Clearway user</button></form>
       <p className="admin-saved" role="status" aria-live="polite">{message}</p></>}
   </section>;

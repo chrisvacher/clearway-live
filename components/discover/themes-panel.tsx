@@ -5,6 +5,7 @@ import { AiIcon } from "@/components/interactions/ai/ai-icon";
 import { columnLabel, draftView, type ThemesState } from "@/lib/discover/themes";
 import { ThemeList } from "./theme-list";
 import type { ThemeReply } from "./use-themes";
+import { Select } from "@/components/ui/select";
 
 type Send = (body: Record<string, unknown>) => Promise<ThemeReply>;
 
@@ -60,8 +61,8 @@ function AddTheme({ state, send, done }: { state: ThemesState; send: Send; done:
     if (reply.status === "ok" || reply.status === "duplicate") done(); else setSay(reply.message || "We couldn't save that. Try again.");
   }
   return <form className="dsc-add" onSubmit={e => void submit(e)} aria-label="Add a theme by hand">
-    <label>What kind of theme<select className="dsc-select" value={source} onChange={e => { setSource(e.target.value as typeof source); setPicked([]); }}>
-      <option value="conversations">From interviews and conversations</option><option value="four_lists">From the Four Helpful Lists</option></select></label>
+    <label>What kind of theme<Select className="dsc-select" value={source} onChange={e => { setSource(e.target.value as typeof source); setPicked([]); }}>
+      <option value="conversations">From interviews and conversations</option><option value="four_lists">From the Four Helpful Lists</option></Select></label>
     <label>Theme<input className="dsc-input" value={label} maxLength={220} onChange={e => setLabel(e.target.value)} /></label>
     <label>Detail, if any<input className="dsc-input" value={detail} maxLength={1020} onChange={e => setDetail(e.target.value)} /></label>
     <fieldset><legend>It rests on</legend>

@@ -1,7 +1,9 @@
 // Admin navigation and visual evidence. Uses only the local harness and fictional people.
 import assert from "node:assert/strict";
 import { mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { chromium } from "playwright";
+import { setupInput } from "../../lib/setup/policy";
 import { db, engagement, facilitator, localEnv, mailbox, startApp } from "./harness";
 async function main() {
   if(process.env.KIT_AREA==="b" && process.env.KIT_BEFORE!=="1") process.env.TEAM_HUB_DATABASE_URL="postgres://clearway_live_reader:local@127.0.0.1:1/postgres";
@@ -117,6 +119,30 @@ async function main() {
       assert.equal(steps.length,4,"four step cards"); assert.ok(steps.every(x=>x.inside),"each title is inside its card"); for(const key of ["size","border","radius","pad"] as const) assert.equal(new Set(steps.map(x=>x[key])).size,1,`the four cards share one ${key}`);
       assert.equal(await page.locator(".create-flow .admin-button.is-primary").count(),1,"one primary button on the page"); assert.equal(await page.getByRole("group",{name:/^2\. What kind of event/}).count(),1,"step 2 keeps its group name");
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/setup-new-linked-workshop-390.png`,fullPage:true});
+      await page.unroute("**/api/setup");
+      // Brand on create: Clearway is selected to start, the choice is the same field as on Details, and a new engagement can start as Novetera.
+      const newHub={client:randomUUID(),engagement:randomUUID()}; const sent:{body?:{engagement:{skin?:string}}}={};
+      await page.route("**/api/setup",async route=>{
+        const data=route.request().postDataJSON();
+        if(data.action==="hub_clients") return route.fulfill({json:{ok:true,clients:[{id:newHub.client,name:"Lakeside Church",timezone:"America/Toronto"}]}});
+        if(data.action==="hub_engagements") return route.fulfill({json:{ok:true,client:{id:newHub.client,name:"Lakeside Church",timezone:"America/Toronto"},engagements:[{id:newHub.engagement,title:"AI workshop",engagement_type:"team_workshop",start_date:"2027-03-09"}]}});
+        if(data.action!=="create") return route.continue();
+        // The local stack has no Team Hub, so the page's create is carried out the way the route does it: the same checks, then the same database function.
+        sent.body=data; const input=setupInput(data);
+        const saved=await fac.client.rpc("save_engagement",{p_id:null,p_church:input.church,p_engagement:input.engagement,p_lead:data.lead,p_co:null,p_client:data.hub_client,p_hub_engagement:data.hub_engagement});
+        assert.equal(saved.error,null,JSON.stringify(saved.error)); return route.fulfill({json:{ok:true,id:saved.data}});
+      });
+      await page.goto(app.origin+"/setup/new"); await page.getByRole("button",{name:"Find churches",exact:true}).click();
+      await page.getByRole("button",{name:/^Lakeside Church/}).click(); await page.getByRole("button",{name:/^AI workshop/}).click();
+      const createBrand=page.getByRole("combobox",{name:/^Brand/});
+      assert.equal(await createBrand.inputValue(),"clearway","Clearway is selected to start"); assert.deepEqual(await createBrand.locator("option").allInnerTexts(),["Clearway","Novetera"]);
+      assert.equal(await createBrand.isEnabled(),true,"an admin can choose the brand");
+      assert.equal(await page.getByText("Sets what the room sees: the screens, phones, emails and summary, and the room’s address.",{exact:true}).count(),1,"the help line is Details’ help line");
+      await createBrand.selectOption("novetera"); await page.getByRole("button",{name:"Create engagement",exact:true}).click();
+      await page.waitForURL(/\/setup\/[0-9a-f-]{36}$/); assert.equal(sent.body?.engagement.skin,"novetera","the create carries the brand");
+      assert.equal((await sql.query("select skin from public.engagements where team_hub_engagement_id=$1",[newHub.engagement])).rows[0].skin,"novetera","the new engagement is stored as Novetera");
+      const newInvite=page.locator(".invite-facts"); await newInvite.waitFor();
+      assert.ok((await newInvite.innerText()).includes(noveteraHost),`the Overview's invite card shows the Novetera address (${noveteraHost})`); assert.equal((await newInvite.innerText()).includes(clearwayHost),false,"and not the Clearway one");
       await page.unroute("**/api/setup");
       // Clearway users: the team fills the picker when the page opens, with no button pressed, and a failure offers Try again.
       let teamFails=true; const member={id:"7e1a0000-0000-4000-8000-000000000001",name:"Mara Quinn",email:"mara.quinn@clearway.co"};

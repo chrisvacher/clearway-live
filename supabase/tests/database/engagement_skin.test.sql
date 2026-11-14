@@ -61,7 +61,16 @@ select is(public.save_engagement(tests.id(10),tests.church_body(),tests.body('no
 select is((select skin from engagements where id=tests.id(10)),'novetera','The skin is stored');
 select is((select title from engagements where id=tests.id(10)),'Room A','The rest of the save still applies');
 select is(public.save_engagement('90000000-0000-4000-8000-000000000010',tests.church_body(),tests.body('novetera','practice'),tests.id(304),null),'90000000-0000-4000-8000-000000000010'::uuid,'An admin changes the practice room''s skin');
+-- Creating: the create flow sends the brand with the new engagement (an admin only)
+select lives_ok($$select public.save_engagement(null,tests.church_body(),tests.body('novetera'),tests.id(304),null,tests.id(92),tests.id(93))$$,'An admin creates a new engagement as Novetera');
+select lives_ok($$select public.save_engagement(null,tests.church_body(),tests.body('clearway'),tests.id(304),null,tests.id(94),tests.id(95))$$,'An admin creates a new engagement as Clearway');
+select lives_ok($$select public.save_engagement(null,tests.church_body(),tests.body(),tests.id(304),null,tests.id(96),tests.id(97))$$,'A create that sends no brand starts as Clearway');
+select tests.login(2);
+select throws_ok($$select public.save_engagement(null,tests.church_body(),tests.body('novetera'),tests.id(302),null,tests.id(98),tests.id(99))$$,'42501',null,'A non-admin cannot create an engagement, as Novetera or otherwise');
 reset role;
+select is((select skin from engagements where team_hub_engagement_id=tests.id(93)),'novetera','An admin creates a new engagement as Novetera: stored');
+select is((select skin from engagements where team_hub_engagement_id=tests.id(95)),'clearway','An admin creates a new engagement as Clearway: stored');
+select is((select skin from engagements where team_hub_engagement_id=tests.id(97)),'clearway','A create that sends no brand starts as Clearway: stored');
 select is((select skin from engagements where id='90000000-0000-4000-8000-000000000010'),'novetera','The practice room keeps the skin it was given');
 
 -- Who may read it

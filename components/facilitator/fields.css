@@ -1,0 +1,91 @@
+/* The setup field standard (Clearway Live design system, AppFields): one control, one label, one help line, one check row.
+   Every control on the setup pages (Create, Details, People and joining, Screens, Run of show and its dialogs, Templates, Door list,
+   Clearway users) takes its look from here. Height is the 44px touch target (cwl-phone-touch), text is table size, edges are
+   cwl-app-border-strong (3:1), the ring is cwl-app-focus. Tokens only. Scoped to the setup field containers so the TV, phones, join
+   and sign-in pages (which share .form-stack) are unchanged. */
+
+/* The containers whose fields follow the standard. */
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add) {
+  --cwl-field-gap: var(--space-2); /* label, control and help sit this close */
+  --cwl-field-pad: var(--space-3); /* inside a control, left and right */
+}
+
+/* Control: input, select and textarea. */
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add)
+  :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), select, textarea) {
+  display: block; box-sizing: border-box; width: 100%; min-width: 0; min-height: var(--cwl-phone-touch); margin: 0; padding: 0 var(--cwl-field-pad);
+  border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text);
+  font: inherit; font-size: var(--cwl-fs-app-table); font-weight: var(--fw-regular); 
+}
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body) textarea { min-height: calc(var(--space-8) * 3); padding: var(--space-3) var(--cwl-field-pad); resize: vertical; }
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add)
+  :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), select, textarea):hover:not(:disabled) { border-color: var(--cwl-app-text); }
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add)
+  :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), select, textarea):focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; border-color: var(--cwl-app-focus); }
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add)
+  :is(input, select, textarea)[aria-invalid="true"] { border-color: var(--cwl-app-error); box-shadow: inset 0 0 0 1px var(--cwl-app-error); }
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add)
+  :is(input:not([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="hidden"]), select, textarea):disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-subtle); border-color: var(--cwl-app-border); cursor: not-allowed; }
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add) :is(input, textarea)::placeholder { color: var(--cwl-app-text-subtle); }
+
+/* Select: the native control without the browser's arrow, and the chevron on its right edge (AppFields .cwl-a-select). */
+.cwl-select { position: relative; display: block; min-width: 0; }
+.cwl-select > select { appearance: none; -webkit-appearance: none; padding-right: var(--space-10); text-overflow: ellipsis; cursor: pointer; }
+.cwl-select > select:disabled { cursor: not-allowed; }
+.cwl-select > svg { position: absolute; top: 50%; right: var(--space-3); transform: translateY(-50%); pointer-events: none; color: var(--cwl-app-text-muted); }
+.cwl-select:has(> select:disabled) > svg { color: var(--cwl-app-text-subtle); }
+
+/* Label and help: the label sits above its control and the help line below it, the same gap everywhere. */
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body)
+  label:not(.check-row, .show-check, .create-option, .show-button, .rb-sec-add label) { display: flex; flex-direction: column; gap: var(--cwl-field-gap); min-width: 0; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); color: var(--cwl-app-text); }
+.cwl-field { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.cwl-field > label { display: block; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); color: var(--cwl-app-text); }
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body, .rb-sec-add) :is(.cwl-help, .admin-muted, .show-help, .tv-screens-help) {
+  display: block; font-size: var(--cwl-fs-app-table); font-weight: var(--fw-regular); line-height: var(--lh-body); color: var(--cwl-app-text-muted); overflow-wrap: anywhere;
+}
+.cwl-field > .cwl-help, label > .cwl-help, label > .show-help, label > .tv-screens-help { margin: 0; }
+/* Fields in a grid start at the same top edge and never stretch to a taller neighbour. */
+:is(.app-shell .admin-editor, .app-shell .admin-columns, .show-fields) :is(.form-grid, .admin-columns, .show-fields) { align-items: start; }
+.show-fields { align-items: start; }
+
+/* Check row: a checkbox and its words, one size and one rhythm. The box lines up with the first line of text. */
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body) :is(.check-row, .show-check) {
+  display: flex; flex-direction: row; align-items: flex-start; gap: var(--space-3); min-height: var(--cwl-phone-touch); padding-block: var(--space-3); box-sizing: border-box;
+  font-size: var(--cwl-fs-app-table); font-weight: var(--fw-regular); line-height: var(--space-5); color: var(--cwl-app-text); cursor: pointer;
+}
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body) :is(.check-row, .show-check) > input[type="checkbox"] {
+  flex: none; width: var(--space-5); height: var(--space-5); min-height: 0; margin: 0; padding: 0; accent-color: var(--cwl-app-primary);
+}
+:is(.app-shell .form-stack, .app-shell .admin-editor, .app-shell .admin-columns, .app-shell .tv-screens-form, .app-shell .admin-people, .show-fields, .rb-modal-body) :is(.check-row, .show-check) > input[type="checkbox"]:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.app-shell .admin-editor .check-row > span { display: grid; gap: var(--space-1); }
+.app-shell .admin-editor .check-row > span > strong { font-weight: var(--fw-semibold); }
+.rb-modal-body .show-check { justify-content: space-between; }
+
+/* Choice cards (Create and People and joining): a radio and its words in a bordered card. */
+.app-shell .create-kinds { margin: 0; }
+.app-shell .create-kinds + * { margin-top: var(--space-4); }
+/* One gap between the things in a card: space-4, whether it follows a paragraph, a field, a choice or a text area. */
+.app-shell .admin-editor .admin-panel > * + :is(.admin-actions, .cwl-field, textarea, .create-kinds, .joining-line) { margin-top: var(--space-4); }
+.app-shell .admin-editor label.create-option > input[type="radio"] { flex: none; width: var(--space-5); height: var(--space-5); min-height: 0; margin: 0; accent-color: var(--cwl-app-primary); }
+.app-shell .create-flow .create-step .form-grid + p { margin: var(--space-3) 0 0; font-size: var(--cwl-fs-app-table); color: var(--cwl-app-text-muted); }
+
+/* The pairing code is entered like any other field, with room between its digits. */
+.app-shell .tv-screens-form .tv-manager-code { font-size: var(--cwl-fs-app-body) !important; letter-spacing: 0.2em; }
+
+/* Run of show: Add a section keeps its label, field and button on one line. */
+.rb-sec-add label { font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); color: var(--cwl-app-text); }
+.rb-sec-add input { flex: 1 1 12rem; }
+
+/* The small select (Discover, a row's own control): same edge and chevron, a compact height. */
+.cwl-select:has(> select.is-sm) { display: inline-block; }
+.cwl-select > select.is-sm { text-overflow: clip; }
+.cwl-select:has(> select.is-sm) > svg { width: 14px; height: 14px; right: var(--space-2); }
+
+/* Two checks stacked in a form that spaces its children (Screens, display settings) sit together as one group. */
+.app-shell .tv-screens-form .show-check + .show-check { margin-top: calc(var(--space-4) * -1); }
+
+/* A check with a help line: the box and the words in one column, the help under the words. */
+:is(.show-fields, .rb-modal-body) .show-check:has(> .show-help) { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: var(--space-3); row-gap: 0; }
+:is(.show-fields, .rb-modal-body) .show-check > .show-help { grid-column: 2; margin: 0; }
+/* A note that takes a field's place in the grid lines up with where that field's control would be. */
+.show-fields > p.show-help { align-self: end; display: flex; align-items: center; min-height: var(--cwl-phone-touch); margin: 0; }

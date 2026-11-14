@@ -4,6 +4,7 @@ import { CircleAlert, Check, ClipboardPaste, File, FileText, FileType, LoaderCir
 import type { Note } from "@/lib/discover/types";
 import { MAX_FILE_BYTES, MAX_NOTE_CHARS, MAX_PERSON, MAX_TITLE, cleanNoteText, fileSource, noteKindHint, noteKindLabel, noteKinds, titleFromFileName, type NoteKind } from "@/lib/discover/policy";
 import type { Reply } from "./use-discover";
+import { Select } from "@/components/ui/select";
 
 type Send = (body: Record<string, unknown>) => Promise<Reply>;
 type Attempt = { key: string; name: string; state: "reading" | "unreadable"; reason?: string };
@@ -23,8 +24,8 @@ function NoteRow({ note, send, closed }: { note: Note; send: Send; closed: boole
   return <div className="dsc-file">
     <span className="fi"><Icon aria-hidden="true" /></span>
     <div className="t"><b title={note.title}>{note.title}</b>
-      <select className="dsc-select is-sm" aria-label={`Which conversation: ${note.title}`} value={kind} disabled={busy || closed} onChange={e => { const k = e.target.value as NoteKind; setKind(k); void update({ kind: k }); }}>
-        {noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]}</option>)}</select>
+      <Select className="dsc-select is-sm" aria-label={`Which conversation: ${note.title}`} value={kind} disabled={busy || closed} onChange={e => { const k = e.target.value as NoteKind; setKind(k); void update({ kind: k }); }}>
+        {noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]}</option>)}</Select>
       <button className="dsc-btn is-ghost is-compact" type="button" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Hide details" : "Show details"}</button>
     </div>
     <span className="st"><Check aria-hidden="true" />{words(note.word_count)}</span>
@@ -80,7 +81,7 @@ export function NotesUpload({ engagement, notes, send, refresh, closed, governan
     <div className="dsc-card">
       <div className="dsc-row">
         <div className="dsc-field is-grow"><label htmlFor="dsc-kind">Which conversation is next</label>
-          <select id="dsc-kind" className="dsc-select" value={kind} onChange={e => setKind(e.target.value as NoteKind)} disabled={closed}>{noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]} ({noteKindHint(governance)[k].toLowerCase()})</option>)}</select></div>
+          <Select id="dsc-kind" className="dsc-select" value={kind} onChange={e => setKind(e.target.value as NoteKind)} disabled={closed}>{noteKinds.map(k => <option key={k} value={k}>{noteKindLabel[k]} ({noteKindHint(governance)[k].toLowerCase()})</option>)}</Select></div>
         <div className="dsc-field is-grow"><label htmlFor="dsc-person">Person (for the record only)</label>
           <input id="dsc-person" className="dsc-input" maxLength={MAX_PERSON} autoComplete="off" value={person} onChange={e => setPerson(e.target.value)} disabled={closed} /></div>
       </div>

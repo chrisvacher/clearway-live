@@ -26,18 +26,13 @@
 .admin-editor fieldset, .admin-editor .setup-section { border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-card); padding:var(--space-6); min-width:0; }
 .admin-editor legend { font-size:var(--cwl-fs-app-section-title); font-weight:var(--fw-bold); padding-inline:var(--space-2); }
 .admin-editor .form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-4); }
-.admin-editor input:not([type="checkbox"]), .admin-editor select, .admin-editor textarea { min-width:0; width:100%; min-height:44px; background:var(--cwl-app-card); color:var(--cwl-app-text); border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); padding:var(--space-3); }
-.admin-editor label { font-size:var(--cwl-fs-app-label); }
-.admin-editor .check-row { align-items:flex-start; }
-.admin-editor .check-row input { flex:none; margin-top:var(--space-1); }
 .admin-editor .button-link { font-size:var(--cwl-fs-app-label); min-height:44px; }
 .admin-editor .admin-panel, .room-details { margin-bottom:var(--space-6); }
 .admin-editor .admin-panel > h2 { margin:0 0 var(--space-4); font-size:var(--cwl-fs-app-section-title); }
 /* Batch G: the form's gap is the only space between cards, so a card's own bottom margin does not double it (the last card keeps its margin). */
 .admin-editor .form-stack > .admin-panel:not(:last-of-type) { margin-bottom:0; }
 .admin-editor .admin-panel > * + :is(.form-grid,label,p,.hub-line,.logo-row) { margin-top:var(--space-4); }
-.admin-editor .admin-muted { display:block; margin:0; font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); font-weight:var(--fw-regular); }
-.admin-editor .admin-card-save { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-6); }
+.admin-editor .admin-card-save { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-4); }
 .admin-editor .admin-chip { display:inline-flex; align-items:center; padding:var(--space-1) var(--space-3); border-radius:var(--cwl-radius-pill); background:var(--cwl-app-sunken); color:var(--cwl-app-text-muted); font-size:var(--cwl-fs-app-micro); font-weight:var(--fw-semibold); }
 .admin-editor .hub-line { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); }
 .admin-editor .hub-names { min-width:0; overflow-wrap:anywhere; }
@@ -50,7 +45,6 @@
 .admin-editor .logo-address { width:100%; font-size:var(--cwl-fs-app-label); }
 .admin-editor .logo-address summary { cursor:pointer; color:var(--cwl-app-link); font-weight:var(--fw-semibold); }
 .admin-editor .logo-address label { margin-top:var(--space-3); }
-.admin-editor .check-row > span { display:grid; gap:var(--space-1); }
 @media(max-width:700px) { .admin-editor .logo-row { flex-direction:column; } }
 .admin-feedback:not(:empty) { padding:var(--space-4); background:var(--cwl-app-info-bg); border-radius:var(--cwl-radius-card); }
 @media(max-width:700px) { .admin-editor .form-grid { grid-template-columns:minmax(0,1fr); } .admin-editor fieldset { padding:var(--space-4); } }
@@ -58,7 +52,6 @@
 .admin-page > .setup-section:not(.admin-editor) { padding:var(--space-6); background:var(--cwl-app-card); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); }
 
 .admin-columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--cwl-app-gap); }
-.admin-columns input,.admin-columns select { width:100%; min-width:0; min-height:44px; border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); padding:var(--space-3); }
 .admin-columns .plain-list li { overflow-wrap:anywhere; }
 @media(max-width:800px) { .admin-columns { grid-template-columns:minmax(0,1fr); } }
 
@@ -66,11 +59,7 @@
 .admin-columns .notice { padding:var(--space-4); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-card); }
 .app-shell .tv-screens-form { display:flex; flex-direction:column; gap:var(--space-4); }
 .app-shell .tv-screens-form h2, .app-shell .tv-screens-form > p { margin:0; }
-.app-shell .tv-screens-form .show-check { display:flex; flex-direction:row; align-items:center; gap:var(--space-3); min-height:44px; font-size:var(--cwl-fs-app-label); font-weight:var(--fw-regular); }
-.app-shell .tv-screens-form .show-check input { width:var(--space-5); height:var(--space-5); min-height:0; flex:none; accent-color:var(--cwl-app-primary); }
-.app-shell .tv-screens-form label:not(.show-check) { display:flex; flex-direction:column; gap:var(--space-2); }
 .app-shell .tv-screens-form .admin-columns { align-items:start; }
-.app-shell .tv-screens-help { margin:0; font-size:var(--cwl-fs-app-micro); font-weight:var(--fw-regular); color:var(--cwl-app-text-muted); }
 .app-shell .tv-screens-top { align-items:start; margin-bottom:var(--space-6); }
 .app-shell .tv-screens-top + .admin-panel, .app-shell .admin-page > .admin-panel + .tv-screens-form { margin-bottom:var(--space-6); }
 .app-shell .admin-saved.is-error { color:var(--cwl-app-error); }
@@ -164,18 +153,15 @@ label.create-option { flex-direction:row; }
 .create-option span span, .create-option > span:not(:has(strong)) { color:var(--cwl-app-text-muted); }
 .create-option.is-on { border-color:var(--cwl-app-primary); box-shadow:inset 0 0 0 1px var(--cwl-app-primary); background:var(--cwl-app-selected); }
 .create-option.is-linked { cursor:default; background:var(--cwl-app-sunken); }
-.admin-editor .create-option input { width:auto; min-height:0; margin-top:var(--space-1); flex:none; }
 .admin-page .create-picked { margin:var(--space-3) 0 0; }
 .admin-editor label.create-option { display:flex; flex-direction:row; align-items:flex-start; }
 .surface .admin-page h2.admin-section-name { margin:var(--space-6) 0 var(--space-3); font-size:var(--cwl-fs-app-micro); letter-spacing:0.06em; }
-.admin-editor.create-flow input:not([type="radio"]), .admin-editor.create-flow select { font-size:var(--cwl-fs-app-body); }
 /* Batch A: the four create steps are one card. A step that is a fieldset keeps its legend for assistive tech, drawn as the card's title inside it. */
 .app-shell .create-flow .create-step { display:block; margin:0; }
 .app-shell .create-flow .create-step > legend { float:left; width:100%; margin:0 0 var(--space-3); padding:0; font-size:var(--cwl-fs-app-section-title); font-weight:var(--fw-bold); line-height:var(--lh-tight); }
 .app-shell .create-flow .create-step > legend + * { clear:both; }
 .app-shell .create-flow .admin-panel > p { margin-top:0; }
 .app-shell .create-flow > .admin-panel, .app-shell .create-flow .create-step { margin-bottom:0; }
-.app-shell .create-flow .create-step .form-grid + p { margin:var(--space-3) 0 0; }
 /* Batch A: the Engagements groups read as sentence-case headings, not shouted labels. */
 .app-shell .admin-page h2.admin-section-name { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); letter-spacing:0; text-transform:none; }
 
@@ -202,8 +188,6 @@ label.create-option { flex-direction:row; }
 .app-shell .admin-people .roster-heading h3 { margin:0; }
 .app-shell .admin-people .roster-row .actions { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-2); }
 .app-shell .admin-people .roster-row .notice { margin:var(--space-3) 0 0; padding:var(--space-4); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-sunken); }
-.admin-editor textarea { font:inherit; font-size:var(--cwl-fs-app-body); }
-.app-shell .admin-editor input:not([type="checkbox"]):not([type="radio"]), .app-shell .admin-editor select { font-size:var(--cwl-fs-app-body); }
 .app-shell .admin-editor form > .button-link { justify-self:start; width:auto; padding-inline:var(--space-6); }
 
 /* Design pass 8, step 6 (batch 0): one frame, one button family and one field standard on signed-in pages.
@@ -231,6 +215,3 @@ label.create-option { flex-direction:row; }
 .app-shell .form-stack > :is(.button-link,.admin-button,.show-button,button[type="submit"]), .app-shell .admin-editor form > .button-link { align-self:flex-start; justify-self:start; width:auto; }
 @media(max-width:700px) { .app-shell .admin-card .admin-button { flex:0 0 auto; } .app-shell .admin-heading .admin-actions { justify-content:flex-start; } .app-shell .admin-page { padding:var(--space-6) var(--space-4); } }
 
-.app-shell :is(.form-stack,.admin-editor,.admin-columns) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select, textarea) { min-height:44px; padding:var(--space-2) var(--space-3); border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); background:var(--cwl-app-card); color:var(--cwl-app-text); font-family:inherit; font-size:var(--cwl-fs-app-table); font-weight:var(--fw-regular); }
-.app-shell :is(.form-stack,.admin-editor,.admin-columns) textarea { min-height:calc(var(--space-8) * 3); }
-.app-shell :is(.form-stack,.admin-editor,.admin-columns) label:not(.check-row):not(.create-option) { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); }
