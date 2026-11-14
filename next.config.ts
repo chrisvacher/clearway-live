@@ -13,6 +13,10 @@ const nextConfig: NextConfig = {
       "./lib/export/assets/clearway-logo-dark.png",
       "./node_modules/pdfkit/js/standard-fonts/**",
     ],
+    // The Novetera skin's Word downloads embed Public Sans (400, 700) and Source Serif 4 italic as TrueType files, read from disk, so they
+    // are traced into the functions that build the summary and the export (the licences travel with them).
+    "/api/control/*/summary": ["./lib/export/assets/fonts/novetera/**"],
+    "/api/control/*/export": ["./lib/export/assets/fonts/novetera/**"],
   },
   async headers() {
     return [{ source: "/:path*", headers: [
