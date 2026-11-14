@@ -10,6 +10,8 @@ The reset and archive were activated in production later on November 10.
 Their verification is recorded below and in the linked evidence.
 The subsequent [production readiness audit](production-readiness.md) checked
 hosted configuration and identified the remaining church-use gates.
+
+Design pass 8 (the admin shell and flow) is built through step 6, in pull requests #140 to #152. See [its handoff](design-pass-8-handoff.md).
 File protection and private error monitoring were deployed and verified later
 that day at `cba45a2`. The current operations update uses America/Chicago times.
 

@@ -24,7 +24,7 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 | 3 | Setup split into Details, People and joining and Screens, with the flexible joining model | Built, see step 3 notes |
 | 4 | Workshop clean-up: Discover, After and the live room's Wayfinding panels by engagement type, and After the workshop | Built, see step 4 notes |
 | 5 | Run of show: named sections, the grouped session editor, saved blocks | Built, see step 5 notes |
-| 6 | Consistency sweep | Last |
+| 6 | Consistency sweep | Built, see step 6 notes |
 
 ## Step 1 notes
 
@@ -114,3 +114,54 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
   `tests/browser/templates.ts`. Three source checks in `four_lists.test.sql` now read the `..._pre_section` functions.
 - **Not built**: section names in the live room's run list and on the results page; dragging a block to a place (it lands at
   the end); the TV and phone preview beside the options; tabs in the options; reordering whole sections by dragging a header.
+
+## Step 6 notes
+
+Built November 13, 2026, in pull requests #145 to #151 and the closing pull request. The checklist was the page table and the event variables
+table of the review, checked against main at `0e08e88` first.
+
+- **One stylesheet.** `components/facilitator/admin.css` is imported once, in `app/(facilitator)/(protected)/layout.tsx`. Before this only some
+  pages imported it, so the Door list, Four Helpful Lists and the draft Clearway Map rendered unstyled when opened directly or refreshed. The admin
+  kit now fails if any page's title is larger than page-title size.
+- **One frame.** Every page in the shell uses `admin-page` and `admin-heading`: a sentence-case kicker, the title (the sidebar's noun), a body-size
+  lead, and the page's actions to the right of the title. Form pages keep to `--admin-form-max` (980px) through `.admin-narrow`, left-aligned.
+- **One button family and one field standard**, inside the shell only: `.show-button`, `.admin-button` and `.button-link` render as the compact
+  button (`is-primary`, `is-small`), disabled buttons look disabled, and no button stretches across a card. Fields are regular weight at table
+  size. Every rule is scoped under `.app-shell`, so the TV, phones, public pages, sign-in, the live room, the run of show builder, Templates and
+  the print view are not changed by them.
+- **Templates.** The top "Use a template" button is gone; each card keeps Use. The save dialog focuses and selects the name, and the first click
+  on it selects it too. The review's "Practice roomPractice run, Nov 3" was a template name, typed after the prefilled engagement title; the
+  byline was never joined wrongly. That template still has that name in production.
+- **Clearway users** loads the team when the page opens, with Try again if it fails. **Create an engagement** is matching cards with one
+  primary: Who is it for, What kind of event and When, plus How people join for a workshop (four cards for a workshop, three otherwise). **Engagements** group headings are sentence case. **Operations** says when there are no protected copies; its wording is otherwise unchanged.
+- **Details** is four cards: The event, The church, AI in the room, and Wayfinding settings (every kind except a workshop: Wayfinding, Day and a half and the practice room). Each has its own
+  Save, and every Save sends the whole form through the existing `save` action. The Team Hub line shows the church and engagement names, never
+  ids. Time zone is a select of IANA zones (`lib/setup/timezones.ts`). Labels changed: Event title, Kind of event, Name on screens.
+- **Logo upload.** `POST /api/setup/logo` checks the origin and the facilitator, checks type by bytes (PNG, JPEG, WebP) and size (1 MB), and writes
+  with the service role to the public bucket `church-logos`; the church's `logo_url` holds the public address, so the TV and join pages are
+  unchanged. Migration `20261113100000_church_logos.sql`, applied to clearway-live on November 13. `lib/setup/policy.ts` accepts an `http` logo
+  address only on 127.0.0.1 or localhost, for the local kits. Not covered: logos are not in the engagement JSON archive or the file protection
+  backups, and a replaced or removed logo's file is left in the bucket.
+- **Screens** is the page's title (it was "Pair a TV"). The setting is "Room size" with the live room's option words (`roomSizes`). Each message
+  shows beside the button that caused it.
+- **People and joining.** One width. Add people, the list and Invite the team are sections of one card. "Send invites" is disabled with nobody
+  selected and never reads "Send 0 invites".
+- **Door list** is the page's title. With open joining on, the first card is "In the room" and lists everyone who has joined, by name, in
+  alphabetical order. The page refreshes its server data every 5 seconds while the tab is visible (`DoorKeepUp` in
+  `components/facilitator/door-list.tsx`); there is no Refresh button. It polls; it is not a subscription.
+- **Results.** The title is "After the workshop" for a workshop and "Results" for Wayfinding. "Print or save as PDF" is in the header. A Downloads
+  card holds "Every answer as CSV" and "Download everything" (the engagement JSON archive, renamed).
+- **After pages.** "Read-only copy" is the title of what was "Share". After the retreat has five cards (Results, Report, Visibility plan, Read-only
+  copy, Check-ins) and "Mark the retreat closed" in the header. Phone to TV carries no second privacy band. Report, Visibility plan and Overnight
+  review keep their designed workspaces; only their eyebrow is sentence case.
+- **Discover** is on the standard frame without its own privacy chip or back link. **Four Helpful Lists** shows in the sidebar only when the run of
+  show has the step (`hasFourLists` in `lib/server/shell.ts`, one read per page load on Wayfinding engagements; if the read fails the item still shows), and offers no CSV without it.
+- **Print view.** It opens in a new tab from the run of show and from the live room, so "Return to run of show" is gone. The room link reads
+  `live.clearway.co/<link name or room code>`.
+- **Privacy marker.** Pages draw none of their own; every band uses the `EyeOff` icon. One exception is left: the live room's "Answers by person"
+  band still uses a lock (`components/interactions/grid-form-sign/control.tsx`), because the live room was out of scope.
+- **Tests.** `tests/browser/admin.ts` gained steps for every batch and runs in CI as `npm run test:admin`. Evidence is in
+  `docs/evidence/design-pass-8/step-6/`.
+- **Not built:** a subscription for the Door list; a logo in the archive and backups; a place on each engagement row; a rewrite of Operations'
+  wording; a look at Report, Visibility plan, Overnight review and Check-ins with real content in them. A workshop's run of show still shows the
+  Pre-call, Day 1, Day 2 and Follow-up parts; sections sit inside them (step 5).

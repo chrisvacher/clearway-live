@@ -39,7 +39,7 @@ database role. Manual facilitator reset keeps its existing permissions.
 
 ## Engagement JSON archive
 
-Choose **Download engagement JSON** on Results recap, or use
+Choose **Download everything** on Results, or use
 `GET /api/control/<engagement>/export?format=json`. Existing session CSV
 downloads are unchanged. The route uses the facilitator's own session, never a
 service key. The database independently requires an assigned lead,
@@ -70,7 +70,7 @@ Preserve original uploads and database backups separately for complete file reco
 
 The response is an attachment with private/no-store headers and is streamed
 in chunks. A missing migration returns a private 503 response, and does not
-prevent the rest of Results recap from loading.
+prevent the rest of Results from loading.
 
 ## Verification
 

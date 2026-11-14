@@ -421,6 +421,9 @@ jobs:
           path: acceptance-m5-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the signed-in admin pages (one frame, one button family, one field standard, at desktop and 390px) in a real browser, areas a to d
+        if: ${{ !cancelled() }}
+        run: npm run test:admin
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup

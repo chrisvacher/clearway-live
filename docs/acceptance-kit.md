@@ -257,3 +257,7 @@ Both milestone 7 kits put other engagements' scheduled check-in rounds away whil
 | FAIL-01 on the check-in phone | Offline, the answers (a changed answer and a note) are saved on the phone and nothing reaches the server. Back online, they are sent once and the phone's copy is cleared. A tap alone is not an answer sent |
 
 The failure kit's shared fake-model folder is removed once, by `failures.ts`, after the last milestone's checks (milestone 6's check no longer removes it).
+
+## `npm run test:admin`
+
+Design pass 8, step 6. `tests/browser/admin.ts` checks the signed-in admin pages at 1440px and 390px: one frame (`admin-page`, `admin-heading`), no title larger than page-title size, the button and field standard, no sideways overflow, and the steps each sweep batch added. `npm run test:admin` runs it for areas `a`, `b`, `c` and `d` in turn (`KIT_AREA`) and stops at the first failure; area `b` points the Team Hub reader at a closed port by itself. It needs `npm run build` and the local stack, and runs in the CI database job after the other browser kits.

@@ -17,7 +17,7 @@ Section 11 carries the milestone 2 real-device checks forward. They still apply 
 
 | Do | What should happen | Pass when |
 | --- | --- | --- |
-| On the TV computer, open live.clearway.co/tv. On the laptop, open the practice room's setup, choose Pair a TV and enter the code | The TV moves to the holding screen with the church's name | The TV pairs on the first try |
+| On the TV computer, open live.clearway.co/tv. On the laptop, open the practice room's setup, choose Screens and enter the code | The TV moves to the holding screen with the church's name | The TV pairs on the first try |
 | Show the join screen, then join on every phone with the room link | Names arrive on the TV one at a time | Every phone is in and named on the TV |
 | Open the control surface on the laptop and the remote on your phone | Both show the same "On the TV now" | They match |
 
@@ -131,7 +131,7 @@ Run every session in order with Next, from the control surface. Every phone answ
 | --- | --- | --- |
 | Open See results recap | One card per session that took answers, each with the TV's picture of its results and its count | No content screen and nothing from the rehearsal |
 | On each card, press Download CSV and open it | One row per answer, with the kind's own columns. Anonymous sessions have no Name column; Our commitment does | Every Test answer cell is empty |
-| Press Download all as CSV | One file with every session's answers | The rows add up to the cards' counts |
+| Press Every answer as CSV | One file with every session's answers | The rows add up to the cards' counts |
 | Press Print or save as PDF | A clean printout without the buttons | It fits on letter paper |
 | On a fresh phone, open the team workshop's room link | Under Sign in: "We use AI to group similar answers and help draft summaries. It never receives your name or email, and anything it produces is marked as AI. How we use AI" | The last three words are a link |
 | Tap How we use AI. Then open the same page in a private browser window, signed out | Chris's approved wording, ending with the icon credit | It opens without signing in |
