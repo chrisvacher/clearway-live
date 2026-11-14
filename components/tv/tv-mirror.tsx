@@ -18,7 +18,7 @@ export function TvMirror({ frame, label = "On the TV now", surface = "control" }
   const display = frame?.display;
   return <div ref={box} className="tv-mirror" role="img" aria-label={`${label}: ${frame?.session?.title ?? (frame?.state.tv_content === "join" ? "Join screen" : "Holding screen")}`}
     data-surface="tv" data-skin={skinOf(display?.skin)} data-theme={display?.theme || "dark"} data-room={display?.room_size || "very_small"} data-motion="reduced"
-    data-screen={screenType(frame)} data-texture={display?.texture === false ? "off" : "on"}>
+    data-screen={screenType(frame)} data-join={frame?.state.tv_content === "join" ? "on" : undefined} data-texture={display?.texture === false ? "off" : "on"}>
     <div className="tv-stage" aria-hidden="true">
       {frame && <MediaSurface.Provider value={surface}><TvScenes status={{ status: "paired", engagement: frame.state.engagement_id, tv: "mirror" }} frame={frame} nameLimit={14} reconnecting={false} /></MediaSurface.Provider>}
     </div>
