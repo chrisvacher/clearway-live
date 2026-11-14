@@ -40,7 +40,7 @@ export function SaveTemplate({ engagement, name, count, sessions, onClose }: { e
       </div>
       <div className="rb-modal-foot">{saved ? <button type="button" className="show-button is-primary" onClick={() => onClose(block ? `${message} Find it in Saved blocks.` : `${message} Find it in Templates.`)}>Close</button> : <>
         <button type="button" className="show-button" disabled={busy} onClick={() => onClose()}>Cancel</button>
-        <button type="submit" className="show-button is-primary" disabled={busy || !value.trim()}><Copy size={18} aria-hidden="true" />{busy ? "Saving..." : block ? "Save block" : "Save template"}</button></>}</div>
+        <button type="submit" className="show-button is-primary" disabled={busy || !value.trim()}><Copy size={16} aria-hidden="true" />{busy ? "Saving..." : block ? "Save block" : "Save template"}</button></>}</div>
     </form>
   </div>;
 }

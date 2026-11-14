@@ -58,7 +58,7 @@ export function JoiningEditor({ initial, admin, church, title }: { initial: Join
 
     <section className="admin-panel" aria-labelledby="join-how"><h2 id="join-how">How the room decides</h2><p>Shown on the join page and in invites for {title}.</p>
       <label htmlFor="how-decides" className="sr-only">How the room decides</label><textarea id="how-decides" value={how} rows={4} maxLength={4000} disabled={busy} onChange={e => setHow(e.target.value)} />
-      <div className="admin-actions"><button className="admin-button is-primary is-small" type="button" disabled={busy || !how.trim() || how === j.how} onClick={() => void save("how", { how_the_room_decides: how }, "Saved.", () => setJ(x => ({ ...x, how })))}>Save</button></div>
+      <div className="admin-actions"><button className="admin-button is-primary" type="button" disabled={busy || !how.trim() || how === j.how} onClick={() => void save("how", { how_the_room_decides: how }, "Saved.", () => setJ(x => ({ ...x, how })))}>Save</button></div>
       {note("how")}
     </section>
   </div>;

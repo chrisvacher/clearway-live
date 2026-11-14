@@ -32,7 +32,7 @@
 /* Batch G: the form's gap is the only space between cards, so a card's own bottom margin does not double it (the last card keeps its margin). */
 .admin-editor .form-stack > .admin-panel:not(:last-of-type) { margin-bottom:0; }
 .admin-editor .admin-panel > * + :is(.form-grid,label,p,.hub-line,.logo-row) { margin-top:var(--space-4); }
-.admin-editor .admin-card-save { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-6); }
+.admin-editor .admin-card-save { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-4); }
 .admin-editor .admin-chip { display:inline-flex; align-items:center; padding:var(--space-1) var(--space-3); border-radius:var(--cwl-radius-pill); background:var(--cwl-app-sunken); color:var(--cwl-app-text-muted); font-size:var(--cwl-fs-app-micro); font-weight:var(--fw-semibold); }
 .admin-editor .hub-line { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); }
 .admin-editor .hub-names { min-width:0; overflow-wrap:anywhere; }

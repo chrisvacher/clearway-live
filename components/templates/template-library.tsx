@@ -130,7 +130,7 @@ function StartEngagement({ library, template, engagement, admin, onClose, onStar
         {message && <p className="show-message is-error" role="alert">{message}</p>}
       </div>
       <div className="rb-modal-foot"><button type="button" className="show-button" disabled={busy} onClick={onClose}>Cancel</button>
-        <button type="submit" className="show-button is-primary" disabled={busy || !eng || !tpl}><Play size={18} aria-hidden="true" />{busy ? "Applying…" : "Apply template"}</button></div>
+        <button type="submit" className="show-button is-primary" disabled={busy || !eng || !tpl}><Play size={16} aria-hidden="true" />{busy ? "Applying…" : "Apply template"}</button></div>
     </form>
   </div>;
 }
