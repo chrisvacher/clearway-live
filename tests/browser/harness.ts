@@ -29,12 +29,12 @@ export async function freePort() {
 
 // Stands in for Resend so sign-in codes can be read without sending email.
 export async function mailbox() {
-  const messages: { to: string[]; text: string; from?: string; reply_to?: string }[] = [];
+  const messages: { to: string[]; text: string; from?: string; reply_to?: string; subject?: string; html?: string }[] = [];
   const server: Server = createHttpServer((req, res) => {
     let body = ""; req.on("data", c => { body += c; });
     req.on("end", () => {
       const data = JSON.parse(body || "{}"), list = Array.isArray(data) ? data : [data];
-      for (const m of list) messages.push({ to: m.to, text: m.text, from: m.from, reply_to: m.reply_to });
+      for (const m of list) messages.push({ to: m.to, text: m.text, from: m.from, reply_to: m.reply_to, subject: m.subject, html: m.html });
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify(Array.isArray(data) ? { data: list.map(() => ({ id: randomUUID() })) } : { id: randomUUID() }));
     });

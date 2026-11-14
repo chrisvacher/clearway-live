@@ -141,6 +141,18 @@ jobs:
           path: team-workshop-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Run one Novetera workshop end to end (two addresses, four ways in, emails, the Word summary, switching back) and read every Novetera surface for the word Clearway
+        run: mkdir -p novetera-workshop-shots && npm run test:novetera-workshop
+        env:
+          KIT_SHOTS: novetera-workshop-shots
+      - name: Upload the Novetera workshop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novetera-workshop-screens
+          path: novetera-workshop-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test every kind through the live-screen rules with 50 simulated phones (milestone 3 acceptance)
         run: npm run test:acceptance-live
         env:
