@@ -1,0 +1,412 @@
+/* ================================================================
+   NOVETERA LIVE: novetera_tokens.css
+   The Novetera skin of the live app layer: every Clearway Live --cwl-* role, given Novetera's value.
+   Load AFTER design/clearway-live/live_tokens.css (app/globals.css does). live_tokens.css is untouched.
+   Switch the skin on by putting data-skin="novetera" on a root that also carries data-surface and data-theme
+   (the TV, a phone, the join page). Nothing outside a data-skin="novetera" element changes: every selector
+   below starts at that attribute. Source: novetera-skin-spec.md (token table) and the canvas "Live layer".
+   Where they differ the canvas wins; the one deliberate exception (the flat AI icon) is noted at the AI roles.
+
+   How it nests (the same behaviour as live_tokens.css):
+   - Each selector repeats [data-skin="novetera"] three times. That lifts it above the nesting guards in
+     live_tokens.css (up to 0,3,0), so a Novetera TV drawn inside the Clearway control surface keeps its
+     own colours and theme, and [data-surface="control"] rules never reach it.
+   - Dark is the default, as :root is the dark theme in live_tokens.css. data-theme="light" on the skin
+     element, or on a region inside it, takes the light values; data-theme="dark" inside a light skin
+     element takes the dark values back. The skin element must carry its own data-theme.
+   - Roles that are not listed here (the type ramp, room size, spacing, motion durations and easing) keep
+     Clearway's value: the tests list them. A role that is derived from another role is declared again
+     here, because a derived role is resolved where it is declared.
+   ================================================================ */
+
+/* ---------- Novetera palette (the only place raw hex is written, with the group and item tints below) ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --nvl-charcoal: #1F2328; /* Charcoal */
+  --nvl-slate-600: #454B54; /* Slate 600 */
+  --nvl-slate-400: #6E747C; /* Slate 400 */
+  --nvl-stone-300: #C6C2BA; /* Stone 300 */
+  --nvl-stone-150: #E3E0D9; /* Stone 150 */
+  --nvl-chalk: #F7F6F3; /* Chalk */
+  --nvl-white: #FFFFFF; /* White */
+  --nvl-oxblood-700: #7A1F2B; /* Oxblood 700 */
+  --nvl-oxblood-600: #6A1B25; /* Oxblood 600 */
+  --nvl-oxblood-500: #9A3542; /* Oxblood 500 */
+  --nvl-oxblood-300: #E78D96; /* Oxblood 300 (live-only, derived from Oxblood) */
+  --nvl-oxblood-100: #F2E7E8; /* Oxblood 100 */
+  --nvl-brass-300: #E5BF6D; /* Brass 300 (live-only, derived from Ochre) */
+  --nvl-ochre: #8A6D2F; /* Ochre (status warning) */
+  --nvl-success: #3D5A46; /* Status success */
+  --nvl-success-tint: #E9EFEA; /* Success tint */
+  --nvl-warning-tint: #F4EEDF; /* Warning tint */
+  --nvl-info-tint: #EAECEE; /* Info tint */
+  --nvl-bar-track-dark: #2C3137; /* Charcoal 65% toward Slate 600 (live-only): the empty bar track on Charcoal */
+}
+
+/* ---------- Type ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --font-sans: 'Public Sans', -apple-system, 'Segoe UI', sans-serif; /* Base font role the live surfaces read (body, headings). */
+  --cwl-font: 'Public Sans', -apple-system, 'Segoe UI', sans-serif; /* Public Sans. Headlines are 700 (no light weight); buttons sentence case. */
+  --cwl-font-editorial: 'Source Serif 4', Georgia, serif; /* New role. Scripture, prayer, quotes and the tagline, set in italic (font-style: italic). Clearway has no equivalent: read it with a fallback, var(--cwl-font-editorial, var(--cwl-font)). */
+  --fw-light: 700; /* Base weight role the TV headlines read. Novetera has no light weight, so a "light" headline draws at 700. */
+  --fg-muted: var(--nvl-slate-600); /* Base muted text on a card: Slate 600 (the contrast test maps --fg-muted here for this skin). */
+  font-family: var(--font-sans);
+}
+
+/* ---------- Live-only colours and inks ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-sunrise: var(--nvl-brass-300); /* Live-only. Takes Sunrise's place. Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-royal-deep: var(--nvl-oxblood-700); /* The deep accent. Oxblood 700 #7A1F2B */
+  --cwl-sky-pale: var(--nvl-oxblood-100); /* Selected rows on app surfaces. Oxblood 100 #F2E7E8 */
+  --cwl-sky-light: var(--nvl-stone-150); /* Avatars and source words on app surfaces. Stone 150 #E3E0D9 */
+  --cwl-sky-deep: #AFD2F4; /* Fed group 4. Groups carry their own values now. */
+  --cwl-soft-lime-deep: #E0C2E7; /* Fed group 5. */
+  --cwl-soft-lime-shade: #EFBECF; /* Fed group 10. */
+  --cwl-bar-track-ink: var(--nvl-bar-track-dark); /* Charcoal 65% toward Slate 600 (live-only): the empty bar track on Charcoal #2C3137 */
+  --cwl-border-dark-ink: rgba(247, 246, 243, 0.15); /* Chalk at 15% */
+  --cwl-glow-ink: transparent; /* transparent */
+  --cwl-scrim-ink: rgba(31, 35, 40, 0.88); /* Charcoal at 88% */
+  --cwl-scrim-light-ink: rgba(247, 246, 243, 0.9); /* Chalk at 90% */
+  --cwl-app-scrim-ink: rgba(31, 35, 40, 0.5); /* Charcoal at 50% (Novetera's own scrim) */
+}
+
+/* ---------- Colour roles that are the same on both themes ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-text-on-card: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-text-on-panel: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-on-accent: var(--nvl-white); /* White #FFFFFF */
+  --cwl-texture-ink: transparent; /* Texture off in this skin. transparent */
+  --cwl-glow: none; /* Glow off in this skin: it is a gradient. none */
+  --cwl-typing: var(--nvl-oxblood-500); /* Oxblood 500 #9A3542 */
+  --cwl-letter-hatch-ink: rgba(31, 35, 40, 0.18); /* Charcoal at 18% */
+  --cwl-letter-hatch: var(--cwl-letter-hatch-ink); /* Re-points to this skin's hatch ink. follows cwl-letter-hatch-ink */
+  --cwl-guard-sunrise: var(--nvl-brass-300); /* Same value as cwl-sunrise, written out: a nested guard must not depend on a role an app surface sets to initial. Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-guard-royal-deep: var(--nvl-oxblood-700); /* Same value as cwl-royal-deep, written out. Oxblood 700 #7A1F2B */
+}
+
+/* ---------- AI: one flat ink, no gradient, no sweep ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-on-ai: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-ai: var(--nvl-stone-150); /* AI summary band: flat Stone 150, both themes. Stone 150 #E3E0D9 */
+  --cwl-bright-chartreuse: var(--nvl-charcoal); /* Retired in this skin. The light-ground AI ink. Charcoal #1F2328 */
+  --cwl-dur-ai-sweep: 900ms; /* Same length. Times the rule that draws under the AI line. */
+}
+
+/* ---------- The room code ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-code-ground: var(--nvl-white); /* New role. The room code (QR) ground, on every join option. White #FFFFFF */
+  --cwl-code-ink: var(--nvl-charcoal); /* New role. The room code (QR) ink, on every join option. Charcoal #1F2328 */
+}
+
+/* ---------- Five Lenses ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-lens: var(--nvl-slate-600); /* One colour for every lens heading. Slate 600 #454B54 */
+  --cwl-on-lens: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-lens-small: var(--nvl-slate-600); /* Slate 600 #454B54 */
+}
+
+/* ---------- Shape, elevation and motion ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-radius-button: 2px; /* Controls. */
+  --cwl-radius-card: 4px; /* Cards. */
+  --cwl-radius-tv-card: 4px; /* TV panels. */
+  --cwl-radius-marker: 2px; /* Markers, chips and counts. */
+  --cwl-radius-pill: 999px; /* Switch and progress tracks only. */
+  --cwl-shadow-phone: 0 1px 2px rgba(31, 35, 40, 0.06); /* Novetera's hairline card shadow. Charcoal at 6% */
+  --cwl-dur-app-hover: 150ms; /* Novetera hover and press: a 150ms colour change. */
+  --cwl-dur-outcome-confirm: 700ms; /* Same length. The wipe is hard-edged. */
+  --cwl-tex-solid: 0; /* Texture off in this skin. */
+  --cwl-tex-outline: 0; /* Texture off in this skin. */
+  --cwl-tex-strip: 0; /* Texture off in this skin. */
+}
+
+/* ---------- The lockup ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-wordmark-icon: var(--nvl-oxblood-700); /* The mark's second stroke. The first stroke takes the word colour. Oxblood 700 #7A1F2B */
+  --cwl-wordmark-word: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-wordmark-icon-dark: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-wordmark-word-dark: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-wordmark-tag: var(--nvl-charcoal); /* The Novetera lockup has no LIVE tag: the four tag roles are set but not drawn. Charcoal #1F2328 */
+  --cwl-wordmark-on-tag: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-wordmark-tag-dark: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-wordmark-on-tag-dark: var(--nvl-charcoal); /* Charcoal #1F2328 */
+}
+
+/* ---------- Group palette: ten tints at one lightness and one strength, Charcoal text 9.7 to 10.2:1. Not Novetera palette values; quiet enough that oxblood stays the only accent ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-group-1: #F2C0B6;
+  --cwl-group-2: #D4D0A3;
+  --cwl-group-3: #A5DBCC;
+  --cwl-group-4: #AFD2F4;
+  --cwl-group-5: #E0C2E7;
+  --cwl-group-6: #E9C7A4;
+  --cwl-group-7: #BAD8B3;
+  --cwl-group-8: #A0D9E5;
+  --cwl-group-9: #C8C9F4;
+  --cwl-group-10: #EFBECF;
+}
+
+/* ---------- Item palette: the group hues at a stronger setting, Charcoal text 7.5 to 8.2:1 ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-item-1: #F0A08F;
+  --cwl-item-2: #C2BB6D;
+  --cwl-item-3: #6ACCB5;
+  --cwl-item-4: #83BDF5;
+  --cwl-item-5: #D4A3DF;
+  --cwl-item-6: #E2AB70;
+  --cwl-item-7: #95C78A;
+  --cwl-item-8: #60C8DD;
+  --cwl-item-9: #AFAFF6;
+  --cwl-item-10: #EB9CB9;
+}
+
+/* ---------- Dark theme (Charcoal): the default, as :root is the dark theme in live_tokens.css ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --cwl-surface: var(--nvl-charcoal); /* Screen background. Charcoal #1F2328 */
+  --cwl-surface-panel: var(--nvl-slate-600); /* Panels, headers and large blocks. Slate on dark, Charcoal on light: large Oxblood fields stay rare. Slate 600 #454B54 */
+  --cwl-surface-panel-small: var(--nvl-slate-600); /* Panels that carry small text. Slate 600 #454B54 */
+  --cwl-surface-card: var(--nvl-chalk); /* Light cards on the wall and phone answer surfaces. Chalk #F7F6F3 */
+  --cwl-text: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-text-muted: var(--nvl-stone-300); /* Never Slate 400 (4.36:1 on Chalk). Stone 300 #C6C2BA */
+  --cwl-accent: var(--nvl-oxblood-500); /* Primary buttons, bars, active outlines. Oxblood 500 #9A3542 */
+  --cwl-button-primary: var(--nvl-oxblood-500); /* Send, Join. White label 7.1:1 dark, 10.2:1 light. Oxblood 500 #9A3542 */
+  --cwl-live: var(--nvl-oxblood-300); /* LIVE: oxblood is both the primary button and the live state in this skin. Oxblood 300 is live-only on dark. Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-on-live: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-callout: var(--nvl-brass-300); /* LOOK HERE: the leader, a spotlight, a key number. Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-on-callout: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-bar: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-bar-leader: var(--nvl-brass-300); /* Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-bar-track: var(--nvl-bar-track-dark); /* Empty track behind a bar. Charcoal 65% toward Slate 600 (live-only): the empty bar track on Charcoal #2C3137 */
+  --cwl-bar-label: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-cut-line: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-word-single: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-word-repeated: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-word-leader: var(--nvl-brass-300); /* Light: White text on a callout block (the Clearway filled-block rule). Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-word-new: var(--nvl-oxblood-300); /* Light: White text on a live block. Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-border: var(--cwl-border-dark-ink); /* follows cwl-border-dark-ink */
+  --cwl-border-strong: var(--nvl-stone-300); /* Edges that must be seen (3:1). Stone 300 #C6C2BA */
+  --cwl-focus-ring: var(--nvl-oxblood-300); /* Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-presence: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-scrim: var(--cwl-scrim-ink); /* follows cwl-scrim-ink */
+  --cwl-offline: var(--nvl-slate-400); /* Offline and reconnecting mark, both themes. Slate 400 #6E747C */
+  --cwl-flag: var(--nvl-brass-300); /* Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-on-flag: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-ai-start: var(--nvl-chalk); /* AI icon gradient start: one flat ink, so the icon draws flat. Dark: Chalk. Light: Charcoal. Chalk #F7F6F3 */
+  --cwl-ai-end: var(--nvl-chalk); /* AI icon gradient end: the same ink as the start. Chalk #F7F6F3 */
+  --cwl-ai-glint: var(--nvl-chalk); /* AI sweep light: the same ink, so no sweep shows. Chalk #F7F6F3 */
+  --cwl-mark-stroke: var(--nvl-chalk); /* New role. The N mark's first stroke. Chalk #F7F6F3 */
+  --cwl-mark-quiet: var(--nvl-stone-300); /* New role. The N mark's second stroke when nothing is live (Charcoal on light: the mark is one colour). Stone 300 #C6C2BA */
+  --cwl-mark-live: var(--nvl-oxblood-300); /* New role. The N mark's second stroke while the room is live: the one new colourway, Chalk with Oxblood 300 on dark. Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-card-edge: transparent; /* New role. Hairline on a white or Chalk card: none on dark grounds, Stone 150 on light. transparent */
+  --cwl-eyebrow: var(--nvl-stone-300); /* New role. Eyebrow text above a headline. Stone 300 #C6C2BA */
+}
+
+/* ---------- Light theme (Chalk): on the skin element itself and on any light region inside it ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"][data-theme="light"],
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] [data-theme="light"] {
+  --cwl-surface: var(--nvl-chalk); /* Screen background. Chalk #F7F6F3 */
+  --cwl-surface-panel: var(--nvl-charcoal); /* Panels, headers and large blocks. Slate on dark, Charcoal on light: large Oxblood fields stay rare. Charcoal #1F2328 */
+  --cwl-surface-panel-small: var(--nvl-charcoal); /* Panels that carry small text. Charcoal #1F2328 */
+  --cwl-surface-card: var(--nvl-white); /* Light cards on the wall and phone answer surfaces. White #FFFFFF */
+  --cwl-text: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-text-muted: var(--nvl-slate-600); /* Never Slate 400 (4.36:1 on Chalk). Slate 600 #454B54 */
+  --cwl-accent: var(--nvl-oxblood-700); /* Primary buttons, bars, active outlines. Oxblood 700 #7A1F2B */
+  --cwl-button-primary: var(--nvl-oxblood-700); /* Send, Join. White label 7.1:1 dark, 10.2:1 light. Oxblood 700 #7A1F2B */
+  --cwl-live: var(--nvl-oxblood-700); /* LIVE: oxblood is both the primary button and the live state in this skin. Oxblood 300 is live-only on dark. Oxblood 700 #7A1F2B */
+  --cwl-on-live: var(--nvl-white); /* White #FFFFFF */
+  --cwl-callout: var(--nvl-ochre); /* LOOK HERE: the leader, a spotlight, a key number. Ochre (status warning) #8A6D2F */
+  --cwl-on-callout: var(--nvl-white); /* White #FFFFFF */
+  --cwl-bar: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-bar-leader: var(--nvl-ochre); /* Ochre (status warning) #8A6D2F */
+  --cwl-bar-track: var(--nvl-stone-150); /* Empty track behind a bar. Stone 150 #E3E0D9 */
+  --cwl-bar-label: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-cut-line: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-word-single: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-word-repeated: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-word-leader: var(--nvl-white); /* Light: White text on a callout block (the Clearway filled-block rule). White #FFFFFF */
+  --cwl-word-new: var(--nvl-white); /* Light: White text on a live block. White #FFFFFF */
+  --cwl-border: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-border-strong: var(--nvl-slate-400); /* Edges that must be seen (3:1). Slate 400 #6E747C */
+  --cwl-focus-ring: var(--nvl-oxblood-500); /* Oxblood 500 #9A3542 */
+  --cwl-presence: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-scrim: var(--cwl-scrim-light-ink); /* follows cwl-scrim-light-ink */
+  --cwl-offline: var(--nvl-slate-400); /* Offline and reconnecting mark, both themes. Slate 400 #6E747C */
+  --cwl-flag: var(--nvl-ochre); /* Ochre (status warning) #8A6D2F */
+  --cwl-on-flag: var(--nvl-white); /* White #FFFFFF */
+  --cwl-ai-start: var(--nvl-charcoal); /* AI icon gradient start: one flat ink, so the icon draws flat. Dark: Chalk. Light: Charcoal. Charcoal #1F2328 */
+  --cwl-ai-end: var(--nvl-charcoal); /* AI icon gradient end: the same ink as the start. Charcoal #1F2328 */
+  --cwl-ai-glint: var(--nvl-charcoal); /* AI sweep light: the same ink, so no sweep shows. Charcoal #1F2328 */
+  --cwl-mark-stroke: var(--nvl-charcoal); /* New role. The N mark's first stroke. Charcoal #1F2328 */
+  --cwl-mark-quiet: var(--nvl-charcoal); /* New role. The N mark's second stroke when nothing is live (Charcoal on light: the mark is one colour). Charcoal #1F2328 */
+  --cwl-mark-live: var(--nvl-oxblood-700); /* New role. The N mark's second stroke while the room is live: the one new colourway, Chalk with Oxblood 300 on dark. Oxblood 700 #7A1F2B */
+  --cwl-card-edge: var(--nvl-stone-150); /* New role. Hairline on a white or Chalk card: none on dark grounds, Stone 150 on light. Stone 150 #E3E0D9 */
+  --cwl-eyebrow: var(--nvl-oxblood-700); /* New role. Eyebrow text above a headline. Oxblood 700 #7A1F2B */
+}
+
+/* ---------- A dark region inside a light skin element takes the dark values back ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] [data-theme="dark"] {
+  --cwl-surface: var(--nvl-charcoal); /* Screen background. Charcoal #1F2328 */
+  --cwl-surface-panel: var(--nvl-slate-600); /* Panels, headers and large blocks. Slate on dark, Charcoal on light: large Oxblood fields stay rare. Slate 600 #454B54 */
+  --cwl-surface-panel-small: var(--nvl-slate-600); /* Panels that carry small text. Slate 600 #454B54 */
+  --cwl-surface-card: var(--nvl-chalk); /* Light cards on the wall and phone answer surfaces. Chalk #F7F6F3 */
+  --cwl-text: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-text-muted: var(--nvl-stone-300); /* Never Slate 400 (4.36:1 on Chalk). Stone 300 #C6C2BA */
+  --cwl-accent: var(--nvl-oxblood-500); /* Primary buttons, bars, active outlines. Oxblood 500 #9A3542 */
+  --cwl-button-primary: var(--nvl-oxblood-500); /* Send, Join. White label 7.1:1 dark, 10.2:1 light. Oxblood 500 #9A3542 */
+  --cwl-live: var(--nvl-oxblood-300); /* LIVE: oxblood is both the primary button and the live state in this skin. Oxblood 300 is live-only on dark. Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-on-live: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-callout: var(--nvl-brass-300); /* LOOK HERE: the leader, a spotlight, a key number. Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-on-callout: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-bar: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-bar-leader: var(--nvl-brass-300); /* Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-bar-track: var(--nvl-bar-track-dark); /* Empty track behind a bar. Charcoal 65% toward Slate 600 (live-only): the empty bar track on Charcoal #2C3137 */
+  --cwl-bar-label: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-cut-line: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-word-single: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-word-repeated: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-word-leader: var(--nvl-brass-300); /* Light: White text on a callout block (the Clearway filled-block rule). Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-word-new: var(--nvl-oxblood-300); /* Light: White text on a live block. Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-border: var(--cwl-border-dark-ink); /* follows cwl-border-dark-ink */
+  --cwl-border-strong: var(--nvl-stone-300); /* Edges that must be seen (3:1). Stone 300 #C6C2BA */
+  --cwl-focus-ring: var(--nvl-oxblood-300); /* Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-presence: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --cwl-scrim: var(--cwl-scrim-ink); /* follows cwl-scrim-ink */
+  --cwl-offline: var(--nvl-slate-400); /* Offline and reconnecting mark, both themes. Slate 400 #6E747C */
+  --cwl-flag: var(--nvl-brass-300); /* Brass 300 (live-only, derived from Ochre) #E5BF6D */
+  --cwl-on-flag: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-ai-start: var(--nvl-chalk); /* AI icon gradient start: one flat ink, so the icon draws flat. Dark: Chalk. Light: Charcoal. Chalk #F7F6F3 */
+  --cwl-ai-end: var(--nvl-chalk); /* AI icon gradient end: the same ink as the start. Chalk #F7F6F3 */
+  --cwl-ai-glint: var(--nvl-chalk); /* AI sweep light: the same ink, so no sweep shows. Chalk #F7F6F3 */
+  --cwl-mark-stroke: var(--nvl-chalk); /* New role. The N mark's first stroke. Chalk #F7F6F3 */
+  --cwl-mark-quiet: var(--nvl-stone-300); /* New role. The N mark's second stroke when nothing is live (Charcoal on light: the mark is one colour). Stone 300 #C6C2BA */
+  --cwl-mark-live: var(--nvl-oxblood-300); /* New role. The N mark's second stroke while the room is live: the one new colourway, Chalk with Oxblood 300 on dark. Oxblood 300 (live-only, derived from Oxblood) #E78D96 */
+  --cwl-card-edge: transparent; /* New role. Hairline on a white or Chalk card: none on dark grounds, Stone 150 on light. transparent */
+  --cwl-eyebrow: var(--nvl-stone-300); /* New role. Eyebrow text above a headline. Stone 300 #C6C2BA */
+}
+
+/* ---------- App surfaces (control, setup, scribe, review). Values for when the facilitator screens are skinned; not applied while they stay Clearway Live ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"]:is([data-surface="control"], [data-surface="setup"], [data-surface="scribe"], [data-surface="review"]) {
+  --cwl-app-page: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-app-card: var(--nvl-white); /* White #FFFFFF */
+  --cwl-app-sunken: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-app-text: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-app-text-muted: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-app-text-subtle: var(--nvl-slate-400); /* Slate 400 #6E747C */
+  --cwl-app-border: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-app-border-strong: var(--nvl-slate-400); /* Slate 400 #6E747C */
+  --cwl-app-primary: var(--nvl-oxblood-700); /* Oxblood 700 #7A1F2B */
+  --cwl-app-primary-hover: var(--nvl-oxblood-600); /* Oxblood 600 #6A1B25 */
+  --cwl-app-on-primary: var(--nvl-white); /* White #FFFFFF */
+  --cwl-app-link: var(--nvl-oxblood-700); /* Oxblood 700 #7A1F2B */
+  --cwl-app-focus: var(--nvl-oxblood-500); /* Oxblood 500 #9A3542 */
+  --cwl-app-hover: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-app-selected: var(--nvl-oxblood-100); /* Oxblood 100 #F2E7E8 */
+  --cwl-app-avatar: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-app-warning: var(--nvl-ochre); /* Ochre (status warning) #8A6D2F */
+  --cwl-app-warning-bg: var(--nvl-warning-tint); /* Warning tint #F4EEDF */
+  --cwl-app-on-warning: var(--nvl-white); /* White #FFFFFF */
+  --cwl-app-error: var(--nvl-oxblood-700); /* Oxblood 700 #7A1F2B */
+  --cwl-app-error-bg: var(--nvl-oxblood-100); /* Oxblood 100 #F2E7E8 */
+  --cwl-app-on-error: var(--nvl-white); /* White #FFFFFF */
+  --cwl-app-success: var(--nvl-success); /* Status success #3D5A46 */
+  --cwl-app-success-bg: var(--nvl-success-tint); /* Success tint #E9EFEA */
+  --cwl-app-info: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-app-info-bg: var(--nvl-info-tint); /* Info tint #EAECEE */
+  --cwl-app-team: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-app-on-team: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-app-scrim: var(--cwl-app-scrim-ink); /* follows cwl-app-scrim-ink */
+  --cwl-app-source-word: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-core-not-started: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-core-not-started-disc: var(--nvl-slate-400); /* Slate 400 #6E747C */
+  --cwl-core-on-track: var(--nvl-success-tint); /* Success tint #E9EFEA */
+  --cwl-core-on-track-disc: var(--nvl-success); /* Status success #3D5A46 */
+  --cwl-core-at-risk: var(--nvl-warning-tint); /* Warning tint #F4EEDF */
+  --cwl-core-at-risk-disc: var(--nvl-ochre); /* Ochre (status warning) #8A6D2F */
+  --cwl-core-off-track: var(--nvl-oxblood-100); /* Oxblood 100 #F2E7E8 */
+  --cwl-core-off-track-disc: var(--nvl-oxblood-700); /* Oxblood 700 #7A1F2B */
+  --cwl-core-completed: var(--nvl-info-tint); /* Info tint #EAECEE */
+  --cwl-core-completed-disc: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-core-not-started-glyph: var(--nvl-white); /* White #FFFFFF */
+  --cwl-core-on-track-glyph: var(--nvl-white); /* White #FFFFFF */
+  --cwl-core-at-risk-glyph: var(--nvl-white); /* White #FFFFFF */
+  --cwl-core-off-track-glyph: var(--nvl-white); /* White #FFFFFF */
+  --cwl-core-completed-glyph: var(--nvl-white); /* White #FFFFFF */
+  --cwl-run-draft: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-on-run-draft: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-run-ready: var(--nvl-info-tint); /* Info tint #EAECEE */
+  --cwl-on-run-ready: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-run-live: var(--nvl-oxblood-700); /* Oxblood 700 #7A1F2B */
+  --cwl-on-run-live: var(--nvl-white); /* White #FFFFFF */
+  --cwl-run-done: var(--nvl-stone-150); /* Stone 150 #E3E0D9 */
+  --cwl-on-run-done: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-run-team-led: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-on-run-team-led: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  /* Light grounds: the AI icon is one flat Charcoal ink, as on a light skin screen. */
+  --cwl-ai-start: var(--nvl-charcoal); --cwl-ai-end: var(--nvl-charcoal); --cwl-ai-glint: var(--nvl-charcoal);
+  /* Sunrise never appears on app surfaces (Brass 300 and Ochre are the TV and phone callout). */
+  --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial; --cwl-flag: initial;
+}
+
+/* ---------- FACILITATOR ONLY: defined on the control surface and nowhere else, as in live_tokens.css ---------- */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"][data-surface="control"] {
+  --cwl-fac-private-surface: var(--nvl-info-tint); /* Info tint #EAECEE */
+  --cwl-fac-private-band: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-fac-private-band-text: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --cwl-fac-private-text: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --cwl-fac-signal-aligned: var(--nvl-success); /* Status success #3D5A46 */
+  --cwl-fac-signal-divergent: var(--nvl-ochre); /* Ochre (status warning) #8A6D2F */
+  --cwl-fac-signal-silent: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --cwl-fac-signal-thin: var(--nvl-slate-400); /* Slate 400 #6E747C */
+  --cwl-fac-signal-card: var(--nvl-white); /* White #FFFFFF */
+  --cwl-fac-signal-glyph: var(--nvl-white); /* White #FFFFFF */
+}
+
+/* ================================================================
+   THE JOIN SCREEN (the TV before and while people join)
+   Chris has not chosen a ground. The canvas draws three: Charcoal, Chalk and Oxblood 700.
+   THE CHOICE IS THE ONE LINE BELOW: --nvl-join. Change its number and every colour the join screen
+   needs follows: ground, text, muted text, names arriving, the mark's second stroke and the code card's edge.
+     0 = Charcoal (the value now)    1 = Chalk    2 = Oxblood 700
+   The three option palettes are written out once, just below, as --nvl-join-<option>-<part>.
+   The join screen reads the --cwl-*-holding roles, never an option palette directly.
+   ================================================================ */
+[data-skin="novetera"][data-skin="novetera"][data-skin="novetera"] {
+  --nvl-join: 0; /* <<< THE ONE LINE: 0 Charcoal, 1 Chalk, 2 Oxblood 700 */
+
+  /* Charcoal join: the dark theme's own ground (Main artboard). */
+  --nvl-join-charcoal-ground: var(--nvl-charcoal); /* Charcoal #1F2328 */
+  --nvl-join-charcoal-text: var(--nvl-chalk); /* Chalk #F7F6F3: 14.6:1 */
+  --nvl-join-charcoal-muted: var(--nvl-stone-300); /* Stone 300 #C6C2BA: 8.9:1 */
+  --nvl-join-charcoal-presence: var(--nvl-stone-300); /* Stone 300 #C6C2BA */
+  --nvl-join-charcoal-mark: var(--nvl-stone-300); /* Stone 300 #C6C2BA: the chalk and stone mark */
+  --nvl-join-charcoal-edge: transparent; /* No edge on the white code card */
+
+  /* Chalk join: the light theme's ground (TvLightJoin artboard). */
+  --nvl-join-chalk-ground: var(--nvl-chalk); /* Chalk #F7F6F3 */
+  --nvl-join-chalk-text: var(--nvl-charcoal); /* Charcoal #1F2328: 14.6:1 */
+  --nvl-join-chalk-muted: var(--nvl-slate-600); /* Slate 600 #454B54: 8.1:1 */
+  --nvl-join-chalk-presence: var(--nvl-slate-600); /* Slate 600 #454B54 */
+  --nvl-join-chalk-mark: var(--nvl-charcoal); /* Charcoal #1F2328: the charcoal mark */
+  --nvl-join-chalk-edge: var(--nvl-stone-150); /* Stone 150 #E3E0D9: the white code card needs an edge on Chalk */
+
+  /* Oxblood join: the one oxblood field (TvJoinOxblood artboard). */
+  --nvl-join-oxblood-ground: var(--nvl-oxblood-700); /* Oxblood 700 #7A1F2B */
+  --nvl-join-oxblood-text: var(--nvl-chalk); /* Chalk #F7F6F3: 9.4:1 */
+  --nvl-join-oxblood-muted: var(--nvl-oxblood-100); /* Oxblood 100 #F2E7E8: 8.4:1 */
+  --nvl-join-oxblood-presence: var(--nvl-oxblood-100); /* Oxblood 100 #F2E7E8 */
+  --nvl-join-oxblood-mark: var(--nvl-chalk); /* Chalk #F7F6F3: the chalk mark */
+  --nvl-join-oxblood-edge: transparent; /* No edge on the white code card */
+
+  /* The pick. Weights are 1 for the chosen option and 0 for the others; color-mix at 0% and 100% returns
+     an option's colour exactly. Only whole numbers 0, 1 and 2 are meant. */
+  --nvl-join-w-chalk: min(1, max(0, 1 - max(var(--nvl-join) - 1, 1 - var(--nvl-join))));
+  --nvl-join-w-oxblood: min(1, max(0, var(--nvl-join) - 1));
+
+  /* The roles. New in this skin: Clearway has no holding ground, so a component reads each one with a
+     fallback to the role it replaces, for example var(--cwl-surface-holding, var(--cwl-surface)). */
+  --cwl-surface-holding: color-mix(in srgb, var(--nvl-join-oxblood-ground) calc(var(--nvl-join-w-oxblood) * 100%), color-mix(in srgb, var(--nvl-join-chalk-ground) calc(var(--nvl-join-w-chalk) * 100%), var(--nvl-join-charcoal-ground))); /* The TV join screen's ground. */
+  --cwl-text-holding: color-mix(in srgb, var(--nvl-join-oxblood-text) calc(var(--nvl-join-w-oxblood) * 100%), color-mix(in srgb, var(--nvl-join-chalk-text) calc(var(--nvl-join-w-chalk) * 100%), var(--nvl-join-charcoal-text))); /* Text on the join ground: the room link, the lockup's word and first stroke. Fallback cwl-text. */
+  --cwl-text-muted-holding: color-mix(in srgb, var(--nvl-join-oxblood-muted) calc(var(--nvl-join-w-oxblood) * 100%), color-mix(in srgb, var(--nvl-join-chalk-muted) calc(var(--nvl-join-w-chalk) * 100%), var(--nvl-join-charcoal-muted))); /* Church name line and instructions on the join ground. Fallback cwl-text-muted. */
+  --cwl-presence-holding: color-mix(in srgb, var(--nvl-join-oxblood-presence) calc(var(--nvl-join-w-oxblood) * 100%), color-mix(in srgb, var(--nvl-join-chalk-presence) calc(var(--nvl-join-w-chalk) * 100%), var(--nvl-join-charcoal-presence))); /* Names arriving on the join ground. Fallback cwl-presence. */
+  --cwl-mark-holding: color-mix(in srgb, var(--nvl-join-oxblood-mark) calc(var(--nvl-join-w-oxblood) * 100%), color-mix(in srgb, var(--nvl-join-chalk-mark) calc(var(--nvl-join-w-chalk) * 100%), var(--nvl-join-charcoal-mark))); /* The N mark's second stroke on the join ground. Fallback cwl-mark-quiet. */
+  --cwl-edge-holding: color-mix(in srgb, var(--nvl-join-oxblood-edge) calc(var(--nvl-join-w-oxblood) * 100%), color-mix(in srgb, var(--nvl-join-chalk-edge) calc(var(--nvl-join-w-chalk) * 100%), var(--nvl-join-charcoal-edge))); /* Edge of the code card on the join ground. Fallback cwl-card-edge. */
+}
