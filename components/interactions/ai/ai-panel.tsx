@@ -17,6 +17,13 @@ const stateText = (s: AiStatus) => {
   return session.interaction === "wall" ? "Groups as answers arrive" : session.interaction === "lens" ? "Groups sentences by theme as they arrive" : session.interaction === "four_lists" ? "Folds near-duplicate cards within each list as they arrive" : "Folds near-duplicate questions as they arrive";
 };
 
+// "The engagement's setup" in the notice is a link to the AI card on Details, in a new tab so the live room stays open.
+const setupWords = "the engagement's setup";
+function NoticeText({ text, engagement }: { text: string; engagement: string }) {
+  const at = text.indexOf(setupWords);
+  if (at < 0) return <>{text}</>;
+  return <>{text.slice(0, at)}<a href={`/setup/${engagement}/details#details-ai`} target="_blank" rel="noreferrer">{setupWords}</a>{text.slice(at + setupWords.length)}</>;
+}
 // FAIL-09 and the AI controls for the step on the TV (laptop): what AI is doing, its switch,
 // Undo last AI change, Show summary, and what AI has cost this engagement. Only you see this.
 export function AiPanel({ room }: { room: Room }) {
@@ -34,7 +41,7 @@ export function AiPanel({ room }: { room: Room }) {
     <div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>AI for this session</span></div>
     <div className="ctl-private-body ai-panel">
       {notice && <div className={`ai-notice is-${notice.kind}`} role="status" data-ai-notice={notice.kind}>{notice.kind === "warning" ? <TriangleAlert size={18} aria-hidden="true" /> : <Info size={18} aria-hidden="true" />}
-        <div><strong>{notice.title}</strong> {notice.text}</div></div>}
+        <div><strong>{notice.title}</strong> <NoticeText text={notice.text} engagement={room.show.context.id} /></div></div>}
       <div className="ai-state" ref={sweep}><span><AiMark /><b>{s.ai ? "On" : "Off"}</b> · {stateText(status)}</span>
         <button type="button" className="ai-switch" role="switch" aria-checked={s.ai} aria-label="AI for this session" disabled={busy || (!status.engagement_ai && !s.ai)}
           onClick={() => void press(s.ai ? "ai_off" : "ai_on", { session: s.id })} /></div>

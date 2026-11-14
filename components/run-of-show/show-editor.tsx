@@ -3,7 +3,7 @@ import { ShellNav, type ShellEngagement } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutTemplate,
-  CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, MousePointerClick, Newspaper, PencilLine, PenLine, Plus, Printer, ScanLine, type LucideProps } from "lucide-react";
+  CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, MousePointerClick, Newspaper, PencilLine, PenLine, Plus, Printer, Radio, ScanLine, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
@@ -402,6 +402,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
         <button className="show-button" type="button" disabled={empty || locked || pending.length > 0} onClick={() => setSaveTemplate(true)}><Copy size={16} aria-hidden="true" />Save as template</button>
         <Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={16} aria-hidden="true" />Use a template</Link>
         <Link className="show-button" href={`${base}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={16} aria-hidden="true" />Print run of show</Link>
+        <Link className="show-button" href={`/control/${ctx.id}`}><Radio size={16} aria-hidden="true" />Go to the live room</Link>
       </div></header>
       <div className="show-toolbar"><span>Times in {tz}. Each session starts when the one before it ends.</span><button className="show-button" type="button" onClick={() => void reload()}>Reload run of show</button></div>
       {message && <div className={`show-message${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</div>}
