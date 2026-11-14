@@ -22,6 +22,7 @@ import { OvernightCard } from "@/components/overnight/overnight-card";
 import { AfterLink } from "@/components/report/after-link";
 import { RemoteLink } from "./remote-link";
 import { EndWorkshop } from "./end-workshop";
+import { OpenTvWindow } from "./open-tv-window";
 
 // Where this room lives: the address people type, the code, and whose brand the room wears. Facilitator screens stay Clearway Live.
 export type RoomIdentity = { host: string; origin: string; name: string; code: string; brand: string };
@@ -61,7 +62,8 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
       </div>
       <div className="ctl-row">
         {status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}
-        <SyncChip room={room} />
+        <SyncChip room={room} href={`/setup/${engagement}/tv`} />
+        {!context.closed && <OpenTvWindow id={engagement} variant="small" />}
         <RemoteLink engagement={engagement} />
         <Link className="show-button" href={`/setup/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={18} aria-hidden="true" />Print run of show</Link>
         <Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />{workshop ? "See results" : "See results recap"}</Link>

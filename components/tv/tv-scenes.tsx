@@ -1,4 +1,5 @@
 "use client";
+import { expiredLinkLine } from "@/lib/tv/pair-link";
 import { Check } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { roomQr } from "@/lib/tv/qr";
@@ -97,7 +98,7 @@ function NeutralQuestion({ frame, text }: { frame: LiveSnapshot | null; text: st
 // `address` is what the pairing screen knows before an engagement does: the skin of the address the TV opened (and its host, for the
 // "open live.<brand>.co/tv" line). Once paired, the engagement's own skin (display.skin) decides.
 export type TvAddress = { skin: Skin; host: string };
-export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow, address }: { status: TvStatus; pair?: { code: string | null; seconds: number }; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null; address?: TvAddress }) {
+export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameLimit, flow, address }: { status: TvStatus; pair?: { code: string | null; seconds: number }; linkExpired?: boolean; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null; address?: TvAddress }) {
   // Only a code the server will still accept is shown. Between one code ending
   // and its replacement arriving, the cards stay in place, empty.
   const code = status.status === "pair" ? pair?.code ?? null : null;
@@ -141,7 +142,7 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow, a
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaSpotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><PromotedQuoteSpot frame={frame} /></span>}
-    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">{address?.host ?? brandFor(skin).host}/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">{address?.host ?? brandFor(skin).host}/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{mode === "pair" && linkExpired && <span className="tv-upclose" role="status">{expiredLinkLine}</span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
 }

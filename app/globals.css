@@ -424,6 +424,8 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-chip.is-success, .ctl-sync { background: var(--cwl-app-success-bg); }
 .ctl-sync.is-syncing { background: var(--cwl-app-warning-bg); }
 .ctl-sync.is-none { background: var(--cwl-app-sunken); }
+.ctl-sync-link { display: inline-flex; border-radius: var(--radius-pill); color: inherit; text-decoration: none; }
+.ctl-sync-link:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
 .ctl-live { padding: var(--space-1) var(--space-3); border-radius: var(--radius-pill); border: 2px solid var(--cwl-app-text); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-bold); text-transform: uppercase; }
 .ctl-private { border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); overflow: hidden; background: var(--cwl-fac-private-surface); color: var(--cwl-fac-private-text); }
 .ctl-private .show-private span { margin-left: auto; font-weight: var(--fw-semibold); }

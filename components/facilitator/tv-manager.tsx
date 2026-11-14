@@ -6,6 +6,7 @@ import type { TvManagerData } from "@/lib/tv/types";
 import { brandFor, skinOf } from "@/lib/brand";
 import { roomSizes } from "@/components/control/live-controls";
 import { Select } from "@/components/ui/select";
+import { OpenTvWindow } from "@/components/control/open-tv-window";
 export function TvManager({ id, initial }: { id: string; initial: TvManagerData }) {
   const [data, setData] = useState(initial), [display, setDisplay] = useState(initial.display);
   const [code, setCode] = useState(""), [label, setLabel] = useState("Front TV"), [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState(false), [at, setAt] = useState("");
@@ -36,9 +37,10 @@ export function TvManager({ id, initial }: { id: string; initial: TvManagerData 
   const pair = (event: FormEvent) => { event.preventDefault(); void change("pair", { code: pairingCode(code), label }); };
   const said = (where: string) => message && at === where ? <p className={`admin-saved${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</p> : null;
   return <>
-    <header className="admin-heading"><div><div className="admin-kicker">{data.display.church} · {data.display.title}</div><h1>Screens</h1><p>On the computer at the screen, open <a href={brand.skin === "clearway" ? "/tv" : `${brand.origin}/tv`} target="_blank" rel="noreferrer">{brand.host}/tv</a>. Enter the code shown there.</p></div></header>
+    <header className="admin-heading"><div><div className="admin-kicker">{data.display.church} · {data.display.title}</div><h1>Screens</h1><p>Open the TV in a new window on this computer, then drag it to the room’s screen or share it. Using a separate computer at the screen? Open <a href={brand.skin === "clearway" ? "/tv" : `${brand.origin}/tv`} target="_blank" rel="noreferrer">{brand.host}/tv</a> there and enter the code below.</p></div></header>
     <div className="admin-columns tv-screens-top"><form onSubmit={pair} className="admin-panel form-stack tv-screens-form">
       <h2>Connect a screen</h2>
+      <div className="tv-screens-window"><OpenTvWindow id={id} primary disabled={data.closed} /></div>
       <label htmlFor="tv-pair-code">Code on the TV<input ref={field} id="tv-pair-code" className="tv-manager-code" inputMode="numeric" autoComplete="off" maxLength={7} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9 ]/g, ""))} required /></label>
       <label htmlFor="tv-label">Name this screen<input id="tv-label" maxLength={80} value={label} onChange={e => setLabel(e.target.value)} required /></label>
       <p className="tv-screens-help">You can pair more than one screen. Pairing lasts until this engagement closes.</p>

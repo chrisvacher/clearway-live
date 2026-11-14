@@ -7,11 +7,13 @@ import { digest, hash, newCode, newDevice, parseDevice, sessionId } from "@/lib/
 import { serviceClient } from "@/lib/server/supabase";
 import { tvClient } from "./client";
 import { pairReply } from "./pair-clock";
+import { pairToken } from "./pair-link";
+import { limitedJson } from "@/lib/server/request";
 import type { TvBinding } from "./types";
 
 const proofCookie = "cw-tv-device";
 async function rpc(action: string, payload: Record<string, unknown>) {
-  const { data, error } = await serviceClient().rpc("tv_device", { p_action: action, p: payload });
+  const { data, error } = action === "claim" ? await serviceClient().rpc("tv_pair_claim", { p: payload }) : await serviceClient().rpc("tv_device", { p_action: action, p: payload });
   if (error) throw new Error("TV connection unavailable"); return data;
 }
 export async function initialTv() {
@@ -32,6 +34,9 @@ export async function syncTv(request: NextRequest) {
   if (!config || !sameAddress(request)) return answer({ status: "denied" }, 403);
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!secret) return response;
+  // A TV window opened from a facilitator's laptop carries a single-use link. Only its shape is checked here; the database decides.
+  let linkToken: string | null = null;
+  try { linkToken = pairToken((await limitedJson(request)).pair); } catch { /* No link: an ordinary TV. */ }
   const original = request.cookies.get(proofCookie)?.value;
   const parsed = parseDevice(original), device = parsed || newDevice();
   let previousCode: string | null = null;
@@ -45,16 +50,22 @@ export async function syncTv(request: NextRequest) {
     for (const { name, value, options } of values) { request.cookies.set(name, value); response.cookies.set(name, value, options); }
   } });
   try {
-    const state = await rpc("sync", payload);
+    let state = await rpc("sync", payload), link: "expired" | null = null;
     if (["denied", "invalid_request"].includes(state.status)) return answer({ status: "unavailable" }, 403);
     if (state.status === "closed") return answer({status:"closed"});
     if (state.status === "limited") return answer({ status: "limited" }, 429);
+    if (linkToken) {
+      // The same step as entering the code on Screens: the device is paired to the link's engagement, then the usual exchange below finishes it.
+      const claimed = await rpc("claim", { device: device.id, proof, rate: payload.rate, token_hash: digest(secret, "tv-pair-link", linkToken) });
+      if (claimed.status === "limited") return answer({ status: "limited" }, 429);
+      if (claimed.status === "paired") state = await rpc("sync", payload); else link = "expired";
+    }
     if (state.status === "pair") {
       // The short code is held only in an HttpOnly cookie and displayed on this TV.
       const reply = pairReply(state, { code, hash: payload.code_hash }, previousCode ? { code: previousCode, hash: digest(secret, "tv-pair", previousCode) } : null, Date.now());
-      if (reply.status !== "pair") return answer(reply);
+      if (reply.status !== "pair") return answer(link ? { ...reply, link } : reply);
       response.cookies.set(proofCookie, JSON.stringify({ id: device.id, secret: device.secret, code: reply.code }), { httpOnly: true, secure: config.secure, sameSite: "lax", path: "/", maxAge: 31536000 });
-      return answer(reply);
+      return answer(link ? { ...reply, link } : reply);
     }
     response.cookies.set(proofCookie, JSON.stringify({ id: device.id, secret: device.secret }), { httpOnly: true, secure: config.secure, sameSite: "lax", path: "/", maxAge: 31536000 });
     const { data: { user } } = await client.auth.getUser();

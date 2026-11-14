@@ -71,6 +71,7 @@
     "test:novetera-workshop": "node --import tsx tests/browser/novetera-workshop.ts",
     "test:novetera-screens": "node --import tsx tests/browser/novetera-screens.ts",
     "test:operations": "node --import tsx tests/browser/operations.ts",
+    "test:tv-window": "node --import tsx tests/browser/tv-window.ts",
     "test:two-addresses": "node --import tsx tests/browser/two-addresses.ts"
   },
   "dependencies": {
