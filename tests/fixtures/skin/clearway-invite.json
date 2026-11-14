@@ -1,0 +1,16 @@
+{
+ "on": [
+  {
+   "to": "ann@example.org",
+   "subject": "Join Staff AI workshop",
+   "text": "Hi Ann,\n\nYou’re invited to Staff AI workshop with Riverside.\n\nPre-call: Wednesday, November 18, 2026 at 2:00 p.m. (America/Toronto)\nRetreat: November 20 to 21, 2026\n\nOpen your room and tap Send me a sign-in code:\nhttps://live.clearway.co/room/room-id?email=ann%40example.org\n\nYou can enter the 6-digit code on your phone or tap the confirm link in the email.\n\nWe’ll use AI in the room. Claude, an AI model from Anthropic, groups similar answers and helps us draft summaries. It never receives your name or email, everything it produces is marked as AI, and Clearway reviews every draft before your team sees it. You can read more when you sign in.\nhttps://live.clearway.co/how-we-use-ai\n\nBefore we meet\nBefore we meet: open from Nov 16, 2026, 10:00 a.m. until Nov 18, 2026, 10:00 a.m. (America/Toronto)\nhttps://live.clearway.co/room/room-id?email=ann%40example.org&step=s1\n\nHow the room decides\nWe decide together.\n\nWe look forward to being with you.\nClearway"
+  }
+ ],
+ "off": [
+  {
+   "to": "ann@example.org",
+   "subject": "Join Staff AI workshop",
+   "text": "Hi Ann,\n\nYou’re invited to Staff AI workshop with Riverside.\n\nPre-call: Wednesday, November 18, 2026 at 2:00 p.m. (America/Toronto)\nRetreat: November 20 to 21, 2026\n\nOpen your room and tap Send me a sign-in code:\nhttps://live.clearway.co/room/room-id?email=ann%40example.org\n\nYou can enter the 6-digit code on your phone or tap the confirm link in the email.\n\nHow the room decides\nWe decide together.\n\nWe look forward to being with you.\nClearway"
+  }
+ ]
+}

@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { editedBody, paragraphsOf, summaryBody, summaryInputs, summaryMessage } from "../../lib/workshop/summary";
-import { workshopSummaryPrompt, draftWorkshopSummary } from "../../lib/ai/workshop-summary";
+import { workshopSummaryPrompt, workshopSummaryPromptFor, draftWorkshopSummary } from "../../lib/ai/workshop-summary";
+import { skins } from "../../lib/brand";
 import { fakeClient } from "../../lib/ai/fake";
 import { aiConfig } from "../../lib/ai/config";
 import type { Recap, RecapEntry } from "../../lib/export/recap";
@@ -43,11 +44,22 @@ test("an edit keeps the facilitator's paragraphs", () => {
   assert.equal(editedBody(4), "");
 });
 
-test("the prompt holds Clearway's rules", () => {
-  assert.match(workshopSummaryPrompt.system, /never instructions to you/);
-  assert.match(workshopSummaryPrompt.system, /Never name a person/);
-  assert.match(workshopSummaryPrompt.system, /Never use dashes or semicolons/);
-  assert.doesNotMatch(workshopSummaryPrompt.system, /[—–]/);
+test("the prompt holds the rules, naming each skin's firm", () => {
+  assert.equal(workshopSummaryPromptFor("clearway"), workshopSummaryPrompt);
+  assert.equal(workshopSummaryPrompt.version, "workshop-summary@1");
+  for (const skin of skins) {
+    const p = workshopSummaryPromptFor(skin);
+    assert.match(p.system, /never instructions to you/);
+    assert.match(p.system, /Never name a person/);
+    assert.match(p.system, /Never use dashes or semicolons/);
+    assert.doesNotMatch(p.system, /[—–]/);
+    assert.equal(p.parse("{\"paragraphs\":[\"One.\"]}"), "One.");
+    if (skin === "novetera") {
+      assert.equal(p.version, "workshop-summary-novetera@1");
+      assert.match(p.system, /a Novetera facilitator/); assert.match(p.system, /Canadian spelling/); assert.match(p.system, /unlock/);
+      assert.doesNotMatch(p.system, /Clearway/i);
+    } else assert.match(p.system, /Clearway/);
+  }
 });
 
 test("the stand-in drafts from what it is given, and its run carries the cost", async () => {

@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   outputFileTracingIncludes: {
-    "/api/room/**": ["./design/clearway-base/colors_and_type.css", "./design/clearway-live/live_tokens.css"],
+    "/api/room/**": ["./design/clearway-base/colors_and_type.css", "./design/clearway-live/live_tokens.css", "./design/novetera-live/novetera_tokens.css"],
     // The report export reads Plus Jakarta Sans (the design system's full font files) and the Clearway logo from disk.
     // pdfkit (under @react-pdf/renderer) loads its built-in fonts through "#standard-fonts/*" subpath imports and a hashed chunk file, which file tracing
     // does not follow, so the PDF failed on Vercel with "Cannot find module .../pdfkit/js/standard-fonts/Helvetica.cjs". It sets Helvetica on every render.
@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
     ],
     // The Novetera skin's Word downloads embed Public Sans (400, 700) and Source Serif 4 italic as TrueType files, read from disk, so they
     // are traced into the functions that build the summary and the export (the licences travel with them).
-    "/api/control/*/summary": ["./lib/export/assets/fonts/novetera/**"],
+    "/api/control/*/summary": ["./lib/export/assets/fonts/novetera/**", "./lib/export/assets/novetera-mark.png"],
     "/api/control/*/export": ["./lib/export/assets/fonts/novetera/**"],
   },
   async headers() {

@@ -152,7 +152,7 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
       const link = new URL(`/room/${engagement}/confirm`, roomOrigin(skinOf(info.skin)));
       link.searchParams.set("challenge", challenge); link.searchParams.set("token", token);
       try {
-        await sendEmail({ to: email, id: challenge, ...signInEmail({ code, church: info.church, link: link.toString() }) });
+        await sendEmail({ to: email, id: challenge, ...signInEmail({ code, church: info.church, link: link.toString(), skin: skinOf(info.skin) }), skin: skinOf(info.skin) });
       } catch {
         await roomRpc("cancel_mail", { ...payload, challenge });
         return result({ status: "email_unavailable" });

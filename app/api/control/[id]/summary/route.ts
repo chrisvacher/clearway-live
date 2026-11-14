@@ -7,6 +7,7 @@ import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
 import { aiClient } from "@/lib/ai/client";
 import { draftWorkshopSummary } from "@/lib/ai/workshop-summary";
+import { skinOf } from "@/lib/brand";
 import { buildSummaryDocx } from "@/lib/export/summary-docx";
 import type { Recap } from "@/lib/export/recap";
 import { editedBody, paragraphsOf, summaryInputs, summaryMessage, type SummaryState } from "@/lib/workshop/summary";
@@ -32,10 +33,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (new URL(request.url).searchParams.get("format") !== "docx") return answer(state, state.status === "ok" ? 200 : 404);
     if (state.status !== "ok" || !("summary" in state) || !state.summary) return answer({ status: "no_summary", message: "There is no summary yet. Draft or write one first." }, 409);
     const show = await readShow(fac.client, id); if (!show) return answer({ status: "denied" }, 403);
-    const dates = await fac.client.from("engagements").select("retreat_start_date").eq("id", id).maybeSingle();
+    const dates = await fac.client.from("engagements").select("retreat_start_date,skin").eq("id", id).maybeSingle();
     const day = dates.data?.retreat_start_date as string | null | undefined;
     const date = day ? new Intl.DateTimeFormat("en-CA", { dateStyle: "long", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`)) : "";
-    const body = await buildSummaryDocx({ church: show.context.church, title: show.context.title, date, paragraphs: paragraphsOf(state.summary.body) });
+    const body = await buildSummaryDocx({ church: show.context.church, title: show.context.title, date, paragraphs: paragraphsOf(state.summary.body), skin: skinOf(dates.data?.skin) });
     const name = `${show.context.church} ${show.context.title} summary.docx`.replace(/[\\/:*?"<>|]/g, "");
     return privateResponse(new NextResponse(new Uint8Array(body), { status: 200, headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -74,7 +75,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (recap.data?.status !== "ok" || !show) return answer({ status: "denied" }, 403);
     const inputs = summaryInputs(recap.data as Recap, show.context.title);
     if (!inputs.sessions.length) return refuse("nothing");
-    const draft = await draftWorkshopSummary(ai, inputs);
+    const skin = await fac.client.from("engagements").select("skin").eq("id", id).maybeSingle();
+    const draft = await draftWorkshopSummary(ai, inputs, undefined, skinOf(skin.data?.skin));
     if (draft.status !== "ok") return refuse(draft.status, draft.status === "empty" ? 409 : 503);
     const saved = await fac.client.rpc("workshop_summary_save", { ...e, p: { body: draft.body, ai: draft.ai } }); if (saved.error) throw saved.error;
     return saved.data.status === "ok" ? answer(saved.data) : refuse(String(saved.data.status));

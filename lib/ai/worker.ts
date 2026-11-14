@@ -9,7 +9,8 @@ import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { aiConfig, costUsd, type AiConfig } from "./config";
 import type { AiClient } from "./client";
-import { prompts, promptVersions, type AiInputs, type AiJob } from "./prompts";
+import { promptFor, promptVersionsFor, type AiInputs, type AiJob } from "./prompts";
+import type { Skin } from "../brand";
 
 export type Claim = { status: "claimed"; run: string; job: AiJob; prompt_version: string; inputs: AiInputs } | { status: "idle" | "busy" | "off" | "cooling" | "wait" | "missing" | "invalid_request"; ms?: number };
 export type RunReport = { session: string; runs: { job: AiJob; status: string; ms: number }[]; stopped: string };
@@ -20,7 +21,8 @@ export const rawChars = 8000;
 export const signalTimeoutMs = (config: AiConfig) => Math.min(30000, Math.max(config.timeoutMs, config.deepTimeoutMs));
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-export async function runSession(db: SupabaseClient, ai: AiClient, session: string, config: AiConfig = aiConfig(), deadline = Date.now() + config.budgetMs, tails?: Promise<void>[]): Promise<RunReport> {
+export async function runSession(db: SupabaseClient, ai: AiClient, session: string, config: AiConfig = aiConfig(), deadline = Date.now() + config.budgetMs, tails?: Promise<void>[], skin: Skin = "clearway"): Promise<RunReport> {
+  // The engagement's skin picks the prompt text and the version names for the workshop jobs; Clearway is the default and the Wayfinding jobs are always Clearway's.
   const report: RunReport = { session, runs: [], stopped: "deadline" };
   // The alignment signal's call can take much longer than a live fold, and it has its own lease, so it runs beside the loop: live grouping and
   // folding keep being claimed while it waits for the deeper model. Its tail is awaited by the caller (tails) or here before returning.
@@ -28,7 +30,7 @@ export async function runSession(db: SupabaseClient, ai: AiClient, session: stri
   const finish = async () => { if (!tails) await Promise.all(pending); return report; };
   // One claimed job: the model call, then the apply (or the fail). Returns why the loop should stop, or null.
   const handle = async (claim: Extract<Claim, { status: "claimed" }>, lease: string): Promise<string | null> => {
-    const prompt = prompts[claim.job], started = Date.now();
+    const prompt = promptFor(claim.job, skin), started = Date.now();
     // The alignment signal compares the room with the themes on the deeper model, with a longer call than a live fold; it names the model it used when it hands the reply back.
     const deep = claim.job === "alignment_signal", used: AiConfig = deep ? { ...config, model: config.deepModel } : config, usedModel = deep ? ai.model(used) : undefined;
     try {
@@ -51,7 +53,7 @@ export async function runSession(db: SupabaseClient, ai: AiClient, session: stri
   };
   for (let i = 0; i < 20 && Date.now() < deadline; i++) {
     const lease = randomUUID(), model = ai.model(config);
-    const claimed = await db.rpc("ai_claim", { p_session: session, p_lease: lease, p_model: model, p_versions: promptVersions });
+    const claimed = await db.rpc("ai_claim", { p_session: session, p_lease: lease, p_model: model, p_versions: promptVersionsFor(skin) });
     if (claimed.error) { report.stopped = "unavailable"; return finish(); }
     const claim = claimed.data as Claim;
     // "wait": work is nearly due (the lens summary folds after 3 quiet seconds). Sleep that long, within the budget, and ask again.
@@ -70,17 +72,17 @@ export async function runSession(db: SupabaseClient, ai: AiClient, session: stri
 
 // One worker per session in this process; a trigger while one runs asks it to go round
 // again instead of starting another. Across servers the database lease does the same.
-const running = new Map<string, { again: boolean; done: Promise<void> }>();
-export function workSessions(db: SupabaseClient, ai: AiClient, sessions: string[], config: AiConfig = aiConfig()) {
+const running = new Map<string, { again: boolean; skin: Skin; done: Promise<void> }>();
+export function workSessions(db: SupabaseClient, ai: AiClient, sessions: string[], config: AiConfig = aiConfig(), skin: Skin = "clearway") {
   return Promise.all([...new Set(sessions)].map(session => {
     const current = running.get(session);
-    if (current) { current.again = true; return current.done; }
-    const state = { again: false, done: Promise.resolve() }, tails: Promise<void>[] = [];
+    if (current) { current.again = true; current.skin = skin; return current.done; }
+    const state = { again: false, skin, done: Promise.resolve() }, tails: Promise<void>[] = [];
     state.done = (async () => {
       const deadline = Date.now() + config.budgetMs;
       try {
         if (config.debounceMs) await sleep(config.debounceMs);
-        do { state.again = false; await runSession(db, ai, session, config, deadline, tails); } while (state.again && Date.now() < deadline);
+        do { state.again = false; await runSession(db, ai, session, config, deadline, tails, state.skin); } while (state.again && Date.now() < deadline);
       } catch (error) {
         console.error("AI work unavailable", { code: error instanceof Error ? error.name : "failed" });
       } finally { running.delete(session); }
