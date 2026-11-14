@@ -7,6 +7,7 @@ import type { LiveRead, LiveSnapshot } from "@/lib/live/types";
 import { TvReceipts, snapshotArrivals } from "@/lib/tv/receipts";
 import { TvFlow } from "@/lib/tv/flow";
 import { TvSync, pairRequestMs } from "@/lib/tv/sync";
+import { tokenInSearch, withoutToken } from "@/lib/tv/pair-link";
 import { screenType } from "@/lib/tv/policy";
 import { tokenMs } from "@/lib/tv/board";
 import type { TvBinding, TvStatus } from "@/lib/tv/types";
@@ -17,7 +18,10 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
   const [status, setStatus] = useState<TvStatus>(initial || { status: "opening" });
   const [frame, setFrame] = useState<LiveSnapshot | null>(null), [mode, setMode] = useState("connecting"), [awake, setAwake] = useState(true);
   const [nameLimit, setNameLimit] = useState(14);
-  const [syncOffline, setSyncOffline] = useState(false);
+  const [syncOffline, setSyncOffline] = useState(false), [linkExpired, setLinkExpired] = useState(false);
+  // A TV window opened from the facilitator's laptop carries a single-use link in its address. It is sent with the first pairing
+  // request and removed from the address bar once the server has answered, so a reload or a copied URL cannot reuse it.
+  const linkToken = useRef<string | null | undefined>(undefined);
   const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), tvSync = useRef<TvSync | null>(null);
   const [pair, setPair] = useState<{ code: string | null; seconds: number }>({ code: null, seconds: 0 });
   const receipt = useRef<TvReceipts | null>(null), clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
@@ -40,9 +44,17 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
   // The pairing connection. It decides, from the server's clock, whether the
   // code may still be shown, and asks for the replacement as the old one ends.
   useEffect(() => {
+    if (linkToken.current === undefined) linkToken.current = tokenInSearch(window.location.search);
     const request = async () => {
-      const response = await fetch("/api/tv", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}", cache: "no-store", signal: AbortSignal.timeout(pairRequestMs) });
-      return { ok: response.ok, data: await response.json() as unknown };
+      const token = linkToken.current;
+      const response = await fetch("/api/tv", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(token ? { pair: token } : {}), cache: "no-store", signal: AbortSignal.timeout(pairRequestMs) });
+      const data = await response.json() as { link?: string };
+      // Any definite answer uses the link up (or shows it cannot work); a failure or a wait keeps it for the next try.
+      if (token && response.status < 500 && response.status !== 429) {
+        linkToken.current = null; setLinkExpired(data.link === "expired");
+        window.history.replaceState(window.history.state, "", withoutToken(window.location.pathname, window.location.search, window.location.hash));
+      }
+      return { ok: response.ok, data: data as unknown };
     };
     const next = new TvSync(initial || { status: "opening" }, request, view => {
       setStatus(before => JSON.stringify(before) === JSON.stringify(view.status) ? before : view.status);
@@ -156,7 +168,7 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-skin={display ? skinOf(display.skin) : skinOf(address?.skin)} data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-join={status.status === "paired" && frame?.state.tv_content === "join" ? "on" : undefined} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} pair={pair} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} address={address} /></div>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} pair={pair} linkExpired={linkExpired} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} address={address} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }
