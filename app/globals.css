@@ -713,6 +713,20 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .shell-nav a[aria-current] { font-weight: var(--fw-bold); }
 .shell-nav a svg { flex: none; }
 .show-sidebar a.shell-back { margin-top: auto; color: var(--cwl-app-text-muted); }
+/* The signed-in facilitator and Sign out, at the foot of every sidebar. */
+.shell-profile { display: flex; flex-direction: column; gap: var(--space-1); margin-top: auto; padding-top: var(--space-4); border-top: 1px solid var(--cwl-app-border); }
+.shell-back + .shell-profile { margin-top: var(--space-2); }
+.shell-profile-row { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-3) var(--space-2); }
+.shell-avatar { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: var(--cwl-app-avatar); color: var(--cwl-app-text); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-bold); }
+.shell-profile-who { display: flex; flex-direction: column; min-width: 0; flex: 1; margin: 0; }
+.shell-profile-who strong, .shell-profile-who span:not(.sr-only) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.shell-profile-who span:not(.sr-only) { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
+.shell-profile form { margin: 0; }
+.shell-signout { display: flex; align-items: center; gap: var(--space-3); width: 100%; min-height: var(--cwl-phone-touch); padding: var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: transparent; color: var(--cwl-app-text-muted); font: inherit; text-align: left; cursor: pointer; }
+.shell-signout svg { flex: none; }
+.shell-signout:hover { background: var(--cwl-app-hover); color: var(--cwl-app-text); }
+/* On laptops the sidebar stays in view as the page scrolls, so the profile and Sign out are always on screen. */
+@media (min-width: 901px) { .shell-nav { position: sticky; top: 0; align-self: start; height: 100svh; overflow-y: auto; } }
 .shell-nav :focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
 .shell-main > .show-private { flex: none; }
 /* Pages designed with their own engagement column now take the full width of the shell. */

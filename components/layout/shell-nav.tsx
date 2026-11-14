@@ -2,9 +2,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { Activity, BarChart3, CalendarDays, ClipboardCheck, Columns4, DoorOpen, FileText, FlaskConical, Home, LayoutDashboard, LayoutTemplate, Link2, ListChecks, ListOrdered, Menu, Monitor, Radio, Search, SlidersHorizontal, UserCheck, Users } from "lucide-react";
+import { Activity, BarChart3, CalendarDays, ClipboardCheck, Columns4, DoorOpen, FileText, FlaskConical, Home, LayoutDashboard, LayoutTemplate, Link2, ListChecks, ListOrdered, LogOut, Menu, Monitor, Radio, Search, SlidersHorizontal, UserCheck, Users } from "lucide-react";
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { practiceId } from "@/lib/room/practice";
+import { useFacilitator, type ShellFacilitator } from "@/components/layout/facilitator-context";
 
 export type ShellEngagement = { id: string; title: string; church: string; type: string; fourLists?: boolean };
 type Item = { href: string; label: string; icon: ReactNode; under?: boolean };
@@ -42,6 +43,23 @@ export function engagementGroups(e: ShellEngagement, fourLists = true): Group[] 
   ];
 }
 
+// Up to two initials for the avatar, from the name, or the email when there is no name.
+export function initials(who: ShellFacilitator) {
+  const words = (who.name.trim() || who.email.split("@")[0]).split(/[\s._-]+/).filter(Boolean);
+  return (words.length > 1 ? words[0][0] + words[words.length - 1][0] : (words[0] ?? "?").slice(0, 2)).toUpperCase();
+}
+
+// Who is signed in, and Sign out, at the foot of every sidebar.
+function ShellProfile({ who }: { who: ShellFacilitator }) {
+  return <div className="shell-profile">
+    <div className="shell-profile-row">
+      <span className="shell-avatar" aria-hidden="true">{initials(who)}</span>
+      <p className="shell-profile-who"><span className="sr-only">Signed in as </span><strong>{who.name || who.email}</strong>{who.name && <span>{who.email}</span>}</p>
+    </div>
+    <form action="/auth/sign-out" method="post"><button className="shell-signout" type="submit"><LogOut aria-hidden="true" size={18} />Sign out</button></form>
+  </div>;
+}
+
 export function clearwayGroups(admin: boolean): Group[] {
   const s = 18;
   return [
@@ -60,6 +78,7 @@ export function clearwayGroups(admin: boolean): Group[] {
 // The one sidebar for every signed-in page: the Clearway Live lockup, then either Clearway's own pages or one engagement's.
 export function ShellNav({ engagement, admin = false, fourLists = true }: { engagement?: ShellEngagement | null; admin?: boolean; fourLists?: boolean }) {
   const pathname = usePathname();
+  const who = useFacilitator();
   const [openAt, setOpenAt] = useState<string | null>(null);
   const open = openAt === pathname;
   const groups = engagement ? engagementGroups(engagement, fourLists) : clearwayGroups(admin);
@@ -76,6 +95,7 @@ export function ShellNav({ engagement, admin = false, fourLists = true }: { enga
         {group.items.map(item => <Link key={item.href} href={item.href} aria-current={current(item) ? "page" : undefined}>{item.icon}{item.label}</Link>)}
       </div>)}
       {engagement && <Link className="shell-back" href="/setup"><LayoutDashboard aria-hidden="true" size={18} />All engagements</Link>}
+      {who && <ShellProfile who={who} />}
     </div>
   </nav>;
 }
