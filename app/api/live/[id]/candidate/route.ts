@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { participantClient } from "@/lib/room/client";
 import { uuid } from "@/lib/room/identity";
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const response = privateResponse(NextResponse.json({ status: "unavailable" }, { status: 503 }));
   const answer = (data: unknown, status = 200) => { const out = privateResponse(NextResponse.json(data, { status })); for (const c of response.cookies.getAll()) out.cookies.set(c); return out; };
   if (!config || !uuid(id)) return answer({ status: "invalid_request" }, 400);
-  if (!sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
+  if (!sameAddress(request)) return answer({ status: "denied" }, 403);
   let body: ReturnType<typeof suggestBody>;
   try { body = suggestBody(await limitedJson(request, 2048)); } catch { body = null; }
   if (!body) return answer({ status: "invalid_request" }, 422);

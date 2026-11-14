@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { getFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params, config = authConfig();
   const response = privateResponse(NextResponse.json({ status: "unavailable" }, { status: 503 }));
   const answer = (data: unknown, status = 200) => { const out = privateResponse(NextResponse.json(data, { status })); for (const c of response.cookies.getAll()) out.cookies.set(c); return out; };
-  if (!uuid(id) || !config || !sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
+  if (!uuid(id) || !config || !sameAddress(request)) return answer({ status: "denied" }, 403);
   const surface = request.nextUrl.searchParams.get("surface");
   try {
     const client = surface === "tv"

@@ -66,6 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const token = freshToken();
         const { data, error } = await fac.client.rpc("check_in_open_as", { p_engagement: id, p_recipient: body.recipient, p_hash: tokenHash(token) });
         if (error) throw error;
+        // Wayfinding only: a Novetera workshop has no check-in (/c/), so this link stays on live.clearway.co (APP_ORIGIN) for every engagement.
         return answer(data.status === "ok" ? { status: "ok", link: `${config.origin}/c/${token}` } : data, code(data.status));
       }
       default: return answer({ status: "invalid_request" }, 422);

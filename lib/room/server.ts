@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { roomOrigin, skinOf, type Skin } from "@/lib/brand";
 import { privateResponse } from "@/lib/auth/response";
 import { serviceClient } from "@/lib/server/supabase";
@@ -11,6 +11,7 @@ import { signInEmail } from "@/lib/email/sign-in";
 import { limitedJson } from "@/lib/server/request";
 import { digest, hash, newCode, newDevice, newLink, normalizedEmail, parseDevice, sessionId, uuid } from "./policy";
 import { hasRoomCookie, participantClient } from "./client";
+import { deviceCookie } from "./address";
 import type { RoomAccessStatus } from "./access";
 
 export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean; openJoin?: boolean; skin?: Skin };
@@ -21,7 +22,6 @@ export async function roomInfo(id: string): Promise<RoomInfo | null> {
   if (!data) return null;
   return data as RoomInfo;
 }
-const deviceCookie = (engagement: string) => `cw-device-${engagement}`;
 export function roomClient(request: NextRequest, response: NextResponse, engagement: string) {
   return participantClient({
       getAll: () => request.cookies.getAll(),
@@ -104,7 +104,7 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
   const response = privateResponse(NextResponse.json({ status: "unavailable" }, { status: 503 }));
   const config = authConfig();
   if (!config || !uuid(engagement)) return response;
-  if (request.method !== "GET" && !sameOrigin(request, config.origin)) return privateResponse(NextResponse.json({ status: "unavailable" }, { status: 403 }));
+  if (request.method !== "GET" && !sameAddress(request)) return privateResponse(NextResponse.json({ status: "unavailable" }, { status: 403 }));
   try {
     const info = await roomInfo(engagement);
     if (!info) return privateResponse(NextResponse.json({ status: "room_missing" }, { status: 404 }));

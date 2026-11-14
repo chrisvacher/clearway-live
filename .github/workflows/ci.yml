@@ -94,6 +94,8 @@ jobs:
           path: ${{ runner.temp }}/kit-shots/operations-*.png
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the two addresses (live.clearway.co and live.novetera.co) from one deployment
+        run: npm run test:two-addresses
       - name: Test the failure states in real browsers (milestone 2, then the kinds and failures of milestones 3 to 7)
         run: npm run test:browser
         env:
