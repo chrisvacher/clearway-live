@@ -3,8 +3,7 @@
 // mark, no texture, no glow, colours computed from the tokens); the same screens for a Clearway engagement still compute Clearway's values.
 // The harness serves one app under two loopback names: localhost is Clearway's address (APP_ORIGIN) and 127.0.0.1 is Novetera's
 // (NOVETERA_ORIGIN), so the address-based pages (front page, pairing screen, not found) are tested through the Host header the
-// browser sends. API calls from a page at the Novetera name carry the Clearway origin, so this kit tests what the room sees, not
-// the same-origin rule (the domain work owns that). KIT_SHOTS=<folder> saves a screenshot of each Novetera screen at the TV and phone sizes.
+// browser sends. A page at the Novetera name sends its own origin, which the app accepts there (the two-addresses kit tests the rule). KIT_SHOTS=<folder> saves a screenshot of each Novetera screen at the TV and phone sizes.
 // Local only.
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
@@ -45,11 +44,6 @@ async function main() {
     browser = await chromium.launch();
     const context = async (viewport: { width: number; height: number }, phone = false) => {
       const ctx = await browser!.newContext({ viewport, ...(phone ? { isMobile: true, hasTouch: true } : {}) });
-      // Only a POST at Novetera's name needs it; everything else goes through as it is.
-      await ctx.route(url => url.href.startsWith(`${N}/api/`), async route => {
-        if (route.request().method() !== "POST") return route.fallback();
-        try { await route.fulfill({ response: await route.fetch({ headers: { ...route.request().headers(), origin: A } }) }); } catch { /* the page closed mid-request */ }
-      });
       return ctx;
     };
 

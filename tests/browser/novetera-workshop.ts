@@ -267,7 +267,10 @@ async function main() {
         ["teenagers, children, renewal, harvest, friendship", "care, trust, community, generosity, growth"], ["worship, alpha, stretched, busy, serving", "outreach, change, patience, vision, faith"]];
       for (const round of [0, 1]) await all(async (p, i) => { await send(p.page, sends[i][round]); await until(async () => (await p.page.locator(".ph-answers").innerText().catch(() => "")).includes(sends[i][round].split(",")[0].trim()), `${p.name} sent`, 10000); });
       await until(async () => (await results())?.total === 40, "forty words on the server", 15000);
-      await until(async () => { const t = (await tvText()).toLowerCase(); return ["hope", "peace", "faith", "welcome"].every(w => t.includes(w)); }, "the words on the TV", 10000);
+      // The TV's own count says all forty arrived, and the cloud draws the words (it draws the biggest words large and the rest in a strip that scrolls off the edge, so the kit asks for a few, not every one).
+      await until(async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").catch(() => "")) === "40 answers from 4 people", "40 answers from 4 people on the TV", 10000);
+      const wordsSent = sends.flat().flatMap(r => r.split(",").map(w => w.trim().toLowerCase()));
+      await until(async () => { const t = (await tvText()).toLowerCase(); return wordsSent.filter(w => t.includes(w)).length >= 5; }, "the words on the TV", 15000);
       await until(async () => (await layer().locator(".tv-word .cwl-ai-mark").count()) >= 1, "a combined word carries the AI mark", 25000);
       assert.equal(await layer().locator(".tv-word .cwl-ai-mark").first().evaluate(el => getComputedStyle(el).getPropertyValue("display")) !== "none", true);
       assert.ok(((await results()).words ?? []).some(w => w.ai), "the server marks the combine as AI");
@@ -296,7 +299,7 @@ async function main() {
       await all(async (p, i) => { await p.page.locator("#qa-question").waitFor({ timeout: 10000 }); await p.page.fill("#qa-question", asks[i]); await p.page.locator(".qa-ask-form .ph-send").click(); });
       await until(async () => ((await results()) as unknown as { questions?: { askers: number }[] }).questions?.some(q => q.askers === 2), "two matching questions fold into one", 15000);
       await until(async () => (await layer().locator(".qa-row").allInnerTexts()).some(t => t.includes("Asked by 2")), "asked by 2 on the TV", 10000);
-      assert.ok((await tvText()).includes("Who will lead the new leaders track?")); assert.ok((await tvText()).includes("How do we protect time for each other?"));
+      for (const ask of asks.slice(2)) await until(async () => (await tvText()).includes(ask), `"${ask}" on the TV`, 10000);
       await all(async p => { const vote = p.page.locator(".qa-item", { hasText: "Who will lead" }).locator(".qa-vote"); await vote.waitFor({ timeout: 10000 }); if (!(await vote.isDisabled())) await vote.click(); });
       await until(async () => ((await results()) as unknown as { questions: { text: string; rank: number }[] }).questions.find(q => q.text.startsWith("Who will lead"))?.rank === 1, "the voted question rises to the top", 10000);
       await novetera(); await look("Q&A", "12-qa", 2);
