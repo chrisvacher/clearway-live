@@ -1,14 +1,12 @@
-import { ArrowUp, Download } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { agreeLabel, columnLabels, reviewColumns, type FourReview } from "@/lib/interactions/four-lists";
 import { AiMark } from "@/components/interactions/ai/ai-icon";
 import "./four-lists.css";
 
 // SET-05: every card of every Four Helpful Lists step, by list, with how many people agree and what was folded into it. Read only:
 // changes are made on the live control surface. It names no one: the database never sends a person with a card.
-export function FourListsReview({ review, engagement }: { review: FourReview; engagement: string }) {
+export function FourListsReview({ review }: { review: FourReview }) {
   return <div className="fl-review" data-fl-review>
-    <div className="ctl-row is-between"><p className="show-help">Read only. Names never show. Pin, hide and undo a fold on the live control surface.</p>
-      <a className="show-button" href={`/api/control/${engagement}/four-lists/export`} download><Download size={18} aria-hidden="true" />Download CSV</a></div>
     {review.sessions.length === 0 && <p className="show-empty">This engagement has no Four Helpful Lists step yet. Add one from the run of show.</p>}
     {review.sessions.map(s => {
       const total = s.cards.filter(c => !c.hidden).reduce((n, c) => n + 1 + c.folded, 0);

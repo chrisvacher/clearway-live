@@ -33,11 +33,19 @@ async function main() {
       await page.getByRole("link", { name: "Discover", exact: true }).click();
       await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
       const text = await page.locator("main").innerText();
-      assert.ok(text.includes("Only you see this"), "marked private");
+      assert.equal(await page.locator(".show-private", { hasText: "Only you see this" }).count(), 1, "marked private once, by the shell band");
+      assert.ok(!text.includes("Only you see this"), "the page draws no marker of its own");
+      assert.equal(await page.getByText("Back to the engagement").count(), 0, "no back link");
       assert.ok(text.includes("No themes yet"), "the theme list starts empty");
       assert.ok(text.includes("Notes stay with Clearway"), "the privacy line");
       assert.ok(!/[–—]/.test(text), "no dashes in the copy");
       await shot(page, "discover-empty");
+      await page.goto(`${app.origin}/setup/${room.id}/four-lists`);
+      await page.getByRole("heading", { name: "Four Helpful Lists", level: 1 }).waitFor({ timeout: 15000 });
+      assert.equal(await page.getByRole("link", { name: "Download CSV" }).count(), 0, "no CSV without a Four Helpful Lists step");
+      assert.equal(await page.getByRole("button", { name: "Refresh lists", exact: true }).count(), 1);
+      assert.equal(await page.getByRole("navigation", { name: "Engagement", exact: true }).getByRole("link", { name: "Four Helpful Lists", exact: true }).count(), 0, "the sidebar leaves out Four Helpful Lists without the step");
+      await page.goto(`${app.origin}/setup/${room.id}/discover`); await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
     });
 
     await step("The total and the findings save, and each finding becomes an accepted theme", async () => {

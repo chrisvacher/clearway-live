@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Check, LockKeyhole, Trash2, X } from "lucide-react";
+import { Check, EyeOff, LockKeyhole, Trash2, X } from "lucide-react";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { defaultWindow, readyState } from "@/lib/run-of-show/builder";
@@ -80,7 +80,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
   }
   const Wrap = inline ? "div" : "aside";
   return <Wrap ref={panel as never} className={inline ? "show-panel is-inline" : "show-panel"} aria-labelledby={inline ? undefined : "session-editor-title"} aria-label={inline ? `Options for ${session.title}` : undefined}>
-    {!inline && <><div className="show-private"><LockKeyhole size={15} aria-hidden="true" />Only you see this</div>
+    {!inline && <><div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
     <div className="show-panel-head"><h2 id="session-editor-title">{fresh ? "Add session" : "Edit session"}</h2><button className="show-button is-icon" aria-label="Close session editor" disabled={busy} onClick={close}><X size={20} aria-hidden="true" /></button></div></>}
     <form onSubmit={save} className="show-form">
       <fieldset disabled={busy || blocked || context.closed}>

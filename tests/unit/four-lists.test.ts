@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { agreeBody, agreeOptions, agreeState, cardLabel, cardsOf, checkCard, columnLabels, columnTotals, foldedInto, fourColumns, fourControlBody, moreLine, nextAgree, outboxStatus, reviewColumns, topOf,
   type FourCard, type ReviewCard } from "../../lib/interactions/four-lists";
+import { hasFourLists } from "../../lib/server/shell";
 import { fourListsCsv } from "../../lib/export/four-lists-csv";
 import { kindLabels, screenIds, countUnit } from "../../lib/interactions/kinds";
 import { sessionCsv, type SessionExport } from "../../lib/export/csv";
@@ -127,4 +128,12 @@ test("The session export carries the list beside each card", () => {
   const lines = sessionCsv(data).replace(/^﻿/, "").trim().split("\r\n");
   assert.equal(lines[0], "Answered at,List,Card,Hidden from the TV,Test answer");
   assert.match(lines[1], /^2026-11-05 10:00:00,What’s right\?,Preaching is strong,,$/);
+});
+
+const fakeClient = (result: () => { data: unknown[] | null; error: unknown }) => ({ from: () => { const q: Record<string, unknown> = {}; for (const m of ["select", "eq"]) q[m] = () => q; q.limit = async () => result(); return q; } }) as never;
+test("the sidebar reads whether the run of show has a Four Helpful Lists step, and shows the item if the read fails", async () => {
+  assert.equal(await hasFourLists(fakeClient(() => ({ data: [{ id: "a" }], error: null })), "x"), true);
+  assert.equal(await hasFourLists(fakeClient(() => ({ data: [], error: null })), "x"), false);
+  assert.equal(await hasFourLists(fakeClient(() => ({ data: null, error: { message: "boom" } })), "x"), true);
+  assert.equal(await hasFourLists(fakeClient(() => { throw new Error("down"); }), "x"), true);
 });

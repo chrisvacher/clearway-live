@@ -222,6 +222,7 @@ async function main() {
       for (const want of ["Preaching is strong", "We pray together", "A clear way to join a group", "Elder and staff roles are unclear"]) assert.ok(text.includes(want), `the review has ${want}`);
       assert.equal(await page.locator("[data-fl-review] input, [data-fl-review] textarea").count(), 0, "read only");
       assert.ok(await page.getByRole("link", { name: "Download CSV" }).isVisible());
+      assert.ok(await page.getByRole("navigation", { name: "Engagement", exact: true }).getByRole("link", { name: "Four Helpful Lists", exact: true }).isVisible(), "the sidebar lists Four Helpful Lists when the run of show has the step");
       for (const who of ["Priya", "Ben", "Ruth"]) assert.ok(!text.includes(who), `${who} is not named`);
       await shot(page, "set-05-review");
       const csv = await (await page.request.get(`${app.origin}/api/control/${room.id}/four-lists/export`)).text();
