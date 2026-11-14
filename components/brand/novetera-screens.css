@@ -1,0 +1,48 @@
+/* The Novetera skin on the screens the room sees: what tokens can't reach (class rules that write a literal value), the N mark's slot on
+   the TV and phones, and the join ground. Every rule starts at [data-skin="novetera"], so a Clearway engagement is untouched, and every
+   colour is a role from design/novetera-live/novetera_tokens.css (read with the Clearway role as its fallback). Imported by app/globals.css
+   after the tokens. Layout, positions, sizes and motion are not changed here. */
+
+/* ---------- TV: no texture and no glow, whatever the engagement's texture setting says ---------- */
+[data-skin="novetera"][data-surface="tv"] .tv-texture { display: none; }
+[data-skin="novetera"] .ph-texture { display: none; }
+
+/* ---------- TV: the N mark takes the Clearway icon's place, top right ---------- */
+[data-skin="novetera"] .tv-mark-slot .nvt-mark { height: 72px; }
+[data-skin="novetera"] .ph-mark-slot .nvt-mark { height: 28px; }
+[data-skin="novetera"] .nvt-state, [data-skin="novetera"] .nvt-join-lockup { display: inline-flex; }
+/* Phones down: the whole mark goes quiet, as the Clearway icon does. */
+[data-skin="novetera"] .nvt-state.is-down .nvt-mark .a, [data-skin="novetera"] .nvt-state.is-down .nvt-mark .b { fill: var(--cwl-text-muted); }
+/* Closed: the quiet mark beside the word. */
+[data-skin="novetera"] .tv-live.nvt-closed { width: auto; height: auto; padding: 0; background: none; color: var(--cwl-text-muted); display: inline-flex; align-items: center; gap: 20px; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); text-transform: none; -webkit-mask: none; mask: none; }
+[data-skin="novetera"] .ph-live.nvt-closed { width: auto; height: auto; padding: 0; background: none; color: var(--cwl-text-muted); display: inline-flex; align-items: center; gap: 8px; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); text-transform: none; letter-spacing: 0; }
+[data-skin="novetera"] .ph-live.nvt-closed::before { display: none; }
+
+/* ---------- TV: the join ground (before and while people join) ----------
+   The ground, text, muted text, arriving names, the mark's second stroke and the code card's edge read the --cwl-*-holding roles. */
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"],
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-stage { background: var(--cwl-surface-holding, var(--cwl-surface)); color: var(--cwl-text-holding, var(--cwl-text)); }
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] :is(.tv-muted, .tv-eyebrow, .tv-upclose, .tv-stage .tv-eyebrow, .tv-stage .tv-muted) { color: var(--cwl-text-muted-holding, var(--cwl-text-muted)); }
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-here { color: var(--cwl-text-holding, var(--cwl-text)); }
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-names { color: var(--cwl-presence-holding, var(--cwl-presence)); }
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-qr { outline: 1px solid var(--cwl-edge-holding, transparent); outline-offset: -1px; }
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .nvt-mark:not(.is-live):not(.is-offline) .a { fill: var(--cwl-text-holding, var(--cwl-text)); }
+[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .nvt-mark:not(.is-live):not(.is-offline) .b { fill: var(--cwl-mark-holding, var(--cwl-mark-quiet)); }
+
+/* ---------- TV: the code reads its ink and ground from the code roles ---------- */
+[data-skin="novetera"] .tv-qr-ink { fill: var(--cwl-code-ink, var(--cw-navy)); }
+[data-skin="novetera"] .tv-qr-ground { fill: var(--cwl-code-ground, var(--cw-white)); }
+
+/* ---------- TV: type that tokens can't reach ---------- */
+/* Novetera has no light weight: the headline classes that write 300 draw at 700; the status notes (body size, muted) draw at its regular. */
+[data-skin="novetera"] :is(.cwl-tv-headline, .cwl-tv-headline-xl) { font-weight: 700; }
+[data-skin="novetera"] :is(.oc-note, .oc-empty-note, .cd-note) { font-weight: var(--fw-regular); }
+/* Scripture, prayer and the promoted quote are set in the editorial face, italic, as the canvas sets them. */
+[data-skin="novetera"] :is(.tv-passage, .tv-prayer .tv-headline, .pq-text) { font-family: var(--cwl-font-editorial, var(--cwl-font)); font-style: italic; font-weight: var(--fw-regular); }
+
+/* ---------- Phones ---------- */
+/* Buttons are sentence case in Novetera. */
+[data-skin="novetera"] :is(.cwl-phone-button, .ph-send) { text-transform: none; letter-spacing: 0; }
+/* The sign-in header: the lockup over a rule, as the canvas draws it. */
+[data-skin="novetera"] > .header { border-bottom: 3px solid var(--cwl-text); }
+[data-skin="novetera"] .brand .nvt-lockup { height: var(--cwl-wordmark-h-app); }

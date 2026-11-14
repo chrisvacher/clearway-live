@@ -1,0 +1,17 @@
+/* The Novetera front page (live.novetera.co): the canvas's PhoneFront, in the skin's roles only. Chalk by default (phoneTheme). */
+body:has(> .nvj) { background: var(--cwl-surface); }
+.nvj { min-height: 100svh; display: flex; flex-direction: column; gap: var(--space-6); width: min(100%, 30rem); margin-inline: auto; padding: var(--space-5) var(--cwl-phone-gutter) var(--space-6); background: var(--cwl-surface); color: var(--cwl-text); font-family: var(--cwl-font); }
+.nvj p, .nvj h1 { margin: 0; }
+.nvj-head { padding-bottom: 14px; border-bottom: 3px solid var(--cwl-text); }
+.nvj-brand { display: inline-flex; align-items: center; min-height: var(--cwl-phone-touch); }
+.nvj-main { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: var(--space-5); }
+.nvj-title { font-size: var(--cwl-fs-phone-headline); font-weight: var(--fw-bold); line-height: 1.2; letter-spacing: -0.01em; color: var(--cwl-text); }
+.nvj-form { display: flex; flex-direction: column; gap: var(--space-5); }
+.nvj-label { font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-bold); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cwl-text-muted); margin-bottom: calc(var(--space-2) * -1); }
+.nvj-input { width: 100%; min-height: var(--cwl-phone-touch-lg); padding: var(--space-3) var(--space-4); border: 1px solid var(--cwl-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); font: inherit; font-size: var(--cwl-fs-phone-input); letter-spacing: 0.08em; }
+.nvj-input:focus-visible { outline: 3px solid var(--cwl-focus-ring); outline-offset: 2px; }
+.nvj-button { width: 100%; min-height: var(--cwl-phone-touch-lg); padding: var(--space-4) var(--space-6); border: 0; border-radius: var(--cwl-radius-button); background: var(--cwl-button-primary); color: var(--cwl-on-accent); font: inherit; font-size: var(--cwl-fs-phone-button); font-weight: var(--fw-semibold); cursor: pointer; }
+.nvj-help { font-size: var(--cwl-fs-phone-label); line-height: 1.5; color: var(--cwl-text-muted); }
+.nvj-help.is-note { color: var(--cwl-text); font-weight: var(--fw-semibold); }
+.nvj-foot { padding-top: var(--space-4); border-top: 1px solid var(--cwl-border); }
+.nvj-tagline { font-family: var(--cwl-font-editorial, var(--cwl-font)); font-style: italic; font-size: var(--cwl-fs-phone-prompt); line-height: 1.3; color: var(--cwl-text); }

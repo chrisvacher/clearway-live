@@ -27,7 +27,7 @@ test("CORE versions stay pinned except the approved Live security updates", asyn
   }
 });
 
-test("base styles load first, Live styles second, then the Novetera skin, with no competing stylesheet", async () => {
+test("base styles load first, Live styles second, then the Novetera skin and its screen rules, with no competing stylesheet", async () => {
   const sheet = postcss.parse(await read("app/globals.css"));
   const imports: string[] = [];
   sheet.walkAtRules("import", rule => { imports.push(rule.params); });
@@ -36,6 +36,7 @@ test("base styles load first, Live styles second, then the Novetera skin, with n
     '"../design/clearway-live/live_tokens.css"',
     '"../design/novetera-live/novetera_fonts.css"',
     '"../design/novetera-live/novetera_tokens.css"',
+    '"../components/brand/novetera-screens.css"',
   ]);
   assert.match(await read("app/layout.tsx"), /import "\.\/globals\.css"/);
   assert.doesNotMatch(await read("app/globals.css"), /--(?:cw|cwl)-[\w-]+\s*:/);
