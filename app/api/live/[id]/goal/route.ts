@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { participantClient } from "@/lib/room/client";
 import { uuid } from "@/lib/room/identity";
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params, config = authConfig();
   if (!config || !uuid(id)) return privateResponse(NextResponse.json({ status: "invalid_request" }, { status: 400 }));
   const { response, answer, client } = handler(request, id);
-  if (!sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
+  if (!sameAddress(request)) return answer({ status: "denied" }, 403);
   let body: ReturnType<typeof goalBody>;
   try { body = goalBody(await limitedJson(request, 8192)); } catch { body = null; }
   if (!body) return answer({ status: "invalid_request" }, 422);

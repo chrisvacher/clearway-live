@@ -1,6 +1,6 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { tvClient } from "@/lib/tv/client";
 import { facilitatorClient } from "@/lib/auth/client";
 import { privateResponse } from "@/lib/auth/response";
@@ -21,7 +21,7 @@ export async function handleLive(request: NextRequest, engagement: string) {
     return out;
   };
   if (!config || !uuid(engagement)) return result({ status: "invalid_request" }, 400);
-  if (request.method !== "GET" && !sameOrigin(request, config.origin)) return result({ status: "denied" }, 403);
+  if (request.method !== "GET" && !sameAddress(request)) return result({ status: "denied" }, 403);
   const surface = request.nextUrl.searchParams.get("surface") || "phone";
   if (!["phone", "control", "tv"].includes(surface) || (request.method === "POST" && surface !== "phone")) return result({ status: "denied" }, 403);
   const jar = { getAll: () => request.cookies.getAll(), setAll: (values: { name: string; value: string; options: Parameters<typeof response.cookies.set>[2] }[]) => {

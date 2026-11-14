@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { roomQr } from "@/lib/tv/qr";
 import { shortRoomLink } from "@/lib/tv/policy";
+import { brandFor, skinOf, type Skin } from "@/lib/brand";
 import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvStatus } from "@/lib/tv/types";
 import type { TvFlow } from "@/lib/tv/flow";
@@ -17,8 +18,8 @@ import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
 import { PromotedQuoteSpot } from "./promoted-quote";
 import { AiFoot } from "@/components/interactions/ai/ai-foot";
 
-function Qr({ code }: { code: string }) {
-  const qr = useMemo(() => roomQr(code), [code]);
+function Qr({ code, skin }: { code: string; skin?: Skin }) {
+  const qr = useMemo(() => roomQr(code, skinOf(skin)), [code, skin]);
   return <svg className="tv-qr" viewBox={`0 0 ${qr.size} ${qr.size}`} role="img" aria-label="Scan to open your room" shapeRendering="crispEdges"><rect width={qr.size} height={qr.size} className="tv-qr-ground" /><path d={qr.path} className="tv-qr-ink" /></svg>;
 }
 // The countdown comes from the TV's pairing connection, measured against the
@@ -67,7 +68,7 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
         <h1 className="tv-headline">{session.prompt}</h1>
         {View && <View session={session.id} frame={shown} flow={flow} />}
         {!kind?.structured && <p className="tv-note tv-muted">Waiting for answers</p>}
-        {session.settings?.join_strip && shown.display && <div className="tv-join-strip"><span className="tv-upclose">live.clearway.co/{shown.display.room_code}</span><Qr code={shown.display.room_code} /></div>}
+        {session.settings?.join_strip && shown.display && <div className="tv-join-strip"><span className="tv-upclose">{brandFor(skinOf(shown.display.skin)).host}/{shown.display.room_code}</span><Qr code={shown.display.room_code} skin={shown.display.skin} /></div>}
       </> : <ContentScreen frame={shown} />}
     </div>;
   })}</div>;
@@ -93,14 +94,18 @@ function NeutralQuestion({ frame, text }: { frame: LiveSnapshot | null; text: st
   </div>;
 }
 
-export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }: { status: TvStatus; pair?: { code: string | null; seconds: number }; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null }) {
+// `address` is what the pairing screen knows before an engagement does: the skin of the address the TV opened (and its host, for the
+// "open live.<brand>.co/tv" line). Once paired, the engagement's own skin (display.skin) decides.
+export type TvAddress = { skin: Skin; host: string };
+export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow, address }: { status: TvStatus; pair?: { code: string | null; seconds: number }; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null; address?: TvAddress }) {
   // Only a code the server will still accept is shown. Between one code ending
   // and its replacement arriving, the cards stay in place, empty.
   const code = status.status === "pair" ? pair?.code ?? null : null;
   const display = frame?.display, presence = frame?.presence;
   const paired = status.status === "paired" && Boolean(display);
   const mode = paired ? frame!.state.tv_content : status.status === "pair" ? "pair" : "opening";
-  const link = display ? shortRoomLink(display.room_code) : "";
+  const link = display ? shortRoomLink(display.room_code, skinOf(display.skin)) : "";
+  const skin: Skin = display ? skinOf(display.skin) : skinOf(address?.skin);
   const session = frame?.session ?? null, kind = kindOf(session);
   const surface = useContext(MediaSurface);
   const ask = surface !== "phone" && paired && mode === "session" && typeof frame?.state.neutral_question === "string" && frame.state.neutral_question ? frame.state.neutral_question : null;
@@ -113,7 +118,7 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
     <div className="tv-texture" aria-hidden="true"><span /></div>
     <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}
       {inputOn && frame && kind?.counts !== "none" && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} /></span>}</div>
-      <div className="tv-top-status"><LiveMark state={mark} reconnecting={reconnecting} /></div>
+      <div className="tv-top-status"><LiveMark state={mark} reconnecting={reconnecting} skin={skin} lockup={mode === "join"} /></div>
     </header>
     <div className="tv-scenes">
       <section className={`tv-scene tv-pair${mode === "pair" ? " is-active" : ""}`} aria-hidden={mode !== "pair"}>
@@ -124,7 +129,7 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
         <p className="tv-eyebrow">{display?.title}</p><h1 className="tv-headline-xl"><strong>{display?.church}</strong></h1><p className="tv-body tv-muted"><Check aria-hidden="true" /> This screen is paired</p>
       </section>
       <section className={`tv-scene tv-join${mode === "join" ? " is-active" : ""}`} aria-hidden={mode !== "join"}>
-        {display && <><Qr code={display.room_code} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>live.clearway.co</span><span>/{display.room_code}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
+        {display && <><Qr code={display.room_code} skin={display.skin} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>{brandFor(skinOf(display.skin)).host}</span><span>/{display.room_code}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
       </section>
       <section className={`tv-scene tv-session${mode === "session" ? " is-active" : ""}`} aria-hidden={mode !== "session"}>
         <SessionLayers frame={paired ? frame : null} flow={flow} asking={Boolean(ask)} />
@@ -136,7 +141,7 @@ export function TvScenes({ status, pair, frame, reconnecting, nameLimit, flow }:
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaSpotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><PromotedQuoteSpot frame={frame} /></span>}
-    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">live.clearway.co/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
+    <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">{address?.host ?? brandFor(skin).host}/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
 }

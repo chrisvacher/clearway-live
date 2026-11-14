@@ -1,5 +1,8 @@
 @import "../design/clearway-base/colors_and_type.css";
 @import "../design/clearway-live/live_tokens.css";
+@import "../design/novetera-live/novetera_fonts.css";
+@import "../design/novetera-live/novetera_tokens.css";
+@import "../components/brand/novetera-screens.css";
 
 @tailwind base;
 @tailwind components;

@@ -1,0 +1,30 @@
+/* The Novetera N mark and lockup, drawn from the cwl-mark and cwl-wordmark tokens of design/novetera-live/novetera_tokens.css.
+   Each fill reads the Novetera role with the Clearway lockup role as its fallback, so nothing here carries a colour of its own. */
+.nvt-mark, .nvt-lockup { display: inline-flex; flex: none; line-height: 0; height: var(--cwl-wordmark-h-app); }
+.nvt-mark { aspect-ratio: 1; }
+.nvt-mark svg, .nvt-lockup svg { height: 100%; width: auto; display: block; overflow: visible; }
+.nvt-mark.is-remote, .nvt-lockup.is-remote { height: var(--cwl-wordmark-h-remote); }
+.nvt-mark.is-phone, .nvt-lockup.is-phone { height: var(--cwl-wordmark-h-phone); }
+.nvt-mark.is-tv, .nvt-lockup.is-tv { height: var(--cwl-wordmark-h-tv); }
+.nvt-mark.is-print, .nvt-lockup.is-print { height: var(--cwl-wordmark-h-print); }
+.nvt-mark.is-page, .nvt-lockup.is-page { height: var(--cwl-wordmark-h-page); }
+
+/* The mark: first stroke, then the second stroke by state (quiet, live, offline). */
+.nvt-mark .a { fill: var(--cwl-mark-stroke, var(--cwl-wordmark-word)); }
+.nvt-mark .b { fill: var(--cwl-mark-quiet, var(--cwl-wordmark-icon)); }
+.nvt-mark.is-live .b { fill: var(--cwl-mark-live, var(--cwl-live)); }
+.nvt-mark.is-offline .a, .nvt-mark.is-offline .b { fill: var(--cwl-offline); }
+.nvt-mark.is-offline { animation: cwl-reconnect-breath var(--cwl-dur-reconnect-pulse) var(--cwl-ease-calm, ease-in-out) infinite; }
+[data-motion="reduced"] .nvt-mark.is-offline { animation: none; }
+@media (prefers-reduced-motion: reduce) { .nvt-mark.is-offline { animation: none; } }
+
+/* The lockup: the word and the first stroke take the word colour; the second stroke takes the icon colour. */
+.nvt-lockup .a, .nvt-lockup .w { fill: var(--cwl-wordmark-word); }
+.nvt-lockup .b { fill: var(--cwl-wordmark-icon); }
+[data-theme="dark"] .nvt-lockup:not(.is-light) .a, [data-theme="dark"] .nvt-lockup:not(.is-light) .w, .nvt-lockup.is-dark .a, .nvt-lockup.is-dark .w { fill: var(--cwl-wordmark-word-dark); }
+[data-theme="dark"] .nvt-lockup:not(.is-light) .b, .nvt-lockup.is-dark .b { fill: var(--cwl-wordmark-icon-dark); }
+
+/* The join screen's own ground (one of Charcoal, Chalk or Oxblood 700): text and mark follow the join choice. The [data-skin] prefix lifts the lockup rules level with the dark rules above. */
+.nvt-mark.is-join .a, [data-skin] .nvt-lockup.is-join .a, [data-skin] .nvt-lockup.is-join .w { fill: var(--cwl-text-holding, var(--cwl-text)); }
+.nvt-mark.is-join .b, [data-skin] .nvt-lockup.is-join .b { fill: var(--cwl-mark-holding, var(--cwl-mark-quiet, var(--cwl-wordmark-icon))); }
+.nvt-mark.is-join.is-live .b { fill: var(--cwl-mark-live, var(--cwl-live)); }

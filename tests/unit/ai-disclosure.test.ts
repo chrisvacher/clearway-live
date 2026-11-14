@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { aiDisclosureTexts, aiIconCredit, aiInviteParagraph, aiPageParagraphs, aiPagePath, aiPageTitle, aiSignInLine, aiSignInLink, engagementAi } from "../../lib/ai/disclosure";
+import { aiDisclosure, aiDisclosureTexts, aiDisclosureTextsFor, aiIconCredit, aiInviteParagraph, aiPageParagraphs, aiPagePath, aiPageTitle, aiSignInLine, aiSignInLink, engagementAi } from "../../lib/ai/disclosure";
 import { invitationMessages } from "../../lib/setup/invitation";
 import { setupInput } from "../../lib/setup/policy";
 
@@ -66,4 +66,37 @@ test("AI is on by default for new engagements; only an explicit setting counts",
   assert.match(readFileSync("components/facilitator/create-engagement.tsx", "utf8"), /settings: \{ ai_enabled: true,/, "the new engagement form starts with AI on");
   assert.equal(engagementAi({ ai_enabled: true }), true);
   for (const settings of [{ ai_enabled: false }, {}, null, { ai_enabled: "true" }]) assert.equal(engagementAi(settings), false);
+});
+
+// Novetera's working wording, as the spec gives it (novetera-skin-spec.md, Part 1, point 7).
+const noveteraApproved = {
+  page: [
+    "Novetera uses Claude, an AI model made by Anthropic, to help your team see what it's saying while the conversation is happening, and to help us prepare a summary afterward.",
+    "During the workshop, Claude groups similar answers, combines answers that say the same thing, brings matching questions together and suggests short labels. Anything it groups or writes is marked as AI on the screen, and your facilitator can undo it, rename it or turn it off. Your answers always reach the screen first, so the room keeps working even if AI is slow.",
+    "After the workshop, Claude helps us draft a summary from your team's own words. Novetera reviews every draft before your team sees it.",
+    "AI never makes a decision. Your team decides together.",
+    "Claude never receives your name, email or role. It does receive your answers and any easel photos as written, so if you name someone in an answer, that name goes with it. Anthropic doesn't train its models on what we send.",
+  ],
+  invite: "We'll use AI in the room. Claude, an AI model from Anthropic, groups similar answers and helps us draft a summary. It never receives your name or email, everything it produces is marked as AI, and Novetera reviews every draft before your team sees it. You can read more when you sign in.",
+};
+test("Novetera's AI disclosure is the spec's wording; the sign-in line and the credit are shared", () => {
+  const nv = aiDisclosure("novetera"), cw = aiDisclosure("clearway");
+  assert.deepEqual(nv.paragraphs.map(plain), noveteraApproved.page);
+  assert.equal(plain(nv.inviteParagraph), noveteraApproved.invite);
+  assert.equal(nv.signInLine, aiSignInLine, "the room sign-in line names no brand"); assert.equal(nv.credit, aiIconCredit, "the credit stays the page's last line");
+  assert.deepEqual(cw.paragraphs, aiPageParagraphs); assert.equal(cw.inviteParagraph, aiInviteParagraph);
+  assert.deepEqual(aiDisclosure().paragraphs, aiPageParagraphs, "the default is Clearway");
+  for (const text of aiDisclosureTextsFor("novetera")) { assert.doesNotMatch(text, dash, text); assert.doesNotMatch(text, /Clearway|clearway\.co/, text); }
+  for (const text of aiDisclosureTexts) assert.doesNotMatch(text, dash, text);
+  assert.equal(aiDisclosureTexts.length, aiDisclosureTextsFor("clearway").length + aiDisclosureTextsFor("novetera").length, "the no-dash check covers both skins");
+});
+test("Novetera's invite carries Novetera's AI paragraph, its sign-off and its address, and no Clearway", () => {
+  const snapshot = { title: "Staff workshop", church: "Riverside", timezone: "America/Toronto", pre_call_at: null, retreat_start_date: null, retreat_end_date: null,
+    consensus: "We decide together.", people: [{ id: "a", name: "Ann", email: "ann@example.org" }] };
+  const [on] = invitationMessages("room", snapshot, "https://live.novetera.co", [], true, "novetera");
+  const [off] = invitationMessages("room", snapshot, "https://live.novetera.co", [], false, "novetera");
+  assert.ok(on.text.includes(`\n\n${aiDisclosure("novetera").inviteParagraph}\nhttps://live.novetera.co/how-we-use-ai\n\n`));
+  assert.ok(on.text.endsWith("We look forward to being with you.\nNovetera"));
+  for (const text of [on.text, off.text]) assert.doesNotMatch(text, /Clearway|clearway\.co/);
+  assert.ok(!off.text.includes("AI") && !off.text.includes("how-we-use-ai"));
 });

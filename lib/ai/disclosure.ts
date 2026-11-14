@@ -2,6 +2,9 @@
 // The words are his: change them only with his approval. No dashes anywhere.
 // The survey intro (milestone 6) is recorded in the PRD only, not built yet.
 
+import { skinOf, type Skin } from "../brand";
+import { noveteraAiInvite, noveteraAiPage } from "../brand/copy";
+
 export const aiPagePath = "/how-we-use-ai";
 export const aiPageTitle = "How we use AI";
 
@@ -23,11 +26,20 @@ export const aiSignInLink = "How we use AI";
 // The invite email's paragraph, when the engagement has AI on.
 export const aiInviteParagraph = "We’ll use AI in the room. Claude, an AI model from Anthropic, groups similar answers and helps us draft summaries. It never receives your name or email, everything it produces is marked as AI, and Clearway reviews every draft before your team sees it. You can read more when you sign in.";
 
+// The disclosure for a skin. Clearway's texts are the ones above, as approved. Novetera's page paragraphs and invite paragraph are the spec's
+// working wording (lib/brand/copy.ts); its room sign-in line names no brand and its icon credit is the page's last line, so both are shared.
+export function aiDisclosure(skin: Skin = "clearway") {
+  const novetera = skinOf(skin) === "novetera";
+  return { title: aiPageTitle, paragraphs: novetera ? noveteraAiPage : aiPageParagraphs, credit: aiIconCredit, signInLine: aiSignInLine, signInLink: aiSignInLink,
+    inviteParagraph: novetera ? noveteraAiInvite : aiInviteParagraph, pagePath: aiPagePath };
+}
+
 // The engagement has AI on only when its setting says so; the database reads it the same
 // way (private.ai_on, private.room_ai). New engagements start with it on.
 export function engagementAi(settings: unknown) {
   return typeof settings === "object" && settings !== null && (settings as Record<string, unknown>).ai_enabled === true;
 }
 
-// Every disclosure text, for the no-dash check.
-export const aiDisclosureTexts = [aiPageTitle, ...aiPageParagraphs, aiIconCredit, aiSignInLine, aiSignInLink, aiInviteParagraph];
+// Every disclosure text of one skin, and of both skins together, for the no-dash check.
+export const aiDisclosureTextsFor = (skin: Skin): string[] => { const d = aiDisclosure(skin); return [d.title, ...d.paragraphs, d.credit, d.signInLine, d.signInLink, d.inviteParagraph]; };
+export const aiDisclosureTexts = [...aiDisclosureTextsFor("clearway"), ...aiDisclosureTextsFor("novetera")];

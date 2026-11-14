@@ -1,7 +1,7 @@
 import "server-only";
 import { NextResponse, type NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { participantClient } from "@/lib/room/client";
 import { uuid } from "@/lib/room/identity";
@@ -17,7 +17,7 @@ export async function phoneQa(request: NextRequest, engagement: string, run: (cl
   const response = privateResponse(NextResponse.json({ status: "unavailable" }, { status: 503 }));
   const answer = (data: unknown, status = 200) => { const out = privateResponse(NextResponse.json(data, { status })); for (const c of response.cookies.getAll()) out.cookies.set(c); return out; };
   if (!config || !uuid(engagement)) return answer({ status: "invalid_request" }, 400);
-  if (request.method !== "GET" && !sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
+  if (request.method !== "GET" && !sameAddress(request)) return answer({ status: "denied" }, 403);
   try {
     const client = participantClient({ getAll: () => request.cookies.getAll(), setAll: values => { for (const c of values) { request.cookies.set(c.name, c.value); response.cookies.set(c.name, c.value, c.options); } } }, engagement);
     const { data: { session } } = await client.auth.getSession();

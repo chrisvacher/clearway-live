@@ -4,6 +4,7 @@ import { serviceClient } from "@/lib/server/supabase";
 import { aiConfig } from "./config";
 import { aiClient } from "./client";
 import { workSessions } from "./worker";
+import { skinOf } from "../brand";
 import { workOvernight } from "./overnight";
 import { workThemes } from "./themes";
 import { workHeard } from "./heard";
@@ -34,7 +35,11 @@ export function kickAi(engagement: string, session?: string | null) {
           if (error || !Array.isArray(data)) return;
           sessions = data.filter((x): x is string => typeof x === "string");
         }
-        if (sessions.length) await workSessions(db, ai, sessions, aiConfig());
+        // The engagement's skin decides which prompt text and version names the workshop jobs use. If it can't be read, the Clearway prompts run.
+        if (sessions.length) {
+          const row = await db.from("engagements").select("skin").eq("id", engagement).maybeSingle();
+          await workSessions(db, ai, sessions, aiConfig(), skinOf(row.data?.skin));
+        }
       } catch (error) {
         console.error("AI work unavailable", { code: error instanceof Error ? error.name : "failed" });
       }

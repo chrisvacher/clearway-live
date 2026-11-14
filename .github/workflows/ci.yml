@@ -94,6 +94,8 @@ jobs:
           path: ${{ runner.temp }}/kit-shots/operations-*.png
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the two addresses (live.clearway.co and live.novetera.co) from one deployment
+        run: npm run test:two-addresses
       - name: Test the failure states in real browsers (milestone 2, then the kinds and failures of milestones 3 to 7)
         run: npm run test:browser
         env:
@@ -102,6 +104,19 @@ jobs:
         run: npm run test:load
       - name: Test the content screens and the pass 3 chrome in real browsers
         run: npm run test:content
+      - name: Test the Novetera skin on the TV, phones, join pages and the control surface's TV preview, and that a Clearway engagement is unchanged, in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p novetera-shots && npm run test:novetera-screens
+        env:
+          KIT_SHOTS: novetera-shots
+      - name: Upload the Novetera skin screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novetera-screens
+          path: novetera-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the bar family (choice, scale, ranking, 100 points, statements) in real browsers
         run: npm run test:bars
       - name: Test the 2x2 grid, private form and sign together with 50 simulated phones in real browsers
@@ -124,6 +139,18 @@ jobs:
         with:
           name: team-workshop-screens
           path: team-workshop-shots/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Run one Novetera workshop end to end (two addresses, four ways in, emails, the Word summary, switching back) and read every Novetera surface for the word Clearway
+        run: mkdir -p novetera-workshop-shots && npm run test:novetera-workshop
+        env:
+          KIT_SHOTS: novetera-workshop-shots
+      - name: Upload the Novetera workshop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novetera-workshop-screens
+          path: novetera-workshop-shots/
           if-no-files-found: ignore
           retention-days: 14
       - name: Test every kind through the live-screen rules with 50 simulated phones (milestone 3 acceptance)

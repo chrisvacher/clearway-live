@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { limitedJson } from "@/lib/server/request";
 import { tvClient } from "@/lib/tv/client";
@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const config = authConfig();
   const response = privateResponse(NextResponse.json({ ok: false }, { status: 503 }));
   const answer = (ok: boolean, status = 200) => { const out = privateResponse(NextResponse.json({ ok }, { status })); for (const c of response.cookies.getAll()) out.cookies.set(c); return out; };
-  if (!config || !sameOrigin(request, config.origin)) return answer(false, 403);
+  if (!config || !sameAddress(request)) return answer(false, 403);
   let input; try { input = receiptInput(await limitedJson(request, 131072)); } catch { return answer(false, 422); }
   if (!input) return answer(false, 422);
   try {

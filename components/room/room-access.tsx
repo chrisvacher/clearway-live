@@ -7,6 +7,7 @@ import { ScribeRoom } from "@/components/scribe/scribe-room";
 import { AiSignInNote } from "@/components/interactions/ai/ai-disclosure";
 
 import type { RoomAccessStatus as Status } from "@/lib/room/access";
+import type { Skin } from "@/lib/brand";
 const messages: Record<string, string> = {
   sent: "Your code is on its way. Check your email for a 6-digit code or a sign-in link.",
   invalid_code: "That code couldn’t be used. Check it or ask for a new one.",
@@ -21,7 +22,7 @@ const messages: Record<string, string> = {
   invalid_request: "Check your details and try again.",
 };
 
-export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, openJoin = false, initial, ai = false }: { engagement: string; church?: string; practice?: boolean; openJoin?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string }; ai?: boolean }) {
+export function RoomAccess({ engagement, church, email: initialEmail = "", confirm, practice = false, openJoin = false, initial, ai = false, skin }: { engagement: string; church?: string; practice?: boolean; openJoin?: boolean; email?: string; initial?:Status; confirm?: { challenge: string; token: string }; ai?: boolean; skin?: Skin }) {
   const [state, setState] = useState<Status>(initial||{ status: "loading" });
   const [email, setEmail] = useState(initialEmail);
   const [name, setName] = useState("");
@@ -87,7 +88,7 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
   }
   // Signed in on the room page: the phone becomes the live room.
   if (state.status === "signed_in" && church !== undefined && !confirm && state.role === "scribe") return <ScribeRoom engagement={engagement} church={church} />;
-  if (state.status === "signed_in" && church !== undefined && !confirm) return <LivePhone engagement={engagement} church={church} name={state.name} />;
+  if (state.status === "signed_in" && church !== undefined && !confirm) return <LivePhone engagement={engagement} church={church} name={state.name} skin={skin} />;
   if (state.status === "signed_in") return <section aria-live="polite"><h2>{state.name ? `You’re in, ${state.name}.` : "You’re in."}</h2><p>{state.role === "scribe" ? "You’re joining as the scribe." : "Your place in the room is ready."}</p><p>Your facilitator will let you know what happens next.</p></section>;
   if (state.status === "closed") return <p role="status">{messages.closed}</p>;
   if (confirm) return <section><p>Tap below to finish signing in on this device.</p>

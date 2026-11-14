@@ -2,7 +2,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
+import { roomOrigin, skinOf, type Skin } from "@/lib/brand";
 import { privateResponse } from "@/lib/auth/response";
 import { serviceClient } from "@/lib/server/supabase";
 import { sendEmail } from "@/lib/server/email";
@@ -10,9 +11,10 @@ import { signInEmail } from "@/lib/email/sign-in";
 import { limitedJson } from "@/lib/server/request";
 import { digest, hash, newCode, newDevice, newLink, normalizedEmail, parseDevice, sessionId, uuid } from "./policy";
 import { hasRoomCookie, participantClient } from "./client";
+import { deviceCookie } from "./address";
 import type { RoomAccessStatus } from "./access";
 
-export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean; openJoin?: boolean };
+export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean; openJoin?: boolean; skin?: Skin };
 export async function roomInfo(id: string): Promise<RoomInfo | null> {
   if (!uuid(id)) return null;
   const { data, error } = await serviceClient().rpc("room_public_info", { p_engagement: id });
@@ -20,7 +22,6 @@ export async function roomInfo(id: string): Promise<RoomInfo | null> {
   if (!data) return null;
   return data as RoomInfo;
 }
-const deviceCookie = (engagement: string) => `cw-device-${engagement}`;
 export function roomClient(request: NextRequest, response: NextResponse, engagement: string) {
   return participantClient({
       getAll: () => request.cookies.getAll(),
@@ -103,7 +104,7 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
   const response = privateResponse(NextResponse.json({ status: "unavailable" }, { status: 503 }));
   const config = authConfig();
   if (!config || !uuid(engagement)) return response;
-  if (request.method !== "GET" && !sameOrigin(request, config.origin)) return privateResponse(NextResponse.json({ status: "unavailable" }, { status: 403 }));
+  if (request.method !== "GET" && !sameAddress(request)) return privateResponse(NextResponse.json({ status: "unavailable" }, { status: 403 }));
   try {
     const info = await roomInfo(engagement);
     if (!info) return privateResponse(NextResponse.json({ status: "room_missing" }, { status: 404 }));
@@ -148,10 +149,10 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
       const sent = await roomRpc("send", { ...payload, email, challenge, code_hash: digest(secret, "room-code", engagement, email, code), link_hash: hash(token), ...rateKeys(request, engagement, device.id, email, "send") });
       if (sent.status === "not_listed") return result({ status: info.neutral ? "check_facilitator" : "not_listed" });
       if (sent.status !== "sent") return result({ status: sent.status });
-      const link = new URL(`/room/${engagement}/confirm`, config.origin);
+      const link = new URL(`/room/${engagement}/confirm`, roomOrigin(skinOf(info.skin)));
       link.searchParams.set("challenge", challenge); link.searchParams.set("token", token);
       try {
-        await sendEmail({ to: email, id: challenge, ...signInEmail({ code, church: info.church, link: link.toString() }) });
+        await sendEmail({ to: email, id: challenge, ...signInEmail({ code, church: info.church, link: link.toString(), skin: skinOf(info.skin) }), skin: skinOf(info.skin) });
       } catch {
         await roomRpc("cancel_mail", { ...payload, challenge });
         return result({ status: "email_unavailable" });

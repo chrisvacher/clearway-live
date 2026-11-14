@@ -33,6 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { data, error } = await fac.client.rpc("followup_manage", { p_engagement: id, p_action: action, p });
     if (error) throw error;
     if (data.status !== "ok" || !token) return answer(data, statusCode(data.status));
+    // Wayfinding only: a Novetera workshop has no follow-up poll (/f/), so this link stays on live.clearway.co (APP_ORIGIN) for every engagement.
     const link = linkFor(config.origin, token);
     let emailed = false;
     const to = typeof data.email === "string" ? data.email : "";

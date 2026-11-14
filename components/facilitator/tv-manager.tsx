@@ -3,10 +3,12 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Monitor, MonitorCheck } from "lucide-react";
 import { pairingCode } from "@/lib/tv/policy";
 import type { TvManagerData } from "@/lib/tv/types";
+import { brandFor, skinOf } from "@/lib/brand";
 import { roomSizes } from "@/components/control/live-controls";
 export function TvManager({ id, initial }: { id: string; initial: TvManagerData }) {
   const [data, setData] = useState(initial), [display, setDisplay] = useState(initial.display);
   const [code, setCode] = useState(""), [label, setLabel] = useState("Front TV"), [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState(false), [at, setAt] = useState("");
+  const brand = brandFor(skinOf(data.display.skin));
   const field = useRef<HTMLInputElement>(null), endpoint = `/api/tv/control/${id}`;
   useEffect(() => {
     let stopped = false, timer: ReturnType<typeof setTimeout>;
@@ -33,7 +35,7 @@ export function TvManager({ id, initial }: { id: string; initial: TvManagerData 
   const pair = (event: FormEvent) => { event.preventDefault(); void change("pair", { code: pairingCode(code), label }); };
   const said = (where: string) => message && at === where ? <p className={`admin-saved${error ? " is-error" : ""}`} role={error ? "alert" : "status"}>{message}</p> : null;
   return <>
-    <header className="admin-heading"><div><div className="admin-kicker">{data.display.church} · {data.display.title}</div><h1>Screens</h1><p>On the computer at the screen, open <a href="/tv" target="_blank" rel="noreferrer">live.clearway.co/tv</a>. Enter the code shown there.</p></div></header>
+    <header className="admin-heading"><div><div className="admin-kicker">{data.display.church} · {data.display.title}</div><h1>Screens</h1><p>On the computer at the screen, open <a href={brand.skin === "clearway" ? "/tv" : `${brand.origin}/tv`} target="_blank" rel="noreferrer">{brand.host}/tv</a>. Enter the code shown there.</p></div></header>
     <div className="admin-columns tv-screens-top"><form onSubmit={pair} className="admin-panel form-stack tv-screens-form">
       <h2>Connect a screen</h2>
       <label htmlFor="tv-pair-code">Code on the TV<input ref={field} id="tv-pair-code" className="tv-manager-code" inputMode="numeric" autoComplete="off" maxLength={7} value={code} onChange={e => setCode(e.target.value.replace(/[^0-9 ]/g, ""))} required /></label>

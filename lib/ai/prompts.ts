@@ -2,6 +2,8 @@
 // stores the version it used. The model sees answer text and counts under short refs only,
 // never an attendee field. Its reply is JSON, read by `parse`; the database then applies it
 // under the merge limits, which are code, not prompt.
+import { skinOf, type Skin } from "../brand";
+import { copyFor, noveteraPromptStandards } from "../brand/copy";
 export type AiJob = "combine_words" | "group_wall" | "group_lens" | "summarize_wall" | "fold_questions" | "merge_reasons" | "draft_lens_summary" | "fold_lens_summary" | "propose_candidates" | "fold_four_lists" | "alignment_signal" | "fold_read_back";
 export const aiJobs: AiJob[] = ["combine_words", "group_wall", "group_lens", "summarize_wall", "fold_questions", "merge_reasons", "draft_lens_summary", "fold_lens_summary", "propose_candidates", "fold_four_lists", "alignment_signal", "fold_read_back"];
 
@@ -437,6 +439,30 @@ export const prompts: Record<AiJob, Prompt> = {
   },
 };
 export const promptVersions = Object.fromEntries(aiJobs.map(job => [job, prompts[job].version])) as Record<AiJob, string>;
+
+// ---------- The Novetera skin's prompts ----------
+// A Novetera engagement's workshop rooms run these in place of the Clearway texts above: the same rules and the same parser, naming Novetera and carrying
+// Novetera's copy standards (lib/brand/copy.ts) instead of Clearway's, each under its own version name ("combine-words-novetera@2") so the AI run log
+// tells them apart. They are the jobs a team workshop's run of show can use: the word cloud, the wall, the read of the room, Q&A folding, the Four
+// Helpful Lists folding and the pre-mortem's reasons.
+// The jobs that only Wayfinding runs stay Clearway whatever the skin: the lens wall (group_lens), the lens summary (draft_lens_summary and
+// fold_lens_summary), the candidates, the alignment signal and the read-back, and, further down, the overnight draft, Discover themes, What We
+// Heard, the report and the visibility plan. Wayfinding is Clearway's method and is not offered under Novetera.
+export const noveteraJobs: AiJob[] = ["combine_words", "group_wall", "summarize_wall", "fold_questions", "fold_four_lists", "merge_reasons"];
+const clearwayFirm = copyFor("clearway").prompt.firm;
+function noveteraPrompt(base: Prompt): Prompt {
+  const lines = base.system.replace(`run by ${clearwayFirm}`, `run by ${copyFor("novetera").prompt.firm}`).split("\n"), last = lines.pop()!;
+  const system = [...lines, noveteraPromptStandards, last].join("\n");
+  if (/Clearway/i.test(system)) throw new Error(`The Novetera prompt for ${base.job} still names Clearway`);
+  return { ...base, version: base.version.replace(/@(\d+)$/, "-novetera@$1"), system };
+}
+const noveteraPrompts = Object.fromEntries(noveteraJobs.map(job => [job, noveteraPrompt(prompts[job])])) as Partial<Record<AiJob, Prompt>>;
+// The prompt a job runs for a skin. The default, and every job Wayfinding alone runs, is Clearway's.
+export const promptFor = (job: AiJob, skin: Skin = "clearway"): Prompt => (skinOf(skin) === "novetera" ? noveteraPrompts[job] : undefined) ?? prompts[job];
+// The versions ai_claim is given for a skin, one per job.
+export const promptVersionsFor = (skin: Skin = "clearway"): Record<AiJob, string> => skinOf(skin) === "novetera" ? Object.fromEntries(aiJobs.map(job => [job, promptFor(job, skin).version])) as Record<AiJob, string> : promptVersions;
+// Every live prompt of every skin, to recognise a call by its system text.
+export const allLivePrompts = (): Prompt[] => [...Object.values(prompts), ...Object.values(noveteraPrompts) as Prompt[]];
 
 // ---------- The overnight draft (milestone 5, step 2) ----------
 // After Day 1 closes, one deeper call tidies each provisional Vision Outcome and its 3-year Vision bullets

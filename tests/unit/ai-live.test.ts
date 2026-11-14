@@ -4,7 +4,8 @@ import { test } from "node:test";
 import { aiConfig, costUsd } from "../../lib/ai/config";
 import { aiClient, anthropicClient, type AiClient } from "../../lib/ai/client";
 import { fakeClient, jobOf, recordedClient, scripted } from "../../lib/ai/fake";
-import { capWords, prompts, promptVersions, replyJson, summaryWords, type AiInputs, type AiJob, type GroupOutput, type LensDraftInputs, type LensDraftOutput, type LensFoldInputs, type LensFoldOutput, type MergeOutput, type ReadBackFoldInputs, type ReadBackFoldOutput, type SummaryOutput } from "../../lib/ai/prompts";
+import { skins } from "../../lib/brand";
+import { capWords, noveteraJobs, promptFor, promptVersionsFor, prompts, promptVersions, replyJson, summaryWords, type AiInputs, type AiJob, type GroupOutput, type LensDraftInputs, type LensDraftOutput, type LensFoldInputs, type LensFoldOutput, type MergeOutput, type ReadBackFoldInputs, type ReadBackFoldOutput, type SummaryOutput } from "../../lib/ai/prompts";
 import { rawChars, runSession, workSessions } from "../../lib/ai/worker";
 import { absorbedInto, aiControlBody, aiNotice, combinedLine, combinedWith, dollars, moreGroups, shownGroups, wallOf, type AiStatus, type WallGroup } from "../../lib/interactions/ai";
 
@@ -35,16 +36,22 @@ test("The client: the fake only where asked and never on production, the API onl
 });
 
 // ---------- Prompts ----------
-test("Every prompt has a version, Clearway's name and JSON-only replies", () => {
-  for (const job of Object.keys(prompts) as AiJob[]) {
-    const p = prompts[job];
-    assert.match(p.version, /^[a-z-]+@\d+$/);
-    assert.equal(promptVersions[job], p.version);
-    assert.match(p.system, /Clearway Church Solutions/);
+test("Every prompt has a version, its firm's name and JSON-only replies, for each skin", () => {
+  for (const skin of skins) for (const job of Object.keys(prompts) as AiJob[]) {
+    const p = promptFor(job, skin), novetera = skin === "novetera" && noveteraJobs.includes(job);
+    assert.match(p.version, novetera ? /^[a-z-]+-novetera@\d+$/ : /^[a-z-]+@\d+$/);
+    assert.equal(promptVersionsFor(skin)[job], p.version);
+    assert.match(p.system, novetera ? /Novetera/ : /Clearway Church Solutions/);
+    if (novetera) { assert.doesNotMatch(p.system, /Clearway/i, `${job}: a Novetera prompt never names Clearway`); assert.match(p.system, /Canadian spelling/); assert.match(p.system, /sentence case/); assert.match(p.system, /unlock/); assert.notEqual(p.version, prompts[job].version); }
+    else assert.equal(p, prompts[job], "the Clearway prompt is the one it always was");
     assert.match(p.system, /JSON object and nothing else/);
     assert.ok(!/[–—]/.test(p.system), "no em or en dashes in prompts");
     assert.equal(jobOf({ system: p.system }), job);
   }
+  assert.equal(promptFor("combine_words").version, "combine-words@2", "the default skin is Clearway");
+  assert.deepEqual(promptVersionsFor("clearway"), promptVersions);
+  assert.deepEqual([...noveteraJobs].sort(), ["combine_words", "fold_four_lists", "fold_questions", "group_wall", "merge_reasons", "summarize_wall"], "the workshop jobs are the Novetera ones");
+  for (const job of ["group_lens", "draft_lens_summary", "fold_lens_summary", "propose_candidates", "alignment_signal", "fold_read_back"] as AiJob[]) assert.equal(promptFor(job, "novetera"), prompts[job], `${job} runs only in Wayfinding and stays Clearway`);
 });
 test("The model never sees ids, keys or attendee fields: answer text and counts under short refs", () => {
   for (const c of fixtures.cases) {

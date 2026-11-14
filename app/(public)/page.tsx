@@ -8,12 +8,20 @@ import { DemoRoom } from "@/components/public/demo-room";
 import { Gallery, Reveal, StatsBand, ThreeScreens, type GalleryItem } from "@/components/public/home-parts";
 import { LiveWordmark } from "@/components/brand/live-wordmark";
 import { AiIcon } from "@/components/interactions/ai/ai-icon";
+import { NoveteraFront } from "@/components/public/novetera-front";
+import { addressSkin } from "@/lib/brand/request";
+import { screenPage } from "@/lib/brand/metadata";
 import "./home.css";
 
-export const metadata: Metadata = {
-  title: { absolute: "Clearway Live" },
-  description: "Enter the room code from the TV to join your team's room. Clearway Live is how Clearway runs Wayfinding retreats and team workshops: every voice in the room, on one screen.",
-};
+// The address decides the front page: live.novetera.co is the Novetera join page (a room code and Join, nothing else); every other
+// address is the Clearway product page, unchanged.
+export async function generateMetadata(): Promise<Metadata> {
+  if (await addressSkin() === "novetera") return { ...screenPage("novetera"), description: "Enter the room code from the TV to join your team's room." };
+  return {
+    title: { absolute: "Clearway Live" },
+    description: "Enter the room code from the TV to join your team's room. Clearway Live is how Clearway runs Wayfinding retreats and team workshops: every voice in the room, on one screen.",
+  };
+}
 
 const notes: Record<string, string> = {
   empty: "Enter the room code from the TV.",
@@ -103,6 +111,7 @@ const faqs = [
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ code?: string; status?: string }> }) {
   const { code, status } = await searchParams;
   const note = status ? notes[status] : undefined;
+  if (await addressSkin() === "novetera") return <NoveteraFront code={code} note={note} />;
   return <div className="home" data-surface="phone" data-theme="dark">
     <a className="skip-link button-link" href="#main">Skip to content</a>
     <header className="home-header">

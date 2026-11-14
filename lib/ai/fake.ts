@@ -6,12 +6,12 @@
 //    slow or failing, for FAIL-09, or gives the summary it names (a long one, for the TV's fit).
 import { readFileSync } from "node:fs";
 import type { AiCall, AiClient, AiReply } from "./client";
-import { workshopSummaryPrompt } from "./workshop-summary";
+import { workshopSummaryPrompt, workshopSummaryPromptFor } from "./workshop-summary";
 import type { SummaryInputs } from "../workshop/summary";
-import { heardPrompt, overnightPrompt, planPrompt, planStages, prompts, replyJson, reportPromptList, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type ReportOutput, type OvernightOutput, type PlanInputs, type PlanOutput, type PlanRow, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
+import { allLivePrompts, heardPrompt, overnightPrompt, planPrompt, planStages, replyJson, reportPromptList, themesPrompt, type AiJob, type HeardInputs, type HeardOutput, type ReportOutput, type OvernightOutput, type PlanInputs, type PlanOutput, type PlanRow, type SignalKind, type SignalOutput, type ThemesOutput } from "./prompts";
 
 export function jobOf(call: Pick<AiCall, "system">): AiJob | null {
-  return (Object.values(prompts).find(p => p.system === call.system)?.job) ?? null;
+  return (allLivePrompts().find(p => p.system === call.system)?.job) ?? null;
 }
 const tokens = (text: string) => Math.ceil(text.length / 4);
 const reply = (call: AiCall, text: string): AiReply => ({ text, inputTokens: tokens(call.system + call.user), outputTokens: tokens(text) });
@@ -278,7 +278,7 @@ function scriptedSignal(input: Record<string, unknown>): string {
 }
 
 // The workshop summary stand-in: two plain paragraphs made only from the session titles, counts and averages it was given.
-export const isWorkshopSummary = (call: Pick<AiCall, "system">) => call.system === workshopSummaryPrompt.system;
+export const isWorkshopSummary = (call: Pick<AiCall, "system">) => [workshopSummaryPrompt.system, workshopSummaryPromptFor("novetera").system].includes(call.system);
 function scriptedWorkshopSummary(call: AiCall): string {
   const input = replyJson(call.user) as Partial<SummaryInputs>, sessions = input.sessions ?? [];
   if (!sessions.length) return JSON.stringify({ paragraphs: [] });

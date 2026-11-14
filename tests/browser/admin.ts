@@ -9,6 +9,7 @@ async function main() {
   const browser=await chromium.launch();
   try {
     await sql.connect();
+    const clearwayHost=new URL(app.origin).host, noveteraHost=new URL(app.noveteraOrigin).host;
     const room=await engagement(sql,["Ruth","Ben"]), fac=await facilitator(env,sql,room.id);
     await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
     const afterArea=process.env.KIT_AREA==="d";
@@ -45,7 +46,7 @@ async function main() {
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/setup");
           if(path==="/setup") { assert.ok(await page.getByRole("link",{name:/^(Continue setup|Open overview|Open the live room|Open results)$/}).count(),"each engagement leads with one action");
             for(const label of ["Details","Run of show","Door list","Results"]) assert.ok(await page.locator(".admin-more-list a",{hasText:label}).count(),label); }
-          if(path===`/setup/${room.id}`) { assert.equal(await page.getByRole("heading",{name:"Invite the room",exact:true}).count(),1); assert.equal(await page.getByRole("button",{name:"Copy link",exact:true}).count(),1); assert.equal(await page.getByRole("img",{name:/^QR code for live\.clearway\.co\//}).count(),1); }
+          if(path===`/setup/${room.id}`) { assert.equal(await page.getByRole("heading",{name:"Invite the room",exact:true}).count(),1); assert.equal(await page.getByRole("button",{name:"Copy link",exact:true}).count(),1); assert.equal(await page.getByRole("img",{name:`QR code for ${clearwayHost}/`}).count(),1); }
         }
         if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/${path.replace(room.id,"engagement").replaceAll("/","-").slice(1)}-${width}.png`,fullPage:true}); }
       }
@@ -134,14 +135,31 @@ async function main() {
       // The lead names the link, and the name opens the room for a phone with no sign-in.
       const linkName=`kit${room.id.replace(/-/g,"").slice(0,12)}`;
       await page.getByRole("radio",{name:/^A name you choose/}).check();
-      await page.getByLabel("live.clearway.co/",{exact:true}).fill("ab"); assert.equal(await page.getByRole("button",{name:"Save the name",exact:true}).isDisabled(),true,"a name needs three characters");
-      await page.getByLabel("live.clearway.co/",{exact:true}).fill("Set Up!"); assert.equal(await page.getByLabel("live.clearway.co/",{exact:true}).inputValue(),"setup","only letters and digits are kept");
+      await page.getByLabel(`${clearwayHost}/`,{exact:true}).fill("ab"); assert.equal(await page.getByRole("button",{name:"Save the name",exact:true}).isDisabled(),true,"a name needs three characters");
+      await page.getByLabel(`${clearwayHost}/`,{exact:true}).fill("Set Up!"); assert.equal(await page.getByLabel(`${clearwayHost}/`,{exact:true}).inputValue(),"setup","only letters and digits are kept");
       await page.getByRole("button",{name:"Save the name",exact:true}).click(); await page.getByText("That name is used by the app. Choose another.").waitFor();
-      await page.getByLabel("live.clearway.co/",{exact:true}).fill(linkName); await page.getByRole("button",{name:"Save the name",exact:true}).click();
+      await page.getByLabel(`${clearwayHost}/`,{exact:true}).fill(linkName); await page.getByRole("button",{name:"Save the name",exact:true}).click();
       await page.getByText("Saved. The new link works now.").waitFor();
       const visitor=await browser.newPage(); await visitor.goto(`${app.origin}/${linkName.toUpperCase()}`); assert.equal(new URL(visitor.url()).pathname,`/room/${room.id}`,"the chosen name opens the room, in any case");
       const lost=await visitor.goto(`${app.origin}/nosuchroomname`); assert.equal(lost?.status(),404,"a name nobody chose is a page that doesn't exist"); await visitor.close();
-      await page.goto(`${app.origin}/setup/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`live.clearway.co/${linkName}`),"the Overview shows the chosen link");
+      await page.goto(`${app.origin}/setup/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`${clearwayHost}/${linkName}`),"the Overview shows the chosen link");
+      // The skin: an admin switches the engagement to Novetera on Details, the room link on the Overview moves to Novetera's address, and switching back restores it.
+      await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
+      await page.goto(`${app.origin}/setup/${room.id}/details`);
+      assert.equal(await page.getByRole("combobox",{name:/^Brand/}).inputValue(),"clearway","a new engagement is a Clearway engagement");
+      assert.equal(await page.getByText("Sets what the room sees: the screens, phones, emails and summary, and the room’s address.",{exact:true}).count(),1,"the picker says what it changes");
+      assert.deepEqual(await page.getByRole("combobox",{name:/^Brand/}).locator("option").allInnerTexts(),["Clearway","Novetera"]);
+      await page.getByRole("combobox",{name:/^Brand/}).selectOption("novetera"); await page.getByRole("button",{name:"Save engagement",exact:true}).click();
+      await page.getByText(`Saved. The room link is now ${noveteraHost}/${linkName}.`,{exact:true}).waitFor();
+      assert.equal((await sql.query("select skin from public.engagements where id=$1",[room.id])).rows[0].skin,"novetera","the skin is stored");
+      await page.goto(`${app.origin}/setup/${room.id}`); const invite=await page.locator(".invite-card").innerText();
+      assert.ok(invite.includes(`${noveteraHost}/${linkName}`)&&invite.includes(`typed at ${noveteraHost}`),"the Overview invite card shows Novetera's address"); assert.ok(!invite.includes(`${clearwayHost}/`),"and no longer Clearway's");
+      assert.equal(await page.locator(".invite-card a.text-link").getAttribute("href"),`${app.noveteraOrigin}/${linkName}`,"the link opens at Novetera's address");
+      await page.goto(`${app.origin}/setup/${room.id}/details`); await page.getByRole("combobox",{name:/^Brand/}).selectOption("clearway"); await page.getByRole("button",{name:"Save engagement",exact:true}).click();
+      await page.getByText(`Saved. The room link is now ${clearwayHost}/${linkName}.`,{exact:true}).waitFor();
+      await page.goto(`${app.origin}/setup/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`${clearwayHost}/${linkName}`),"switching back restores Clearway's address");
+      await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
+      await page.goto(`${app.origin}/setup/${room.id}/details`); assert.equal(await page.getByRole("combobox",{name:/^Brand/}).isDisabled(),true,"only an admin changes the brand");
     }
     if(!before && area==="a") {
       // Without a Team Hub connection the card says so in one line and draws no controls that can't work.

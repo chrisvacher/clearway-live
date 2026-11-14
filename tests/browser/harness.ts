@@ -29,12 +29,12 @@ export async function freePort() {
 
 // Stands in for Resend so sign-in codes can be read without sending email.
 export async function mailbox() {
-  const messages: { to: string[]; text: string }[] = [];
+  const messages: { to: string[]; text: string; from?: string; reply_to?: string; subject?: string; html?: string }[] = [];
   const server: Server = createHttpServer((req, res) => {
     let body = ""; req.on("data", c => { body += c; });
     req.on("end", () => {
       const data = JSON.parse(body || "{}"), list = Array.isArray(data) ? data : [data];
-      for (const m of list) messages.push({ to: m.to, text: m.text });
+      for (const m of list) messages.push({ to: m.to, text: m.text, from: m.from, reply_to: m.reply_to, subject: m.subject, html: m.html });
       res.setHeader("Content-Type", "application/json");
       res.end(JSON.stringify(Array.isArray(data) ? { data: list.map(() => ({ id: randomUUID() })) } : { id: randomUUID() }));
     });
@@ -55,6 +55,8 @@ export async function mailbox() {
       for (let i = 0; i < 100; i++) { const hit = [...messages].reverse().find(m => m.to.includes(email) && pattern.test(m.text)); if (hit) return hit.text; await delay(100); }
       throw new Error(`No message for ${email} matching ${pattern}`);
     },
+    // Every message the app sent, with the sender it used and its reply-to, so a kit can check who a room's email came from.
+    get messages() { return messages; },
     get count() { return messages.length; },
     close: () => new Promise<void>(r => server.close(() => r())),
   };
@@ -62,16 +64,17 @@ export async function mailbox() {
 
 // The production build, served against the local stack.
 export async function startApp(env: Env, mailUrl?: string) {
-  const port = await freePort(), origin = `http://localhost:${port}`;
+  // Next turns a redirect to its own address into a bare path, so the server is started at 0.0.0.0, which is neither address.
+  const port = await freePort(), origin = `http://localhost:${port}`, noveteraOrigin = `http://127.0.0.1:${port}`;
   let output = "";
-  const child: ChildProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port)], { detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env,
-    APP_ORIGIN: origin, SUPABASE_URL: env.API_URL, SUPABASE_PUBLISHABLE_KEY: env.ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: env.SERVICE_ROLE_KEY, NEXT_TELEMETRY_DISABLED: "1",
-    ...(mailUrl ? { RESEND_API_KEY: "local-test", RESEND_FROM_EMAIL: "Clearway <room@clearway.test>", RESEND_API_URL: mailUrl } : {}) } });
+  const child: ChildProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", String(port)], { detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env,
+    APP_ORIGIN: origin, NOVETERA_ORIGIN: noveteraOrigin, SUPABASE_URL: env.API_URL, SUPABASE_PUBLISHABLE_KEY: env.ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: env.SERVICE_ROLE_KEY, NEXT_TELEMETRY_DISABLED: "1",
+    ...(mailUrl ? { RESEND_API_KEY: "local-test", RESEND_FROM_EMAIL: "Clearway <room@clearway.test>", NOVETERA_EMAIL_FROM: "Novetera <hello@novetera.test>", RESEND_API_URL: mailUrl } : {}) } });
   child.stdout?.on("data", c => { output += c; }); child.stderr?.on("data", c => { output += c; });
   // Next starts a worker; stopping the whole process group lets the test exit.
   const stop = () => { try { process.kill(-child.pid!, "SIGTERM"); } catch { /* Already stopped. */ } child.stdout?.destroy(); child.stderr?.destroy(); };
   for (let i = 0; i < 200; i++) {
-    try { if ((await fetch(origin + "/tv")).status < 500) return { origin, secret: env.SERVICE_ROLE_KEY, stop, output: () => output }; } catch { /* Starting. */ }
+    try { if ((await fetch(origin + "/tv")).status < 500) return { origin, noveteraOrigin, secret: env.SERVICE_ROLE_KEY, stop, output: () => output }; } catch { /* Starting. */ }
     await delay(150);
   }
   stop(); throw new Error(`The app did not start:\n${output}`);
