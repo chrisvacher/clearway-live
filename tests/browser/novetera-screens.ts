@@ -118,13 +118,13 @@ async function main() {
     }
     await step("The pairing screen at live.novetera.co/tv is Novetera: the N mark, no texture, and it names its own address", async () => {
       const { ctx, tv } = await pairingScreen(N, "novetera");
+      assert.equal(await tv.locator("main").getAttribute("data-join"), null, "the pairing screen is not the join scene");
       assert.equal(await tv.locator(".tv-top-status .nvt-mark").count(), 1, "the N mark top right");
       assert.equal(await tv.locator(".tv-top-status .nvt-mark").getAttribute("aria-label"), "Novetera, nothing live");
       assert.equal(await tv.locator(".tv-live, .cwl-mark").count(), 0, "no Clearway icon");
       assert.equal(await css(tv, ".tv-texture", "display"), "none", "no texture");
-      await roleIs(tv, ".tv-viewport", "background-color", "--cwl-surface-holding", "the join ground is the holding role (Charcoal)");
+      await roleIs(tv, ".tv-viewport", "background-color", "--cwl-surface", "the pairing screen keeps the theme's ground");
       assert.deepEqual(await px(tv, await css(tv, ".tv-viewport", "background-color")), [31, 35, 40, 255]);
-      await roleIs(tv, ".tv-stage", "background-color", "--cwl-surface-holding", "the stage too");
       await shot(tv, "tv-pairing"); await ctx.close();
     });
     await step("The pairing screen at the Clearway address is unchanged", async () => {
@@ -194,6 +194,11 @@ async function main() {
       const tv = novTv.tv; await until(async () => await tv.locator("main").getAttribute("data-theme") === "light", "light theme reaches the TV", 15000);
       await manage(novFac, nov, "join"); await tv.locator(".tv-scene.tv-join.is-active").waitFor(); await delay(800);
       await roleIs(tv, ".tv-viewport", "background-color", "--cwl-surface-holding", "the join ground is one token value in both themes");
+      await manage(novFac, nov, "holding"); await until(async () => await tv.locator("main").getAttribute("data-join") === null, "join scene gone", 15000); await delay(800);
+      await roleIs(tv, ".tv-viewport", "background-color", "--cwl-surface", "the holding screen keeps the theme's ground (Chalk on a light TV)");
+      assert.deepEqual(await px(tv, await css(tv, ".tv-viewport", "background-color")), [247, 246, 243, 255]);
+      await roleIs(tv, ".tv-stage", "background-color", "--cwl-surface", "the stage too");
+      await manage(novFac, nov, "join"); await tv.locator('main[data-join="on"]').waitFor(); await delay(800);
       await press(novFac, sql, nov.id, "go_live", { session: novSessions.cloud2 });
       await tv.locator(".tv-top-status .nvt-mark.is-live").waitFor({ timeout: 15000 }); await delay(1500);
       await roleIs(tv, ".tv-viewport", "background-color", "--cwl-surface", "Chalk");

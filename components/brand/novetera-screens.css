@@ -18,16 +18,16 @@
 [data-skin="novetera"] .ph-live.nvt-closed { width: auto; height: auto; padding: 0; background: none; color: var(--cwl-text-muted); display: inline-flex; align-items: center; gap: 8px; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); text-transform: none; letter-spacing: 0; }
 [data-skin="novetera"] .ph-live.nvt-closed::before { display: none; }
 
-/* ---------- TV: the join ground (before and while people join) ----------
-   The ground, text, muted text, arriving names, the mark's second stroke and the code card's edge read the --cwl-*-holding roles. */
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"],
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-stage { background: var(--cwl-surface-holding, var(--cwl-surface)); color: var(--cwl-text-holding, var(--cwl-text)); }
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] :is(.tv-muted, .tv-eyebrow, .tv-upclose, .tv-stage .tv-eyebrow, .tv-stage .tv-muted) { color: var(--cwl-text-muted-holding, var(--cwl-text-muted)); }
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-here { color: var(--cwl-text-holding, var(--cwl-text)); }
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-names { color: var(--cwl-presence-holding, var(--cwl-presence)); }
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .tv-qr { outline: 1px solid var(--cwl-edge-holding, transparent); outline-offset: -1px; }
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .nvt-mark:not(.is-live):not(.is-offline) .a { fill: var(--cwl-text-holding, var(--cwl-text)); }
-[data-skin="novetera"][data-surface="tv"][data-screen="holding"] .nvt-mark:not(.is-live):not(.is-offline) .b { fill: var(--cwl-mark-holding, var(--cwl-mark-quiet)); }
+/* ---------- TV: the join ground (the join scene only: pairing, opening and holding keep the theme's ground) ----------
+   data-join="on" is on the TV root while the join scene shows. The ground, text, muted text, arriving names, the mark's second stroke and the code card's edge read the --cwl-*-holding roles. */
+[data-skin="novetera"][data-surface="tv"][data-join="on"],
+[data-skin="novetera"][data-surface="tv"][data-join="on"] .tv-stage { background: var(--cwl-surface-holding, var(--cwl-surface)); color: var(--cwl-text-holding, var(--cwl-text)); }
+[data-skin="novetera"][data-surface="tv"][data-join="on"] :is(.tv-muted, .tv-eyebrow, .tv-upclose, .tv-stage .tv-eyebrow, .tv-stage .tv-muted) { color: var(--cwl-text-muted-holding, var(--cwl-text-muted)); }
+[data-skin="novetera"][data-surface="tv"][data-join="on"] .tv-here { color: var(--cwl-text-holding, var(--cwl-text)); }
+[data-skin="novetera"][data-surface="tv"][data-join="on"] .tv-names { color: var(--cwl-presence-holding, var(--cwl-presence)); }
+[data-skin="novetera"][data-surface="tv"][data-join="on"] .tv-qr { outline: 1px solid var(--cwl-edge-holding, transparent); outline-offset: -1px; }
+[data-skin="novetera"][data-surface="tv"][data-join="on"] .nvt-mark:not(.is-live):not(.is-offline) .a { fill: var(--cwl-text-holding, var(--cwl-text)); }
+[data-skin="novetera"][data-surface="tv"][data-join="on"] .nvt-mark:not(.is-live):not(.is-offline) .b { fill: var(--cwl-mark-holding, var(--cwl-mark-quiet)); }
 
 /* ---------- TV: the code reads its ink and ground from the code roles ---------- */
 [data-skin="novetera"] .tv-qr-ink { fill: var(--cwl-code-ink, var(--cw-navy)); }
