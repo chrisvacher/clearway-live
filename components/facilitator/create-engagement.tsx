@@ -7,6 +7,8 @@ import { setupRequest } from "./setup-editor";
 import { consensus, zonedInstant } from "@/lib/setup/policy";
 import { length } from "@/lib/setup/overview";
 import type { HubClient, HubEngagement } from "@/lib/team-hub/reader";
+import { Select } from "@/components/ui/select";
+import { BrandField } from "./brand-field";
 
 type Listed = HubEngagement & { live_id?: string };
 export type StartTemplate = { id: string; name: string; count: number; minutes: number };
@@ -16,12 +18,12 @@ const nextDay = (iso: string) => { const d = new Date(`${iso}T12:00:00Z`); d.set
 
 // Create an engagement in four short answers: who, what kind, when and how people join. Everything else has a default
 // and is edited afterwards (design pass 8).
-export function CreateEngagement({ lead, templates, hubConfigured }: { lead: string; templates: StartTemplate[]; hubConfigured: boolean }) {
+export function CreateEngagement({ lead, templates, hubConfigured, admin = true }: { lead: string; templates: StartTemplate[]; hubConfigured: boolean; admin?: boolean }) {
   const router = useRouter();
   const [search, setSearch] = useState(""), [clients, setClients] = useState<HubClient[] | null>(null), [client, setClient] = useState<HubClient | null>(null);
   const [engagements, setEngagements] = useState<Listed[]>([]), [hub, setHub] = useState("");
   const [kind, setKind] = useState("team_workshop"), [title, setTitle] = useState(""), [template, setTemplate] = useState("");
-  const [date, setDate] = useState(""), [time, setTime] = useState("09:00"), [open, setOpen] = useState(true);
+  const [skin, setSkin] = useState("clearway"), [date, setDate] = useState(""), [time, setTime] = useState("09:00"), [open, setOpen] = useState(true);
   const [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [existing, setExisting] = useState("");
   const workshop = kind === "team_workshop", zone = client?.timezone || "America/Toronto";
 
@@ -45,7 +47,7 @@ export function CreateEngagement({ lead, templates, hubConfigured }: { lead: str
       const result = await setupRequest({ action: "create", hub_client: client.id, hub_engagement: hub, lead, co: "",
         church: { name: client.name, timezone: zone, logo_url: client.logo || "", mission: "", purpose: "", values: "", strategy: "", leadership_rhythms: "", governance_body_name: "" },
         engagement: { title, type: kind, status: "setup", start_date: workshop ? date : "", end_date: "", retreat_start_date: workshop ? "" : date, retreat_end_date: !workshop && date ? nextDay(date) : "", pre_call_local: "", base_year: "",
-          lens_names: ["Congregation", "Community", "Leadership", "Operations", "Learning"], how_the_room_decides: workshop ? workshopLine : consensus,
+          lens_names: ["Congregation", "Community", "Leadership", "Operations", "Learning"], how_the_room_decides: workshop ? workshopLine : consensus, skin: admin ? skin : "clearway",
           settings: { ai_enabled: true, scripture_translation: "", tv_theme: "dark", texture: true, room_size: "very_small", neutral_join_message: false, open_join: workshop && open } } });
       if (template && start) {
         const response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "apply", input: { template, engagement: result.id, start } }) });
@@ -70,7 +72,8 @@ export function CreateEngagement({ lead, templates, hubConfigured }: { lead: str
       <fieldset className="admin-panel create-step" disabled={busy}><legend>2. What kind of event</legend>
         <div className="create-kinds" role="radiogroup" aria-label="Kind of event">{kinds.map(([value, name, line]) => <label key={value} className={`create-option${kind === value ? " is-on" : ""}`}><input type="radio" name="kind" value={value} checked={kind === value} onChange={() => setKind(value)} /><span><strong>{name}</strong><span>{line}</span></span></label>)}</div>
         <div className="form-grid"><label>Event title<input value={title} required maxLength={200} onChange={e => setTitle(e.target.value)} /></label>
-          <label>Start from<select value={template} onChange={e => setTemplate(e.target.value)}><option value="">A blank run of show</option>{templates.map(t => <option key={t.id} value={t.id}>{t.name} · {length(t.minutes)} · {t.count} {t.count === 1 ? "session" : "sessions"}</option>)}</select></label></div>
+          <label>Start from<Select value={template} onChange={e => setTemplate(e.target.value)}><option value="">A blank run of show</option>{templates.map(t => <option key={t.id} value={t.id}>{t.name} · {length(t.minutes)} · {t.count} {t.count === 1 ? "session" : "sessions"}</option>)}</Select></label>
+          <BrandField value={admin ? skin : "clearway"} onChange={setSkin} admin={admin} id="create-brand" /></div>
       </fieldset>
       <fieldset className="admin-panel create-step" disabled={busy}><legend>3. When</legend><div className="form-grid">
         <label>{workshop ? "Date" : "Retreat starts"}<input type="date" value={date} required={workshop || Boolean(template)} onChange={e => setDate(e.target.value)} /></label>

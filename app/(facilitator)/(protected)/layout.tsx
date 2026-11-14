@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import "@/components/facilitator/admin.css";
+import "@/components/facilitator/fields.css";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { AppShell } from "@/components/layout/app-shell";
 

@@ -11,6 +11,7 @@ import { removeTemplateQuestion, templateByline } from "@/lib/templates/policy";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import type { Template, TemplateLibrary as Library } from "@/lib/templates/types";
 import "@/components/run-of-show/builder.css";
+import { Select } from "@/components/ui/select";
 
 // "90 minutes", "2 hours", "2 hours 15 minutes".
 export function length(minutes: number) {
@@ -119,10 +120,10 @@ function StartEngagement({ library, template, engagement, admin, onClose, onStar
       <div className="rb-modal-head"><h2 id="start-title">Use a template</h2><button type="button" className="show-button is-icon" aria-label="Close" disabled={busy} onClick={onClose}><X size={20} aria-hidden="true" /></button></div>
       <div className="rb-modal-body">
         {library.engagements.length ? <>
-          <label htmlFor="start-engagement">Engagement<select ref={first} id="start-engagement" value={eng} onChange={e => { setEng(e.target.value); const next = library.engagements.find(x => x.id === e.target.value); if (next) setStart(tomorrowAtNine(next.timezone)); }}>
-            {library.engagements.map(e => <option key={e.id} value={e.id}>{e.church} · {e.title}{e.sessions ? ` (${e.sessions} ${e.sessions === 1 ? "session" : "sessions"})` : ""}</option>)}</select>
+          <label htmlFor="start-engagement">Engagement<Select ref={first} id="start-engagement" value={eng} onChange={e => { setEng(e.target.value); const next = library.engagements.find(x => x.id === e.target.value); if (next) setStart(tomorrowAtNine(next.timezone)); }}>
+            {library.engagements.map(e => <option key={e.id} value={e.id}>{e.church} · {e.title}{e.sessions ? ` (${e.sessions} ${e.sessions === 1 ? "session" : "sessions"})` : ""}</option>)}</Select>
             <span className="show-help">{admin ? <>A new church? <Link className="text-link" href="/setup/new">Create the engagement</Link> first, then start it here.</> : "Engagements you facilitate. An admin creates new ones."}</span></label>
-          <label htmlFor="start-template">Template<select id="start-template" value={tpl} onChange={e => setTpl(e.target.value)}>{library.templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></label>
+          <label htmlFor="start-template">Template<Select id="start-template" value={tpl} onChange={e => setTpl(e.target.value)}>{library.templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></label>
           <label htmlFor="start-time">{preCall ? "Pre-call starts" : "First session starts"}<input id="start-time" type="datetime-local" required value={start} onChange={e => setStart(e.target.value)} /><span className="show-help">{preCall ? `In ${zone}. Discover is set before it, and Day 1 and Day 2 after it.` : `In ${zone}. Each session starts when the one before it ends.`}</span></label>
           <p className="show-muted">Copies {chosen?.count ?? 0} {chosen?.count === 1 ? "session" : "sessions"} with their prompts, settings, timings and presenter notes. You can change anything after.{already ? ` They go after the ${already} ${already === 1 ? "session" : "sessions"} already in this run of show.` : ""}</p>
         </> : <p>{admin ? <>Create the engagement in <Link className="text-link" href="/setup/new">setup</Link> first, then start it from a template here.</> : "You don’t have an open engagement yet. An admin creates it, then you can start it from a template."}</p>}

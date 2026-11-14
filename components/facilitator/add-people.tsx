@@ -4,6 +4,7 @@ import { parseCsv,parsePasted,validatePeople,type ImportPreview } from "@/lib/se
 import { fictionalEmail } from "@/lib/room/practice";
 import type { HubPerson } from "@/lib/team-hub/reader";
 import { setupRequest } from "./setup-editor";
+import { Select } from "@/components/ui/select";
 
 export function AddPeople({id,linked,hubConfigured,busy,run,onSaved}:{id:string;linked:boolean;hubConfigured:boolean;busy:boolean;run:(action:()=>Promise<void>)=>Promise<void>;onSaved:(message:string)=>void}){
   const [source,setSource]=useState("person"),[name,setName]=useState(""),[email,setEmail]=useState("");
@@ -27,7 +28,7 @@ export function AddPeople({id,linked,hubConfigured,busy,run,onSaved}:{id:string;
     onSaved(invite?`Saved ${result.count} ${result.count===1?"person":"people"} and sent ${result.count===1?"their invite":"their invites"}.`:`Saved ${result.count} ${result.count===1?"person":"people"}.`);
   }
   return <section className="admin-subsection"><h3>Add people</h3><form className="form-stack" onSubmit={event=>{event.preventDefault();void run(()=>save(true));}}>
-    <label>Add from<select value={source} disabled={busy} onChange={e=>{setSource(e.target.value);clearDraft();}}><option value="person">One person</option><option value="paste">Pasted list</option><option value="csv">CSV</option><option value="hub" disabled={!linked||!hubConfigured}>Team Hub</option></select></label>
+    <label>Add from<Select value={source} disabled={busy} onChange={e=>{setSource(e.target.value);clearDraft();}}><option value="person">One person</option><option value="paste">Pasted list</option><option value="csv">CSV</option><option value="hub" disabled={!linked||!hubConfigured}>Team Hub</option></Select></label>
     {source==="person"?<div className="form-grid"><label>Name<input value={name} autoComplete="name" maxLength={200} required disabled={busy} onChange={e=>{setName(e.target.value);clearDraft();}} /></label><label>Email<input value={email} type="email" autoComplete="email" maxLength={254} required disabled={busy} onChange={e=>{setEmail(e.target.value);clearDraft();}} /></label></div>:source==="hub"?<>
       <button type="button" className="admin-button" disabled={busy} onClick={()=>void run(async()=>{setPeople((await setupRequest({action:"hub_people",id})).people);setIds([]);clearDraft();})}>Load church people</button>
       <div className="scroll-list">{people.map(p=><label className="check-row" key={p.id}><input type="checkbox" disabled={busy||!p.email} checked={ids.includes(p.id)} onChange={()=>{setIds(current=>current.includes(p.id)?current.filter(x=>x!==p.id):[...current,p.id]);clearDraft();}} />{[p.first_name,p.last_name].filter(Boolean).join(" ")} ({p.email||"No email"})</label>)}</div>

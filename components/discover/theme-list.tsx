@@ -9,6 +9,7 @@ import { AiMark } from "@/components/interactions/ai/ai-icon";
 import { StrongMark, ThinFlag } from "./thin-flag";
 import { glideInto, leave, useFlip, useRoll } from "./theme-motion";
 import type { ThemeReply } from "./use-themes";
+import { Select } from "@/components/ui/select";
 
 const sourceLabel = { survey: "Survey", conversations: "Interviews and conversations", four_lists: "Four Helpful Lists" } as const;
 const sourceIcon = { survey: Clipboard, conversations: MessageSquareText, four_lists: Columns4 } as const;
@@ -79,8 +80,8 @@ export function DiscoverTheme({ theme: t, themes, send, closed }: { theme: Theme
         <button type="submit" className="dsc-btn is-compact is-primary" disabled={busy || !name.trim()}>Save name</button>
         <button type="button" className="dsc-btn is-compact" onClick={() => { setMode("view"); setName(t.label); }}>Cancel</button></form>
       : mode === "merge" ? <form className="acts" onSubmit={e => { e.preventDefault(); if (into) void merge(); }}>
-        <select className="dsc-select is-sm" aria-label="Merge into" value={into} onChange={e => setInto(e.target.value)}>
-          <option value="">Choose a theme</option>{targets.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</select>
+        <Select className="dsc-select is-sm" aria-label="Merge into" value={into} onChange={e => setInto(e.target.value)}>
+          <option value="">Choose a theme</option>{targets.map(x => <option key={x.id} value={x.id}>{x.label}</option>)}</Select>
         <button type="submit" className="dsc-btn is-compact is-primary" disabled={busy || !into}>Merge into it</button>
         <button type="button" className="dsc-btn is-compact" onClick={() => setMode("view")}>Cancel</button></form>
       : <div className="acts">

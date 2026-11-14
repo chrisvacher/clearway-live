@@ -10,5 +10,5 @@ export default async function NewEngagement() {
   const { data, error } = await client.rpc("template_read");
   const templates: StartTemplate[] = !error && data?.status === "ok" ? (data.templates as Template[]).map(t => ({ id: t.id, name: t.name, count: t.count, minutes: t.minutes })) : [];
   return <main id="main" className="admin-page"><header className="admin-heading"><div><div className="admin-kicker">Engagements</div><h1>Create an engagement</h1><p>Four short answers. Everything else can wait until after it exists.</p></div></header>
-    <CreateEngagement lead={profile.id} templates={templates} hubConfigured={teamHubConfigured()} /></main>;
+    <CreateEngagement lead={profile.id} templates={templates} hubConfigured={teamHubConfigured()} admin={profile.is_admin} /></main>;
 }
