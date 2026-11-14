@@ -33,6 +33,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const token = freshToken();
         const { data, error } = await fac.client.rpc("share_link_create", { p_engagement: id, p_name: body.name, p_hash: tokenHash(token) });
         if (error) throw error;
+        // Wayfinding only: a Novetera workshop has no shared results page (/v/), so this link stays on live.clearway.co (APP_ORIGIN) for every engagement.
         return answer(data.status === "ok" ? { status: "ok", id: data.id, link: `${config.origin}/v/${token}` } : data, code(data.status));
       }
       case "revoke": {

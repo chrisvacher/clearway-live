@@ -62,9 +62,10 @@ export async function mailbox() {
 
 // The production build, served against the local stack.
 export async function startApp(env: Env, mailUrl?: string) {
+  // Next turns a redirect to its own address into a bare path, so the server is started at 0.0.0.0, which is neither address.
   const port = await freePort(), origin = `http://localhost:${port}`, noveteraOrigin = `http://127.0.0.1:${port}`;
   let output = "";
-  const child: ChildProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-p", String(port)], { detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env,
+  const child: ChildProcess = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "-H", "0.0.0.0", "-p", String(port)], { detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env,
     APP_ORIGIN: origin, NOVETERA_ORIGIN: noveteraOrigin, SUPABASE_URL: env.API_URL, SUPABASE_PUBLISHABLE_KEY: env.ANON_KEY, SUPABASE_SERVICE_ROLE_KEY: env.SERVICE_ROLE_KEY, NEXT_TELEMETRY_DISABLED: "1",
     ...(mailUrl ? { RESEND_API_KEY: "local-test", RESEND_FROM_EMAIL: "Clearway <room@clearway.test>", RESEND_API_URL: mailUrl } : {}) } });
   child.stdout?.on("data", c => { output += c; }); child.stderr?.on("data", c => { output += c; });

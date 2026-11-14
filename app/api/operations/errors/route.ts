@@ -1,5 +1,5 @@
 import { after, type NextRequest, NextResponse } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { limitedJson } from "@/lib/server/request";
 import { safeEvent } from "@/lib/operations/telemetry";
 import { recordError, sendOperationsAlert } from "@/lib/operations/server";
@@ -8,7 +8,7 @@ export const maxDuration = 30;
 const answer = (status: number) => new NextResponse(null, { status, headers: { "Cache-Control": "no-store" } });
 export async function POST(request: NextRequest) {
   const config = authConfig();
-  if (!config || !sameOrigin(request, config.origin) || (request.headers.get("sec-fetch-site") && request.headers.get("sec-fetch-site") !== "same-origin")) return answer(403);
+  if (!config || !sameAddress(request) || (request.headers.get("sec-fetch-site") && request.headers.get("sec-fetch-site") !== "same-origin")) return answer(403);
   let body: Record<string, unknown>;
   try { body = await limitedJson(request, 4096); } catch { return answer(400); }
   const event = safeEvent(body);

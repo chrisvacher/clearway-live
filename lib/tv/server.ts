@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { authConfig, sameAddress } from "@/lib/auth/policy";
 import { privateResponse } from "@/lib/auth/response";
 import { digest, hash, newCode, newDevice, parseDevice, sessionId } from "@/lib/room/policy";
 import { serviceClient } from "@/lib/server/supabase";
@@ -29,7 +29,7 @@ export async function syncTv(request: NextRequest) {
   const answer = (data: unknown, status = 200) => {
     const out = privateResponse(NextResponse.json(data, { status })); for (const c of response.cookies.getAll()) out.cookies.set(c); return out;
   };
-  if (!config || !sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
+  if (!config || !sameAddress(request)) return answer({ status: "denied" }, 403);
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   if (!secret) return response;
   const original = request.cookies.get(proofCookie)?.value;

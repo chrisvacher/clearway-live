@@ -1,3 +1,5 @@
+import { roomOrigin, skinForHost } from "../brand";
+
 export const facilitatorCookie = "cw-facilitator";
 
 export function destination(value: string | null | undefined): "/setup" | "/control" {
@@ -32,4 +34,14 @@ export function authConfig(env: Record<string, string | undefined> = process.env
 
 export function sameOrigin(request: Request, origin: string): boolean {
   return request.headers.get("origin") === origin;
+}
+
+// Room-facing requests (phones, the TV, the join page) come from either address. A request that changes something is
+// accepted only when its Origin is exactly the first-party origin of the address it was sent to: live.clearway.co from
+// live.clearway.co, live.novetera.co from live.novetera.co, never one from the other. A Host that is neither
+// configured address is refused. Facilitator routes keep sameOrigin with APP_ORIGIN, so they never accept Novetera.
+export function sameAddress(request: Request, env: Record<string, string | undefined> = process.env): boolean {
+  const host = request.headers.get("host") ?? new URL(request.url).host;
+  const skin = skinForHost(host, env);
+  return skin !== null && request.headers.get("origin") === roomOrigin(skin, env);
 }
