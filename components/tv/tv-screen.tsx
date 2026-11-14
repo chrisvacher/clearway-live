@@ -10,9 +10,10 @@ import { TvSync, pairRequestMs } from "@/lib/tv/sync";
 import { screenType } from "@/lib/tv/policy";
 import { tokenMs } from "@/lib/tv/board";
 import type { TvBinding, TvStatus } from "@/lib/tv/types";
-import { TvScenes } from "./tv-scenes";
+import { skinOf } from "@/lib/brand";
+import { TvScenes, type TvAddress } from "./tv-scenes";
 
-export function TvScreen({ initial }: { initial: TvBinding | null }) {
+export function TvScreen({ initial, address }: { initial: TvBinding | null; address?: TvAddress }) {
   const [status, setStatus] = useState<TvStatus>(initial || { status: "opening" });
   const [frame, setFrame] = useState<LiveSnapshot | null>(null), [mode, setMode] = useState("connecting"), [awake, setAwake] = useState(true);
   const [nameLimit, setNameLimit] = useState(14);
@@ -154,8 +155,8 @@ export function TvScreen({ initial }: { initial: TvBinding | null }) {
   }, []);
   async function fullscreen() { try { if (document.fullscreenElement) await document.exitFullscreen(); else await root.current?.requestFullscreen(); } catch { /* A blocked request leaves the same TV shell in place. */ } }
   const display = frame?.display;
-  return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-texture={display?.texture === false ? "off" : "on"}>
-    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} pair={pair} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} /></div>
+  return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-skin={display ? skinOf(display.skin) : skinOf(address?.skin)} data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-texture={display?.texture === false ? "off" : "on"}>
+    <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} pair={pair} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} address={address} /></div>
     <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

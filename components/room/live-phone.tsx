@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Check, ChevronLeft, ChevronRight, Lock, FlaskConical, MonitorSmartphone, RefreshCw, Send, Smartphone, WifiOff } from "lucide-react";
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
@@ -17,6 +18,7 @@ import "./self-paced.css";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
 import { lensOptions, seedingWhoText } from "@/lib/interactions/lens";
+import { skinOf, type Skin } from "@/lib/brand";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
 const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Sending", failed: "Not sent" } as const;
@@ -47,9 +49,13 @@ function Burst({ left, total }: { left: number; total: number }) {
 
 // The participant's phone in the live room. It follows the room, can look back
 // at steps already reached and answer any still open, and never runs ahead.
-export function LivePhone({ engagement, church, name }: { engagement: string; church: string; name?: string | null }) {
+export function LivePhone({ engagement, church, name, skin }: { engagement: string; church: string; name?: string | null; skin?: Skin }) {
   const phone = useLivePhone(engagement);
   const { frame, room } = phone;
+  // The skin the page was drawn in. If the engagement is switched while the phone is open, the live snapshot says so and the page
+  // is drawn again in the new skin (its state stays); the engagement's skin beats the address the phone opened.
+  const router = useRouter(), shownSkin = skinOf(skin), liveSkin = frame?.display?.skin;
+  useEffect(() => { if (liveSkin && liveSkin !== shownSkin) router.refresh(); }, [liveSkin, shownSkin, router]);
   const [viewing, setViewing] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<{ id: string; revision: number } | null>(null);
@@ -174,7 +180,7 @@ export function LivePhone({ engagement, church, name }: { engagement: string; ch
   const reconnecting = !phone.online || waiting;
   const markState = down && running ? "down" as const : isLive && view?.state === "live" && asks ? "live" as const : null;
   const marker = <>{phone.online && !waiting && isLive && frame?.state.show_tv_on_phones && <span className="ph-marker"><MonitorSmartphone size={14} aria-hidden="true" />TV view</span>}
-    <LiveMark phone state={markState} reconnecting={reconnecting} label={!phone.online ? "Offline" : "Reconnecting"} /></>;
+    <LiveMark phone state={markState} reconnecting={reconnecting} label={!phone.online ? "Offline" : "Reconnecting"} skin={shownSkin} /></>;
   const structured = (answer: { text: string; value?: unknown; id?: string }) => view && phone.submit({ id: answer.id ?? crypto.randomUUID(), session: view.id, revision: 0, action: "submit", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) });
 
   return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={(takesInput || view?.interaction === "content") && !phoneContentWaits(view) ? "phone-answering" : "phone-waiting"}>

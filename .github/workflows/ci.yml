@@ -104,6 +104,19 @@ jobs:
         run: npm run test:load
       - name: Test the content screens and the pass 3 chrome in real browsers
         run: npm run test:content
+      - name: Test the Novetera skin on the TV, phones, join pages and the control surface's TV preview, and that a Clearway engagement is unchanged, in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p novetera-shots && npm run test:novetera-screens
+        env:
+          KIT_SHOTS: novetera-shots
+      - name: Upload the Novetera skin screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: novetera-screens
+          path: novetera-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the bar family (choice, scale, ranking, 100 points, statements) in real browsers
         run: npm run test:bars
       - name: Test the 2x2 grid, private form and sign together with 50 simulated phones in real browsers
