@@ -1,3 +1,4 @@
+import { brandFor } from "../brand";
 // What the Overview page says about an engagement's readiness, in plain words.
 export type OverviewSessions = { count: number; minutes: number; notReady: number; sections: number };
 export type ReadyState = "ready" | "todo" | "optional";
@@ -22,6 +23,6 @@ export function joiningLine(open: boolean, listed: number, signedIn: number): { 
   return { state: "ready", text: `Email sign-in against your list. ${listed} on the list, ${signedIn} signed in` };
 }
 
-export function inviteText(church: string, title: string, when: string | null, link: string, code: string): string {
-  return [`${church}: ${title}${when ? `, ${when}` : ""}.`, `Join on your phone at ${link}`, `Or go to live.clearway.co and enter the room code ${code}.`].join("\n");
+export function inviteText(church: string, title: string, when: string | null, link: string, code: string, host = brandFor("clearway").host): string {
+  return [`${church}: ${title}${when ? `, ${when}` : ""}.`, `Join on your phone at ${link}`, `Or go to ${host} and enter the room code ${code}.`].join("\n");
 }

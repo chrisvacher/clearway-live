@@ -5,6 +5,7 @@ import { Smartphone } from "lucide-react";
 import { boldParts, contentOf, outlineRows } from "@/lib/interactions/kinds";
 import { mediaUrl } from "@/lib/interactions/media";
 import type { LiveSnapshot } from "@/lib/live/types";
+import { brandFor, skinOf } from "@/lib/brand";
 
 // Which signed-in surface is drawing the TV: the TV itself, the control surface's
 // mirror, or a phone showing the TV view. Images are read with that surface's session.
@@ -40,7 +41,7 @@ export function ContentScreen({ frame }: { frame: LiveSnapshot }) {
       return <div className="tv-content tv-docpage">
         {o.media ? <Image unoptimized className="tv-page" src={mediaUrl(frame.state.engagement_id, o.media, surface)} alt={session.prompt || session.title} width={1600} height={900} />
           : <p className="tv-body tv-muted">{session.prompt || session.title}</p>}
-        {frame.display && <span className="tv-corner-link tv-upclose"><Smartphone aria-hidden="true" />live.clearway.co/{frame.display.room_code}</span>}
+        {frame.display && <span className="tv-corner-link tv-upclose"><Smartphone aria-hidden="true" />{brandFor(skinOf(frame.display.skin)).host}/{frame.display.room_code}</span>}
       </div>;
     case "screen_check":
       return <div className="tv-content" />;

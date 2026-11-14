@@ -4,6 +4,7 @@ import { CircleAlert, CircleCheck, Radio } from "lucide-react";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/policy";
 import { roomQr } from "@/lib/tv/qr";
+import { brandFor, skinOf } from "@/lib/brand";
 import { eventDate, statusName, typeName, type ListedEngagement } from "@/lib/setup/listing";
 import { inviteText, joiningLine, runLine, type ReadyState } from "@/lib/setup/overview";
 import { InviteCard } from "@/components/facilitator/invite-card";
@@ -23,7 +24,7 @@ function Row({ state, title, text, href, action }: { state: ReadyState; title: s
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
-  const { data: e } = await client.from("engagements").select("id,title,type,status,room_code,link_name,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)").eq("id", id).eq("deleted", false).maybeSingle();
+  const { data: e } = await client.from("engagements").select("id,title,type,status,room_code,link_name,skin,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)").eq("id", id).eq("deleted", false).maybeSingle();
   if (!e) notFound();
   const church = e.church as unknown as { name: string; timezone: string } | null;
   const [sessions, attendees, presence, lead, tv] = await Promise.all([
@@ -41,7 +42,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
   const screens = ((tv.data as { screens?: unknown[] } | null)?.screens ?? []).length;
   const when = eventDate(e as unknown as ListedEngagement, church?.timezone);
   const leadName = ((lead.data ?? []) as unknown as { role: string; user: { name: string } | null }[]).find(f => f.role === "lead")?.user?.name;
-  const link = `live.clearway.co/${e.link_name ?? e.room_code}`, churchName = church?.name ?? "Church not named";
+  const brand = brandFor(skinOf(e.skin)), shown = e.link_name ?? e.room_code, link = `${brand.host}/${shown}`, href = `${brand.origin}/${shown}`, churchName = church?.name ?? "Church not named";
   const ready = run.state === "ready" && joining.state === "ready";
   return <main id="main" className="admin-page">
     <header className="admin-heading"><div><div className="admin-kicker">{churchName} · {e.title}</div><h1>Overview</h1></div>
@@ -56,7 +57,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/setup/${id}/tv`} action="Pair a TV" />
         </ul>
       </section>
-      <InviteCard id={id} code={e.room_code} link={link} qr={roomQr(e.room_code)} invite={inviteText(churchName, e.title, when, `https://${link}`, e.room_code)} closed={e.status === "closed"} />
+      <InviteCard id={id} code={e.room_code} link={link} href={href} host={brand.host} qr={roomQr(e.room_code, brand.skin)} invite={inviteText(churchName, e.title, when, href, e.room_code, brand.host)} closed={e.status === "closed"} />
     </div>
   </main>;
 }

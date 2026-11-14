@@ -1,16 +1,17 @@
 import { uuid } from "../room/identity";
 import type { TvReceipt } from "./types";
+import { roomOrigin, type Skin } from "../brand";
 import type { LiveSnapshot } from "../live/types";
 export function pairingCode(value: unknown) {
   const code = typeof value === "string" ? value.replaceAll(" ", "") : "";
   return /^\d{6}$/.test(code) ? code : null;
 }
 export const roomCode = (value: string) => /^[A-F0-9]{8}$/i.test(value);
-// The room link on the TV and in its QR code: live.clearway.co/CODE. The older
-// live.clearway.co/r/CODE keeps working for links already sent.
-export function shortRoomLink(code: string) {
+// The room link on the TV and in its QR code: the engagement's address (live.clearway.co for Clearway,
+// live.novetera.co for Novetera) and the code. The older /r/CODE keeps working for links already sent.
+export function shortRoomLink(code: string, skin: Skin = "clearway", env?: Parameters<typeof roomOrigin>[1]) {
   if (!roomCode(code)) throw new Error("Invalid room code");
-  return `https://live.clearway.co/${code.toUpperCase()}`;
+  return `${roomOrigin(skin, env)}/${code.toUpperCase()}`;
 }
 // What a person types or pastes into the join box: the code alone, with spaces or a
 // hyphen, or the whole link from the screen. Returns the code in capitals, or "".

@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { notFound } from "next/navigation";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/identity";
+import { brandFor, skinOf } from "@/lib/brand";
 import { readShow } from "@/lib/run-of-show/server";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { parts } from "@/lib/run-of-show/types";
@@ -13,8 +14,8 @@ export default async function PrintShowPage({ params }: { params: Promise<{ id: 
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator(); const show = await readShow(client, id); if (!show) notFound();
   const { context, sessions } = show;
-  const { data: room } = await client.from("engagements").select("room_code,link_name").eq("id", id).maybeSingle();
-  const link = room ? `live.clearway.co/${room.link_name ?? room.room_code}` : null;
+  const { data: room } = await client.from("engagements").select("room_code,link_name,skin").eq("id", id).maybeSingle();
+  const link = room ? `${brandFor(skinOf(room.skin)).host}/${room.link_name ?? room.room_code}` : null;
   const date = (v: string | null) => v ? new Intl.DateTimeFormat("en-CA", { timeZone: context.timezone, month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(v)) : "Unscheduled";
   return <main id="main" className="show-print">
     <div className="show-print-actions"><PrintButton /></div>

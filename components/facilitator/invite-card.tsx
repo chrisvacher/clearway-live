@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Copy, Download, Monitor } from "lucide-react";
 
 // Invite the room: the link, the room code and a QR code, each ready to copy or download.
-export function InviteCard({ id, code, link, qr, invite, closed }: { id: string; code: string; link: string; qr: { size: number; path: string }; invite: string; closed: boolean }) {
+export function InviteCard({ id, code, link, href, host, qr, invite, closed }: { id: string; code: string; link: string; href: string; host: string; qr: { size: number; path: string }; invite: string; closed: boolean }) {
   const [said, setSaid] = useState("");
   async function copy(text: string, done: string) {
     try { await navigator.clipboard.writeText(text); setSaid(done); }
@@ -21,12 +21,12 @@ export function InviteCard({ id, code, link, qr, invite, closed }: { id: string;
     <div className="invite-body">
       <svg className="invite-qr" viewBox={`0 0 ${qr.size} ${qr.size}`} role="img" aria-label={`QR code for ${link}`}><path d={qr.path} /></svg>
       <dl className="invite-facts">
-        <div><dt>Link</dt><dd><a className="text-link" href={`https://${link}`}>{link}</a></dd></div>
-        <div><dt>Room code, typed at live.clearway.co</dt><dd className="invite-code">{code}</dd></div>
+        <div><dt>Link</dt><dd><a className="text-link" href={href}>{link}</a></dd></div>
+        <div><dt>Room code, typed at {host}</dt><dd className="invite-code">{code}</dd></div>
       </dl>
     </div>
     <div className="admin-actions">
-      <button className="admin-button is-primary" type="button" onClick={() => void copy(`https://${link}`, "Link copied.")}><Copy size={16} aria-hidden="true" />Copy link</button>
+      <button className="admin-button is-primary" type="button" onClick={() => void copy(href, "Link copied.")}><Copy size={16} aria-hidden="true" />Copy link</button>
       <button className="admin-button" type="button" onClick={() => void copy(invite, "Invite text copied.")}><Copy size={16} aria-hidden="true" />Copy invite text</button>
       <button className="admin-button" type="button" onClick={download}><Download size={16} aria-hidden="true" />Download QR code</button>
     </div>

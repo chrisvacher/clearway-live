@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { authConfig, sameOrigin } from "@/lib/auth/policy";
+import { roomOrigin, skinOf, type Skin } from "@/lib/brand";
 import { privateResponse } from "@/lib/auth/response";
 import { serviceClient } from "@/lib/server/supabase";
 import { sendEmail } from "@/lib/server/email";
@@ -12,7 +13,7 @@ import { digest, hash, newCode, newDevice, newLink, normalizedEmail, parseDevice
 import { hasRoomCookie, participantClient } from "./client";
 import type { RoomAccessStatus } from "./access";
 
-export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean; openJoin?: boolean };
+export type RoomInfo = { id: string; title: string; type: string; church: string; closed: boolean; howTheRoomDecides: string; neutral: boolean; openJoin?: boolean; skin?: Skin };
 export async function roomInfo(id: string): Promise<RoomInfo | null> {
   if (!uuid(id)) return null;
   const { data, error } = await serviceClient().rpc("room_public_info", { p_engagement: id });
@@ -148,7 +149,7 @@ export async function handleRoom(request: NextRequest, engagement: string, actio
       const sent = await roomRpc("send", { ...payload, email, challenge, code_hash: digest(secret, "room-code", engagement, email, code), link_hash: hash(token), ...rateKeys(request, engagement, device.id, email, "send") });
       if (sent.status === "not_listed") return result({ status: info.neutral ? "check_facilitator" : "not_listed" });
       if (sent.status !== "sent") return result({ status: sent.status });
-      const link = new URL(`/room/${engagement}/confirm`, config.origin);
+      const link = new URL(`/room/${engagement}/confirm`, roomOrigin(skinOf(info.skin)));
       link.searchParams.set("challenge", challenge); link.searchParams.set("token", token);
       try {
         await sendEmail({ to: email, id: challenge, ...signInEmail({ code, church: info.church, link: link.toString() }) });

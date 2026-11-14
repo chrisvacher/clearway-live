@@ -8,6 +8,7 @@ import { serviceClient } from "@/lib/server/supabase";
 import { sendEmailBatch } from "@/lib/server/email";
 import { invitationMessages,type InvitationSelfPaced,type InvitationSnapshot } from "@/lib/setup/invitation";
 import { engagementAi } from "@/lib/ai/disclosure";
+import { roomOrigin,skinOf } from "@/lib/brand";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
 import { clearwayEmail } from "@/lib/auth/policy";
@@ -100,7 +101,7 @@ export async function POST(request:NextRequest){
         if(!preview.people.length||preview.people.length>50)throw new Error("Choose up to 50 people to add and invite at once.");
         if(preview.people.some(p=>fictionalEmail(p.email)))throw new Error("Use real email addresses to send invites.");
         const batch=await rpc("import_and_queue_invites",{p_engagement:e.id,p_batch:body.batch,p_people:preview.people}) as InviteBatch;
-        const count=await deliverInvites(e.id,batch,config.origin,await selfPacedFor(client,e.id),engagementAi(e.settings));
+        const count=await deliverInvites(e.id,batch,roomOrigin(skinOf(e.skin)),await selfPacedFor(client,e.id),engagementAi(e.settings));
         return answer({ok:true,count,duplicates:preview.duplicates});
       }
       const count=await rpc("import_attendees",{p_engagement:e.id,p_people:preview.people});return answer({ok:true,count,duplicates:preview.duplicates});
@@ -126,8 +127,8 @@ export async function POST(request:NextRequest){
       const e=await scoped();if(!uuid(body.batch)||!Array.isArray(body.attendees)||!body.attendees.every(uuid))return answer({ok:false},400);
       const batch=await rpc("queue_engagement_invites",{p_engagement:e.id,p_batch:body.batch,p_attendees:body.attendees}) as InviteBatch;
       const selfPaced=await selfPacedFor(client,e.id);
-      if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,config.origin,selfPaced,engagementAi(e.settings))[0]?.text});
-      return answer({ok:true,count:await deliverInvites(e.id,batch,config.origin,selfPaced,engagementAi(e.settings))});
+      if(action==="prepare_invites")return answer({ok:true,batch:batch.id,payload:batch.payload,preview:invitationMessages(e.id,batch.payload,roomOrigin(skinOf(e.skin)),selfPaced,engagementAi(e.settings))[0]?.text});
+      return answer({ok:true,count:await deliverInvites(e.id,batch,roomOrigin(skinOf(e.skin)),selfPaced,engagementAi(e.settings))});
     }
     return answer({ok:false},400);
   }catch(error){

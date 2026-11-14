@@ -1,4 +1,5 @@
 import { normalizedEmail, uuid } from "../room/identity";
+import { skins } from "../brand";
 
 export const consensus = "The room makes each decision by consensus. Votes and points show where the room is. We listen to each other and make space for concerns before agreeing on what we’ll do next.";
 export type ImportPerson = {name:string;email:string;role_at_church:string;room_role?:"participant"|"scribe";extra_fields:Record<string,string>;team_hub_person_id?:string};
@@ -31,12 +32,13 @@ export function setupInput(body:Record<string,unknown>){
   const defaults=["Congregation","Community","Leadership","Operations","Learning"];
   const lenses=type==="team_workshop" ? defaults.map((fallback,i)=>Array.isArray(eng.lens_names)&&typeof eng.lens_names[i]==="string"&&eng.lens_names[i].trim()?eng.lens_names[i]:fallback) : eng.lens_names;
   if(!Array.isArray(lenses)||lenses.length!==5)throw new Error("Name all Five Lenses.");
+  const brand=eng.skin===undefined?"clearway":eng.skin;if(typeof brand!=="string"||!(skins as readonly string[]).includes(brand))throw new Error("Choose a brand.");
   const settings=(eng.settings || {}) as Record<string,unknown>;
   const theme=text(settings.tv_theme??"dark",10);if(!["dark","light"].includes(theme))throw new Error("Choose a TV theme.");
   const size=text(settings.room_size??"very_small",20);if(!["very_small","small","medium","large","very_large"].includes(size))throw new Error("Choose a room size.");
   const list=(v:unknown)=>text(v??"",10000).split("\n").map(s=>s.trim()).filter(Boolean);
   const logo=text(church.logo_url??"",2000);if(logo){const u=new URL(logo);if(u.protocol!=="https:"&&!(u.protocol==="http:"&&["127.0.0.1","localhost"].includes(u.hostname)))throw new Error("Use an HTTPS logo address.");}
-  return {church:{name:text(church.name,200,true),timezone,logo_url:logo||null,mission:text(church.mission??"",10000),purpose:text(church.purpose??"",10000),values:list(church.values),strategy:text(church.strategy??"",10000),leadership_rhythms:list(church.leadership_rhythms),governance_body_name:text(church.governance_body_name??"",200)},engagement:{title:text(eng.title,200,true),type,status,start_date:start,end_date:end,retreat_start_date:retreatStart,retreat_end_date:retreatEnd,pre_call_at:zonedInstant(eng.pre_call_local,timezone),base_year:base,lens_names:lenses.map(v=>text(v,100,true)),how_the_room_decides:text(eng.how_the_room_decides,4000,true),settings:{ai_enabled:settings.ai_enabled!==false,scripture_translation:text(settings.scripture_translation??"",100),tv_theme:theme,texture:settings.texture!==false,room_size:size,neutral_join_message:settings.neutral_join_message===true,open_join:type==="team_workshop"&&settings.open_join===true}}};
+  return {church:{name:text(church.name,200,true),timezone,logo_url:logo||null,mission:text(church.mission??"",10000),purpose:text(church.purpose??"",10000),values:list(church.values),strategy:text(church.strategy??"",10000),leadership_rhythms:list(church.leadership_rhythms),governance_body_name:text(church.governance_body_name??"",200)},engagement:{title:text(eng.title,200,true),type,status,start_date:start,end_date:end,retreat_start_date:retreatStart,retreat_end_date:retreatEnd,pre_call_at:zonedInstant(eng.pre_call_local,timezone),base_year:base,lens_names:lenses.map(v=>text(v,100,true)),how_the_room_decides:text(eng.how_the_room_decides,4000,true),...(eng.skin===undefined?{}:{skin:brand}),settings:{ai_enabled:settings.ai_enabled!==false,scripture_translation:text(settings.scripture_translation??"",100),tv_theme:theme,texture:settings.texture!==false,room_size:size,neutral_join_message:settings.neutral_join_message===true,open_join:type==="team_workshop"&&settings.open_join===true}}};
 }
 function deduplicate(people:ImportPerson[]):ImportPreview {
   if(people.length>500)throw new Error("Import up to 500 people at a time.");const seen=new Set<string>(),duplicates:string[]=[];
