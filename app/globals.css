@@ -480,6 +480,37 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .control-list { display: grid; gap: var(--space-6); margin-bottom: var(--space-8); }
 @media (max-width: 1200px) { .ctl-cols { grid-template-columns: 260px minmax(0,1fr) 300px; } }
 @media (max-width: 900px) { .ctl-app { height: auto; } .ctl-cols { grid-template-columns: minmax(0,1fr); } .ctl-col { overflow: visible; } .ctl-head { flex-wrap: wrap; } }
+/* One-laptop setup: the live room names its address, folds its run of show on a narrow window and asks before it ends a workshop. */
+.ctl-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
+.ctl-identity { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin-top: var(--space-1); font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
+.ctl-identity a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.ctl-identity > * + *::before { content: "·"; display: inline-block; margin-right: var(--space-3); text-decoration: none; }
+.ctl-tv, .ctl-run-body { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.ctl-run-toggle { display: none; }
+#ctl-door { scroll-margin-top: var(--space-4); }
+.ctl-dialog-scrim { position: fixed; inset: 0; z-index: 40; background: var(--cwl-app-scrim); display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+.ctl-dialog { width: min(520px, 100%); max-height: 90svh; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-6); background: var(--cwl-app-card); color: var(--cwl-app-text); border-radius: var(--cwl-radius-card); border: 1px solid var(--cwl-app-border); }
+.ctl-dialog h2 { margin: 0; font-size: var(--cwl-fs-app-section-title); font-weight: var(--fw-bold); }
+.ctl-dialog p { margin: 0; }
+.ctl-remote-share { display: flex; gap: var(--space-4); align-items: center; flex-wrap: wrap; }
+.ctl-remote-qr { width: 168px; height: 168px; flex: none; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
+.ctl-remote-qr-ground { fill: var(--cwl-app-card); }
+.ctl-remote-qr-ink { fill: var(--cwl-app-text); }
+.ctl-remote-side { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; flex: 1 1 200px; }
+.ctl-remote-link { overflow-wrap: anywhere; font-weight: var(--fw-semibold); }
+@media (max-width: 900px) {
+  /* The live controls first, then the TV, then everything else: the facilitator's controls are never a page away. */
+  .ctl-app:not(.how-live-room) .ctl-cols { display: flex; flex-direction: column; gap: var(--space-4); padding-block: var(--space-4); }
+  .ctl-app:not(.how-live-room) .ctl-centre { display: contents; }
+  .ctl-app:not(.how-live-room) .ctl-centre > * { order: 3; margin-inline: var(--space-4); }
+  .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-banner, .show-message) { order: 0; }
+  .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-controls, .ctl-preview) { order: 1; }
+  .ctl-app:not(.how-live-room) .ctl-centre > .ctl-tv { order: 2; }
+  .ctl-app:not(.how-live-room) .ctl-run { order: 4; }
+  .ctl-app:not(.how-live-room) .ctl-side { order: 5; }
+  .ctl-run-toggle { display: inline-flex; }
+  .ctl-run.is-folded .ctl-run-body { display: none; }
+}
 
 .ctl-remote-surface { min-height: 100svh; background: var(--cwl-app-page); color: var(--cwl-app-text); }
 .ctl-remote { max-width: 480px; margin: 0 auto; min-height: 100svh; display: flex; flex-direction: column; font-size: var(--cwl-fs-app-body); }

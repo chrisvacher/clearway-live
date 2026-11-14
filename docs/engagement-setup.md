@@ -28,3 +28,13 @@ Invites are reviewed and sent in batches of up to 50 through Resend's batch API.
 Unit tests cover CSV edge cases, duplicate matching, roles, local times, dates and invitation content. HTTP tests exercise guarded setup routes, import review/save and invite review/send/retry against local Auth, REST and Resend fixtures. PostgreSQL tests prove participants and other-engagement facilitators cannot save setup, import people or queue invitations. They also cover immutable external links, private outbox access, atomic imports, preserved scribe roles, consensus snapshots and admin creation.
 
 **Overnight acceptance fix (November 9).** The invite email writes the retreat dates as the app does ("November 3 to 4, 2026"), not as ISO dates.
+
+# One laptop
+
+Many engagements run from one MacBook Pro: the control surface in one window, the TV as a second window moved to the room's screen. The live room (`/control/[id]`) has its own layout with no sidebar, so it carries what the sidebar would:
+
+- **Back to the engagement** (Overview) above its title.
+- **Identity line** under the title: the room link at the engagement's address (`roomOrigin(skin)`), the room code, the brand (Clearway or Novetera) and "N in the room", which jumps to the "At the door" panel on the same page. The PRD puts the door list on the control surface, so it does not leave for the Door list page. Facilitator screens stay Clearway Live whatever the brand.
+- **Below 900 px** the order is the live controls, the TV preview, then the rest; the run of show folds behind "Show the run of show". At 1512 px the three columns are unchanged.
+- **Open the remote** opens a panel with the remote's link, Copy link, a QR code and "Open it on this computer". The remote needs a Clearway Google account that is an admin or the lead or co-facilitator on Details (`show_allowed` in the database); the link is on the address the window is signed in at.
+- **End the workshop** (workshops only, on Results and beside See results in the live room) asks first, then sets the engagement status to closed through the same `save_engagement` function Details uses (`end_workshop` in `/api/setup` rebuilds the Details form with the status changed). Closing signs out every phone and closes answers; results stay. Wayfinding keeps "Mark the retreat closed".
