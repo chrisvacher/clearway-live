@@ -215,3 +215,7 @@ label.create-option { flex-direction:row; }
 .app-shell .form-stack > :is(.button-link,.admin-button,.show-button,button[type="submit"]), .app-shell .admin-editor form > .button-link { align-self:flex-start; justify-self:start; width:auto; }
 @media(max-width:700px) { .app-shell .admin-card .admin-button { flex:0 0 auto; } .app-shell .admin-heading .admin-actions { justify-content:flex-start; } .app-shell .admin-page { padding:var(--space-6) var(--space-4); } }
 
+
+.tv-screens-window { display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3); }
+.tv-screens-window .admin-saved { margin:var(--space-2) 0 0; }
+.invite-day .admin-saved { flex-basis:100%; margin:0; }

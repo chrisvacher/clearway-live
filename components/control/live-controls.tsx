@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, Pause, Play, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
 import { fillYears } from "@/lib/run-of-show/policy";
@@ -26,13 +27,16 @@ export function burstLeft(room: Room) {
   return { ms, label: `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}` };
 }
 
-export function SyncChip({ room }: { room: Room }) {
+export function SyncChip({ room, href }: { room: Room; href?: string }) {
   const screens = room.status?.screens ?? [];
   const connected = screens.filter(s => s.connected);
   const title = screens.map(s => `${s.label}: ${s.connected ? `confirmed, version ${s.confirmed_version}` : "reconnecting"}`).join("\n");
   if (room.syncing) return <span className="ctl-sync is-syncing" role="status" title={title}><RefreshCw size={14} aria-hidden="true" />Syncing</span>;
   // A paired TV silent for 12 seconds is reconnecting (FAIL-02); none paired is no TV.
-  if (!connected.length) return <span className="ctl-sync is-none" role="status" title={title || "Pair a TV in setup"}><MonitorOff size={14} aria-hidden="true" />{screens.length ? "TV reconnecting" : "No TV connected"}</span>;
+  if (!connected.length) {
+    const chip = <span className="ctl-sync is-none" role="status" title={title || "Pair a TV in setup"}><MonitorOff size={14} aria-hidden="true" />{screens.length ? "TV reconnecting" : "No TV connected"}</span>;
+    return href ? <Link href={href} className="ctl-sync-link" aria-label={`${screens.length ? "TV reconnecting" : "No TV connected"}. Open Screens`}>{chip}</Link> : chip;
+  }
   return <span className="ctl-sync" role="status" title={title}><CircleCheck size={14} aria-hidden="true" />On the TV now</span>;
 }
 
