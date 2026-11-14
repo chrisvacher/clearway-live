@@ -73,6 +73,8 @@ TV/phone design into the other surfaces. Read the relevant handoff:
 [4b](design-pass-4b-handoff.md), [5](design-pass-5-handoff.md),
 [6](design-pass-6-handoff.md), [7](design-pass-7-handoff.md).
 
+Design pass 8 (the admin shell and flow) is built through step 6, in pull requests #140 to #152: see [its handoff](design-pass-8-handoff.md) and the [step 6 evidence index](evidence/design-pass-8/step-6/README.md).
+
 [Survey source research](discover-survey-source.md) was superseded November 5.
 [CORE schema research](core-schema-check.md) was superseded November 4.
 Both are historical references, not current integration work.

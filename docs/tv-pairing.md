@@ -1,6 +1,6 @@
 # TV page and pairing
 
-Milestone 2, PR 3 implements FAC-04 and the D1-01 join screen. Open `/tv` on the separate screen computer. In an engagement's setup or run of show, choose **Pair a TV**, enter its six-digit code and name the screen. Each code lasts 60 minutes (Chris, November 3; it was five) and is consumed on approval. Multiple TVs can be paired independently.
+Milestone 2, PR 3 implements FAC-04 and the D1-01 join screen. Open `/tv` on the separate screen computer. In an engagement, choose **Screens** in the sidebar, enter its six-digit code and name the screen. Each code lasts 60 minutes (Chris, November 3; it was five) and is consumed on approval. Multiple TVs can be paired independently.
 
 ## Pairing codes and the server's clock
 

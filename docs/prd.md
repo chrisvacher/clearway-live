@@ -433,6 +433,8 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 **Setup forms** (Decided November 9): create and edit show fields by engagement type. A team workshop uses its workshop date and optional end date. Pre-call time, retreat dates, base year, Five Lenses, governance body and Scripture translation are shown for Wayfinding. Hidden values are retained when the type changes. Linked Team Hub engagements are marked Already in Live with a link to their existing setup. Duplicate creation returns a clear conflict rather than a connection failure. Open joining remains admin-only and team-workshop-only.
 
+**Details and the Door list** (design pass 8): Details (`/setup/[id]/details`) is four cards: The event, The church, AI in the room and, for a Wayfinding kind, Wayfinding settings. Each card has its own Save, and every Save sends the whole form. The church's time zone is a picker of IANA zones, and its logo is uploaded as a PNG, JPEG or WebP file of 1 MB or less, or pasted as an address. The Door list keeps up on its own while its tab is open, with no Refresh button, and for a workshop with open joining it lists everyone who has joined, in alphabetical order.
+
 **Templates** (SET-08): a template is a saved run of show. Starting an engagement from a template copies its sessions, prompts, interaction settings, timings and presenter notes, all editable. The Wayfinding and day-and-a-half templates ship with the app (see "Wayfinding sessions"). Facilitators can save any run of show as a new template.
 
 **The run of show** (SET-07) is an ordered list of sessions grouped by part (Pre-call, Day 1, Day 2, Follow-up). Each session has:
@@ -967,7 +969,7 @@ Milestone 7, except the draft Clearway Map (milestone 4).
 
 **Check-ins** (AFT-04, AFT-05): at 30, 60 and 90 days, each owner of a first step, and each goal owner who owns no first step, gets one email with a link to a short pulse about their own first steps and goals (Decided November 7): done, under way, stuck, and a note. Each owner reports where their own goals stand; nothing is read from CORE (Default). The facilitator sees results and follow-ups.
 
-**Results recap** (Default): a facilitator page with one card per session (type, prompt, count, results as they appeared), which updates without re-animating, prints to PDF, and downloads as CSV.
+**Results** (Default; the Results page, called Results recap before design pass 8): a facilitator page with one card per session (type, prompt, count, results as they appeared), which updates without re-animating, prints to PDF, and downloads as CSV.
 
 **Exports** (Default): every session's input as CSV, the report as Word and PDF, the draft Map as PDF, and the full engagement as a JSON archive. Exports with authorship are facilitator-only.
 

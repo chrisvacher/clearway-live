@@ -14,17 +14,13 @@
 .admin-page p { margin:var(--space-2) 0 var(--space-4); }
 .admin-actions { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); }
 .admin-card .admin-actions { max-width:460px; }
-.admin-page .admin-button, .engagement-nav a { display:inline-flex; justify-content:center; align-items:center; gap:var(--space-2); min-height:44px; padding:var(--space-2) var(--space-4); border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); background:var(--cwl-app-card); color:var(--cwl-app-text); font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); text-decoration:none; cursor:pointer; }
+.admin-page .admin-button { display:inline-flex; justify-content:center; align-items:center; gap:var(--space-2); min-height:44px; padding:var(--space-2) var(--space-4); border:1px solid var(--cwl-app-border-strong); border-radius:var(--cwl-radius-button); background:var(--cwl-app-card); color:var(--cwl-app-text); font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); text-decoration:none; cursor:pointer; }
 .admin-page .admin-button.is-primary { background:var(--cwl-app-primary); border-color:var(--cwl-app-primary); color:var(--cwl-app-on-primary); }
-.admin-page .admin-button:hover, .engagement-nav a:hover { background:var(--cwl-app-hover); color:var(--cwl-app-text); }
+.admin-page .admin-button:hover { background:var(--cwl-app-hover); color:var(--cwl-app-text); }
 .admin-page .admin-button.is-primary:hover { background:var(--cwl-app-primary-hover); color:var(--cwl-app-on-primary); }
-.admin-page :focus-visible, .engagement-nav :focus-visible { outline:2px solid var(--cwl-app-focus); outline-offset:2px; }
+.admin-page :focus-visible { outline:2px solid var(--cwl-app-focus); outline-offset:2px; }
 .admin-status { display:inline-flex; border-radius:var(--cwl-radius-button); background:var(--cwl-app-sunken); padding:var(--space-1) var(--space-2); font-size:var(--cwl-fs-app-micro); }
-.engagement-nav { padding:var(--space-4) var(--cwl-app-gutter); border-bottom:1px solid var(--cwl-app-border); background:var(--cwl-app-card); color:var(--cwl-app-text); }
-.engagement-nav p { margin:0 0 var(--space-3); overflow-wrap:anywhere; }
-.engagement-nav-links { display:flex; gap:var(--space-2); flex-wrap:wrap; }
-.engagement-nav a { font-weight:var(--fw-medium); }
-@media(max-width:700px) { .admin-page { padding:var(--space-6) var(--space-4); } .admin-card { grid-template-columns:minmax(0,1fr); gap:var(--space-3); } .admin-panel,.admin-card { padding:var(--space-4); } .admin-actions { align-items:stretch; } .admin-card .admin-actions { max-width:none; } .admin-card .admin-button { flex:1 1 140px; } .engagement-nav { padding:var(--space-4); } }
+@media(max-width:700px) { .admin-page { padding:var(--space-6) var(--space-4); } .admin-card { grid-template-columns:minmax(0,1fr); gap:var(--space-3); } .admin-panel,.admin-card { padding:var(--space-4); } .admin-actions { align-items:stretch; } .admin-card .admin-actions { max-width:none; } .admin-card .admin-button { flex:1 1 140px; } }
 
 .admin-editor .form-stack { gap:var(--space-6); }
 .admin-editor fieldset, .admin-editor .setup-section { border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-card); padding:var(--space-6); min-width:0; }
@@ -37,6 +33,8 @@
 .admin-editor .button-link { font-size:var(--cwl-fs-app-label); min-height:44px; }
 .admin-editor .admin-panel, .room-details { margin-bottom:var(--space-6); }
 .admin-editor .admin-panel > h2 { margin:0 0 var(--space-4); font-size:var(--cwl-fs-app-section-title); }
+/* Batch G: the form's gap is the only space between cards, so a card's own bottom margin does not double it (the last card keeps its margin). */
+.admin-editor .form-stack > .admin-panel:not(:last-of-type) { margin-bottom:0; }
 .admin-editor .admin-panel > * + :is(.form-grid,label,p,.hub-line,.logo-row) { margin-top:var(--space-4); }
 .admin-editor .admin-muted { display:block; margin:0; font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); font-weight:var(--fw-regular); }
 .admin-editor .admin-card-save { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-6); }
@@ -64,7 +62,6 @@
 .admin-columns .plain-list li { overflow-wrap:anywhere; }
 @media(max-width:800px) { .admin-columns { grid-template-columns:minmax(0,1fr); } }
 
-.engagement-nav a[aria-current="page"] { background:var(--cwl-app-selected); border-color:var(--cwl-app-focus); font-weight:var(--fw-bold); }
 .admin-columns .button-link { font-size:var(--cwl-fs-app-label); min-height:44px; }
 .admin-columns .notice { padding:var(--space-4); border:1px solid var(--cwl-app-border); border-radius:var(--cwl-radius-card); background:var(--cwl-app-card); }
 .app-shell .tv-screens-form { display:flex; flex-direction:column; gap:var(--space-4); }
@@ -85,7 +82,6 @@
 
 .surface .admin-map h1 { font-size:var(--cwl-fs-app-page-title); font-weight:var(--fw-bold); }
 .admin-map { min-width:0; }
-@media print { .engagement-nav { display:none; } }
 
 .admin-after { min-width:0; }
 @media(max-width:1100px) {
@@ -112,6 +108,9 @@
 .app-shell .admin-heading .shr-confirm { max-width:min(520px,100%); text-align:left; }
 .app-shell .ovr-head .ovr-eyebrow { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); letter-spacing:0; text-transform:none; }
 .app-shell .admin-page .shr-card h2, .app-shell .admin-page .cir-card h2, .app-shell .admin-page .cir-card h3 { margin:0; font-size:var(--cwl-fs-app-section-title); }
+/* Batch G: the Retreat end date field on Check-ins is the standard label and field. */
+.app-shell .admin-page .cir-field { font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); }
+.app-shell .admin-page .cir-field input { min-height:44px; padding:var(--space-2) var(--space-3); font-size:var(--cwl-fs-app-table); font-weight:var(--fw-regular); }
 .app-shell .admin-page .cir-goal-group h4 { font-size:var(--cwl-fs-app-body); }
 .app-shell .admin-map .map-page > h2 { margin:0; font-size:var(--cwl-fs-app-micro); font-weight:var(--fw-bold); letter-spacing:0.08em; text-transform:uppercase; color:var(--cwl-app-text-muted); }
 .app-shell .admin-map .map-lens h3 { margin:0; font-size:var(--cwl-fs-app-label); }
@@ -195,6 +194,7 @@ label.create-option { flex-direction:row; }
 .admin-feedback.is-bad:not(:empty) { background:var(--cwl-app-warning-bg); }
 .app-shell .admin-people > h2 { margin-bottom:var(--space-2); }
 .app-shell .admin-columns .admin-lead { margin-bottom:var(--space-3); }
+.app-shell .admin-page .admin-columns > .admin-panel > .admin-lead { margin-bottom:var(--space-4); } /* Batch G: Door list lead above the names */
 .app-shell .admin-people .admin-subsection { margin:var(--space-6) 0 0; padding:var(--space-6) 0 0; border:0; border-top:1px solid var(--cwl-app-border); border-radius:0; background:none; }
 .app-shell .admin-people .roster { padding:var(--space-6) 0 0; }
 .app-shell .admin-people .admin-subsection h3, .app-shell .admin-people .admin-subsection h4 { margin:0 0 var(--space-3); font-size:var(--cwl-fs-app-body); font-weight:var(--fw-semibold); }

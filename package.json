@@ -66,6 +66,7 @@
     "test:report": "node --import tsx tests/browser/report.ts",
     "test:read-only": "node --import tsx tests/browser/read-only.ts",
     "test:visibility-plan": "node --import tsx tests/browser/visibility-plan.ts",
+    "test:admin": "env KIT_AREA=a node --import tsx tests/browser/admin.ts && env KIT_AREA=b node --import tsx tests/browser/admin.ts && env KIT_AREA=c node --import tsx tests/browser/admin.ts && env KIT_AREA=d node --import tsx tests/browser/admin.ts",
     "load": "node --import tsx scripts/load-test.ts",
     "test:operations": "node --import tsx tests/browser/operations.ts"
   },

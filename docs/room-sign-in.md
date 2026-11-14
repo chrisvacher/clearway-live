@@ -66,7 +66,7 @@ to the short code on the phone. Both database operations independently check the
 current verified Google session and engagement assignment. Participants, scribes,
 unassigned Clearway users and facilitators from another engagement are refused.
 
-The door list counts real nonrevoked device bindings joined to current Auth
+The Door list counts real nonrevoked device bindings joined to current Auth
 sessions. Here now additionally requires a recent heartbeat from a verified room
 session. Page loads, scanners and requests to join never count as sign-ins.
 All three private proof/rate tables have forced RLS, created/updated timestamps and
