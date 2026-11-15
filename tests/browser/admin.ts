@@ -282,11 +282,14 @@ async function main() {
       await page.goto(remote); await page.waitForLoadState("networkidle"); assert.equal(new URL(page.url()).pathname,`/remote/${room.id}`,"the remote still opens on this computer");
       // 4. End the workshop: asks first, says what happens, then sets the same closed status Details sets.
       await page.goto(control); await page.waitForLoadState("networkidle");
+      const more=page.getByTestId("header-more"); assert.equal(await more.getAttribute("aria-expanded"),"false");
+      await more.click(); assert.equal(await more.getAttribute("aria-expanded"),"true"); await page.keyboard.press("Escape"); assert.equal(await more.getAttribute("aria-expanded"),"false","Escape closes More"); assert.ok(await more.evaluate(el=>el===document.activeElement),"focus returns to More");
+      await more.click(); assert.equal(await page.getByRole("menuitem",{name:"Print run of show",exact:true}).getAttribute("href"),`/setup/${room.id}/run-of-show/print`,"Print keeps its link");
       await page.getByTestId("end-workshop").click(); const ask=page.getByRole("alertdialog",{name:"End the workshop?"});
       assert.ok(/Phones are signed out and answers close\. Results stay/.test(await ask.innerText()),"the confirm says what happens");
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/end-workshop-1512.png`});
       await ask.getByRole("button",{name:"Keep the workshop going",exact:true}).click(); assert.equal(await status(),"setup","keeping it going changes nothing");
-      await page.getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click();
+      await more.click(); await page.getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click();
       await page.getByTestId("workshop-ended").waitFor(); assert.equal(await status(),"closed","the same closed status Details sets");
       await sql.query("update public.engagements set status='setup' where id=$1",[room.id]);
       await page.goto(`${app.origin}/control/${room.id}/recap`); await page.waitForLoadState("networkidle");
@@ -296,7 +299,7 @@ async function main() {
       await page.locator(".recap-end").getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click(); await page.getByTestId("workshop-ended").waitFor();
       assert.equal(await status(),"closed","Results ends the workshop too");
       await sql.query("update public.engagements set status='setup',type='wayfinding' where id=$1",[room.id]);
-      await page.goto(control); await page.waitForLoadState("networkidle"); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
+      await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
       await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
     }
     assert.equal(mail.count,0,"admin audit sends no email");
