@@ -5,7 +5,7 @@ import { blockedPopupLine, openTvWindow } from "@/lib/tv/pair-link";
 
 const said = (status: string) => status === "closed" ? "This engagement has closed." : status === "limited" ? "Please wait a few minutes before opening another window." : "We couldn't open the TV. Please try again.";
 // One click opens the TV as its own window on this laptop and pairs it. `variant` is the button's size: the card action on
-// Overview and Screens, the small one on the control surface.
+// Overview and Screens, the same 44px standard as its neighbours on the control surface.
 export function OpenTvWindow({ id, variant = "card", primary = false, disabled = false }: { id: string; variant?: "card" | "small"; primary?: boolean; disabled?: boolean }) {
   const [busy, setBusy] = useState(false), [note, setNote] = useState<{ text: string; error: boolean; url?: string } | null>(null);
   async function open() {
@@ -26,7 +26,7 @@ export function OpenTvWindow({ id, variant = "card", primary = false, disabled =
     setBusy(false);
   }
   return <>
-    <button type="button" className={variant === "small" ? "show-button is-small" : `admin-button${primary ? " is-primary" : ""}`} disabled={busy || disabled} onClick={() => void open()}><AppWindow size={16} aria-hidden="true" />Open the TV in a new window</button>
+    <button type="button" className={variant === "small" ? "show-button" : `admin-button${primary ? " is-primary" : ""}`} disabled={busy || disabled} onClick={() => void open()}><AppWindow size={16} aria-hidden="true" />Open the TV in a new window</button>
     {note && <p className={`admin-saved${note.error ? " is-error" : ""}`} role={note.error ? "alert" : "status"}>{note.text}{note.url && <> <a href={note.url} target="_blank" rel="noreferrer">Open the TV</a></>}</p>}
   </>;
 }

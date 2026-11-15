@@ -23,6 +23,7 @@ import { AfterLink } from "@/components/report/after-link";
 import { RemoteLink } from "./remote-link";
 import { EndWorkshop } from "./end-workshop";
 import { OpenTvWindow } from "./open-tv-window";
+import { HeaderMore, useWide } from "./header-more";
 
 // Where this room lives: the address people type, the code, and whose brand the room wears. Facilitator screens stay Clearway Live.
 export type RoomIdentity = { host: string; origin: string; name: string; code: string; brand: string };
@@ -44,6 +45,8 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
   // On a narrow window the run of show folds away so the live controls come first.
   const [runOpen, setRunOpen] = useState(false);
   const confirm = useSecondTap();
+  // On a wide window Print and End the workshop sit in a More menu so the header is one row; narrow keeps them inline.
+  const wide = useWide();
   const { show, frame, status, current } = room;
   const context = show.context;
   const shownId = frame?.state.live_session_id ?? null;
@@ -60,16 +63,17 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
         <h1>Live room</h1>
         {identity && <p className="ctl-identity" data-testid="room-identity"><a href={`${identity.origin}/${identity.name}`} target="_blank" rel="noreferrer">{identity.host}/{identity.name}</a><span>Room code {identity.code}</span><span>{identity.brand}</span><a href="#ctl-door">{counts ? `${counts.signed_in} in the room` : "In the room"}</a></p>}
       </div>
-      <div className="ctl-row">
+      <div className="ctl-row ctl-actions">
         {status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}
         <SyncChip room={room} href={`/setup/${engagement}/tv`} />
         {!context.closed && <OpenTvWindow id={engagement} variant="small" />}
         <RemoteLink engagement={engagement} />
-        <Link className="show-button" href={`/setup/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={18} aria-hidden="true" />Print run of show</Link>
+        {!wide && <Link className="show-button" href={`/setup/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={18} aria-hidden="true" />Print run of show</Link>}
         <Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />{workshop ? "See results" : "See results recap"}</Link>
-        {workshop && <EndWorkshop engagement={engagement} closed={context.closed} />}
+        {workshop && !wide && <EndWorkshop engagement={engagement} closed={context.closed} />}
         {!workshop && <Link className="show-button" href={`/control/${engagement}/map`}><MapIcon size={18} aria-hidden="true" />Draft Clearway Map</Link>}
         {!workshop && <AfterLink engagement={engagement} />}
+        {wide && <HeaderMore engagement={engagement} workshop={workshop} closed={context.closed} />}
       </div>
     </header>
     <div className="ctl-cols">

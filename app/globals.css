@@ -781,3 +781,11 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .show-print-sec th { text-align: left; font-weight: var(--fw-bold); background: var(--cwl-app-sunken); }
 .ctl-head > div:first-child { flex: none; max-width: 100%; }
 .ctl-identity > * { white-space: nowrap; }
+
+/* Live room header, wide window: the right side is one row of equal 44px actions, the chip centred on them. Print and End the workshop live in More. */
+@media (min-width: 901px) { .ctl-head .ctl-actions { flex-wrap: nowrap; flex: none; } }
+.ctl-more { position: relative; }
+.ctl-more-menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 20; min-width: 100%; display: flex; flex-direction: column; padding: var(--space-1); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); box-shadow: var(--shadow-dropdown); }
+.ctl-more-item { display: flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: transparent; color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); text-align: left; white-space: nowrap; text-decoration: none; cursor: pointer; }
+.ctl-more-item:hover { background: var(--cwl-app-hover); }
+.ctl-more-item:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -2px; }
