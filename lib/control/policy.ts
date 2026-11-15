@@ -100,6 +100,9 @@ export function resultMessage(result: ControlResult) {
 // no live session (never shown, or unpaired) is not counted. One silent for longer than staleMs is an old
 // pairing, not a TV dropping out, unless no TV is connected at all: then the one seen last is named.
 export const staleScreenMs = 15 * 60_000;
+// With no TV up at all, the TV seen last is still named, so the room hears about a TV that went down and stayed down. One not
+// seen for this long belongs to an earlier session (a test window closed, yesterday's pairing), not to this room now.
+export const forgottenScreenMs = 3 * 60 * 60_000;
 export function screensDown(screens: ControlScreen[], serverNow: number, staleMs = staleScreenMs): ControlScreen[] {
   const seen = (s: ControlScreen) => s.last_seen_at ? Date.parse(s.last_seen_at) : 0;
   const byName = new Map<string, ControlScreen>();
@@ -110,5 +113,5 @@ export function screensDown(screens: ControlScreen[], serverNow: number, staleMs
   }
   const named = [...byName.values()];
   const up = named.some(s => s.connected), last = Math.max(0, ...named.map(seen));
-  return named.filter(s => !s.connected && (serverNow - seen(s) <= staleMs || (!up && seen(s) === last)));
+  return named.filter(s => !s.connected && (serverNow - seen(s) <= staleMs || (!up && seen(s) === last && serverNow - seen(s) <= forgottenScreenMs)));
 }

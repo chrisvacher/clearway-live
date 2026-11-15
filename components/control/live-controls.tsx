@@ -40,17 +40,22 @@ export function SyncChip({ room, href }: { room: Room; href?: string }) {
   return <span className="ctl-sync" role="status" title={title}><CircleCheck size={14} aria-hidden="true" />On the TV now</span>;
 }
 
-// One banner at a time: TV reconnecting > Syncing > fallback mode.
+// One banner at a time: TV reconnecting > Syncing > fallback mode. Each can be dismissed with its X; it comes back only when
+// the warning changes (another TV drops out) or clears and returns.
 export function Banners({ room, compact = false }: { room: Room; compact?: boolean }) {
   const down = screensDown(room.status?.screens ?? [], room.status ? Date.parse(room.status.server_time) : room.now + room.clockOffset);
   const tvOnPhones = Boolean(room.frame?.state.show_tv_on_phones);
+  const key = down.length ? `down:${down.map(s => s.id).join(",")}` : room.syncing ? "syncing" : room.mode === "fallback" ? "fallback" : null;
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  useEffect(() => { if (!key) setDismissed(null); }, [key]);
+  if (!key || key === dismissed) return null;
+  const close = <button type="button" className="ctl-banner-close" aria-label="Dismiss this warning" onClick={() => setDismissed(key)}><X size={18} aria-hidden="true" /></button>;
   if (down.length) return <div className="ctl-banner is-warning" role="status"><TriangleAlert size={18} aria-hidden="true" /><div>
     <strong>{down.map(s => s.label).join(" and ")} reconnecting.</strong> {compact ? "The room is fine." : "It’s holding the last screen. If it stays down, show the TV view on phones."}
     {!compact && !tvOnPhones && <div><button className="show-button" disabled={Boolean(room.pending)} onClick={() => void room.press("tv_on_phones", { on: true })}><MonitorSmartphone size={18} aria-hidden="true" />Show the TV view on phones</button></div>}
-  </div></div>;
-  if (room.syncing) return <div className="ctl-banner is-warning" role="status"><TriangleAlert size={18} aria-hidden="true" /><div><strong>The TV hasn’t confirmed yet.</strong> The room is fine.{compact ? "" : " The controls show what the TV confirms."}</div></div>;
-  if (room.mode === "fallback") return <div className="ctl-banner is-info" role="status"><Info size={18} aria-hidden="true" /><div><strong>Fallback mode.</strong> This venue blocks live connections, so the room updates every 1 to 2 seconds. Nothing redraws.</div></div>;
-  return null;
+  </div>{close}</div>;
+  if (room.syncing) return <div className="ctl-banner is-warning" role="status"><TriangleAlert size={18} aria-hidden="true" /><div><strong>The TV hasn’t confirmed yet.</strong> The room is fine.{compact ? "" : " The controls show what the TV confirms."}</div>{close}</div>;
+  return <div className="ctl-banner is-info" role="status"><Info size={18} aria-hidden="true" /><div><strong>Fallback mode.</strong> This venue blocks live connections, so the room updates every 1 to 2 seconds. Nothing redraws.</div>{close}</div>;
 }
 
 export function ReloadNotice({ room }: { room: Room }) {

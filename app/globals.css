@@ -463,6 +463,11 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-log span { font-weight: var(--fw-semibold); }
 .ctl-banner { display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-button); color: var(--cwl-app-text); }
 .ctl-banner svg { flex: none; margin-top: 2px; }
+.ctl-banner > div { flex: 1; min-width: 0; }
+.ctl-banner-close { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; margin: -4px -6px -4px 0; padding: 0; border: 0; border-radius: var(--cwl-radius-button); background: transparent; color: var(--cwl-app-text); cursor: pointer; }
+.ctl-banner-close:hover { background: color-mix(in srgb, var(--cwl-app-text) 8%, transparent); }
+.ctl-banner-close:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.ctl-banner-close svg { margin-top: 0; }
 .ctl-banner.is-warning { background: var(--cwl-app-warning-bg); }
 .ctl-banner.is-warning > svg { color: var(--cwl-app-warning); }
 .ctl-banner.is-info { background: var(--cwl-app-info-bg); }

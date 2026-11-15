@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { fitCount, fitLines } from "../../lib/tv/fit";
-import { screensDown, staleScreenMs } from "../../lib/control/policy";
+import { forgottenScreenMs, screensDown, staleScreenMs } from "../../lib/control/policy";
 import { followupStatusText, followupTakeText } from "../../lib/interactions/intent";
 import { printDetails } from "../../lib/run-of-show/print";
 import type { ControlScreen } from "../../lib/control/types";
@@ -51,6 +51,9 @@ test("a TV paired again is named once, and an old pairing is not named at all", 
   const quiet = [screen("a", "Front TV", false, 30), screen("b", "Front TV", false, 90), screen("d", "Side TV", false, 120)];
   assert.deepEqual(screensDown(quiet, now).map(s => s.id), ["a"]);
   assert.ok(staleScreenMs >= 10 * 60_000, "a short break never hides a TV that dropped out");
+  // No TV up, and the one seen last is from an earlier session: nothing is named, so an empty room carries no standing warning.
+  assert.deepEqual(screensDown([screen("a", "This laptop", false, 60 * 4), screen("b", "Front TV", false, 60 * 24 * 6)], now), []);
+  assert.ok(forgottenScreenMs >= 2 * 60 * 60_000, "a TV down through a long session block is still named");
 });
 
 test("the follow-up phone says why it cannot take the remote", () => {
