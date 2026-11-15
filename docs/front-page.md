@@ -2,6 +2,8 @@
 
 live.clearway.co's front page, built November 3 at Chris's request and modelled on synrg.live and its guide. The PRD's "Surfaces > The front page and room codes" governs.
 
+Since November 15, live.novetera.co draws the same page in the Novetera skin (replacing the code-and-Join page of November 13): the same sections and words, with Novetera's name and address where Clearway's were, the Novetera lockup, Charcoal and Chalk grounds, Oxblood actions, Public Sans, and the app screenshots taken from the same workshop run in the Novetera skin (`public/home/novetera/`, from `KIT_SKIN=novetera npm run test:team-workshop`, then `npm run home:shots -- <folder> novetera`). Contact points to hello@novetera.co only. `homeBrands` in `app/(public)/page.tsx` holds the words that differ.
+
 ## What's where
 
 | Path | What it is |

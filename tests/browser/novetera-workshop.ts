@@ -177,7 +177,7 @@ async function main() {
     });
     await step("Phone 2 types the code at the Novetera front page", async () => {
       const p = await newPhone("Noah", "code at the Novetera front page"); await p.page.goto(NV + "/");
-      await p.page.locator(".nvj").waitFor(); await audit(p.page, "Novetera front page"); await shot(p.page, "04-phone-novetera-front");
+      await p.page.locator('.home[data-skin="novetera"]').waitFor(); await audit(p.page, "Novetera front page"); await shot(p.page, "04-phone-novetera-front");
       await p.page.fill("#room-code", `${code.slice(0, 4)}-${code.slice(4)}`); await p.page.getByRole("button", { name: "Join" }).click();
       await p.page.waitForURL(`${NV}/room/${room.id}**`, { timeout: 15000 }); await enterByName(p); inRoom(p);
     });
