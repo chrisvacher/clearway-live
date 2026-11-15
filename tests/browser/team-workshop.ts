@@ -48,6 +48,8 @@ async function main() {
     await sql.connect();
     const room = await engagement(sql, people);
     await sql.query("update public.engagements set title='Team workshop',type='team_workshop',settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
+    // KIT_SKIN=novetera runs the same workshop in the Novetera skin, for the Novetera front page's screenshots (npm run home:shots).
+    if (process.env.KIT_SKIN === "novetera") await sql.query("update public.engagements set skin='novetera' where id=$1", [room.id]);
     const fac = await facilitator(env, sql, room.id);
     const results = async () => (await sql.query("select results from public.room_states where engagement_id=$1", [room.id])).rows[0]?.results as Results;
     const liveId = async () => (await sql.query("select live_session_id from public.room_states where engagement_id=$1", [room.id])).rows[0]?.live_session_id as string | null;

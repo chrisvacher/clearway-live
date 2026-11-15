@@ -95,7 +95,7 @@ const tools: Record<Exclude<InteractionKind, "content">, string> = {
   intent: "Shared statement writing", bullets: "Collaborative lists", confirm: "Consensus check", four_lists: "Four lists with agreement", read_back: "Live read-back",
 };
 export const toolNames = Object.values(tools);
-export function StatsBand() {
+export function StatsBand({ host = "live.clearway.co" }: { host?: string }) {
   const [at, setAt] = useState(0);
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -110,7 +110,7 @@ export function StatsBand() {
       <p className="stat-s">No refresh and no reveal. Each answer lands the moment it&apos;s sent.</p>
     </Reveal>
     <Reveal className="stat" step={1}>
-      <div className="stat-visual" aria-hidden="true"><span className="stat-pill"><Globe size={16} />live.clearway.co</span></div>
+      <div className="stat-visual" aria-hidden="true"><span className="stat-pill"><Globe size={16} />{host}</span></div>
       <p className="stat-n">0</p>
       <p className="stat-l">apps to install</p>
       <p className="stat-s">Any phone&apos;s browser works. Nothing to download before the retreat.</p>

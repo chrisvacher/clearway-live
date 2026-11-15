@@ -48,30 +48,41 @@ async function main() {
     };
 
     // ---------- The front pages: the address decides ----------
-    await step("live.novetera.co's front page is the Novetera join page: a lockup, one room code field and Join, nothing else", async () => {
-      const ctx = await context({ width: 390, height: 844 }, true), page = await ctx.newPage();
+    await step("live.novetera.co's front page is the product page in the Novetera skin: the same content, Novetera's name, address, lockup, colours and screens", async () => {
+      const ctx = await context({ width: 1280, height: 900 }), page = await ctx.newPage();
       const res = await page.goto(N + "/"); assert.equal(res?.status(), 200);
-      await page.locator(".nvj").waitFor();
-      const root = page.locator(".nvj");
-      assert.equal(await root.getAttribute("data-skin"), "novetera"); assert.equal(await root.getAttribute("data-theme"), "light", "Chalk, the canvas's Phone artboards");
+      await page.locator(".home").waitFor();
+      const root = page.locator(".home");
+      assert.equal(await root.getAttribute("data-skin"), "novetera"); assert.equal(await root.getAttribute("data-theme"), "dark", "Charcoal sections, with Chalk ones between");
       assert.equal(await page.title(), "Novetera");
-      assert.equal(await page.getByRole("heading", { level: 1 }).innerText(), "Join your team in the room.");
-      assert.equal(await page.locator("input:not([type=hidden])").count(), 1, "one field"); assert.equal(await page.getByLabel("Room code").count(), 1);
-      assert.deepEqual(await page.getByRole("button").allInnerTexts(), ["Join"]);
-      assert.equal(await page.locator("form").getAttribute("action"), "/join", "the box posts where the Clearway one does");
-      const links = await page.locator("a").evaluateAll(list => list.map(a => `${a.getAttribute("href")}|${a.getAttribute("aria-label")}`));
-      assert.deepEqual(links.filter(l => !l.startsWith("#main")), ["/|Novetera home"], "no product page, demo, TV or facilitator link");
+      assert.match(await page.getByRole("heading", { level: 1 }).innerText(), /^Join your team\s+in the room\.$/);
+      assert.equal(await page.getByLabel("Room code").count(), 1);
+      assert.equal(await page.locator("form.join-form").getAttribute("action"), "/join", "the box posts where the Clearway one does");
+      for (const id of ["how", "ask", "wayfinding", "faq"]) assert.equal(await page.locator(`#${id}`).count(), 1, `the ${id} section is there, as on Clearway's page`);
       const text = await page.locator("body").innerText();
-      assert.ok(!/clearway|facilitat|demo|practice/i.test(text), "no Clearway words on it"); assert.ok(!/[–—]/.test(text));
-      assert.equal(await page.locator(".cwl-wordmark").count(), 0); assert.equal(await page.locator(".nvt-lockup").count(), 1);
-      await roleIs(page, ".nvj", "background-color", "--cwl-surface", "the page is Chalk from the tokens");
-      assert.deepEqual(await px(page, await css(page, ".nvj", "background-color")), [247, 246, 243, 255]);
-      await roleIs(page, ".nvj-button", "background-color", "--cwl-button-primary", "the Join button is the primary button role");
-      assert.match(await css(page, ".nvj", "font-family"), /Public Sans/);
-      assert.match(await css(page, ".nvj-tagline", "font-family"), /Source Serif 4/); assert.equal(await css(page, ".nvj-tagline", "font-style"), "italic");
+      assert.ok(!/clearway/i.test(text), "no Clearway words on it"); assert.ok(!/[–—]/.test(text));
+      assert.ok(text.includes("live.novetera.co/tv"), "the TV address is Novetera's");
+      const hrefs = await page.locator("a").evaluateAll(list => list.map(a => a.getAttribute("href") ?? ""));
+      assert.deepEqual(hrefs.filter(h => /clearway/i.test(h)), [], "no link to Clearway");
+      assert.ok(hrefs.includes("mailto:hello@novetera.co"), "people are pointed to hello@novetera.co");
+      assert.deepEqual(hrefs.filter(h => h.startsWith("mailto:") && h !== "mailto:hello@novetera.co"), [], "and no other address");
+      assert.equal(await page.locator(".home-header .cwl-wordmark, .home-footer .cwl-wordmark").count(), 0); assert.ok(await page.locator(".home-header .nvt-lockup").count() === 1, "the Novetera lockup heads the page");
+      const shots = await page.locator(".home img").evaluateAll(list => list.map(i => (i as HTMLImageElement).getAttribute("src") ?? ""));
+      assert.ok(shots.some(src => src.includes("%2Fhome%2Fnovetera%2F") || src.includes("/home/novetera/")), "the app screenshots are the Novetera ones");
+      assert.ok(!shots.some(src => /%2Fhome%2F(tv|phone)-|\/home\/(tv|phone)-/.test(src)), "and none of Clearway's");
+      await roleIs(page, ".home", "background-color", "--cwl-surface", "the page ground is the skin's surface");
+      assert.deepEqual(await px(page, await css(page, ".home", "background-color")), [31, 35, 40, 255], "Charcoal");
+      await roleIs(page, ".join-button", "background-color", "--cwl-button-primary", "Join is the primary button role");
+      assert.deepEqual(await px(page, await css(page, ".join-button", "background-color")), [154, 53, 66, 255], "Oxblood 500, the skin's primary on Charcoal");
+      assert.equal(await css(page, ".join-button", "text-transform"), "none", "Novetera buttons are sentence case");
+      assert.match(await css(page, ".home", "font-family"), /Public Sans/);
       assert.deepEqual(await page.locator('link[rel~="icon"], link[rel="apple-touch-icon"]').evaluateAll(list => list.map(l => new URL((l as HTMLLinkElement).href).pathname)).then(l => l.sort()),
         ["/novetera/apple-touch-icon.png", "/novetera/icon-192.png", "/novetera/icon-32.png", "/novetera/icon.svg"], "the favicon and home-screen icon are the N mark");
       for (const file of ["icon.svg", "icon-32.png", "icon-192.png", "apple-touch-icon.png"]) assert.equal((await fetch(`${N}/novetera/${file}`)).status, 200, file);
+      await page.locator(".tv-demo [data-skin], .tv-demo").first().waitFor();
+      await shot(page, "front-desktop");
+      await page.setViewportSize({ width: 390, height: 844 }); await page.goto(N + "/"); await page.locator(".home").waitFor();
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), "the page fits a phone");
       await shot(page, "phone-front");
       // A wrong code comes back to the front page with the note. (The redirect's host is the join route's business, which the domain work owns; under `next start` it is the Clearway name.)
       await page.fill("#room-code", "ZZZZZZZZ"); await page.getByRole("button", { name: "Join" }).click();
@@ -81,7 +92,7 @@ async function main() {
     await step("live.clearway.co's front page is still the Clearway product page", async () => {
       const ctx = await context({ width: 1280, height: 900 }), page = await ctx.newPage();
       await page.goto(A + "/"); await page.locator(".home").waitFor();
-      assert.equal(await page.title(), "Clearway Live"); assert.equal(await page.locator(".nvj, [data-skin=novetera]").count(), 0);
+      assert.equal(await page.title(), "Clearway Live"); assert.equal(await page.locator("[data-skin=novetera]").count(), 0);
       assert.ok(await page.getByRole("link", { name: /Facilitator sign-in/ }).count() >= 1, "the product page keeps its facilitator link");
       assert.equal(await page.locator(".cwl-wordmark").count() >= 1, true); assert.equal(await page.locator('link[rel~="icon"]').count(), 0, "Clearway serves no icon, as before");
       await ctx.close();

@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Check, ChevronLeft, ChevronRight, Clock, EyeOff, Monitor, MousePointer2, Send, Smartphone, Star, Timer } from "lucide-react";
 import { TvScenes } from "@/components/tv/tv-scenes";
 import { TvMirror } from "@/components/tv/tv-mirror";
@@ -10,6 +10,8 @@ import { tokenMs } from "@/lib/tv/board";
 import { screenType } from "@/lib/tv/policy";
 import { checkAnswer } from "@/lib/phone/policy";
 import type { LiveSnapshot } from "@/lib/live/types";
+import type { Skin } from "@/lib/brand";
+import { phoneTheme } from "@/lib/brand/screens";
 import type { OwnShown, PhoneStep } from "@/lib/phone/types";
 import { demoDisplay, demoEngagement, demoFiltered, demoFrame, demoItems, demoKinds, demoScripts, demoSession, type DemoAnswer, type DemoKind, type DemoPlaced } from "@/lib/public/demo-room";
 
@@ -39,13 +41,18 @@ function useInView(el: React.RefObject<HTMLElement | null>) {
 // that types an answer and sends it onto the screen; "control" the facilitator's live room
 // on a MacBook Pro, moving the screen from one step to the next.
 type Variant = "full" | "hero" | "tv" | "phone" | "control";
+// Whose brand the demo wears: the front page at live.novetera.co draws every demo screen in the Novetera skin.
+const DemoSkin = createContext<Skin>("clearway");
+export function DemoSkinProvider({ skin, children }: { skin: Skin; children: ReactNode }) { return <DemoSkin.Provider value={skin}>{children}</DemoSkin.Provider>; }
 const typedAnswer = "Worship";
 export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
   const root = useRef<HTMLDivElement>(null), tv = useRef<HTMLDivElement>(null);
   const inView = useInView(root);
   const [pick, setPick] = useState<{ kind: DemoKind; auto: boolean; run: number }>({ kind: "word_cloud", auto: variant !== "phone", run: 0 });
   const [typing, setTyping] = useState(false), [select, setSelect] = useState<Select>("rest");
-  const [frame, setFrame] = useState<LiveSnapshot | null>(null), [flow, setFlow] = useState<TvFlow | null>(null);
+  const skin = useContext(DemoSkin);
+  const [rawFrame, setFrame] = useState<LiveSnapshot | null>(null), [flow, setFlow] = useState<TvFlow | null>(null);
+  const frame = useMemo(() => rawFrame && rawFrame.display && skin !== "clearway" ? { ...rawFrame, display: { ...rawFrame.display, skin } } : rawFrame, [rawFrame, skin]);
   const [mine, setMine] = useState<OwnShown[]>([]);
   const placed = useRef<DemoPlaced[]>([]), version = useRef(0), next = useRef(0), answeredAt = useRef(0);
   const script = demoScripts[pick.kind], session = `demo-${pick.kind}-${pick.run}`;
@@ -152,7 +159,7 @@ export function DemoRoom({ variant = "full" }: { variant?: Variant }) {
   </div>;
   // The phone: the real phone inputs. In the hero it only shows; in the full demo the visitor answers.
   const phone = <div className="ph-app" data-screen="phone-answering">
-    <header className="ph-head"><span className="ph-church">{demoDisplay.church}</span><LiveMark phone state="live" reconnecting={false} /></header>
+    <header className="ph-head"><span className="ph-church">{demoDisplay.church}</span><LiveMark phone state="live" reconnecting={false} skin={skin} /></header>
     <div className="ph-body">
       <section className="ph-step" aria-live={shows ? undefined : "polite"}>
         <p className="ph-prompt">{script.prompt}</p>
@@ -205,7 +212,8 @@ function PhoneScale({ children }: { children: React.ReactNode }) {
     const fit = () => el.style.setProperty("--phone-scale", String(el.clientWidth / 390));
     const observer = new ResizeObserver(fit); observer.observe(el); fit(); return () => observer.disconnect();
   }, []);
-  return <div ref={box} className="phone-scale" data-surface="phone" data-theme="dark"><div className="phone-scale-inner">{children}</div></div>;
+  const skin = useContext(DemoSkin);
+  return <div ref={box} className="phone-scale" data-surface="phone" data-theme={phoneTheme[skin]}><div className="phone-scale-inner">{children}</div></div>;
 }
 
 function WordForm({ id, step, mine, onSend, autoType }: { id: string; step: PhoneStep; mine: OwnShown[]; onSend: (text: string) => void; autoType?: string }) {

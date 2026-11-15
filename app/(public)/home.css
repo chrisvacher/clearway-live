@@ -346,3 +346,10 @@ body:has(> .home) { background: var(--cwl-surface); }
   .compare-label { position: static; width: auto; height: auto; margin: 0 0 var(--space-1); clip: auto; overflow: visible; white-space: normal; display: block; font-size: var(--fs-small); font-weight: var(--fw-semibold); letter-spacing: 0.06em; text-transform: uppercase; }
   .gallery-devices .shot-phone { width: 32%; }
 }
+
+/* The same page at live.novetera.co (data-skin="novetera" on .home): the skin's tokens turn the sections Charcoal and Chalk, the actions
+   Oxblood and the type Public Sans. The device frames and their shadows read Clearway's base navy and greys directly, so inside the
+   Novetera page those base colours take Novetera's Charcoal and Slate. Nothing outside the Novetera page changes. */
+.home[data-skin="novetera"] { --cw-navy: var(--nvl-charcoal); --cw-gray-900: var(--nvl-charcoal); --cw-gray-700: var(--nvl-slate-600); --cw-gray-500: var(--nvl-slate-400); --cw-gray-400: var(--nvl-slate-400); --cw-gray-300: var(--nvl-stone-300); }
+.home[data-skin="novetera"] .home-h1, .home[data-skin="novetera"] .home-h2 { letter-spacing: -0.01em; }
+.home[data-skin="novetera"] :is(.join-button, .home-button) { text-transform: none; letter-spacing: 0; }
