@@ -4,7 +4,8 @@ import { mkdir } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 import { setupInput } from "../../lib/setup/policy";
-import { db, engagement, facilitator, localEnv, mailbox, startApp } from "./harness";
+import { linkQr } from "../../lib/tv/qr";
+import { db, engagement, facilitator, localEnv, mailbox, press, startApp } from "./harness";
 async function main() {
   if(process.env.KIT_AREA==="b" && process.env.KIT_BEFORE!=="1") process.env.TEAM_HUB_DATABASE_URL="postgres://clearway_live_reader:local@127.0.0.1:1/postgres";
   const env=localEnv(), sql=db(env), mail=await mailbox(), app=await startApp(env,mail.url);
@@ -218,6 +219,85 @@ async function main() {
       await sql.query("delete from public.attendees where engagement_id=$1",[room.id]);
       await page.getByText("No one has joined yet. People appear here as they join.").waitFor({timeout:10000});
       await page.getByText("This is for people on a list.").waitFor({timeout:10000}); assert.equal(await page.getByLabel("Device code on their phone").count(),0,"nobody is on a list, so hand sign-in is one line");
+    }
+    if(!before && area==="c") {
+      // One laptop: the live room's way back, its address and brand, its order on half a screen, the remote's panel and ending a workshop.
+      const linkName=`kit${room.id.replace(/-/g,"").slice(0,12)}`, code=(await sql.query("select room_code from public.engagements where id=$1",[room.id])).rows[0].room_code as string;
+      await sql.query("update public.engagements set link_name=$2,status='setup',type='team_workshop',skin='clearway',settings=coalesce(settings,'{}'::jsonb)||'{\"ai_enabled\":false}'::jsonb where id=$1",[room.id,linkName]);
+      await sql.query("delete from public.attendees where engagement_id=$1",[room.id]);
+      await room.session("Welcome","content","Welcome",1); const wall=await room.session("What worries you","wall","What worries you about AI?",2);
+      const control=`${app.origin}/control/${room.id}`, status=async()=>(await sql.query("select status from public.engagements where id=$1",[room.id])).rows[0].status as string;
+      await context.grantPermissions(["clipboard-read","clipboard-write"],{origin:app.origin});
+      await page.setViewportSize({width:1512,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
+      // 1. A way out of the live room.
+      const back=page.getByRole("link",{name:"Back to the engagement",exact:true}); assert.equal(await back.getAttribute("href"),`/setup/${room.id}`,"the live room links back to the Overview");
+      // 2. At 1512 the three columns are unchanged and nothing is folded.
+      assert.equal(await page.locator(".ctl-cols").evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length),3,"three columns at 1512");
+      assert.equal(await page.locator(".ctl-run-toggle").isVisible(),false,"no fold button at 1512"); assert.equal(await page.locator(".ctl-run-list").first().isVisible(),true,"the run of show shows at 1512");
+      const colX=async(sel:string)=>(await page.locator(sel).first().boundingBox())!.x;
+      assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, controls and private panels run left to right");
+      // 3. The room's identity, on the engagement's own address.
+      const identity=page.getByTestId("room-identity");
+      let line=await identity.innerText(); assert.ok(line.includes(`${clearwayHost}/${linkName}`)&&line.includes(`Room code ${code}`)&&line.includes("Clearway")&&/\d+ in the room/.test(line),`identity line: ${line}`);
+      assert.equal(await identity.getByRole("link",{name:/in the room$/}).getAttribute("href"),"#ctl-door","the count goes to the door list on this page");
+      await identity.getByRole("link",{name:/in the room$/}).click(); assert.equal(await page.locator("#ctl-door").isVisible(),true,"the door list is on the control surface");
+      await sql.query("update public.engagements set skin='novetera' where id=$1",[room.id]); await page.goto(control); await page.waitForLoadState("networkidle");
+      line=await page.getByTestId("room-identity").innerText(); assert.ok(line.includes(`${noveteraHost}/${linkName}`)&&line.includes("Novetera")&&!line.includes(clearwayHost),`a Novetera engagement shows its own address: ${line}`);
+      assert.equal(await page.getByRole("heading",{name:"Live room",level:1}).count(),1,"the control surface stays Clearway Live");
+      if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-1512.png`}); }
+      // Half a laptop screen: the live controls come first, the TV second, the run of show folded after.
+      await page.setViewportSize({width:756,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
+      const top=async(loc:import("playwright").Locator)=>(await loc.boundingBox())!.y;
+      const go=page.getByRole("button",{name:/^Go live/}); assert.ok(await top(go)+(await go.boundingBox())!.height<=982,"Go live is inside the first screen at 756");
+      assert.ok(await top(go)<await top(page.locator(".ctl-tv")),"the controls sit above the TV preview"); assert.ok(await top(page.locator(".ctl-tv"))<await top(page.locator(".ctl-run")),"the TV preview sits above the run of show");
+      assert.equal(await page.locator(".ctl-run-list").first().isVisible(),false,"the run of show is folded");
+      await page.getByRole("button",{name:"Show the run of show",exact:true}).click(); assert.equal(await page.locator(".ctl-run-list").first().isVisible(),true,"it opens on request");
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),"the live room fits 756px");
+      if(process.env.KIT_SHOTS) { await page.getByRole("button",{name:"Hide the run of show",exact:true}).click(); await page.evaluate(()=>scrollTo(0,0)); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-756.png`}); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-756-full.png`,fullPage:true}); }
+      await page.setViewportSize({width:1512,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
+      // The AI notice links to the AI card on Details.
+      await press(fac,sql,room.id,"go_live",{session:wall}); await page.goto(control); await page.waitForLoadState("networkidle");
+      assert.equal(await page.locator("[data-ai-panel]").getByRole("link",{name:"the engagement's setup",exact:true}).getAttribute("href"),`/setup/${room.id}/details#details-ai`);
+      await press(fac,sql,room.id,"nothing_live");
+      // The pages around it lead on.
+      await page.goto(`${app.origin}/setup/${room.id}/door`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the Door list leads to the live room");
+      await page.goto(`${app.origin}/setup/${room.id}/run-of-show`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the run of show leads to the live room");
+      await page.goto(`${app.origin}/setup`); const row=page.locator(`.admin-row:has(a[href*="${room.id}"])`);
+      assert.equal(await row.getByTestId("brand-label").innerText(),"Novetera","the list names the engagement's brand");
+      if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/list-1512.png`}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/list-756.png`}); await page.setViewportSize({width:1512,height:982}); }
+      await page.goto(`${app.origin}/setup/${room.id}/tv`); assert.equal(await page.locator("#tv-texture").count(),0,"a Novetera engagement has no texture setting");
+      await sql.query("update public.engagements set skin='clearway' where id=$1",[room.id]);
+      await page.goto(`${app.origin}/setup`); assert.equal(await page.locator(`.admin-row:has(a[href*="${room.id}"])`).getByTestId("brand-label").innerText(),"Clearway");
+      await page.goto(`${app.origin}/setup/${room.id}/tv`); assert.equal(await page.locator("#tv-texture").count(),1,"a Clearway engagement keeps it");
+      // 5. The remote: a panel with the link, a copy button and a code, and a way to open it here.
+      await page.goto(control); await page.waitForLoadState("networkidle");
+      await page.getByRole("button",{name:"Open the remote",exact:true}).click(); const panel=page.getByRole("dialog",{name:"Open the remote on a phone"});
+      const remote=`${app.origin}/remote/${room.id}`; assert.equal((await panel.getByTestId("remote-link").innerText()).trim(),remote,"the panel shows the remote's link");
+      assert.equal(await panel.getByTestId("remote-qr").locator("path").getAttribute("d"),linkQr(remote).path,"the code carries the same link");
+      assert.ok(/Clearway Google account/.test(await panel.innerText())&&/lead or co-facilitator/.test(await panel.innerText()),"it says who can use it");
+      await panel.getByRole("button",{name:"Copy link",exact:true}).click(); await panel.getByRole("button",{name:"Link copied",exact:true}).waitFor(); assert.equal(await page.evaluate(()=>navigator.clipboard.readText()),remote,"the link is on the clipboard");
+      assert.equal(await panel.getByRole("link",{name:"Open it on this computer",exact:true}).getAttribute("href"),`/remote/${room.id}`);
+      if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/remote-panel-1512.png`});
+      await page.keyboard.press("Escape"); assert.equal(await panel.count(),0,"Escape closes the panel");
+      await page.goto(remote); await page.waitForLoadState("networkidle"); assert.equal(new URL(page.url()).pathname,`/remote/${room.id}`,"the remote still opens on this computer");
+      // 4. End the workshop: asks first, says what happens, then sets the same closed status Details sets.
+      await page.goto(control); await page.waitForLoadState("networkidle");
+      await page.getByTestId("end-workshop").click(); const ask=page.getByRole("alertdialog",{name:"End the workshop?"});
+      assert.ok(/Phones are signed out and answers close\. Results stay/.test(await ask.innerText()),"the confirm says what happens");
+      if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/end-workshop-1512.png`});
+      await ask.getByRole("button",{name:"Keep the workshop going",exact:true}).click(); assert.equal(await status(),"setup","keeping it going changes nothing");
+      await page.getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click();
+      await page.getByTestId("workshop-ended").waitFor(); assert.equal(await status(),"closed","the same closed status Details sets");
+      await sql.query("update public.engagements set status='setup' where id=$1",[room.id]);
+      await page.goto(`${app.origin}/control/${room.id}/recap`); await page.waitForLoadState("networkidle");
+      assert.equal(await page.getByRole("link",{name:"Back to the engagement",exact:true}).last().getAttribute("href"),`/setup/${room.id}`,"Results leads back to the engagement");
+      assert.equal(await page.locator("main").getByRole("link",{name:"All engagements",exact:true}).getAttribute("href"),"/setup");
+      if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/results-1512.png`,fullPage:true}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/results-756.png`,fullPage:true}); await page.setViewportSize({width:1512,height:982}); }
+      await page.locator(".recap-end").getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click(); await page.getByTestId("workshop-ended").waitFor();
+      assert.equal(await status(),"closed","Results ends the workshop too");
+      await sql.query("update public.engagements set status='setup',type='wayfinding' where id=$1",[room.id]);
+      await page.goto(control); await page.waitForLoadState("networkidle"); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
+      await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
     }
     assert.equal(mail.count,0,"admin audit sends no email");
     console.log(`Admin ${area} kit passed at desktop and narrow widths${before?" (baseline)":""}.`);
