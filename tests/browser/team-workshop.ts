@@ -143,15 +143,16 @@ async function main() {
     const phonesOn = async (title: string) => { const prompt = (await prompts()).get(title)!; await all(p => until(async () => (await p.page.locator(".ph-app").innerText().catch(() => "")).includes(prompt), `${title} on ${p.name}'s phone`, 20000)); };
     const goLive = async (title: string) => {
       await control.getByRole("button", { name: `Preview ${title}` }).click();
-      await control.getByRole("button", { name: "Go live from preview" }).click();
+      await control.locator(".ctl-take").getByText("Go live").waitFor();
+      await control.getByRole("button", { name: `Go live: ${title}`, exact: true }).click();
       const id = await idOf(title);
       await until(async () => await liveId() === id, `${title} live`, 10000);
       await phonesOn(title);
     };
     // Next from the control surface, as Chris presses it; the TV follows.
     const next = async (title: string, kind: string) => {
-      await until(async () => (await control.locator(".ctl-controls.is-laptop").getByRole("button", { name: "Next" }).getAttribute("title")) === title, `Next points at ${title}`, 10000);
-      await control.locator(".ctl-controls.is-laptop").getByRole("button", { name: "Next" }).click();
+      await until(async () => (await control.locator(".ctl-steps").getByRole("button", { name: "Next", exact: true }).getAttribute("title")) === title, `Next points at ${title}`, 10000);
+      await control.locator(".ctl-steps").getByRole("button", { name: "Next", exact: true }).click();
       const id = await idOf(title);
       await until(async () => await liveId() === id, `${title} live`, 10000);
       if (kind === "screen_check") await until(async () => await tv.locator(".tv-check.is-active").count() === 1, "the screen check on the TV", 10000);
@@ -195,10 +196,28 @@ async function main() {
       await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test items"), "the control surface counts the test answers", 10000);
       await shot(control, "team-rehearsal-control");
     });
+    await step("Blackout, Join and Home under the live screen, then Back returns to the step left", async () => {
+      const bar = control.locator(".ctl-screen-bar");
+      await bar.getByRole("button", { name: "Blackout", exact: true }).click();
+      await until(async () => await tv.locator(".tv-blackout.is-active").count() === 1 && await liveId() === null, "the TV goes black", 8000);
+      await until(async () => (await bar.getByRole("button", { name: "Blackout", exact: true }).getAttribute("aria-pressed")) === "true", "Blackout shows as on", 8000);
+      await shot(tv, "team-blackout-tv"); await shot(control, "team-blackout-control");
+      await bar.getByRole("button", { name: "Join", exact: true }).click();
+      await until(async () => (await tv.locator("main").getAttribute("data-join")) === "on" && await tv.locator(".tv-blackout.is-active").count() === 0, "the TV shows the join screen", 8000);
+      await bar.getByRole("button", { name: "Home", exact: true }).click();
+      await until(async () => await tv.locator(".tv-holding.is-active").count() === 1, "the TV goes home", 8000);
+      await control.locator(".ctl-steps").getByRole("button", { name: "Back", exact: true }).click();
+      await until(async () => await liveId() === await idOf("Your questions"), "Back returns to the step left", 8000);
+      // The preview: Preview on a row puts that step in the preview screen, and the preview draws it before it goes live.
+      await control.getByRole("button", { name: "Preview Check-in", exact: true }).click();
+      await until(async () => (await control.locator("#ctl-preview-title").innerText()) === "Check-in", "Check-in in the preview", 8000);
+      await control.locator(".ctl-screen.is-preview .tv-mirror").waitFor({ timeout: 8000 });
+      await shot(control, "team-control-preview");
+    });
     await step("Clear test answers: refused while live, then everything from the rehearsal goes and the steps are Ready again", async () => {
       assert.equal(await control.getByRole("button", { name: "Clear test answers" }).isDisabled(), true, "held while a session is live");
-      await control.locator(".ctl-controls.is-laptop").getByRole("button", { name: "Nothing live" }).click();
-      await until(async () => await liveId() === null, "Nothing live", 8000);
+      await control.locator(".ctl-screen-bar").getByRole("button", { name: "Home", exact: true }).click();
+      await until(async () => await liveId() === null, "Home", 8000);
       await until(async () => !(await control.getByRole("button", { name: "Clear test answers" }).isDisabled()), "the button frees up", 8000);
       await control.getByRole("button", { name: "Clear test answers" }).click();
       await control.getByRole("button", { name: /Tap again to clear/ }).click();

@@ -370,14 +370,16 @@ Every role is enforced in the database with row-level security, not only hidden 
 **Control surface: the facilitator view (FAC-01)**
 
 - It is in charge of the TV and every phone at once, and shows the facilitator more than the room sees: what's on the TV now, what's on phones now, what's next, and the private panel.
-- Left: the run of show with each session's state, timing against the agenda, and Up next with its presenter notes.
-- Centre: a live mirror of the TV, plus the live controls (the same as the remote).
-- Right: the private panel: the alignment signal (milestone 6), the door list, counts (signed in, answered this session), scribe cards arriving, moderation, and AI actions to undo or pin.
+- Laid out like a presentation switcher (Decided November 15), so the two things the facilitator does most, preview and go live, take the room:
+- Left: the run of show with timing against the agenda. Each step shows its state as a small icon (Draft, Ready, Live, Phones down, Taking late answers, Closed, named on hover and for screen readers) and two buttons: Preview and Go live.
+- Centre: the preview and live screens side by side. Preview puts a step in the preview screen, drawn as the TV would draw it, with its phone depth and presenter notes; until a step is chosen it shows Up next. Go live on the preview screen itself, or on the step's row, sends it to the live screen. The live screen is the TV's confirmed picture with Blackout (the TV goes black), Join (the join screen) and Home (the holding screen) under it, then Back and Next, what's on phones now and the live step's presenter notes. Each of Blackout, Join and Home takes the live step off the TV like a break: its segment stays open for late answers and Back returns to it. The remaining live controls sit under the screens, then the live step's own list and panel.
+- Right: Room admin, a drawer called from the header and hidden again to give the screens the room (it stays as the facilitator left it): the alignment signal (milestone 6), AI actions to undo or pin, counts (signed in, answered this session) and room size, the hand-over, scribe cards arriving, the overnight review, the door list, Rehearsal and recent presses.
+- Each column scrolls on its own and stops at its end; the page never scrolls past the live room.
 - Everything private carries one consistent "only you see this" treatment, so it can't be mistaken for the TV if the laptop screen is ever shared.
 
 **Remote (FAC-03)**
 
-- Large controls: Go live on the next session, Next, Back, Nothing live, Start burst (3, 4 or 5 minutes) with a countdown, Phones down and Open phones, Spotlight an item, Hide an item from the TV, Undo the last AI merge, Refresh phones, Show the TV view on phones, and room size.
+- Large controls: Go live on the next session, Next, Back, Home (nothing live), Start burst (3, 4 or 5 minutes) with a countdown, Phones down and Open phones, Spotlight an item, Hide an item from the TV, Undo the last AI merge, Refresh phones, Show the TV view on phones, and room size.
 - It always shows what the TV has confirmed it is showing, not what the remote asked for. If the TV hasn't confirmed within 2 seconds, the remote shows "Syncing" until it does (FAIL-06).
 - With more than one TV, confirmed means every connected TV has confirmed. A TV silent for 12 seconds drops out of the confirmation and shows as reconnecting on the control surface, so one dead screen can't hold the room in Syncing. With no TV connected, the remote says "No TV connected" and every control still works (Decided November 1).
 - Presses that change many phones at once (Refresh phones, closing a day) need a second tap within 3 seconds (Decided November 1).
@@ -468,7 +470,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 **Going live**
 
 - Go live makes a session the one live session: the TV animates to it, and every phone moves to it within 1 second.
-- Nothing live puts the TV on its holding screen and phones on waiting. It is a break: it closes nothing.
+- Nothing live (the Home button) puts the TV on its holding screen and phones on waiting. It is a break: it closes nothing. Blackout and Join, under the live screen, are the same break with a black TV or the join screen (Decided November 15).
 - Next and Back move through the run of show, skipping drafts and self-paced sessions. Moving needs no confirmation (Decided November 1).
 - Late answers (Decided November 1): leaving a step does not stop its answers while the room stays in the step's segment. With the room on Five Lenses: Community, a phone can go back to Five Lenses: Congregation and still answer it, so the report has everything. Phones down and bursts lock only the step on the TV. Going live on a step outside the segment closes every step in it. A step with no segment closes as soon as the room moves on.
 - Close the day: Close Pre-call, Close Day 1, Close Day 2 and Close Follow-up close every step still open in that part, so the overnight report works from a fixed set of answers. If one of its steps is on the TV, the TV goes to its holding screen.

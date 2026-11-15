@@ -139,6 +139,8 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
       <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1></section>
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
+    {/* Blackout covers everything on the TV, header and footer included, and fades in and out like a scene. */}
+    <div className={`tv-blackout${mode === "blackout" ? " is-active" : ""}`} aria-hidden="true" data-testid="tv-blackout" />
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaSpotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><PromotedQuoteSpot frame={frame} /></span>}

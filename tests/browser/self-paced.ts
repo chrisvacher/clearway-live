@@ -185,7 +185,7 @@ async function main() {
     await step("Clear test answers is refused while a session is live", async () => {
       await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("2 test items"), "the count of test items", 8000);
       assert.equal(await control.getByRole("button", { name: "Clear test answers" }).isDisabled(), true, "the button is held");
-      assert.match(await control.locator("#sp-clear-why").innerText(), /Choose Nothing live first/);
+      assert.match(await control.locator("#sp-clear-why").innerText(), /Choose Home under the live screen first/);
       const refused = await fetch(`${app.origin}/api/control/${room.id}/rehearsal`, { method: "POST", headers: { Cookie: facCookie, Origin: app.origin, "Content-Type": "application/json" }, body: JSON.stringify({ id: randomUUID(), action: "clear" }) });
       assert.equal(refused.status, 409); assert.equal((await refused.json()).status, "live", "the server refuses it too");
       assert.equal((await sql.query("select count(*)::int as n from public.submissions where engagement_id=$1 and test and not deleted", [room.id])).rows[0].n, 2, "nothing removed");

@@ -75,7 +75,7 @@ export function rehearsalMessage(result: RehearsalResult): string {
       return `Cleared ${list}${result.sessions ? `${parts.length > 1 ? "," : ""} and set ${result.sessions} ${result.sessions === 1 ? "step" : "steps"} back to Ready` : ""}.`;
     }
     case "unchanged": return "";
-    case "live": return `${result.title ? `${result.title} is live. ` : ""}Choose Nothing live first. Test answers can’t be cleared while a session is live.`;
+    case "live": return `${result.title ? `${result.title} is live. ` : ""}Choose Home under the live screen first. Test answers can’t be cleared while a session is live.`;
     case "closed": return "This engagement has closed.";
     case "denied": return "Only this engagement’s facilitators can do that.";
     default: return "That didn’t go through. Try again.";

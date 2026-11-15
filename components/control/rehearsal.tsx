@@ -71,7 +71,7 @@ export function RehearsalPanel({ room }: { room: Room }) {
       <button className="show-button is-small sp-clear" disabled={Boolean(busy) || closed || live || !canClearTests(tests, on)} aria-describedby={live ? "sp-clear-why" : undefined}
         onClick={() => confirm.tap("clear", () => void send("clear"))}>{busy === "clear" ? "Clearing..." : confirm.armed === "clear" ? `Tap again to clear ${testAnswersLabel(tests)}` : "Clear test answers"}</button>
     </div>
-    {live && <p id="sp-clear-why" className="show-help">Choose Nothing live first. Test answers can’t be cleared while a session is live.</p>}
+    {live && <p id="sp-clear-why" className="show-help">Choose Home under the live screen first. Test answers can’t be cleared while a session is live.</p>}
     {note && <p className={`show-help${note.error ? " is-error" : ""}`} role={note.error ? "alert" : "status"}>{note.text}</p>}
     {rehearsal?.last_clear && <p className="show-help">Last cleared {when(rehearsal.last_clear.at)}{rehearsal.last_clear.by ? ` by ${rehearsal.last_clear.by}` : ""}: {joinParts(clearedParts(rehearsal.last_clear)) || "0 test answers"}.</p>}
   </div>;

@@ -254,6 +254,9 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .tv-names { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-8); margin-top: var(--space-10); font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-semibold); color: var(--cwl-presence); }
 .tv-names span { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; animation: tv-name-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
 @keyframes tv-name-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.tv-blackout { position: absolute; inset: 0; z-index: 100; background: var(--cwl-tv-blackout); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-blackout.is-active { opacity: 1; }
+.tv-viewport[data-blackout="on"] { cursor: none; }
 .tv-check { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); z-index: 1; }
 .tv-check-safe { position: absolute; inset: var(--cwl-tv-safe-y) var(--cwl-tv-safe-x); outline: 4px solid var(--cwl-text); }
 .tv-check-edge { position: absolute; inset: 0; outline: 4px dashed var(--cwl-text-muted); outline-offset: -4px; }
@@ -376,7 +379,7 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .tv-mirror .tv-reconnecting { display: none; }
 
 .surface:has(> .ctl-app) > .header { display: none; }
-.ctl-app { display: flex; flex-direction: column; height: 100svh; background: var(--cwl-app-page); color: var(--cwl-app-text); font-size: var(--cwl-fs-app-table); }
+.ctl-app { display: flex; flex-direction: column; height: 100svh; overflow: hidden; background: var(--cwl-app-page); color: var(--cwl-app-text); font-size: var(--cwl-fs-app-table); }
 .ctl-head h1, .ctl-col h2, .ctl-col h3, .ctl-sheet h2 { margin: 0; color: var(--cwl-app-text); font-weight: var(--fw-bold); }
 .ctl-head h1 { font-size: var(--cwl-fs-app-page-title); }
 .ctl-col h2, .ctl-sheet h2 { font-size: var(--cwl-fs-app-section-title); }
@@ -395,19 +398,36 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-label { font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
 .ctl-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
 .ctl-row.is-between { justify-content: space-between; }
-.ctl-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 300px minmax(0,1fr) 360px; }
-.ctl-col { min-width: 0; overflow-y: auto; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+.ctl-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0,1fr); }
+.ctl-cols.has-side { grid-template-columns: 320px minmax(0,1fr) 360px; }
+/* Each column scrolls on its own and stops at its last item. position: relative keeps anything absolutely placed inside a column
+   (a visually hidden label, a menu) inside that column, so it can't stretch the page below the live room. */
+.ctl-col { position: relative; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
 .ctl-run { background: var(--cwl-app-card); border-right: 1px solid var(--cwl-app-border); }
 .ctl-side { background: var(--cwl-app-card); border-left: 1px solid var(--cwl-app-border); }
-.ctl-centre { max-width: 980px; width: 100%; margin-inline: auto; }
+.ctl-side[hidden] { display: none; }
+.ctl-side:not([hidden]) { animation: ctl-side-in var(--dur-base) var(--cwl-ease-calm); }
+@keyframes ctl-side-in { from { opacity: 0; transform: translateX(var(--space-4)); } to { opacity: 1; transform: none; } }
+.ctl-side-head { position: sticky; top: calc(var(--space-4) * -1); z-index: 2; margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0; padding: var(--space-3) var(--space-4); background: var(--cwl-app-card); border-bottom: 1px solid var(--cwl-app-border); }
+.ctl-side-toggle.is-on { background: var(--cwl-app-selected); border-color: var(--cwl-app-primary); }
+.ctl-centre { width: 100%; max-width: 1480px; margin-inline: auto; container-type: inline-size; container-name: ctl-centre; }
+@media (prefers-reduced-motion: reduce) { .ctl-side:not([hidden]) { animation: none; } }
 .ctl-part { display: flex; flex-direction: column; gap: var(--space-2); }
 .ctl-run-list { list-style: none; margin: 0; padding: 0; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); overflow: hidden; }
-.ctl-run-list li { display: grid; grid-template-columns: 56px minmax(0,1fr); gap: var(--space-1) var(--space-2); align-items: start; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--cwl-app-border); }
-.ctl-run-meta { grid-column: 2; display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ctl-run-list li { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: var(--space-1) var(--space-2); align-items: start; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--cwl-app-border); }
+.ctl-run-actions { grid-column: 2 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+.ctl-run-actions .show-button { justify-content: center; }
+.ctl-run-actions .is-go:not(:disabled) { background: var(--cwl-live); color: var(--cwl-on-live); border-color: var(--cwl-live); }
+.ctl-run-actions .is-on-air:disabled { background: var(--cwl-app-selected); color: var(--cwl-app-text); border-color: var(--cwl-app-primary); opacity: 1; }
+.ctl-run-actions [aria-pressed="true"] { border-color: var(--cwl-app-primary); box-shadow: inset 0 0 0 1px var(--cwl-app-primary); }
+.ctl-state-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius-pill); color: var(--cwl-app-text-muted); }
+.ctl-state-icon.is-live, .ctl-state-icon.is-phones_down { background: var(--cwl-live); color: var(--cwl-on-live); }
+.ctl-state-icon.is-closed { color: var(--cwl-app-text-subtle); }
+.ctl-state-icon.is-draft { color: var(--cwl-app-warning); }
 .ctl-run-list .show-state { text-transform: none; }
 .ctl-run-list li:last-child { border-bottom: 0; }
 .ctl-run-list li.is-current { background: var(--cwl-app-selected); }
-.ctl-run-list li.is-next { box-shadow: inset 3px 0 0 var(--cwl-app-primary); }
+.ctl-run-list li.is-preview { box-shadow: inset 3px 0 0 var(--cwl-app-primary); }
 .ctl-time { grid-row: span 2; font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-variant-numeric: tabular-nums; }
 .ctl-run-title { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
 .ctl-run-title small { color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-micro); }
@@ -475,13 +495,52 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-defs { margin: 0; display: grid; gap: var(--space-1); }
 .ctl-defs dt { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: var(--fw-semibold); }
 .ctl-defs dd { margin: 0 0 var(--space-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The preview and live screens, side by side like a presentation switcher. */
+.ctl-screens { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-4); align-items: start; }
+.ctl-screen { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.ctl-screen.is-live { border-color: var(--cwl-app-border-strong); }
+.ctl-screen-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; min-height: 32px; }
+.ctl-screen-tag { flex: none; padding: 2px var(--space-2); border-radius: var(--cwl-radius-marker); background: var(--cwl-app-sunken); color: var(--cwl-app-text); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-bold); text-transform: uppercase; letter-spacing: 0.06em; }
+.ctl-screen-tag.is-live { background: var(--cwl-live); color: var(--cwl-on-live); }
+.ctl-screen .ctl-screen-title { flex: 1 1 8rem; min-width: 0; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--cwl-fs-app-body); }
+.ctl-screen-note { flex: none; font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
+.ctl-screen-frame { position: relative; }
+.ctl-screen-empty { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; padding: var(--space-4); border-radius: var(--cwl-radius-button); background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); text-align: center; }
+.ctl-take { position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--cwl-live); color: var(--cwl-on-live); font: inherit; font-weight: var(--fw-bold); box-shadow: var(--shadow-md); cursor: pointer; }
+.ctl-take:hover:not(:disabled) { transform: translateY(-1px); }
+.ctl-take:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.ctl-take:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); box-shadow: none; cursor: not-allowed; }
+.ctl-screen-bar { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); overflow: hidden; }
+.ctl-screen-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1) var(--space-2); flex-wrap: wrap; min-width: 0; min-height: var(--cwl-phone-touch); padding: var(--space-1) var(--space-2); white-space: nowrap; border: 0; background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
+.ctl-screen-btn svg { flex: none; }
+.ctl-screen-btn + .ctl-screen-btn { border-left: 1px solid var(--cwl-app-border); }
+.ctl-screen-btn:hover:not(:disabled) { background: var(--cwl-app-hover); }
+.ctl-screen-btn:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -2px; }
+.ctl-screen-btn[aria-pressed="true"] { background: var(--cwl-app-selected); box-shadow: inset 0 -3px 0 var(--cwl-app-primary); cursor: default; }
+.ctl-screen-btn:disabled:not([aria-pressed="true"]) { color: var(--cwl-app-text-subtle); cursor: not-allowed; }
+.ctl-steps { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.ctl-steps .show-button { justify-content: center; min-height: var(--cwl-phone-touch-lg); font-size: var(--cwl-fs-app-body); }
+.ctl-screen-foot { display: flex; flex-direction: column; gap: var(--space-2); }
+.ctl-screen-line { display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.ctl-screen-line > span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: var(--fw-semibold); }
+.ctl-screen-notes { border-top: 1px solid var(--cwl-app-border); padding-top: var(--space-2); }
+.ctl-screen-notes summary { cursor: pointer; font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); color: var(--cwl-app-text-muted); }
+.ctl-screen-notes .ctl-notes { margin-top: var(--space-1); max-height: 9em; overflow-y: auto; }
+/* The controls under the screens: one toolbar that wraps, not a column of rows. */
+.ctl-controls.is-compact { flex-direction: row; flex-wrap: wrap; align-items: center; }
+.ctl-controls.is-compact .ctl-grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ctl-controls.is-compact > :is(.ctl-countdown, .ctl-decision, .is-wide) { flex: 1 1 100%; }
+.ctl-controls.is-compact .ctl-seg { grid-template-columns: repeat(3, 44px); }
+/* The screens sit side by side while each can be a useful size; in a narrower centre (a small window, or Room admin open) they stack, live first. */
+@container ctl-centre (max-width: 640px) { .ctl-screens { grid-template-columns: minmax(0,1fr); } .ctl-screen.is-live { order: -1; } }
+@media (max-width: 900px) { .ctl-screens { grid-template-columns: minmax(0,1fr); } .ctl-screen.is-live { order: -1; } }
 .ctl-toasts { position: fixed; right: var(--space-4); bottom: var(--space-4); display: grid; gap: var(--space-2); z-index: 20; max-width: min(360px, calc(100vw - var(--space-8))); }
 .ctl-toast { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-button); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); box-shadow: var(--shadow-md); }
 .ctl-toast div { display: flex; flex-direction: column; }
 .ctl-toast span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
 .control-list { display: grid; gap: var(--space-6); margin-bottom: var(--space-8); }
-@media (max-width: 1200px) { .ctl-cols { grid-template-columns: 260px minmax(0,1fr) 300px; } }
-@media (max-width: 900px) { .ctl-app { height: auto; } .ctl-cols { grid-template-columns: minmax(0,1fr); } .ctl-col { overflow: visible; } .ctl-head { flex-wrap: wrap; } }
+@media (max-width: 1200px) { .ctl-cols { grid-template-columns: 280px minmax(0,1fr); } .ctl-cols.has-side { grid-template-columns: 280px minmax(0,1fr) 320px; } }
+@media (max-width: 900px) { .ctl-app { height: auto; overflow: visible; } .ctl-cols { grid-template-columns: minmax(0,1fr); } .ctl-col { overflow: visible; } .ctl-head { flex-wrap: wrap; } }
 /* One-laptop setup: the live room names its address, folds its run of show on a narrow window and asks before it ends a workshop. */
 .ctl-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
 .ctl-identity { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); margin-top: var(--space-1); font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
@@ -501,13 +560,13 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-remote-side { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; flex: 1 1 200px; }
 .ctl-remote-link { overflow-wrap: anywhere; font-weight: var(--fw-semibold); }
 @media (max-width: 900px) {
-  /* The live controls first, then the TV, then everything else: the facilitator's controls are never a page away. */
+  /* The screens first (live above preview), then the controls, then everything else: the facilitator's controls are never a page away. */
   .ctl-app:not(.how-live-room) .ctl-cols { display: flex; flex-direction: column; gap: var(--space-4); padding-block: var(--space-4); }
   .ctl-app:not(.how-live-room) .ctl-centre { display: contents; }
   .ctl-app:not(.how-live-room) .ctl-centre > * { order: 3; margin-inline: var(--space-4); }
   .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-banner, .show-message) { order: 0; }
-  .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-controls, .ctl-preview) { order: 1; }
-  .ctl-app:not(.how-live-room) .ctl-centre > .ctl-tv { order: 2; }
+  .ctl-app:not(.how-live-room) .ctl-centre > .ctl-screens { order: 1; }
+  .ctl-app:not(.how-live-room) .ctl-centre > .ctl-controls { order: 2; }
   .ctl-app:not(.how-live-room) .ctl-run { order: 4; }
   .ctl-app:not(.how-live-room) .ctl-side { order: 5; }
   .ctl-run-toggle { display: inline-flex; }
@@ -782,8 +841,9 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ctl-head > div:first-child { flex: none; max-width: 100%; }
 .ctl-identity > * { white-space: nowrap; }
 
-/* Live room header, wide window: the right side is one row of equal 44px actions, the chip centred on them. Print and End the workshop live in More. */
-@media (min-width: 901px) { .ctl-head .ctl-actions { flex-wrap: nowrap; flex: none; } }
+/* Live room header, wide window: the right side is a row of equal 44px actions, the chip centred on them, ending with Room admin. Print and End
+   the workshop live in More. On a laptop too narrow for one row the actions wrap to a second row, right-aligned, so none is cut off. */
+@media (min-width: 901px) { .ctl-head .ctl-actions { flex: 1 1 auto; min-width: 0; flex-wrap: wrap; justify-content: flex-end; row-gap: var(--space-2); } }
 .ctl-more { position: relative; }
 .ctl-more-menu { position: absolute; top: calc(100% + var(--space-1)); right: 0; z-index: 20; min-width: 100%; display: flex; flex-direction: column; padding: var(--space-1); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); box-shadow: var(--shadow-dropdown); }
 .ctl-more-item { display: flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: transparent; color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); text-align: left; white-space: nowrap; text-decoration: none; cursor: pointer; }

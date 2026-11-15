@@ -131,12 +131,12 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
         <span className="show-help">Every setting has a default. Finish now or come back later; edits go out when you press Done.</span>
         {dirty && <button className="show-button" type="button" disabled={busy} onClick={() => { setValue(session); setStart(localTime(session.planned_start, context.timezone)); setOpens(localTime(session.opens_at, context.timezone)); setCloses(localTime(session.closes_at, context.timezone)); }}>Discard changes</button>}
         {canRemove && (asking ? removeBox("show-help show-remove-ask") : <button className="show-button" type="button" disabled={busy || blocked} onClick={askRemove}><Trash2 size={16} aria-hidden="true" />Remove</button>)}
-        {onAir && !context.closed && <span className="show-help" data-remove-note>This step is on air. Choose Nothing live in the live room, then remove it.</span>}
+        {onAir && !context.closed && <span className="show-help" data-remove-note>This step is on air. Choose Home under the live screen, then remove it.</span>}
         {!running && <button className="show-button" type="submit" name="intent" value="draft" disabled={busy || blocked || context.closed}>Save as draft</button>}
         <button className="show-button is-primary" type="submit" name="intent" value="ready" disabled={busy || blocked || context.closed}><Check size={16} aria-hidden="true" />{busy ? "Saving..." : "Done"}</button></div>
       : <><div className="show-panel-foot">{(timeError || feedback) && <p className={`show-panel-feedback${timeError || failed ? " is-error" : ""}`} role={timeError || failed ? "alert" : "status"}>{timeError || feedback}</p>}<span className="show-help">Edits go out when you save.</span><button className="show-button" type="button" disabled={busy} onClick={close}>Cancel</button><button className="show-button is-primary" type="submit" disabled={busy || blocked || context.closed}>{busy ? "Saving..." : "Save"}</button></div>
       {!fresh && canRemove && (asking ? removeBox("show-remove show-remove-ask") : <button className="show-remove" type="button" disabled={busy || blocked} onClick={askRemove}>Remove session</button>)}
-      {!fresh && onAir && !context.closed && <span className="show-help" data-remove-note>This step is on air. Choose Nothing live in the live room, then remove it.</span>}</>}
+      {!fresh && onAir && !context.closed && <span className="show-help" data-remove-note>This step is on air. Choose Home under the live screen, then remove it.</span>}</>}
     </form>
   </Wrap>;
 }

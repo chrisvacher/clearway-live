@@ -369,6 +369,8 @@
  --cwl-tex-solid: 0.16;
  --cwl-check-display: 144px; --cwl-check-headline-xl: 96px; --cwl-check-headline: 64px; --cwl-check-main: 56px; --cwl-check-body: 44px; --cwl-check-floor: 36px;
  --tv-stage-scale: 1;
+ /* Blackout: the facilitator takes the TV to true black, whatever the theme or skin. */
+ --cwl-tv-blackout: #000000;
 }
 [data-surface="tv"][data-room="small"] { --cwl-room-scale: var(--cwl-room-small); }
 [data-surface="tv"][data-room="medium"] { --cwl-room-scale: var(--cwl-room-medium); }
