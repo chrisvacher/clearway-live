@@ -231,25 +231,34 @@ async function main() {
       await page.setViewportSize({width:1512,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
       // 1. A way out of the live room.
       const back=page.getByRole("link",{name:"Back to the engagement",exact:true}); assert.equal(await back.getAttribute("href"),`/setup/${room.id}`,"the live room links back to the Overview");
-      // 2. At 1512 the three columns are unchanged and nothing is folded.
-      assert.equal(await page.locator(".ctl-cols").evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length),3,"three columns at 1512");
+      // 2. At 1512 the run of show and the screens fill the window; Room admin is a drawer, hidden until called.
+      // A facilitator who has never opened Room admin (the kits open it for everyone else).
+      await page.evaluate(()=>localStorage.setItem("clearway-live.room-admin","closed")); await page.goto(control); await page.waitForLoadState("networkidle");
+      const columns=async()=>page.locator(".ctl-cols").evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length);
+      assert.equal(await columns(),2,"two columns at 1512 with Room admin hidden"); assert.equal(await page.locator(".ctl-side").isVisible(),false,"Room admin starts hidden");
       assert.equal(await page.locator(".ctl-run-toggle").isVisible(),false,"no fold button at 1512"); assert.equal(await page.locator(".ctl-run-list").first().isVisible(),true,"the run of show shows at 1512");
       const colX=async(sel:string)=>(await page.locator(sel).first().boundingBox())!.x;
-      assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, controls and private panels run left to right");
+      assert.ok(await colX(".ctl-screen.is-preview")<await colX(".ctl-screen.is-live"),"preview left, live right");
+      await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await columns(),3,"Room admin opens as a third column");
+      assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, screens and Room admin run left to right");
+      await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await page.locator(".ctl-side").isVisible(),false,"and hides again");
+      // The page never scrolls past the live room.
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),"nothing below the live room at 1512");
       // 3. The room's identity, on the engagement's own address.
       const identity=page.getByTestId("room-identity");
       let line=await identity.innerText(); assert.ok(line.includes(`${clearwayHost}/${linkName}`)&&line.includes(`Room code ${code}`)&&line.includes("Clearway")&&/\d+ in the room/.test(line),`identity line: ${line}`);
       assert.equal(await identity.getByRole("link",{name:/in the room$/}).getAttribute("href"),"#ctl-door","the count goes to the door list on this page");
-      await identity.getByRole("link",{name:/in the room$/}).click(); assert.equal(await page.locator("#ctl-door").isVisible(),true,"the door list is on the control surface");
+      await identity.getByRole("link",{name:/in the room$/}).click(); assert.equal(await page.locator("#ctl-door").isVisible(),true,"the count opens Room admin at the door list");
       await sql.query("update public.engagements set skin='novetera' where id=$1",[room.id]); await page.goto(control); await page.waitForLoadState("networkidle");
       line=await page.getByTestId("room-identity").innerText(); assert.ok(line.includes(`${noveteraHost}/${linkName}`)&&line.includes("Novetera")&&!line.includes(clearwayHost),`a Novetera engagement shows its own address: ${line}`);
       assert.equal(await page.getByRole("heading",{name:"Live room",level:1}).count(),1,"the control surface stays Clearway Live");
       if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-1512.png`}); }
-      // Half a laptop screen: the live controls come first, the TV second, the run of show folded after.
+      // Half a laptop screen: the live screen first, then the preview with its Go live, then the controls, the run of show folded after.
       await page.setViewportSize({width:756,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
       const top=async(loc:import("playwright").Locator)=>(await loc.boundingBox())!.y;
-      const go=page.getByRole("button",{name:/^Go live/}); assert.ok(await top(go)+(await go.boundingBox())!.height<=982,"Go live is inside the first screen at 756");
-      assert.ok(await top(go)<await top(page.locator(".ctl-tv")),"the controls sit above the TV preview"); assert.ok(await top(page.locator(".ctl-tv"))<await top(page.locator(".ctl-run")),"the TV preview sits above the run of show");
+      assert.ok(await top(page.locator(".ctl-screen.is-live"))<await top(page.locator(".ctl-screen.is-preview")),"the live screen sits above the preview");
+      assert.ok(await top(page.locator(".ctl-take"))<await top(page.locator(".ctl-run")),"Go live on the preview sits above the run of show");
+      assert.ok(await top(page.locator(".ctl-screen.is-preview"))<await top(page.locator(".ctl-run")),"the screens sit above the run of show");
       assert.equal(await page.locator(".ctl-run-list").first().isVisible(),false,"the run of show is folded");
       await page.getByRole("button",{name:"Show the run of show",exact:true}).click(); assert.equal(await page.locator(".ctl-run-list").first().isVisible(),true,"it opens on request");
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),"the live room fits 756px");

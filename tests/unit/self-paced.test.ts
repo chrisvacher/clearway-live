@@ -74,7 +74,7 @@ test("Rehearsal presses and their messages", () => {
   assert.equal(rehearsalMessage({ status: "ok", answers: 0, themes: 1, signals: 0, other: 0 }), "Cleared 1 drafted theme.");
   assert.equal(rehearsalMessage({ status: "duplicate", answers: 0 }), "Cleared 0 test answers.");
   assert.equal(testAnswersLabel(rehearsal.answers + rehearsal.themes + rehearsal.signals), "25 test items");
-  assert.match(rehearsalMessage({ status: "live", title: "Celebration" }), /^Celebration is live\. Choose Nothing live first\./);
+  assert.match(rehearsalMessage({ status: "live", title: "Celebration" }), /^Celebration is live\. Choose Home under the live screen first\./);
   for (const s of ["live", "closed", "denied", "unavailable"]) assert.doesNotMatch(rehearsalMessage({ status: s }), /[–—]/);
 });
 

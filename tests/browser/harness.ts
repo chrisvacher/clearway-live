@@ -9,6 +9,20 @@ import { createServer } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { chromium, type Browser } from "playwright";
+
+// The live room's Room admin drawer (the AI panel, the alignment signal, the scribe feed, the door list, Rehearsal and the
+// rest) starts hidden for a facilitator who has never opened it. The kits press its panels as a facilitator who keeps it
+// open would, so every browser a kit launches starts with it open. A kit that sets the choice itself keeps its own.
+const roomAdminOpen = () => { try { if (localStorage.getItem("clearway-live.room-admin") === null) localStorage.setItem("clearway-live.room-admin", "open"); } catch { /* Storage can be unavailable. */ } };
+const launchKitBrowser = chromium.launch.bind(chromium);
+chromium.launch = (async (...args: Parameters<typeof chromium.launch>) => {
+  const browser = await launchKitBrowser(...args);
+  const newContext = browser.newContext.bind(browser), newPage = browser.newPage.bind(browser);
+  browser.newContext = (async (...options: Parameters<Browser["newContext"]>) => { const context = await newContext(...options); await context.addInitScript(roomAdminOpen); return context; }) as Browser["newContext"];
+  browser.newPage = (async (...options: Parameters<Browser["newPage"]>) => { const page = await newPage(...options); await page.addInitScript(roomAdminOpen); return page; }) as Browser["newPage"];
+  return browser;
+}) as typeof chromium.launch;
 
 export type Env = Record<string, string>;
 export function localEnv(): Env {

@@ -24,7 +24,7 @@ const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", op
 
 const messages: Record<string, string> = {
   conflict: "Someone changed this session or its order. Your edits are still here. Reload the run of show, then reopen the session before editing.",
-  running: "This session is running or already has answers. Keep its mode and interaction, or choose Nothing live before removing it.",
+  running: "This session is running or already has answers. Keep its mode and interaction, or choose Home under the live screen before removing it.",
   closed: "This engagement has closed. Reopen it in setup before editing sessions.", denied: "Your access has changed. Sign in again to continue.",
   invalid_state: "Use the live room controls to open or close a session.", unavailable: "We couldn’t save that. Your edits are still here. Please try again.",
 };

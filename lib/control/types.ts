@@ -1,8 +1,11 @@
 export const controlActions = ["go_live", "next", "back", "nothing_live", "reopen", "start_burst", "extend_burst", "end_burst", "phones_down", "open_phones",
-  "spotlight", "clear_spotlight", "hide", "unhide", "refresh_phones", "tv_on_phones", "room_size", "close_part"] as const;
+  "spotlight", "clear_spotlight", "hide", "unhide", "refresh_phones", "tv_on_phones", "room_size", "close_part", "tv_screen"] as const;
 export type ControlAction = typeof controlActions[number];
+// The screens the live room can put on the TV in place of a step: Blackout, Join and Home (the holding screen).
+export const tvScreens = ["blackout", "join", "holding"] as const;
+export type TvScreen = typeof tvScreens[number];
 export type RoomSize = "very_small" | "small" | "medium" | "large" | "very_large";
-export type ControlPress = { id: string; action: ControlAction; from?: string | null; session?: string; minutes?: 3 | 4 | 5; item?: string; on?: boolean; size?: RoomSize; part?: string };
+export type ControlPress = { id: string; action: ControlAction; from?: string | null; session?: string; minutes?: 3 | 4 | 5; item?: string; on?: boolean; size?: RoomSize; part?: string; screen?: TvScreen };
 export type ControlResult = { status: string; version?: number; title?: string | null; by?: string; live_session_id?: string | null };
 export type ControlScreen = { id: string; label: string; confirmed_version: number; last_seen_at: string | null; connected: boolean };
 export type ControlItem = { key: string; text: string; count: number; hidden: boolean };

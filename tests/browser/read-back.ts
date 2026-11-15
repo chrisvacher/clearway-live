@@ -537,7 +537,7 @@ async function main() {
         await row.getByRole("button", { name: /Open options/ }).click();
         await row.locator("[data-remove-note]").waitFor({ timeout: 8000 });
         assert.equal(await row.getByRole("button", { name: "Remove", exact: true }).count(), 0, "no Remove button while the step is on air");
-        assert.match(await row.locator("[data-remove-note]").innerText(), /Nothing live/);
+        assert.match(await row.locator("[data-remove-note]").innerText(), /Choose Home/);
         // After the reset it is Ready again, and Remove works.
         const reset = await fac.client.rpc("reset_practice_room"); assert.equal(reset.error, null); assert.equal(reset.data, true);
         await laptop.reload();
