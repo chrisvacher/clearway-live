@@ -502,7 +502,15 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-defs dt { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: var(--fw-semibold); }
 .ctl-defs dd { margin: 0 0 var(--space-2); white-space: pre-wrap; overflow-wrap: anywhere; }
 /* The preview and live screens, side by side like a presentation switcher. */
-.ctl-screens { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: var(--space-4); align-items: start; }
+/* The live room's centre column in five bands (November 15): status line, screens, a pinned transport bar, step controls, step panel. */
+.ctl-status { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-4); min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.ctl-status > span { color: var(--cwl-app-text-muted); white-space: nowrap; }
+.ctl-status .ctl-status-live { min-width: 0; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; color: var(--cwl-app-text); }
+.ctl-status .ctl-status-burst { color: var(--cwl-app-text); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; }
+.ctl-status .ctl-status-tv { margin-left: auto; }
+.ctl-status.is-black { border-color: var(--cwl-app-text); box-shadow: inset 4px 0 0 var(--cwl-app-text); }
+.ctl-screens { display: grid; grid-template-columns: minmax(0,3fr) minmax(0,2fr); gap: var(--space-4); align-items: start; }
+.ctl-screen.is-preview { border-color: var(--cwl-app-primary); box-shadow: inset 0 0 0 1px var(--cwl-app-primary); }
 .ctl-screen { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
 .ctl-screen.is-live { border-color: var(--cwl-app-border-strong); }
 .ctl-screen-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); min-width: 0; min-height: 32px; }
@@ -512,35 +520,67 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-screen-note { flex: none; font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
 .ctl-screen-frame { position: relative; }
 .ctl-screen-empty { display: flex; align-items: center; justify-content: center; aspect-ratio: 16 / 9; padding: var(--space-4); border-radius: var(--cwl-radius-button); background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); text-align: center; }
-.ctl-take { position: absolute; right: var(--space-3); bottom: var(--space-3); z-index: 2; display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-4); border: 0; border-radius: var(--radius-pill); background: var(--cwl-live); color: var(--cwl-on-live); font: inherit; font-weight: var(--fw-bold); box-shadow: var(--shadow-md); cursor: pointer; }
-.ctl-take:hover:not(:disabled) { transform: translateY(-1px); }
+/* 3. Transport: pinned to the bottom of the centre column so it never scrolls away; one row that never wraps on a laptop.
+   Back, Go live and Next sit under the preview; Blackout, Join and Home sit apart from them, under the live screen. */
+.ctl-transport { position: sticky; bottom: calc(var(--space-4) * -1); z-index: 3; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: var(--space-4); align-items: center; margin: 0 calc(var(--space-4) * -1); padding: var(--space-3) var(--space-4); background: var(--cwl-app-page); border-top: 1px solid var(--cwl-app-border); }
+.ctl-steps { display: grid; grid-template-columns: minmax(0,1fr) minmax(200px,1.6fr) minmax(0,1fr); gap: var(--space-3); align-items: center; }
+.ctl-steps .show-button { justify-content: center; min-height: var(--cwl-phone-touch-lg); font-size: var(--cwl-fs-app-body); white-space: nowrap; }
+.ctl-steps svg, .ctl-take svg { flex: none; }
+.ctl-take { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-width: 200px; min-height: 64px; padding: var(--space-2) var(--space-5); border: 0; border-radius: var(--cwl-radius-button); background: var(--cwl-live); color: var(--cwl-on-live); font: inherit; font-size: var(--cwl-fs-app-body); font-weight: var(--fw-bold); white-space: nowrap; cursor: pointer; }
+.ctl-take:hover:not(:disabled) { box-shadow: var(--shadow-md); }
 .ctl-take:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
-.ctl-take:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); box-shadow: none; cursor: not-allowed; }
-.ctl-screen-bar { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); overflow: hidden; }
-.ctl-screen-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1) var(--space-2); flex-wrap: wrap; min-width: 0; min-height: var(--cwl-phone-touch); padding: var(--space-1) var(--space-2); white-space: nowrap; border: 0; background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
+.ctl-take:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); cursor: not-allowed; }
+.ctl-screen-bar { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); padding-left: var(--space-4); border-left: 1px solid var(--cwl-app-border-strong); }
+.ctl-screen-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-width: 0; min-height: 48px; padding: var(--space-1) var(--space-2); white-space: nowrap; border: 1px solid var(--cwl-app-border-strong); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
 .ctl-screen-btn svg { flex: none; }
-.ctl-screen-btn + .ctl-screen-btn { border-left: 1px solid var(--cwl-app-border); }
+.ctl-screen-btn:first-child { border-radius: var(--cwl-radius-button) 0 0 var(--cwl-radius-button); }
+.ctl-screen-btn:last-child { border-radius: 0 var(--cwl-radius-button) var(--cwl-radius-button) 0; }
+.ctl-screen-btn + .ctl-screen-btn { border-left: 0; }
 .ctl-screen-btn:hover:not(:disabled) { background: var(--cwl-app-hover); }
 .ctl-screen-btn:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -2px; }
-.ctl-screen-btn[aria-pressed="true"] { background: var(--cwl-app-selected); box-shadow: inset 0 -3px 0 var(--cwl-app-primary); cursor: default; }
+/* Filled while that screen is on the TV, so a blacked-out TV is never a surprise. */
+.ctl-screen-btn[aria-pressed="true"] { background: var(--cwl-app-primary); border-color: var(--cwl-app-primary); color: var(--cwl-app-on-primary); cursor: default; }
+.ctl-screen-btn.is-blackout[aria-pressed="true"] { background: var(--cwl-app-text); border-color: var(--cwl-app-text); color: var(--cwl-app-card); }
 .ctl-screen-btn:disabled:not([aria-pressed="true"]) { color: var(--cwl-app-text-subtle); cursor: not-allowed; }
-.ctl-steps { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
-.ctl-steps .show-button { justify-content: center; min-height: var(--cwl-phone-touch-lg); font-size: var(--cwl-fs-app-body); }
+.ctl-kbd { display: inline-block; min-width: 1.5em; padding: 0 var(--space-1); border: 1px solid currentColor; border-radius: var(--cwl-radius-marker); font: inherit; font-size: var(--cwl-fs-app-micro); line-height: 1.5; text-align: center; opacity: 0.6; }
+@media (hover: none) { .ctl-kbd { display: none; } }
+/* 4. Step controls: fixed slots, so burst, phones, spotlight, hide and mark a decision are always in the same place. */
+.ctl-stepctl { display: grid; grid-template-columns: minmax(270px,max-content) minmax(150px,max-content) minmax(160px,max-content) minmax(100px,max-content) minmax(0,1fr); gap: var(--space-3); align-items: center; }
+.ctl-stepctl .show-button { min-height: var(--cwl-phone-touch); white-space: nowrap; }
+.ctl-slot.is-decision { justify-self: end; }
+.ctl-burst-on, .ctl-burst-off { display: flex; align-items: center; gap: var(--space-2); }
+.ctl-burst-on b { min-width: 3.5ch; font-size: var(--cwl-fs-app-body); font-variant-numeric: tabular-nums; }
+.ctl-stepctl .ctl-seg { grid-template-columns: repeat(3, 44px); }
+.ctl-stepctl.is-quiet { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: var(--cwl-phone-touch); color: var(--cwl-app-text-muted); }
+#ctl-decision-host:empty { display: none; }
+/* 5. Step panel: the live step's own tools in one card with its own scroll. */
+.ctl-step-panel { display: flex; flex-direction: column; gap: var(--space-4); max-height: min(60svh, 640px); overflow-y: auto; overscroll-behavior: contain; padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.ctl-step-panel:not(:has(> *)) { display: none; }
+.ctl-step-panel:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.ctl-step-panel .show-button { min-height: 36px; }
+.ctl-run-actions .show-button { min-height: 36px; }
+/* A narrower centre (Room admin open on a laptop): Mark a decision moves to its own row; the transport stays one row. */
+@container ctl-centre (max-width: 980px) { .ctl-slot.is-decision { grid-column: 1 / -1; justify-self: start; } .ctl-slot.is-decision:empty { display: none; } .ctl-steps .show-button .ctl-kbd { display: none; } }
+@container ctl-centre (max-width: 720px) {
+  .ctl-transport { grid-template-columns: minmax(0,1fr); gap: var(--space-3); }
+  .ctl-screen-bar { padding-left: 0; border-left: 0; }
+  .ctl-stepctl { grid-template-columns: repeat(auto-fit, minmax(150px, max-content)); }
+  .ctl-slot.is-burst { grid-column: 1 / -1; }
+  .ctl-slot:empty { display: none; }
+}
 .ctl-screen-foot { display: flex; flex-direction: column; gap: var(--space-2); }
 .ctl-screen-line { display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .ctl-screen-line > span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: var(--fw-semibold); }
 .ctl-screen-notes { border-top: 1px solid var(--cwl-app-border); padding-top: var(--space-2); }
 .ctl-screen-notes summary { cursor: pointer; font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); color: var(--cwl-app-text-muted); }
 .ctl-screen-notes .ctl-notes { margin-top: var(--space-1); max-height: 9em; overflow-y: auto; }
-/* The controls under the screens: one toolbar that wraps, not a column of rows. */
-.ctl-controls.is-compact { flex-direction: row; flex-wrap: wrap; align-items: center; }
-.ctl-controls.is-compact .ctl-grid { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.ctl-controls.is-compact > :is(.ctl-countdown, .ctl-decision, .is-wide) { flex: 1 1 100%; }
-.ctl-controls.is-compact .ctl-seg { grid-template-columns: repeat(3, 44px); }
 /* The screens sit side by side while each can be a useful size; in a narrower centre (a small window, or Room admin open) they stack, live first. */
 @container ctl-centre (max-width: 640px) { .ctl-screens { grid-template-columns: minmax(0,1fr); } .ctl-screen.is-live { order: -1; } }
 @media (max-width: 900px) { .ctl-screens { grid-template-columns: minmax(0,1fr); } .ctl-screen.is-live { order: -1; } }
 .ctl-toasts { position: fixed; right: var(--space-4); bottom: var(--space-4); display: grid; gap: var(--space-2); z-index: 20; max-width: min(360px, calc(100vw - var(--space-8))); }
+/* On the laptop the toasts sit above the pinned transport bar, never over Next or Home. */
+.ctl-app .ctl-toasts { bottom: calc(64px + var(--space-3) * 2 + var(--space-4)); }
+@media (max-width: 900px) { .ctl-app .ctl-toasts { bottom: calc(64px + 48px + var(--space-3) * 3 + var(--space-4)); } }
 .ctl-toast { display: flex; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--cwl-radius-button); background: var(--cwl-app-info-bg); color: var(--cwl-app-text); box-shadow: var(--shadow-md); }
 .ctl-toast div { display: flex; flex-direction: column; }
 .ctl-toast span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
@@ -571,8 +611,13 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
   .ctl-app:not(.how-live-room) .ctl-centre { display: contents; }
   .ctl-app:not(.how-live-room) .ctl-centre > * { order: 3; margin-inline: var(--space-4); }
   .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-banner, .show-message) { order: 0; }
-  .ctl-app:not(.how-live-room) .ctl-centre > .ctl-screens { order: 1; }
-  .ctl-app:not(.how-live-room) .ctl-centre > .ctl-controls { order: 2; }
+  .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-status, .ctl-screens) { order: 1; }
+  .ctl-app:not(.how-live-room) .ctl-centre > :is(.ctl-transport, .ctl-stepctl, #ctl-decision-host) { order: 2; }
+  .ctl-app:not(.how-live-room) .ctl-transport { bottom: 0; margin-inline: 0; grid-template-columns: minmax(0,1fr); gap: var(--space-3); padding-inline: var(--space-4); }
+  .ctl-app:not(.how-live-room) .ctl-screen-bar { padding-left: 0; border-left: 0; }
+  .ctl-app:not(.how-live-room) .ctl-stepctl { grid-template-columns: repeat(auto-fit, minmax(150px, max-content)); }
+  .ctl-app:not(.how-live-room) .ctl-slot.is-burst, .ctl-app:not(.how-live-room) .ctl-slot.is-decision { grid-column: 1 / -1; justify-self: start; }
+  .ctl-app:not(.how-live-room) .ctl-slot:empty { display: none; }
   .ctl-app:not(.how-live-room) .ctl-run { order: 4; }
   .ctl-app:not(.how-live-room) .ctl-side { order: 5; }
   .ctl-run-toggle { display: inline-flex; }

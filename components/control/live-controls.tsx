@@ -87,9 +87,8 @@ export function PreviewCard({ session, context, room, onClose }: { session: Show
   </section>;
 }
 
-// The live controls. The laptop and the remote send the same presses. On the laptop (compact) Go live, Back, Next and
-// Nothing live sit with the preview and live screens, so only Reopen stays here, for a step shown read-only.
-export function LiveControls({ room, variant, onItems, onRoomSize, compact = false }: { room: Room; variant: "laptop" | "remote"; onItems: () => void; onRoomSize?: () => void; compact?: boolean }) {
+// The live controls on the remote. The laptop sends the same presses from its transport bar and step controls (step-controls.tsx).
+export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Room; variant: "laptop" | "remote"; onItems: () => void; onRoomSize?: () => void }) {
   const { frame, current, steps, pending, press } = room;
   const confirm = useSecondTap();
   const [minutes, setMinutes] = useState<3 | 4 | 5>(4);
@@ -104,14 +103,14 @@ export function LiveControls({ room, variant, onItems, onRoomSize, compact = fal
   const primary = readOnly
     ? <button className={`${btn} is-primary is-wide`} disabled={busy} onClick={() => void press("reopen")}><RotateCcw size={20} aria-hidden="true" />Reopen {frame?.session?.title}</button>
     : <button className={`${btn} ${burst ? "is-primary" : "is-live"} is-wide`} disabled={busy || !up} onClick={() => up && void press("go_live", { session: up.id })}><Play size={20} aria-hidden="true" />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
-  return <div className={`ctl-controls is-${variant}${compact ? " is-compact" : ""}`}>
+  return <div className={`ctl-controls is-${variant}`}>
     {burst && <div className="ctl-countdown" role="timer" aria-label={`Burst, ${burst.label} left`}><Timer size={20} aria-hidden="true" /><b>{burst.label}</b><progress className="ctl-progress" max={100} value={Math.min(100, burst.ms / ((current?.settings.burst_minutes ?? 4) * 600))} aria-hidden="true" />
       <button className={btn} disabled={busy} onClick={() => void press("extend_burst")}><Plus size={18} aria-hidden="true" />Extend 1 min</button></div>}
-    {(!compact || readOnly) && primary}
-    {!compact && <div className="ctl-grid">
+    {primary}
+    <div className="ctl-grid">
       <button className={btn} disabled={busy || !steps.back} onClick={() => void press("back")} title={steps.back?.title}><ChevronLeft size={20} aria-hidden="true" />Back</button>
       <button className={btn} disabled={busy || !steps.next} onClick={() => void press("next")} title={steps.next?.title}>Next<ChevronRight size={20} aria-hidden="true" /></button>
-    </div>}
+    </div>
     {input && !readOnly && <div className="ctl-grid">
       {burst ? <>
         <button className={btn} disabled={busy} onClick={() => void press("end_burst")}><Square size={18} aria-hidden="true" />End burst</button>
@@ -121,12 +120,12 @@ export function LiveControls({ room, variant, onItems, onRoomSize, compact = fal
         <div className="ctl-seg" role="radiogroup" aria-label="Burst length in minutes">{([3, 4, 5] as const).map(n => <button key={n} role="radio" aria-checked={minutes === n} aria-label={`${n} minutes`} onClick={() => setMinutes(n)}>{n}</button>)}</div>
       </>}
     </div>}
-    {(!compact || (input && !readOnly && !burst)) && <div className="ctl-grid">
+    <div className="ctl-grid">
       {input && !readOnly && !burst && (down
         ? <button className={btn} disabled={busy} onClick={() => void press("open_phones")}><Smartphone size={18} aria-hidden="true" />Open phones</button>
         : <button className={btn} disabled={busy} onClick={() => void press("phones_down")}><Smartphone size={18} aria-hidden="true" />Phones down</button>)}
-      {!compact && <button className={btn} disabled={busy || !frame?.state.live_session_id} onClick={() => void press("nothing_live")}><House size={18} aria-hidden="true" />Home</button>}
-    </div>}
+      <button className={btn} disabled={busy || !frame?.state.live_session_id} onClick={() => void press("nothing_live")}><House size={18} aria-hidden="true" />Home</button>
+    </div>
     {input && <div className="ctl-grid">
       {spotlit
         ? <button className={btn} disabled={busy} onClick={() => void press("clear_spotlight")}><SunDim size={18} aria-hidden="true" />Clear spotlight</button>

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Gavel, X } from "lucide-react";
 import type { Decision } from "@/lib/wayfinding/decision";
 import type { Room } from "./live-controls";
@@ -12,12 +13,15 @@ export const lensDecisionField = "lsm-decision";
 // Mark a decision (PRD "The room decides by consensus"). Counts and votes show where the room
 // is; the facilitator records what the room decided and why. One press is one record, by a
 // client-made id, so a retried press never writes twice.
-export function MarkDecision({ room, variant }: { room: Room; variant: "laptop" | "remote" }) {
+// On the laptop the button keeps its slot in the step controls and the form opens below the row, in the element named by host.
+export function MarkDecision({ room, variant, host }: { room: Room; variant: "laptop" | "remote"; host?: string }) {
   const engagement = room.show.context.id, live = room.frame?.session;
   const [open, setOpen] = useState(false), [decision, setDecision] = useState(""), [reasons, setReasons] = useState("");
   const [state, setState] = useState<{ busy: boolean; message: string }>({ busy: false, message: "" });
   const [recent, setRecent] = useState<Decision[]>([]);
   const pressId = useRef<string | null>(null);
+  const [hostEl, setHostEl] = useState<HTMLElement | null>(null);
+  useEffect(() => { setHostEl(host ? document.getElementById(host) : null); }, [host, open]);
   const btn = variant === "remote" ? "ctl-r-btn" : "show-button";
   async function load() {
     try {
@@ -49,8 +53,8 @@ export function MarkDecision({ room, variant }: { room: Room; variant: "laptop" 
       field?.scrollIntoView({ block: "center", behavior: "smooth" }); field?.focus({ preventScroll: true });
     }}><Gavel size={18} aria-hidden="true" />Mark a decision</button>;
   }
-  if (!open) return <button className={btn} disabled={!room.frame} onClick={() => setOpen(true)}><Gavel size={18} aria-hidden="true" />Mark a decision</button>;
-  return <section className="ctl-decision" aria-label="Mark a decision">
+  if (!open) return <button className={btn} disabled={!room.frame} aria-expanded={false} onClick={() => setOpen(true)}><Gavel size={18} aria-hidden="true" />Mark a decision</button>;
+  const form = <section className="ctl-decision" aria-label="Mark a decision">
     <div className="ctl-decision-head"><b>Mark a decision</b><button className="show-button is-icon" onClick={() => setOpen(false)} aria-label="Close"><X size={16} aria-hidden="true" /></button></div>
     <label className="is-full" htmlFor={`decision-${variant}`}>What the room decided<textarea id={`decision-${variant}`} rows={2} maxLength={400} value={decision} onChange={e => { setDecision(e.target.value); pressId.current = null; }} /></label>
     <label className="is-full" htmlFor={`reasons-${variant}`}>Why (optional)<textarea id={`reasons-${variant}`} rows={2} maxLength={1000} value={reasons} onChange={e => { setReasons(e.target.value); pressId.current = null; }} /></label>
@@ -58,4 +62,6 @@ export function MarkDecision({ room, variant }: { room: Room; variant: "laptop" 
     {state.message && <p role="status" className="show-help">{state.message}</p>}
     {recent.length > 0 && <ul className="ctl-decision-list">{recent.map(d => <li key={d.id}><b>{d.decision}</b>{d.reasons && <span>{d.reasons}</span>}</li>)}</ul>}
   </section>;
+  if (!hostEl) return form;
+  return <><button className={`${btn} is-on`} disabled={!room.frame} aria-expanded={true} onClick={() => setOpen(false)}><Gavel size={18} aria-hidden="true" />Mark a decision</button>{createPortal(form, hostEl)}</>;
 }

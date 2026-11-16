@@ -242,6 +242,18 @@ async function main() {
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await columns(),3,"Room admin opens as a third column");
       assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, screens and Room admin run left to right");
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await page.locator(".ctl-side").isVisible(),false,"and hides again");
+      // The centre column's bands (November 15): Go live is the one big lime button, in a transport bar pinned in view.
+      const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
+      assert.ok(take.height>=63&&take.width>=199,`Go live is at least 64 by 200: ${take.width}x${take.height}`);
+      assert.ok(bar.y+bar.height<=982+1,"the transport bar is in view without scrolling");
+      assert.equal(await page.locator(".ctl-screen.is-preview .ctl-take").count(),0,"no Go live on the preview screen itself");
+      const wide=async(sel:string)=>(await page.locator(sel).boundingBox())!.width;
+      assert.ok(await wide(".ctl-screen.is-live")<await wide(".ctl-screen.is-preview"),"the live monitor is smaller than the preview");
+      await page.getByRole("button",{name:"Room admin",exact:true}).click();
+      assert.equal(await page.locator(".ctl-side").getByRole("button",{name:"TV view on phones",exact:true}).count(),1,"TV view on phones lives in Room admin");
+      assert.equal(await page.locator(".ctl-side").getByRole("button",{name:"Refresh phones",exact:true}).count(),1,"Refresh phones lives in Room admin");
+      assert.equal(await page.locator(".ctl-centre").getByRole("button",{name:"Refresh phones",exact:true}).count(),0,"and not in the centre column");
+      await page.getByRole("button",{name:"Room admin",exact:true}).click();
       // The page never scrolls past the live room.
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),"nothing below the live room at 1512");
       // 3. The room's identity, on the engagement's own address.
@@ -253,11 +265,11 @@ async function main() {
       line=await page.getByTestId("room-identity").innerText(); assert.ok(line.includes(`${noveteraHost}/${linkName}`)&&line.includes("Novetera")&&!line.includes(clearwayHost),`a Novetera engagement shows its own address: ${line}`);
       assert.equal(await page.getByRole("heading",{name:"Live room",level:1}).count(),1,"the control surface stays Clearway Live");
       if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-1512.png`}); }
-      // Half a laptop screen: the live screen first, then the preview with its Go live, then the controls, the run of show folded after.
+      // Half a laptop screen: the live screen first, then the preview, the transport bar and the controls, the run of show folded after.
       await page.setViewportSize({width:756,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
       const top=async(loc:import("playwright").Locator)=>(await loc.boundingBox())!.y;
       assert.ok(await top(page.locator(".ctl-screen.is-live"))<await top(page.locator(".ctl-screen.is-preview")),"the live screen sits above the preview");
-      assert.ok(await top(page.locator(".ctl-take"))<await top(page.locator(".ctl-run")),"Go live on the preview sits above the run of show");
+      assert.ok(await top(page.locator(".ctl-take"))<await top(page.locator(".ctl-run")),"the transport bar's Go live sits above the run of show");
       assert.ok(await top(page.locator(".ctl-screen.is-preview"))<await top(page.locator(".ctl-run")),"the screens sit above the run of show");
       assert.equal(await page.locator(".ctl-run-list").first().isVisible(),false,"the run of show is folded");
       await page.getByRole("button",{name:"Show the run of show",exact:true}).click(); assert.equal(await page.locator(".ctl-run-list").first().isVisible(),true,"it opens on request");

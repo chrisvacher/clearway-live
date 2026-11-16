@@ -3,15 +3,16 @@ import { HandoverPanel } from "@/components/interactions/intent/handover";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Circle, Clock, EyeOff, House, Inbox, LayoutGrid, Lock, Map as MapIcon, MonitorOff, PanelRightClose, PanelRightOpen, PencilLine, Play, Printer, QrCode, Radio, Send, Smartphone } from "lucide-react";
+import { ArrowLeft, Circle, Clock, Eye, EyeOff, Inbox, LayoutGrid, Lock, Map as MapIcon, MonitorSmartphone, PanelRightClose, PanelRightOpen, PencilLine, Play, Printer, Radio, RefreshCw, Smartphone } from "lucide-react";
 import { actionNames, stateLabels, timing } from "@/lib/control/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { parts, type RunOfShow, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
 import { partOpen } from "@/lib/run-of-show/self-paced";
-import type { RoomSize, TvScreen } from "@/lib/control/types";
+import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { usePreview } from "./use-preview";
-import { Banners, ItemList, LiveControls, ReloadNotice, SyncChip, Toasts, burstLeft, roomSizes, useSecondTap, type Room } from "./live-controls";
+import { Banners, ItemList, ReloadNotice, Toasts, roomSizes, useSecondTap, type Room } from "./live-controls";
+import { StatusLine, StepControls, Transport, useRoomKeys } from "./step-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
@@ -50,12 +51,6 @@ function StateIcon({ state }: { state: string }) {
   return <span className={`ctl-state-icon is-${state}`} title={label} data-state={state}><Icon size={16} aria-hidden="true" /><span className="sr-only">{label}</span></span>;
 }
 
-// The screens the live screen can show in place of a step.
-const screenButtons: { screen: TvScreen; label: string; Icon: typeof House }[] = [
-  { screen: "blackout", label: "Blackout", Icon: MonitorOff },
-  { screen: "join", label: "Join", Icon: QrCode },
-  { screen: "holding", label: "Home", Icon: House },
-];
 const screenNames: Record<string, string> = { blackout: "Blackout", join: "Join screen", holding: "Home screen", screen_check: "Screen check" };
 
 const sideKey = "clearway-live.room-admin";
@@ -95,7 +90,14 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
   const counts = status?.counts;
   const KindPanel = frame?.session ? controlPanels[frame.session.interaction] : undefined;
   const busy = Boolean(room.pending) || !frame;
+  const tvOnPhones = Boolean(frame?.state.show_tv_on_phones);
+  // Burst length for Start burst and the 3/4/5 keys: the step's own setting until the facilitator picks another.
+  const [picked, setMinutes] = useState<3 | 4 | 5 | null>(null);
+  useEffect(() => setMinutes(null), [shownId]);
+  const minutes = picked ?? ([3, 4, 5].includes(Number(current?.settings?.burst_minutes)) ? Number(current?.settings?.burst_minutes) as 3 | 4 | 5 : 4);
+  const openPanel = () => { const el = document.getElementById("ctl-step-panel"); el?.scrollIntoView({ block: "start", behavior: "smooth" }); el?.focus({ preventScroll: true }); };
   const goLive = (s: ShowSession) => void room.press("go_live", { session: s.id }).then(r => { if (r.status === "ok" && chosen === s.id) setChosen(null); });
+  useRoomKeys({ room, previewing, onGoLive: goLive, minutes });
   const openDoor = (event: React.MouseEvent) => { if (!side.open) { event.preventDefault(); side.set(true); requestAnimationFrame(() => document.getElementById("ctl-door")?.scrollIntoView({ block: "start" })); } };
   return <div className="ctl-app" data-room-version={frame?.version}>
     <header className="ctl-head">
@@ -152,14 +154,19 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
         <ReloadNotice room={room} />
         <Banners room={room} />
         {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
+        <StatusLine room={room} context={context} />
         <div className="ctl-screens">
-          <PreviewScreen room={room} session={previewing} context={context} chosen={Boolean(chosen)} onGoLive={goLive} />
-          <LiveScreen room={room} context={context} />
+          <PreviewScreen room={room} session={previewing} context={context} chosen={Boolean(chosen)} />
+          <LiveScreen room={room} />
         </div>
-        <LiveControls room={room} variant="laptop" compact onItems={() => document.getElementById("ctl-items-title")?.scrollIntoView({ block: "start", behavior: "smooth" })} />
-        <ItemList room={room} />
-        {KindPanel && <KindPanel room={room} />}
-        <QaAnyTime room={room} />
+        <Transport room={room} context={context} previewing={previewing} onGoLive={goLive} />
+        <StepControls room={room} minutes={minutes} setMinutes={setMinutes} onPanel={openPanel} workshop={workshop} />
+        <div id="ctl-decision-host" />
+        <section id="ctl-step-panel" className="ctl-step-panel" aria-label="Step panel" tabIndex={-1}>
+          <ItemList room={room} />
+          {KindPanel && <KindPanel room={room} />}
+          <QaAnyTime room={room} />
+        </section>
       </main>
       <aside id="ctl-side" className="ctl-col ctl-side" aria-label="Room admin" hidden={!side.open}>
         <div className="ctl-row is-between ctl-side-head"><h2>Room admin</h2><button type="button" className="show-button is-small" onClick={() => side.set(false)}><PanelRightClose size={16} aria-hidden="true" />Hide</button></div>
@@ -175,6 +182,13 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
           <label className="ctl-size" htmlFor="ctl-room-size">Room size<select id="ctl-room-size" value={frame?.display?.room_size ?? "very_small"} disabled={busy} onChange={e => void room.press("room_size", { size: e.target.value as RoomSize })}>{roomSizes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="show-help">Scales all TV type at once.</span></label>
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
+        <Private title="TV and phones">
+          <div className="ctl-row">
+            <button type="button" className="show-button" disabled={busy} aria-pressed={tvOnPhones} onClick={() => void room.press("tv_on_phones", { on: !tvOnPhones })}>{tvOnPhones ? <Eye size={18} aria-hidden="true" /> : <MonitorSmartphone size={18} aria-hidden="true" />}{tvOnPhones ? "Stop the TV view on phones" : "TV view on phones"}</button>
+            <button type="button" className="show-button" disabled={busy} onClick={() => confirm.tap("refresh", () => void room.press("refresh_phones"))}><RefreshCw size={18} aria-hidden="true" />{confirm.armed === "refresh" ? "Tap again to refresh phones" : "Refresh phones"}</button>
+          </div>
+          <p className="show-help">Use the TV view on phones if the TV drops. Refresh phones reloads every phone in the room.</p>
+        </Private>
         <HandoverPanel room={room} />
         {!workshop && <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} live={room.frame?.state.live_session_id ?? null} promoted={room.frame?.promoted_quote?.text ?? null} /></Private>}
         {!workshop && <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>}
@@ -188,10 +202,8 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
 }
 
 // Preview: what a step will look like on the TV before it goes there. Go live on the screen itself sends it to the live screen.
-function PreviewScreen({ room, session, context, chosen, onGoLive }: { room: Room; session: ShowSession | null; context: ShowContext; chosen: boolean; onGoLive: (s: ShowSession) => void }) {
+function PreviewScreen({ room, session, context, chosen }: { room: Room; session: ShowSession | null; context: ShowContext; chosen: boolean }) {
   const preview = usePreview(context.id, session?.id ?? null, { mirror: room.mirror, version: room.frame?.version });
-  const live = Boolean(session && room.frame?.state.live_session_id === session.id);
-  const blocked = !session || Boolean(room.pending) || !room.frame || live || session.state === "draft" || context.closed;
   return <section className="ctl-screen is-preview" aria-labelledby="ctl-preview-title">
     <div className="ctl-screen-head">
       <span className="ctl-screen-tag">Preview</span>
@@ -200,8 +212,6 @@ function PreviewScreen({ room, session, context, chosen, onGoLive }: { room: Roo
     </div>
     <div className="ctl-screen-frame">
       {preview.frame ? <TvMirror frame={preview.frame} label="Preview" /> : <div className="ctl-screen-empty">{!session ? "Choose Preview on a step in the run of show." : preview.failed ? "We couldn’t load this preview." : "Loading the preview"}</div>}
-      {session && <button type="button" className="ctl-take" disabled={blocked} onClick={() => onGoLive(session)} aria-label={live ? `${session.title} is live` : `Go live: ${session.title}`} title={live ? "Already live" : "Send to the live screen"}>
-        <Send size={18} aria-hidden="true" />{live ? "Live now" : "Go live"}</button>}
     </div>
     {session && <div className="ctl-screen-foot">
       {session.state === "draft" && <p className="show-help">Mark this step ready in setup before it goes live.</p>}
@@ -211,34 +221,17 @@ function PreviewScreen({ room, session, context, chosen, onGoLive }: { room: Roo
   </section>;
 }
 
-// Live: what the TV has confirmed it shows. Blackout, Join and Home take the step off the TV; Back and Next move through the run of show.
-function LiveScreen({ room, context }: { room: Room; context: ShowContext }) {
-  const { frame, current, steps, pending, press } = room;
-  const busy = Boolean(pending) || !frame || context.closed;
-  const content = frame?.state.tv_content ?? "holding", liveId = frame?.state.live_session_id ?? null;
-  const burst = burstLeft(room);
-  const phones = !frame?.session ? "Waiting for the next step" : frame.session.state === "closed" ? "Showing own answers, read-only"
-    : frame.session.interaction === "content" ? "Reading along" : frame.state.phones_down ? "Phones down" : burst ? `Input open · burst ${burst.label} left` : "Input open";
+// Live: what the TV has confirmed it shows, kept smaller as a confidence monitor; the TV itself is in the room.
+function LiveScreen({ room }: { room: Room }) {
+  const { frame, current } = room;
+  const content = frame?.state.tv_content ?? "holding";
   return <section className="ctl-screen is-live ctl-tv" aria-labelledby="ctl-live-title">
     <div className="ctl-screen-head">
       <span className="ctl-screen-tag is-live">Live</span>
       <h2 id="ctl-live-title" className="ctl-screen-title">{current ? current.title : screenNames[content] ?? "Home screen"}</h2>
-      <SyncChip room={room} href={`/setup/${context.id}/tv`} />
+      <ExportAnswers room={room} />
     </div>
     <div className="ctl-screen-frame"><TvMirror frame={room.mirror} /></div>
-    <div className="ctl-screen-bar" role="group" aria-label="TV screen">
-      {screenButtons.map(({ screen, label, Icon }) => {
-        const on = !liveId && content === screen;
-        return <button key={screen} type="button" className={`ctl-screen-btn is-${screen}`} aria-pressed={on} disabled={busy || on} onClick={() => void press("tv_screen", { screen })}><Icon size={16} aria-hidden="true" />{label}</button>;
-      })}
-    </div>
-    <div className="ctl-steps">
-      <button className="show-button" disabled={busy || !steps.back} onClick={() => void press("back")} title={steps.back?.title}><ChevronLeft size={20} aria-hidden="true" />Back</button>
-      <button className="show-button" disabled={busy || !steps.next} onClick={() => void press("next")} title={steps.next?.title}>Next<ChevronRight size={20} aria-hidden="true" /></button>
-    </div>
-    <div className="ctl-screen-foot">
-      <div className="ctl-row is-between"><p className="ctl-screen-line"><span>On phones now</span>{phones}</p><ExportAnswers room={room} /></div>
-      {current && <details className="ctl-screen-notes" open><summary>Presenter notes</summary><p className="ctl-notes">{current.notes || "No presenter notes."}</p></details>}
-    </div>
+    {current && <div className="ctl-screen-foot"><details className="ctl-screen-notes" open><summary>Presenter notes</summary><p className="ctl-notes">{current.notes || "No presenter notes."}</p></details></div>}
   </section>;
 }

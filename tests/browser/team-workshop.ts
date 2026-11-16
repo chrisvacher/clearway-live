@@ -198,7 +198,7 @@ async function main() {
       await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test items"), "the control surface counts the test answers", 10000);
       await shot(control, "team-rehearsal-control");
     });
-    await step("Blackout, Join and Home under the live screen, then Back returns to the step left", async () => {
+    await step("Blackout, Join and Home in the transport bar, then Back returns to the step left", async () => {
       const bar = control.locator(".ctl-screen-bar");
       await bar.getByRole("button", { name: "Blackout", exact: true }).click();
       await until(async () => await tv.locator(".tv-blackout.is-active").count() === 1 && await liveId() === null, "the TV goes black", 8000);
@@ -210,6 +210,15 @@ async function main() {
       await until(async () => await tv.locator(".tv-holding.is-active").count() === 1, "the TV goes home", 8000);
       await control.locator(".ctl-steps").getByRole("button", { name: "Back", exact: true }).click();
       await until(async () => await liveId() === await idOf("Your questions"), "Back returns to the step left", 8000);
+      // The same from the keyboard: B blacks out the TV, B again goes back to the step.
+      await until(async () => (await control.locator(".ctl-status-live").innerText()) === "Your questions", "the control surface shows the step live", 8000);
+      await control.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await control.keyboard.press("b");
+      await until(async () => await tv.locator(".tv-blackout.is-active").count() === 1 && await liveId() === null, "B blacks out the TV", 8000);
+      await until(async () => (await control.locator(".ctl-status").getAttribute("class"))?.includes("is-black") ?? false, "the status line shows the TV is black", 8000);
+      await control.keyboard.press("b");
+      await until(async () => await liveId() === await idOf("Your questions"), "B again returns to the step", 8000);
+      await until(async () => (await control.locator(".ctl-status-live").innerText()) === "Your questions", "and the control surface shows it", 8000);
       // The preview: Preview on a row puts that step in the preview screen, and the preview draws it before it goes live.
       await control.getByRole("button", { name: "Preview Check-in", exact: true }).click();
       await until(async () => (await control.locator("#ctl-preview-title").innerText()) === "Check-in", "Check-in in the preview", 8000);
