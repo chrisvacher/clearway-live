@@ -398,18 +398,18 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-label { font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
 .ctl-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
 .ctl-row.is-between { justify-content: space-between; }
-.ctl-cols { --ctl-run-w: 320px; --ctl-side-w: 360px; flex: 1; min-height: 0; display: grid; grid-template-columns: var(--ctl-run-w) minmax(0,1fr); transition: grid-template-columns var(--dur-slow) var(--cwl-ease-calm); }
-.ctl-cols.has-side { grid-template-columns: var(--ctl-run-w) minmax(0,1fr) var(--ctl-side-w); }
+.ctl-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0,1fr); transition: grid-template-columns var(--dur-slow) var(--cwl-ease-calm); }
+.ctl-cols.has-side { grid-template-columns: 320px minmax(0,1fr) 360px; }
 /* Room admin slides in and out: its column grows from and shrinks to nothing while the drawer fades and glides, both on
    the calm ease in and out. Its contents keep their full width meanwhile, so nothing reflows as the column moves. */
-.ctl-cols.has-side.is-side-off { grid-template-columns: var(--ctl-run-w) minmax(0,1fr) 0px; }
+.ctl-cols.has-side.is-side-off { grid-template-columns: 320px minmax(0,1fr) 0px; }
 /* Each column scrolls on its own and stops at its last item. position: relative keeps anything absolutely placed inside a column
    (a visually hidden label, a menu) inside that column, so it can't stretch the page below the live room. */
 .ctl-col { position: relative; min-width: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
 .ctl-run { background: var(--cwl-app-card); border-right: 1px solid var(--cwl-app-border); }
 .ctl-side { background: var(--cwl-app-card); border-left: 1px solid var(--cwl-app-border); overflow-x: hidden; transition: opacity var(--dur-slow) var(--cwl-ease-calm), transform var(--dur-slow) var(--cwl-ease-calm); }
 .ctl-side[hidden] { display: none; }
-.ctl-cols.has-side .ctl-side > * { min-width: calc(var(--ctl-side-w) - var(--space-4) * 2); }
+.ctl-cols.has-side .ctl-side > * { min-width: calc(360px - var(--space-4) * 2); }
 .ctl-cols.is-side-off .ctl-side { opacity: 0; transform: translateX(var(--space-6)); pointer-events: none; }
 .ctl-side-head { position: sticky; top: calc(var(--space-4) * -1); z-index: 2; margin: calc(var(--space-4) * -1) calc(var(--space-4) * -1) 0; padding: var(--space-3) var(--space-4); background: var(--cwl-app-card); border-bottom: 1px solid var(--cwl-app-border); }
 .ctl-side-toggle.is-on { background: var(--cwl-app-selected); border-color: var(--cwl-app-primary); }
@@ -585,7 +585,7 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-toast div { display: flex; flex-direction: column; }
 .ctl-toast span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
 .control-list { display: grid; gap: var(--space-6); margin-bottom: var(--space-8); }
-@media (max-width: 1200px) { .ctl-cols { --ctl-run-w: 280px; --ctl-side-w: 320px; } }
+@media (max-width: 1200px) { .ctl-cols { grid-template-columns: 280px minmax(0,1fr); } .ctl-cols.has-side { grid-template-columns: 280px minmax(0,1fr) 320px; } .ctl-cols.has-side.is-side-off { grid-template-columns: 280px minmax(0,1fr) 0px; } .ctl-cols.has-side .ctl-side > * { min-width: calc(320px - var(--space-4) * 2); } }
 @media (max-width: 900px) { .ctl-app { height: auto; overflow: visible; } .ctl-cols, .ctl-cols.has-side, .ctl-cols.has-side.is-side-off { grid-template-columns: minmax(0,1fr); } .ctl-cols.has-side .ctl-side > * { min-width: 0; } .ctl-col { overflow: visible; } .ctl-head { flex-wrap: wrap; } }
 /* One-laptop setup: the live room names its address, folds its run of show on a narrow window and asks before it ends a workshop. */
 .ctl-crumb { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); }
