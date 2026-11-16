@@ -4,7 +4,7 @@
 // window opens at the Novetera address and draws Novetera. Local only.
 import assert from "node:assert/strict";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
-import { db, engagement, facilitator, localEnv, mailbox, startApp, until } from "./harness";
+import { db, engagement, facilitator, localEnv, mailbox, press, startApp, until } from "./harness";
 
 async function main() {
   const env = localEnv(), sql = db(env), mail = await mailbox(), app = await startApp(env, mail.url);
@@ -47,6 +47,16 @@ async function main() {
         await tv.reload(); const root = tv.locator("main[data-surface=tv]");
         await until(async () => (await root.getAttribute("data-join")) === "on", "still paired after a reload", 20000);
         assert.equal(await tv.locator(".tv-scene.tv-pair.is-active").count(), 0);
+      });
+      await step(`${skin}: hidden behind the live room, the window still confirms each screen at once, so the live room never waits on it`, async () => {
+        // A hidden window gets no animation frames: stand that up, then put the TV on Blackout and back to Join.
+        await tv.evaluate(`Object.defineProperty(document, "visibilityState", { configurable: true, value: "hidden" }); window.requestAnimationFrame = function () { return 0; }; document.dispatchEvent(new Event("visibilitychange"));`);
+        const confirmed = async () => (await sql.query("select max(t.confirmed_version)::int c, max(r.version)::int v from private.live_tv_sessions t join public.room_states r using (engagement_id) where t.engagement_id=$1 and not t.deleted and t.revoked_at is null", [room.id])).rows[0] as { c: number; v: number };
+        for (const content of ["blackout", "join"]) {
+          await press(fac, sql, room.id, "tv_screen", { screen: content });
+          await until(async () => { const r = await confirmed(); return r.c === r.v; }, `the hidden window confirms ${content}`, 3000);
+        }
+        await tv.reload(); await until(async () => (await tv.locator("main[data-surface=tv]").getAttribute("data-join")) === "on", "visible again after a reload", 20000);
       });
       await step(`${skin}: the same link in a fresh browser gets the pairing screen and the expired line`, async () => {
         const other = await browser!.newContext({ viewport: { width: 1920, height: 1080 } }), page = await other.newPage();

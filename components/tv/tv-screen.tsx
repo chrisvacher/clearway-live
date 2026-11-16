@@ -25,6 +25,7 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
   const root = useRef<HTMLElement>(null), stage = useRef<HTMLDivElement>(null), tvSync = useRef<TvSync | null>(null);
   const [pair, setPair] = useState<{ code: string | null; seconds: number }>({ code: null, seconds: 0 });
   const receipt = useRef<TvReceipts | null>(null), clock = useRef({ offsetMs: 0, uncertaintyMs: 60000 });
+  const committed = useRef<number | null>(null);
   const boxes = useRef(new Map<string, DOMRect>());
   // The arrival flow: answers that land together reach the board as a steady
   // flow, never held past cwl-delay-max-hold. Timings are the design tokens.
@@ -148,9 +149,21 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
     });
     // The persistent shell has committed this version, and animation begins on
     // its next paint. Receipt timestamps remain the original receive times.
+    // A hidden window (a background tab, a minimized or covered window, a tab
+    // being cast) never gets an animation frame, so it confirms on commit: the
+    // TV's DOM shows this version, and the live room shouldn't wait on a paint
+    // that only comes when someone looks at the laptop (November 15).
+    committed.current = frame.version;
+    if (document.visibilityState === "hidden") { receipt.current?.paint(frame.version); return; }
     const raf = requestAnimationFrame(() => receipt.current?.paint(frame.version));
     return () => cancelAnimationFrame(raf);
   }, [frame, nameLimit]);
+  // A frame committed just before the window was hidden has its paint cancelled with it: confirm it then.
+  useEffect(() => {
+    const hidden = () => { if (document.visibilityState === "hidden" && committed.current !== null) receipt.current?.paint(committed.current); };
+    document.addEventListener("visibilitychange", hidden);
+    return () => document.removeEventListener("visibilitychange", hidden);
+  }, []);
   useEffect(() => {
     const el = root.current; if (!el) return;
     const resize = () => el.style.setProperty("--tv-stage-scale", String(Math.min(el.clientWidth / 1920, el.clientHeight / 1080)));
