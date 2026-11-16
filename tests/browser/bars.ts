@@ -402,9 +402,9 @@ async function main() {
     await step("Reduced motion and the Off-White theme: everything takes its place at once, same numbers", async () => {
       await sql.query("update public.engagements set settings=settings||'{\"reduced_motion\":true,\"tv_theme\":\"light\"}' where id=$1", [room.id]);
       await until(async () => (await tv.locator("main").getAttribute("data-motion")) === "reduced" && (await tv.locator("main").getAttribute("data-theme")) === "light", "reduced motion on the TV", 10000);
+      // November 16: going back to a step makes it live and answering, so no Reopen is needed.
       await live(choice);
-      await press(fac, sql, room.id, "reopen");
-      await until(async () => !(await grace.getByRole("radio", { name: "Systems and data" }).isDisabled()), "the reopened step takes answers", 10000);
+      await until(async () => !(await grace.getByRole("radio", { name: "Systems and data" }).isDisabled()), "the step gone back to takes answers", 10000);
       await tv.evaluate(() => { (window as unknown as { __bars: unknown[] }).__bars.length = 0; });
       await grace.getByRole("radio", { name: "Systems and data" }).click(); await grace.getByRole("button", { name: "Change my answer" }).click();
       await matches(choiceText, "reduced motion");
