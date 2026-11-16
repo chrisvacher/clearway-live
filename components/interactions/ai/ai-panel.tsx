@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { Check, EyeOff, Info, Pencil, Pin, PinOff, Redo2, TriangleAlert, Undo2, X } from "lucide-react";
-import { GeneralItems, type Room } from "@/components/control/live-controls";
+import type { Room } from "@/components/control/live-controls";
+import { ResponsesList } from "@/components/control/responses";
 import { ago, aiNotice, dollars, isAiKind, seconds, type AiGroupRow, type AiStatus } from "@/lib/interactions/ai";
 import { AiIcon, AiMark, useAiSweep } from "./ai-icon";
 import { useAiStatus } from "./use-ai-status";
@@ -76,7 +77,7 @@ export function AiWordsPanel({ room, onClose }: { room: Room; onClose?: () => vo
       </li>)}</ul> : <p className="show-empty">{on ? "Nothing combined yet." : "Nothing combined."}</p>}
       {message && <p className="show-message is-error" role="alert">{message}</p>}
     </section>
-    <GeneralItems room={room} onClose={onClose} title="Words on the TV" />
+    <ResponsesList room={room} onClose={onClose} title="Words on the TV" />
   </>;
 }
 
@@ -110,7 +111,7 @@ export function AiWallPanel({ room, onClose }: { room: Room; onClose?: () => voi
       {on && (groups.length ? <ul className="ai-rows">{groups.map(g => <GroupRow key={g.id} g={g} busy={busy} press={press} />)}</ul> : <p className="show-empty">Grouping as answers arrive.</p>)}
       {message && <p className="show-message is-error" role="alert">{message}</p>}
     </section>
-    <GeneralItems room={room} onClose={onClose} title="Answers on the TV" />
+    <ResponsesList room={room} onClose={onClose} title="Responses" />
   </>;
 }
 

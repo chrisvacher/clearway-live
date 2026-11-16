@@ -104,7 +104,8 @@ select is(public.room_control(tests.id(100),tests.id(21),'tv_screen',jsonb_build
 select is(tests.live(),tests.id(312),'and the room stays where it is');
 
 -- The team facilitator's remote cannot change the screen.
-select ok((select pg_get_functiondef('private.room_control(uuid,uuid,text,jsonb)'::regprocedure) like '%(''go_live'',''next'',''back'',''reopen'',''phones_down'',''open_phones'',''spotlight'',''clear_spotlight'',''hide'',''unhide'',''room_size'')%'),'The team remote''s list is unchanged and has no tv_screen');
+-- Batch 1 (MD-1) takes hide and unhide off the team remote's list; only the facilitators hide.
+select ok((select pg_get_functiondef('private.room_control(uuid,uuid,text,jsonb)'::regprocedure) like '%(''go_live'',''next'',''back'',''reopen'',''phones_down'',''open_phones'',''spotlight'',''clear_spotlight'',''room_size'')%'),'The team remote''s list has no tv_screen, and no hide since batch 1');
 
 select * from finish();
 rollback;

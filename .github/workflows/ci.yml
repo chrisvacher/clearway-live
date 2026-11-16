@@ -130,6 +130,19 @@ jobs:
           path: loop-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test hiding a response (batch 1, MD-1) in both skins, and 50 phones on a wall while hiding, in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p hide-shots && npm run test:hide
+        env:
+          KIT_SHOTS: hide-shots
+      - name: Upload the hide screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hide-screens
+          path: hide-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the Novetera skin on the TV, phones, join pages and the control surface's TV preview, and that a Clearway engagement is unchanged, in real browsers
         if: ${{ !cancelled() }}
         run: mkdir -p novetera-shots && npm run test:novetera-screens

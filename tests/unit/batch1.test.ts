@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { loopIndex, loopNextIn, loopOf } from "../../lib/images/loop";
 import { stepImage, imageProblem } from "../../lib/images/shared";
+import { responsesView } from "../../lib/control/responses";
 
 const a = "8d000000-0000-4000-8000-000000000050", b = "8d000000-0000-4000-8000-000000000051", c = "8d000000-0000-4000-8000-000000000052";
 
@@ -38,4 +39,12 @@ test("a step's image is read only when it is well formed", () => {
   assert.equal(stepImage({ image: { id: a, display: "cover" } }), null);
   assert.equal(stepImage({ image: a }), null);
   assert.equal(imageProblem({ type: "image/gif", size: 10, name: "x.gif" } as File) !== null, true);
+});
+
+test("the Responses list counts shown and hidden answers, and the Hidden filter keeps only hidden ones", () => {
+  const items = [{ key: "1", text: "A", count: 1, hidden: false }, { key: "2", text: "B", count: 1, hidden: true, hidden_by: "Chris", hidden_at: "2026-11-20T14:24:00Z" }, { key: "3", text: "C", count: 1, hidden: false }];
+  const all = responsesView(items, "all"), hidden = responsesView(items, "hidden");
+  assert.equal(all.shown, 2); assert.equal(all.hidden, 1); assert.equal(all.list.length, 3);
+  assert.deepEqual(hidden.list.map(i => i.key), ["2"]);
+  assert.deepEqual(responsesView([], "hidden"), { shown: 0, hidden: 0, list: [] });
 });

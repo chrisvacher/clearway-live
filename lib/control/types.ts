@@ -8,7 +8,7 @@ export type RoomSize = "very_small" | "small" | "medium" | "large" | "very_large
 export type ControlPress = { id: string; action: ControlAction; from?: string | null; session?: string; minutes?: 3 | 4 | 5; item?: string; on?: boolean; size?: RoomSize; part?: string; screen?: TvScreen };
 export type ControlResult = { status: string; version?: number; title?: string | null; by?: string; live_session_id?: string | null };
 export type ControlScreen = { id: string; label: string; confirmed_version: number; last_seen_at: string | null; connected: boolean };
-export type ControlItem = { key: string; text: string; count: number; hidden: boolean };
+export type ControlItem = { key: string; text: string; count: number; hidden: boolean; hidden_by?: string; hidden_at?: string };
 export type ControlLogEntry = { id: string; action: string; version: number; at: string; by: string };
 export type ControlStatus = {
   status: "ok"; server_time: string; version: number; fac_topic: string | null; screens: ControlScreen[];

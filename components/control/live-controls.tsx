@@ -9,6 +9,7 @@ import type { RoomSize } from "@/lib/control/types";
 import type { useControlRoom } from "./use-control-room";
 import { controlItems } from "@/components/interactions/control-items";
 import { MarkDecision } from "./mark-decision";
+import { ResponsesList } from "./responses";
 
 export type Room = ReturnType<typeof useControlRoom>;
 export const roomSizes: [RoomSize, string][] = [["very_small", "Very small screen"], ["small", "Small screen"], ["medium", "Medium screen"], ["large", "Large screen"], ["very_large", "Very large screen"]];
@@ -146,6 +147,7 @@ export function ItemList({ room, onClose }: { room: Room; onClose?: () => void }
   if (!kind || kind === "content") return null;
   const Own = controlItems[kind];
   if (Own) return <Own room={room} onClose={onClose} />;
+  if (kind === "bullets") return <ResponsesList room={room} onClose={onClose} />;
   return <GeneralItems room={room} onClose={onClose} />;
 }
 
