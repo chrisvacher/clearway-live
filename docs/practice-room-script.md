@@ -1,4 +1,4 @@
-# Practice-room script: milestones 3 to 7
+# Practice-room script: milestones 3 to 7 and batch 1
 
 This is the acceptance run for milestone 3, the interaction library. It takes about three hours, so plan two sittings: sections 1 to 5 in one, sections 6 to 11 in the other. Each check names what you do, what the TV and phones should show, and the pass mark. Mark each one pass or fail, and note anything that felt slow, jumpy or confusing, even if it passed.
 
@@ -574,10 +574,92 @@ The browser kits cover most of these rows on the local stack and in CI (`npm run
 | Press Reset practice room | The report, its sign-offs, the visibility plan, the links, the check-in rounds and answers are all gone, and the retreat shows as open | After the retreat has nothing in it, and every link you made shows the plain page |
 | Run sections 40 to 46 once more with eight real phones, real wifi and a real laptop at the venue (Real device) | The same results, with each phone's page opening and saving as in the kit | The on-site acceptance of milestone 7 |
 
+## Batch 1: images, the image loop, hiding a response and timers
+
+Ships before Pickering Pentecostal (November 20). About two and a half hours. The feature plan is 10-feature-plan in the Project, and the brief is 11-batch-1-brief.
+
+**Before you start:** a test engagement in the practice room set to the Novetera skin, plus the practice room itself in the Clearway skin. Run sections 49 to 55 in the Novetera engagement first, then repeat the rows marked (Both skins) in the practice room. Have three or four slides exported from a deck at 1920 by 1080 and one at 4:3, and three photos for a walk-in loop. The TV for this batch is opened in a new window from the MBP and dragged to a real external screen, not a separate TV computer. Ask Claude first if another Claude session might be using the practice room.
+
+## 49. The TV from the MBP, and the Novetera skin (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On the MBP, open the engagement's Live room and choose Open the TV in a new window. Drag the window to the external screen and press F for full screen | The TV shows the Novetera holding screen at full size on the external screen, with no Clearway words or marks | It fills the screen and the laptop keeps the control surface |
+| Join on every phone with the room link | Phones show Novetera's colours and type | Every phone is in |
+| (Both skins) Repeat in the practice room | The same, in Clearway | Both skins pass |
+
+## 50. Deck images to slides and one image per step (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| In the run of show, choose Add images as slides. Choose the four slides at once, move one earlier and back, pick the section, and choose Add 4 slides | One Image step per slide, in order, at the end of the section, each called Image 1, Image 2 and so on, greyed | Nothing is blocked and the order is yours |
+| Type a title on one | The greyed name goes, and the title shows | Phones show the title you typed |
+| Open a headline step, choose Use an image already added, and choose In place | The image sits right of the headline on the Preview | The headline still reads |
+| Open a question step (word cloud or open text) and add an image | Only In place is offered | Fill is greyed out for a question |
+| (Both skins) Go live on each Image step in turn, then on the 4:3 one | Each image fills the TV, with no church badge, counts or live mark over it. The 4:3 one sits whole on the skin's TV ground | Nothing is cropped, nothing flashes and the screen is never blank between images |
+| (Real device) Look at a phone on an Image step and pinch | The image with Pinch to zoom, and it zooms | It zooms on an iPhone and an Android phone |
+| Go live on the question with an image In place | The image is small beside the question and the answers arrive below it as usual | The live answers keep the screen |
+
+## 51. The image loop and Home (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Drag an Image loop into the run of show. Add the three photos, set 5 seconds, choose Slide, and turn on Use as the Home screen | The row shows Home screen and 3 images · 5s | It saves |
+| (Both skins) Press Home under the Live screen | The TV shows the loop, moving every 5 seconds, sliding from the right, with no join code over it | Nothing flashes and there's no blank moment |
+| Watch the Live screen | It says Home: (the loop's title), Image 2 of 3, next in 3s, counting | It matches the TV |
+| (Real device) Look at a signed-in phone | The same image as the TV, with the waiting message | Phone and TV change together |
+| (Real device) On a phone that hasn't joined, open the room link | The image is above the join form | Joining still works |
+| Change the transition to Cross-fade, then Cut. Turn on Reduce motion on the TV in Screens | Cross-fade fades over 1.2 seconds, Cut changes in one frame, and Reduce motion makes every change a cut | Each looks as described |
+| On the Screens page, choose The holding screen under Home screen | Home goes back to the holding screen at once | The TV changes without a refresh |
+| Go live on the loop as a step | It runs as it did on Home, and the Preview draws it the same way | Preview and TV match |
+
+## 52. Hide a response (25 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| (Both skins) Go live on an open-text step and have every phone send one or two answers, one of them unkind | Answers and both count badges arrive on the TV | Badges match what was sent |
+| In the Responses list under the step controls, tap the unkind answer, then Hide from the TV | It leaves the TV and the others rework around it with the usual motion. The submissions badge drops by one, and the people badge drops if it was that person's only answer | Nothing jumps, and the badges match |
+| Choose Hidden (1) | The answer is struck through, with Hidden by (your name) at (the time) and Show again | Who and when are right |
+| (Real device) Look at the writer's phone | Their answer is still there, and nothing says it was hidden | They aren't told |
+| Turn AI on for the step and let it group | The hidden answer is in no group and not in the summary | AI leaves it out |
+| Choose Show again | It comes back on the TV, in the counts and in AI grouping | Everything matches again |
+| On the team facilitator's phone remote, look for Hide | There's no Hide | Only you and a co-facilitator can hide |
+| On the phone remote (yours), open the items sheet | The same Responses list, with Hide and Show again | It works from the phone |
+
+## 53. Timers (30 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| In the run of show, open a step and Add a timer: count down, 2 minutes, Runs through the next step, Show on phones on | The step and the next one get a blue edge, with Timer 2:00 on the first and Timer ends here on the second | It saves |
+| Preview the step | The Preview shows 2:00 top right, as the TV will | Preview and TV match |
+| (Both skins) Go live on it | The TV shows the timer top right, left of the live mark, counting down. Phones show a small chip in their header | No colour on phones; the TV is easy to read from the back |
+| Wait for the last minute | The timer's outline and digits turn Sunrise (Brass in Novetera). It never flashes | No Warning or Error colour on the TV |
+| Let it pass zero | It keeps the same look and counts up as +0:05, +0:06 | Overtime reads clearly |
+| In Room admin: Pause, Resume, +1 min, +5 min, −1 min, Reset | Each changes the TV at once; Pause holds the digits; Reset goes back to 2:00, held | The TV and phones agree |
+| Use Pause and +1 under the Live screen's title | The same as in Room admin | They match |
+| Start a timer in Room admin while one runs | It asks: Replace the running timer? Keep the running timer or Replace it | Keep leaves it, Replace swaps it |
+| Go Next into the step it runs through, then Next again | It keeps running into the next step and goes after it | It stops at the end of its span |
+| Start a count to a time, 2 minutes from now | It counts down to that time | It reaches 0:00 at the time on the clock |
+| On your phone remote, open the Timer card | Every control is there | It works from the phone |
+
+## 54. Who cannot see it (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| On a participant's phone, look for the Responses list, the timer controls and the image library | None of them | Phones see only their own view |
+| In a browser that isn't signed in, open an image's address from the TV | Refused, except a Home image while Home is on the TV | Nothing else downloads |
+
+## 55. Clear up (10 minutes)
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Press Reset practice room | Answers and guests go, the timer goes, and the images, loop and Home setting stay with the run of show | The room is ready for the next practice |
+| Note the Phone to TV 95th from Room admin | Under one second | The latency standard holds |
+
 ## Afterward
 
 - Note the Phone to TV numbers you read in section 11 before breaking anything.
 - Note which phones and browsers you used, the venue network, and anything that felt slow or wrong.
-- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. Milestone 7 is accepted when sections 11 and 39 to 48 pass, with the rows marked (Real device) run on real devices at the venue. A row that fails becomes the next fix.
+- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. Milestone 7 is accepted when sections 11 and 39 to 48 pass, with the rows marked (Real device) run on real devices at the venue. Batch 1 is ready for Pickering when sections 49 to 55 pass in both skins, with the TV opened from the MBP on a real external screen. A row that fails becomes the next fix.
 
-The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). Milestone 5 has `npm run test:acceptance-m5` (the scribe, promoting a quote, the overnight drafts and the Day 2 read-back with 50 simulated phones) and its failure checks (FAIL-03, in `npm run test:browser`). Milestone 7 has `npm run test:acceptance-m7` (after the retreat, end to end on Riverside) and its failure checks in `npm run test:browser`. This script is the real-device, real-room version of them.
+The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). Milestone 5 has `npm run test:acceptance-m5` (the scribe, promoting a quote, the overnight drafts and the Day 2 read-back with 50 simulated phones) and its failure checks (FAIL-03, in `npm run test:browser`). Milestone 7 has `npm run test:acceptance-m7` (after the retreat, end to end on Riverside) and its failure checks in `npm run test:browser`. Batch 1 has `npm run test:images`, `npm run test:loop`, `npm run test:hide` (with 50 phones on a wall while hiding) and `npm run test:timers`, each in both skins. This script is the real-device, real-room version of them.

@@ -114,5 +114,6 @@ select is(tests.tc('pause')->>'status','ok','The co-facilitator can');
 reset role;
 select is((select count(*)::integer from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='timer_control' and p.prosecdef),0,'The public timer control is an invoker wrapper');
 
+select ok((select pg_get_functiondef('private.reset_practice_room()'::regprocedure) like '%set timer=null%'),'Resetting the practice room clears its timer');
 select * from finish();
 rollback;

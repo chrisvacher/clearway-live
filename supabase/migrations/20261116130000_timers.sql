@@ -11,7 +11,7 @@
 --    A timer started by hand keeps running through every step until it is stopped.
 -- 4. timer_control, for the facilitators (the control surface and the phone remote): start (asks before replacing a running
 --    timer), start the live step's own timer, pause, resume, add or take off a minute, add five, reset and stop.
--- 5. The room state carries the timer.
+-- 5. The room state carries the timer, and resetting the practice room clears it.
 begin;
 
 -- ---------- 1. The step option ----------
@@ -160,6 +160,19 @@ create function public.timer_control(p_engagement uuid,p_action text,p jsonb) re
 language sql security invoker set search_path='' as $$ select private.timer_control(p_engagement,p_action,p) $$;
 revoke all on function public.timer_control(uuid,text,jsonb) from public,anon;
 grant execute on function public.timer_control(uuid,text,jsonb) to authenticated;
+
+-- Resetting the practice room clears its timer too.
+alter function private.reset_practice_room() rename to reset_practice_room_pre_timers;
+create function private.reset_practice_room() returns boolean
+language plpgsql security definer set search_path='' as $$
+declare ok boolean;
+begin
+ ok:=private.reset_practice_room_pre_timers();
+ if ok then update public.room_states set timer=null where engagement_id='90000000-0000-4000-8000-000000000010'::uuid and timer is not null; end if;
+ return ok;
+end $$;
+revoke all on function private.reset_practice_room(),private.reset_practice_room_pre_timers() from public,anon;
+grant execute on function private.reset_practice_room() to authenticated;
 
 -- ---------- 5. The room state ----------
 alter function private.live_public_state(uuid) rename to live_public_state_pre_timer;
