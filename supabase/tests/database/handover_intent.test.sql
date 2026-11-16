@@ -167,7 +167,7 @@ reset role;
 -- ---------- Commander's intent: cards, pairs and locks ----------
 select tests.login(1); set local role authenticated;
 select is(tests.ctl(40,'go_live',jsonb_build_object('session',tests.id(602)))->>'status','ok','Back on commander''s intent');
-select is(tests.ctl(400,'reopen')->>'status','ok','The step is reopened for the second pass');
+select is((select state from public.sessions where id=tests.id(602)),'live','Going back makes the step live for the second pass, with no Reopen (November 16)');
 select tests.login(3);
 select is(tests.ictl(41,'auto')->>'status','denied','A participant cannot assign pairs');
 select tests.login(1);

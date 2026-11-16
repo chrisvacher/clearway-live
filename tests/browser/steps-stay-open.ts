@@ -183,6 +183,9 @@ async function main() {
     await run("novetera");
     console.log("Steps stay open, the TV from the live room, Start fresh, End and Reopen passed in both skins.");
   } finally {
+    // The kits share one local database in CI. This kit opens and pairs TV windows several times, so it gives back the TV
+    // rate-limit windows it used (pair-link claims, new TV pages, code renewals) and the kits after it start from the same place.
+    await sql.query("delete from private.tv_limits where key like 'claim:%' or key like 'init:%' or key like 'renew:%'").catch(() => {});
     await browser?.close(); await sql.end().catch(() => {}); app.stop(); await mail.close();
   }
 }
