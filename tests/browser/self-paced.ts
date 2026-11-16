@@ -156,7 +156,7 @@ async function main() {
       await shot(bPage, "self-paced-opened-phone");
       await bPage.locator(".ph-opt", { hasText: "Hospitality" }).click(); await bPage.locator(".ph-bars-foot .ph-send").click();
       await until(async () => (await sql.query("select count(*)::int as n from public.submissions where session_id=$1 and not deleted", [later])).rows[0].n === 1, "answered while open", 8000);
-      await until(async () => (await bPage.locator(".ph-step").innerText()).includes("This step is closed. Your answers are kept."), "it closes on the phone on time", 30000);
+      await until(async () => (await bPage.locator(".ph-step").innerText()).includes("Answers for this step are finished."), "it closes on the phone on time", 30000);
       assert.equal(await bPage.locator(".ph-opt").first().isDisabled(), true, "input closes with it");
       const late = await bPage.evaluate(async ([engagement, session]) => (await (await fetch(`/api/live/${engagement}`, { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: crypto.randomUUID(), session, revision: 0, action: "submit", text: "", value: { choices: ["a"] }, sentAt: new Date().toISOString(), uncertaintyMs: 0 }) })).json()).status, [room.id, later]);
@@ -224,7 +224,7 @@ async function main() {
       assert.ok(lines.some(l => l.includes("this fall")) && !/Priya|Ben/.test(wall.text), "answers without names");
       const priv = await csv(form);
       assert.match(priv.text, /Name,What would make this retreat a win for you\?/); assert.match(priv.text, /Ruth,Honest talk about the building/);
-      const button = control.getByRole("link", { name: "Export answers", exact: true });
+      const button = control.locator(".ctl-screen.is-live").getByRole("link", { name: "Export answers", exact: true });
       await until(async () => await button.isVisible(), "Export answers on the control surface", 8000);
       const [download] = await Promise.all([control.waitForEvent("download"), button.click()]);
       assert.match(download.suggestedFilename(), /for-the-facilitators\.csv$/);
@@ -272,7 +272,7 @@ async function main() {
       await close.waitFor({ timeout: 15000 });
       await shot(control, "self-paced-close-day-before-control");
       await close.click(); await control.getByRole("button", { name: "Tap again to close Day 1" }).click();
-      await until(async () => (await phone.locator(".ph-step").innerText()).includes("This step is closed. Your answers are kept."), "it closes on the phone with the day", 15000);
+      await until(async () => (await phone.locator(".ph-step").innerText()).includes("Answers for this step are finished."), "it closes on the phone with the day", 15000);
       assert.ok((await phone.locator(".ph-answers").innerText()).includes("How honest the room was"), "the answer is kept");
       await until(async () => /Closed/.test(await control.locator(".sp-list li", { hasText: "Between sessions" }).innerText()), "the control surface lists it as closed", 15000);
       const row = (await sql.query("select closes_at<=now() as closed,closed_at is not null as logged from public.sessions where id=$1", [between])).rows[0];

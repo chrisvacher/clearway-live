@@ -52,7 +52,8 @@ export function selfPacedLink(origin: string, engagement: string, session: strin
 export const requestedStep = (search: string) => { const step = new URLSearchParams(search).get("step"); return uuid(step) ? step : null; };
 
 // Rehearsal presses from the control surface. The database checks them again.
-export const rehearsalActions = ["start", "end", "clear"] as const;
+// "fresh" is Start fresh (November 16): every answer goes, every step back to Ready, the TV and phones stay connected.
+export const rehearsalActions = ["start", "end", "clear", "fresh"] as const;
 export type RehearsalAction = typeof rehearsalActions[number];
 export function rehearsalBody(value: unknown): { id: string; action: RehearsalAction } | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -87,3 +88,16 @@ export function rehearsalMessage(result: RehearsalResult): string {
 // Clear is on whenever there is one, or a rehearsal is running.
 export const testAnswersLabel = (n: number) => `${n} test ${n === 1 ? "item" : "items"}`;
 export const canClearTests = (items: number, rehearsing: boolean) => items > 0 || rehearsing;
+
+// Start fresh's words. One action, two taps, refused while a step is live.
+export const answerCount = (n: number) => `${n} ${n === 1 ? "answer" : "answers"}`;
+export function freshMessage(result: RehearsalResult): string {
+  switch (result.status) {
+    case "ok": case "duplicate": return `Started fresh. ${answerCount(result.answers ?? 0)} deleted and ${result.sessions ?? 0} ${result.sessions === 1 ? "step" : "steps"} back to Ready. The TV and phones stay connected.`;
+    case "live": return `${result.title ? `${result.title} is live. ` : ""}Choose Home under the live screen first. The room can’t start fresh while a step is live.`;
+    case "practice": return "The practice room uses Reset practice room.";
+    case "closed": return "This engagement has closed. Reopen it first.";
+    case "denied": return "Only this engagement’s facilitators can do that.";
+    default: return "That didn’t go through. Try again.";
+  }
+}

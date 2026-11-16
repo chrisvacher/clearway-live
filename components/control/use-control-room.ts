@@ -92,11 +92,12 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
 
   // The run of show: states move with every navigation press.
   useEffect(() => {
-    let stopped = false, running = false;
+    let stopped = false, running = false, again = false;
     async function load() {
-      if (running) return; running = true;
+      // A refresh asked for while one is loading runs once more after it, so a state change is never missed.
+      if (running) { again = true; return; } running = true;
       try { const response = await fetch(`/api/run-of-show/${engagement}`, { cache: "no-store" }); if (response.ok && !stopped) { const next = await response.json() as RunOfShow; setShow({ ...next, sessions: sortSessions(next.sessions) }); } }
-      catch { /* Keep the last run of show. */ } finally { running = false; }
+      catch { /* Keep the last run of show. */ } finally { running = false; if (again && !stopped) { again = false; void load(); } }
     }
     refreshShow.current = () => void load();
     const timer = setInterval(() => void load(), 15000);

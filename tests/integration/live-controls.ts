@@ -91,7 +91,7 @@ async function main() {
     assert.deepEqual([a.status, b.status].sort(), ["moved", "ok"]);
     assert.equal((await db.query("select live_session_id from public.room_states where engagement_id=$1", [room])).rows[0].live_session_id, steps[1]);
 
-    // Late answers inside the segment; the segment closes when the room leaves it.
+    // Late answers: a step stays open until it is ended (November 16). Leaving it, or its segment, closes nothing.
     const send = (session: string, text: string) => rpc(phone.client, "live_submit", { p_engagement: room, p_id: randomUUID(), p_session: session, p_revision: 0, p_action: "submit", p_text: text, p_sent: new Date().toISOString(), p_uncertainty: 1 });
     assert.equal((await send(steps[0], "Hope")).status, "accepted", "Phone answers an earlier step in the segment");
     const burst = await press(jaisy, "start_burst", { from: steps[1], minutes: 3 });
@@ -104,7 +104,9 @@ async function main() {
     assert.equal((await send(steps[1], "Late")).status, "closed", "Phones down locks the live step");
     assert.equal((await send(steps[0], "Courage")).status, "accepted", "An earlier step in the segment still takes answers");
     assert.equal((await press(chris, "next", { from: steps[1] })).status, "ok");
-    assert.equal((await send(steps[0], "After")).status, "closed", "Leaving the segment closes it");
+    assert.equal((await send(steps[0], "After")).status, "accepted", "Leaving the segment closes nothing");
+    assert.equal((await press(chris, "stop_answers", { from: steps[2], session: steps[0] })).status, "ok", "Stop answers on an earlier step");
+    assert.equal((await send(steps[0], "Stopped")).status, "closed", "A stopped step takes no answers");
 
     // Hide a word on the live step: it leaves the TV event.
     assert.equal((await send(steps[2], "Joy, Peace")).status, "accepted");
@@ -117,7 +119,7 @@ async function main() {
     await db.query("update public.engagement_facilitators set deleted=true where engagement_id=$1 and clearway_user_id=$2", [room, jaisyId]);
     assert.equal((await rpc(jaisy.client, "control_status", { p_engagement: room })).status, "denied");
     assert.equal((await press(jaisy, "nothing_live", { from: steps[2] })).status, "denied");
-    console.log(`Native controls: private facilitator notices, TV confirmation (${loopback} ms Go live on loopback), simultaneous remotes, segment late answers, server burst end, word hiding and assignment revocation passed. Venue acceptance remains separate.`);
+    console.log(`Native controls: private facilitator notices, TV confirmation (${loopback} ms Go live on loopback), simultaneous remotes, late answers on open steps, Stop answers, server burst end, word hiding and assignment revocation passed. Venue acceptance remains separate.`);
   } finally {
     for (const channel of channels) await channel.unsubscribe();
     for (const client of clients) client.realtime.disconnect();

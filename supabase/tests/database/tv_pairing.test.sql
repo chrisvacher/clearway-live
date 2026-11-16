@@ -123,7 +123,7 @@ set local role authenticated;select tests.login(10);
 select is(public.tv_current(),null::jsonb,'Reopening cannot restore the old TV pairing');
 reset role;
 set local role service_role;
-select is(public.tv_device('sync',tests.tv(1201,'f'))->>'status','pair','Closed engagement device needs a new approval');
+select is(public.tv_device('sync',tests.tv(1201,'f'))->>'status','ended','Closed engagement device needs a new approval, and says its workshop ended rather than showing a code (November 16)');
 select is(public.tv_room_link((select room_code from public.engagements where id=tests.id(100))),tests.id(100),'Short room link resolves without granting sign-in');
 reset role;
 select * from finish();rollback;

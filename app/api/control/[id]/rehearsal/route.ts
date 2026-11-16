@@ -11,8 +11,8 @@ import { rehearsalBody } from "@/lib/run-of-show/self-paced";
 export const dynamic = "force-dynamic";
 const answer = (data: unknown, status = 200) => privateResponse(NextResponse.json(data, { status }));
 
-// Facilitator-only: start or end a rehearsal, or Clear test answers. One press each,
-// decided under the room lock and logged; clearing is refused while a session is live.
+// Facilitator-only: start or end a rehearsal, Clear test answers, or Start fresh. One press each,
+// decided under the room lock and logged; clearing and Start fresh are refused while a session is live.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params, config = authConfig();
   if (!uuid(id) || !config || !sameOrigin(request, config.origin)) return answer({ status: "denied" }, 403);
@@ -25,7 +25,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Clear test answers also puts away the scribe cards and files a rehearsal made. The bytes of the test files go
     // through Storage afterwards, as the practice reset does; their paths are read first, while the rows still stand.
     const paths = action === "clear" ? await fac.client.rpc("rehearsal_scribe_paths", { p_engagement: id }).then(r => Array.isArray(r.data) ? (r.data as unknown[]).filter((p): p is string => typeof p === "string") : [], () => [] as string[]) : [];
-    const { data, error } = await roomMutation(fac.client, id, () => fac.client.rpc("rehearsal_control", { p_engagement: id, p_id: pressId, p_action: action }));
+    const { data, error } = await roomMutation(fac.client, id, () => action === "fresh"
+      ? fac.client.rpc("start_fresh", { p_engagement: id, p_id: pressId })
+      : fac.client.rpc("rehearsal_control", { p_engagement: id, p_id: pressId, p_action: action }));
     if (error) throw error;
     const status = data.status as string;
     if (action === "clear" && status === "ok" && paths.length) {

@@ -60,7 +60,7 @@ select tests.login(3);
 select is(tests.send(901,602,'{"strokes":["M10 100L40 80"]}')->>'status','accepted','Priya signs');
 select tests.login(1);
 select is(tests.ctl(2,'next')->>'status','ok','Next, to the closing wall');
-select is(tests.state(602),'closed','Leaving the step closes signing');
+select is(tests.state(602),'open','Leaving the step leaves signing open (November 16: steps stay open until they are ended)');
 select is(tests.ctl(3,'go_live',jsonb_build_object('session',tests.id(602)))->>'status','ok','Go live on Affirm together again');
 select is(tests.state(602),'live','Going live again opens signing again');
 select is((select closed_at from public.sessions where id=tests.id(602)),null,'It no longer reads as closed');
@@ -70,7 +70,7 @@ select is(tests.send(902,602,'{"strokes":["M30 30L60 60"]}')->>'status','accepte
 select tests.login(1);
 select is(tests.signed(602),2::bigint,'Both signatures are there');
 select is(tests.ctl(4,'back')->>'status','ok','Back, to the opening wall');
-select is(tests.state(602),'closed','Leaving closes it again');
+select is(tests.state(602),'open','Leaving leaves it open again');
 select is(tests.ctl(5,'next')->>'status','ok','Next, back to Affirm together');
 select is(tests.state(602),'live','Next onto it opens it again too');
 
@@ -110,10 +110,11 @@ update public.sessions set state='ready',closed_at=null where engagement_id=test
 update public.room_states set live_session_id=null,tv_content='holding' where engagement_id=tests.id(100);
 select tests.login(1); set local role authenticated;
 select is(tests.ctl(30,'go_live',jsonb_build_object('session',tests.id(603)))->>'status','ok','Go live on the closing wall');
-select is(tests.ctl(31,'go_live',jsonb_build_object('session',tests.id(604)))->>'status','ok','Go live on the Day 1 wall, which closes it');
-select is(tests.state(603),'closed','The wall closed');
+select is(tests.ctl(31,'go_live',jsonb_build_object('session',tests.id(604)))->>'status','ok','Go live on the Day 1 wall');
+select is(tests.state(603),'open','The wall stays open');
+select is(tests.ctl(33,'stop_answers',jsonb_build_object('session',tests.id(603)))->>'status','ok','Stop answers on the wall');
 select is(tests.ctl(32,'go_live',jsonb_build_object('session',tests.id(603)))->>'status','ok','Go live on the wall again');
-select is(tests.state(603),'closed','A wall stays read-only, as before');
+select is(tests.state(603),'closed','A stopped wall stays stopped');
 reset role;
 select ok(not has_function_privilege('authenticated','private.sign_reopen_on_show()','execute'),'Browsers cannot call the trigger function');
 

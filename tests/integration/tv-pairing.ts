@@ -112,7 +112,9 @@ async function main() {
   assert.equal((await rpc(admin,"tv_device",{p_action:"sync",p:{...first,code_hash:hash(randomUUID())}})).status,"pair");assert.equal((await rpc(admin,"tv_device",{p_action:"prepare",p:first})).status,"denied");
   assert.equal((await manage("display",{room_size:"medium",theme:"light",texture:false,reduced_motion:true})).status,"ok");await until(()=>views[1].at(-1)?.display?.theme==="light","Remaining TV resubscribes after access rotation and receives display settings");
   const code=(await fac.client.from("engagements").select("room_code").eq("id",room).single()).data!.room_code;assert.equal(await rpc(admin,"tv_room_link",{p_code:code}),room);
-  await db.query("update public.engagements set status='closed' where id=$1",[room]);assert.ok((await two.client.auth.refreshSession()).error);await db.query("update public.engagements set status='pre_call' where id=$1",[room]);assert.equal((await rpc(admin,"tv_device",{p_action:"sync",p:{...second,code_hash:hash(randomUUID())}})).status,"pair");
+  await db.query("update public.engagements set status='closed' where id=$1",[room]);assert.ok((await two.client.auth.refreshSession()).error);await db.query("update public.engagements set status='pre_call' where id=$1",[room]);
+  // November 16: a window unpaired by the close says Workshop ended instead of showing a code, until it is paired again.
+  assert.equal((await rpc(admin,"tv_device",{p_action:"sync",p:{...second,code_hash:hash(randomUUID())}})).status,"ended");
   // A replaced code reaches the TV. The TV page's own pairing loop runs against
   // the database's sync, with the route's reply, on a TV computer whose clock is
   // 37 seconds slow. The code leaves before the database refuses it and the

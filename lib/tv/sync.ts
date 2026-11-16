@@ -93,5 +93,5 @@ function parseStatus(data: unknown): { status: TvStatus; serverTime: unknown } |
     return { status: { status: "pair", code: status.code, expires_at: status.expires_at }, serverTime };
   }
   if (status.status === "paired") return typeof status.engagement === "string" && typeof status.tv === "string" ? { status, serverTime } : null;
-  return ["opening", "limited", "unavailable", "closed"].includes(String(status.status)) ? { status: { status: status.status }, serverTime } : null;
+  return ["opening", "limited", "unavailable", "closed", "ended"].includes(String(status.status)) ? { status: { status: status.status }, serverTime } : null;
 }

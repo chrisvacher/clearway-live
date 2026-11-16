@@ -303,7 +303,10 @@ async function main() {
       await press(fac, sql, room.id, "go_live", { session: pool });
       await press(fac, sql, room.id, "go_live", { session: later });
       const state = async () => (await sql.query("select state from public.sessions where id=$1", [pool])).rows[0].state as string;
-      await until(async () => (await state()) === "closed", "the pool step closes when the room leaves its segment", 5000);
+      // November 16: moving on closes nothing. Stop answers closes the pool step, and Ask still lives on after it.
+      await until(async () => (await state()) === "open", "the pool step stays open when the room moves on", 5000);
+      await press(fac, sql, room.id, "stop_answers", { session: pool });
+      await until(async () => (await state()) === "closed", "Stop answers closes the pool step", 5000);
       await until(async () => await ruth.page.locator(".qa-ask-button").isVisible(), "Ask still in the phone header on the next session", 10000);
       await ruth.page.locator(".qa-ask-button").click();
       await ruth.page.fill("#qa-any-question", "Can we come back to the budget after lunch?");

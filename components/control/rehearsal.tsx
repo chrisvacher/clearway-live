@@ -1,16 +1,17 @@
 "use client";
 import { useState } from "react";
-import { Download, FlaskConical } from "lucide-react";
+import { Download, FlaskConical, RotateCcw } from "lucide-react";
 import type { useControlRoom } from "./use-control-room";
 import { useSecondTap } from "./live-controls";
 import { stateLabels } from "@/lib/control/policy";
-import { canClearTests, clearedParts, joinParts, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction, type RehearsalResult } from "@/lib/run-of-show/self-paced";
+import { answerCount, canClearTests, clearedParts, freshMessage, joinParts, rehearsalMessage, testAnswersLabel, selfPacedState, windowLabel, type RehearsalAction, type RehearsalResult } from "@/lib/run-of-show/self-paced";
+import { practiceId } from "@/lib/room/practice";
 import { SeedCounts } from "@/components/interactions/lens/lens-panel";
 import { pressId } from "@/lib/control/own-presses";
 import "./self-paced.css";
 
 type Room = ReturnType<typeof useControlRoom>;
-const selfLabels: Record<string, string> = { ...stateLabels, ready: "Opens later", open: "Open" };
+const selfLabels: Record<string, string> = { ...stateLabels, ready: "Opens later", open: "Open", closed: "Closed" };
 
 // Self-paced sessions in the run of show: open on phones between two times, outside the
 // live room. Next and Back skip them; their state follows the clock, read on the server.
@@ -38,6 +39,37 @@ export function ExportAnswers({ room }: { room: Room }) {
   const session = room.frame?.session;
   if (!session || session.interaction === "content") return null;
   return <a className="show-button is-small" href={`/api/control/${room.show.context.id}/export?session=${session.id}`} download><Download size={16} aria-hidden="true" />Export answers</a>;
+}
+
+// Start fresh (November 16): after a rehearsal or a demo, the same engagement starts clean in two taps. Every answer, vote
+// and AI or What We Heard state is deleted, every step goes back to Ready and the timer clears. The TV stays paired and
+// phones stay signed in (they reload). Export answers sits beside it, first. Refused while a step is live. The practice
+// room keeps Reset practice room.
+export function StartFresh({ room }: { room: Room }) {
+  const engagement = room.show.context.id, closed = room.show.context.closed;
+  const [busy, setBusy] = useState(false), [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
+  const confirm = useSecondTap();
+  if (engagement === practiceId) return null;
+  const live = Boolean(room.frame?.state.live_session_id), total = room.status?.answers_total ?? null;
+  async function fresh() {
+    setBusy(true); setNote(null);
+    try {
+      const response = await fetch(`/api/control/${engagement}/rehearsal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), action: "fresh" }) });
+      const result = await response.json() as RehearsalResult;
+      setNote({ text: freshMessage(result), error: !["ok", "duplicate"].includes(result.status) });
+    } catch { setNote({ text: freshMessage({ status: "unavailable" }), error: true }); }
+    finally { setBusy(false); room.refresh(); }
+  }
+  return <div className="sp-fresh" data-testid="start-fresh-panel">
+    <p className="ctl-notes">Start fresh deletes every answer{total !== null ? ` (${answerCount(total)})` : ""}, puts every step back to Ready and clears the timer. The TV and phones stay connected.</p>
+    <div className="ctl-row">
+      <a className="show-button is-small" href={`/api/control/${engagement}/export?session=all`} download data-testid="fresh-export"><Download size={16} aria-hidden="true" />Export answers</a>
+      <button className="show-button is-small sp-clear" disabled={busy || closed || live} aria-describedby={live ? "sp-fresh-why" : undefined} data-testid="start-fresh"
+        onClick={() => confirm.tap("fresh", () => void fresh())}><RotateCcw size={16} aria-hidden="true" />{busy ? "Starting fresh..." : confirm.armed === "fresh" ? "Tap again to delete every answer" : "Start fresh"}</button>
+    </div>
+    {live && <p id="sp-fresh-why" className="show-help">Choose Home under the live screen first. The room can’t start fresh while a step is live.</p>}
+    {note && <p className={`show-help${note.error ? " is-error" : ""}`} role={note.error ? "alert" : "status"}>{note.text}</p>}
+  </div>;
 }
 
 // Rehearse a church's own run of show in its engagement, then clear it before the real
@@ -73,6 +105,6 @@ export function RehearsalPanel({ room }: { room: Room }) {
     </div>
     {live && <p id="sp-clear-why" className="show-help">Choose Home under the live screen first. Test answers can’t be cleared while a session is live.</p>}
     {note && <p className={`show-help${note.error ? " is-error" : ""}`} role={note.error ? "alert" : "status"}>{note.text}</p>}
-    {rehearsal?.last_clear && <p className="show-help">Last cleared {when(rehearsal.last_clear.at)}{rehearsal.last_clear.by ? ` by ${rehearsal.last_clear.by}` : ""}: {joinParts(clearedParts(rehearsal.last_clear)) || "0 test answers"}.</p>}
+    {rehearsal?.last_clear && <p className="show-help">{rehearsal.last_clear.fresh ? "Started fresh" : "Last cleared"} {when(rehearsal.last_clear.at)}{rehearsal.last_clear.by ? ` by ${rehearsal.last_clear.by}` : ""}: {joinParts(clearedParts(rehearsal.last_clear)) || "0 test answers"}.</p>}
   </div>;
 }

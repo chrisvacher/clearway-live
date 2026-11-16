@@ -156,7 +156,9 @@
 .gfs-siglabel { display: flex; justify-content: space-between; align-items: center; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); color: var(--cwl-text); }
 .gfs-siglabel .ph-secondary:disabled { background: transparent; color: var(--cwl-text-muted); text-decoration: none; }
 .gfs-sigpad { position: relative; height: 150px; border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); overflow: hidden; }
-.gfs-sigpad svg { position: absolute; left: 14px; top: 8px; width: calc(100% - 28px); height: 104px; touch-action: none; cursor: crosshair; }
+/* The field is 600 by 200 (3 by 1): cap the svg at 3 x 104px and centre it, so on a wide screen the
+   area that takes the pointer is the area the ink draws in, with no empty bands at the sides. */
+.gfs-sigpad svg { position: absolute; left: 14px; right: 14px; top: 8px; margin-inline: auto; width: min(calc(100% - 28px), 312px); height: 104px; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; cursor: crosshair; }
 .gfs-sigpad path, .gfs-sig-shown path { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .gfs-sig-hint { position: absolute; left: 0; right: 0; top: 46px; text-align: center; font-style: normal; font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-semibold); color: var(--cw-gray-500); pointer-events: none; }
 .gfs-sig-line { position: absolute; left: 14px; right: 14px; bottom: 10px; border-top: 2px solid var(--cw-gray-300); padding-top: 4px; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); color: var(--cw-gray-600); pointer-events: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

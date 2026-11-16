@@ -45,13 +45,15 @@ select is(tests.save(311,'word_cloud','{}')->>'status','ok','A later Day 1 word 
 select is(tests.save(320,'word_cloud','{}','Day 2')->>'status','ok','A Day 2 word cloud');
 select is(tests.save(321,'qa','{"any_time":true}','Day 2','draft')->>'status','ok','A Day 2 Q&A draft with the setting on');
 
--- The Q&A session runs, then the room moves on and it closes.
+-- The Q&A session runs, then the room moves on (it stays open, November 16) and its answers are stopped.
 select is(tests.ctl(901,'go_live',jsonb_build_object('session',tests.id(310)))->>'status','ok','Go live on the Q&A step');
 select tests.login(3);
 select is(public.live_submit(tests.id(100),tests.id(950),tests.id(310),0,'submit','Will we talk about the building?',now(),null,0)->>'status','accepted','Priya asks while it is live');
 select tests.login(1);
 select is(tests.ctl(902,'go_live',jsonb_build_object('session',tests.id(311)))->>'status','ok','Go live on the word cloud');
-select is(tests.state(310),'closed','The Q&A step closed when the room moved on');
+select is(tests.state(310),'open','The Q&A step stays open when the room moves on');
+select is(tests.ctl(9021,'stop_answers',jsonb_build_object('session',tests.id(310)))->>'status','ok','Stop answers on the Q&A step');
+select is(tests.state(310),'closed','The Q&A step is stopped');
 
 -- Ask stays on every phone: the pool outlives its step.
 select tests.login(4);

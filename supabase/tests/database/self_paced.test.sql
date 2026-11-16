@@ -189,8 +189,8 @@ select ok((select deleted from private.qa_questions where submission_id=tests.id
 select ok(not (tests.sub(970)).withdrawn and (tests.sub(970)).replaced_by is null,'The real answer a test answer replaced stands again');
 select is((select state from sessions where id=tests.id(324)),'ready','A step the rehearsal reached with only test answers is Ready again');
 select is((select shown_at from sessions where id=tests.id(324)),null,'and not reached');
-select is((select state from sessions where id=tests.id(321)),'closed','A step holding real answers keeps its state');
-select is((select state from sessions where id=tests.id(320)),'closed','A step reached before the rehearsal is untouched');
+select is((select state from sessions where id=tests.id(321)),'open','A step holding real answers keeps its state (open: moving on closes nothing since November 16)');
+select is((select state from sessions where id=tests.id(320)),'open','A step reached before the rehearsal is untouched');
 select is((select row(action,answers,votes,sessions)::text from private.rehearsal_log where id=tests.id(965)),'(clear,4,1,1)','Clearing is logged with what it removed');
 select is((select actor_id from private.rehearsal_log where id=tests.id(965)),tests.id(701),'and who cleared');
 select is((select (results->>'people')::integer from room_states where engagement_id=tests.id(100)),0,'Nothing live: no results on screen');

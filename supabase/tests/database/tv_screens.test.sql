@@ -105,7 +105,7 @@ select is(tests.live(),tests.id(312),'and the room stays where it is');
 
 -- The team facilitator's remote cannot change the screen.
 -- Batch 1 (MD-1) takes hide and unhide off the team remote's list; only the facilitators hide.
-select ok((select pg_get_functiondef('private.room_control(uuid,uuid,text,jsonb)'::regprocedure) like '%(''go_live'',''next'',''back'',''reopen'',''phones_down'',''open_phones'',''spotlight'',''clear_spotlight'',''room_size'')%'),'The team remote''s list has no tv_screen, and no hide since batch 1');
+select ok((select pg_get_functiondef('private.room_control(uuid,uuid,text,jsonb)'::regprocedure) like '%(''go_live'',''next'',''back'',''reopen'',''stop_answers'',''take_answers'',''phones_down'',''open_phones'',''spotlight'',''clear_spotlight'',''room_size'')%'),'The team remote''s list has no tv_screen, and no hide since batch 1 (Stop and Take answers since November 16)');
 
 select * from finish();
 rollback;

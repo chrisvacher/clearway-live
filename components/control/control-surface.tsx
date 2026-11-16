@@ -3,8 +3,9 @@ import { HandoverPanel } from "@/components/interactions/intent/handover";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Circle, Clock, Eye, EyeOff, Inbox, LayoutGrid, Lock, Map as MapIcon, MonitorSmartphone, PanelRightClose, PanelRightOpen, PencilLine, Play, Printer, Radio, RefreshCw, Repeat, Smartphone } from "lucide-react";
-import { actionNames, stateLabels, timing } from "@/lib/control/policy";
+import { ArrowLeft, Circle, CircleStop, Clock, Eye, EyeOff, Inbox, LayoutGrid, Map as MapIcon, MonitorSmartphone, PanelRightClose, PanelRightOpen, Play, Printer, Radio, RefreshCw, Repeat } from "lucide-react";
+import { kindOf } from "@/lib/interactions/kinds";
+import { actionNames, timing } from "@/lib/control/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { parts, type RunOfShow, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
 import { partOpen } from "@/lib/run-of-show/self-paced";
@@ -20,7 +21,7 @@ import { loopIndex, loopNextIn } from "@/lib/images/loop";
 import { serverNow } from "@/lib/live/protocol";
 import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
-import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
+import { ExportAnswers, RehearsalPanel, SelfPacedList, StartFresh } from "./rehearsal";
 import { AiPanel } from "@/components/interactions/ai/ai-panel";
 import { SignalPanel } from "@/components/interactions/signal/signal-panel";
 import { aiPressNames } from "@/lib/interactions/ai";
@@ -30,6 +31,8 @@ import { AfterLink } from "@/components/report/after-link";
 import { RemoteLink } from "./remote-link";
 import { EndWorkshop } from "./end-workshop";
 import { OpenTvWindow } from "./open-tv-window";
+import { SecondComputer } from "./second-computer";
+import { practiceId } from "@/lib/room/practice";
 import { HeaderMore, useWide } from "./header-more";
 
 // Where this room lives: the address people type, the code, and whose brand the room wears. Facilitator screens stay Clearway Live.
@@ -41,18 +44,18 @@ function Private({ title, children, id }: { title: string; children: React.React
 const time = (iso: string | null, zone: string) => iso ? new Intl.DateTimeFormat("en-CA", { hour: "numeric", minute: "2-digit", timeZone: zone }).format(new Date(iso)) : "";
 
 // A step's state as one small icon, named for screen readers and on hover, so the row keeps its room for Preview and Go live.
-const stateIcons: Record<string, typeof Circle> = { draft: PencilLine, ready: Circle, live: Radio, phones_down: Smartphone, open: Inbox, closed: Lock };
-const stateHelp: Record<string, string> = {
-  draft: "Draft: mark it ready in setup before it goes live",
-  ready: "Ready to go live",
-  live: "Live on the TV",
-  phones_down: "Live, phones down",
-  open: "Taking late answers while its segment runs",
-  closed: "Closed: goes live read-only until you reopen it",
-};
-function StateIcon({ state }: { state: string }) {
-  const Icon = stateIcons[state] ?? Circle, label = stateHelp[state] ?? stateLabels[state] ?? state;
-  return <span className={`ctl-state-icon is-${state}`} title={label} data-state={state}><Icon size={16} aria-hidden="true" /><span className="sr-only">{label}</span></span>;
+// Three states (November 16): not yet, open with its answer count, and stopped. Steps stay open until they are ended.
+type StepStatus = "not_yet" | "open" | "stopped";
+const stepStatus = (state: string): StepStatus => state === "closed" ? "stopped" : state === "draft" || state === "ready" ? "not_yet" : "open";
+const statusIcons: Record<StepStatus, typeof Circle> = { not_yet: Circle, open: Inbox, stopped: CircleStop };
+const answersLabel = (n: number) => `${n} ${n === 1 ? "answer" : "answers"}`;
+function StateIcon({ state, answers }: { state: string; answers: number | null }) {
+  const status = stepStatus(state), Icon = statusIcons[status];
+  const label = status === "stopped" ? `Stopped${answers !== null ? `, ${answersLabel(answers)}` : ""}. Press Take answers on it to open it again`
+    : status === "open" ? `Open${answers !== null ? `, ${answersLabel(answers)}` : ""}. Phones can answer it`
+    : state === "draft" ? "Not yet. Mark it ready in setup before it goes live" : "Not yet shown";
+  return <span className={`ctl-state-icon is-${status}`} title={label} data-state={state} data-status={status}><Icon size={16} aria-hidden="true" />
+    {status !== "not_yet" && answers !== null && <span className="ctl-state-count" aria-hidden="true">{answers}</span>}<span className="sr-only">{label}</span></span>;
 }
 
 const screenNames: Record<string, string> = { blackout: "Blackout", join: "Join screen", holding: "Home screen", screen_check: "Screen check" };
@@ -158,7 +161,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
               return <li key={s.id} className={`${isLive ? "is-current" : ""}${inPreview ? " is-preview" : ""}${s.id === room.upNext?.id ? " is-next" : ""}`} data-session={s.id}>
                 <span className="ctl-time">{time(s.planned_start, context.timezone)}</span>
                 <span className="ctl-run-title"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min{s.id === room.frame?.state.home?.session ? " · Home screen" : ""}</small></span>
-                <StateIcon state={s.state} />
+                <StateIcon state={isLive && frame?.session?.id === s.id ? frame.session.state : s.state} answers={(context.kinds?.find(k => k.kind === s.interaction) ?? kindOf(s))?.input ? status?.step_answers?.[s.id] ?? 0 : null} />
                 <span className="ctl-run-actions">
                   <button className="show-button is-small" aria-pressed={inPreview} onClick={() => setChosen(s.id)} aria-label={`Preview ${s.title}`}>Preview</button>
                   <button className={`show-button is-small${isLive ? " is-on-air" : " is-go"}`} disabled={busy || isLive || s.state === "draft" || context.closed} onClick={() => goLive(s)} aria-label={isLive ? `${s.title} is live` : `Go live with ${s.title}`}>{isLive ? <><Radio size={14} aria-hidden="true" />Live</> : <><Play size={14} aria-hidden="true" />Go live</>}</button>
@@ -208,11 +211,13 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
             <button type="button" className="show-button" disabled={busy} onClick={() => confirm.tap("refresh", () => void room.press("refresh_phones"))}><RefreshCw size={18} aria-hidden="true" />{confirm.armed === "refresh" ? "Tap again to refresh phones" : "Refresh phones"}</button>
           </div>
           <p className="show-help">Use the TV view on phones if the TV drops. Refresh phones reloads every phone in the room.</p>
+          <SecondComputer engagement={engagement} closed={context.closed} />
         </Private>
         <HandoverPanel room={room} />
         {!workshop && <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} live={room.frame?.state.live_session_id ?? null} promoted={room.frame?.promoted_quote?.text ?? null} /></Private>}
         {!workshop && <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>}
         <Private title="At the door" id="ctl-door"><div className="ctl-door">{door}</div></Private>
+        {engagement !== practiceId && <Private title="Start fresh"><StartFresh room={room} /></Private>}
         <Private title="Rehearsal"><RehearsalPanel room={room} /></Private>
         {status?.controls.length ? <Private title="Recent presses"><ul className="ctl-log">{status.controls.slice(0, 5).map(c => <li key={c.id}><span>{c.by || "The room"}</span> {(aiPressNames[c.action] ?? actionNames[c.action] ?? c.action.replaceAll("_", " ")).toLowerCase()}</li>)}</ul></Private> : null}
       </aside>
@@ -263,7 +268,7 @@ function LiveScreen({ room, context }: { room: Room; context: ShowContext }) {
     <div className="ctl-screen-head">
       <span className="ctl-screen-tag is-live">Live</span>
       <h2 id="ctl-live-title" className="ctl-screen-title">{current ? current.title : screenNames[content] ?? "Home screen"}</h2>
-      <SyncChip room={room} href={`/setup/${context.id}/tv`} />
+      <SyncChip room={room} engagement={context.id} />
       <ExportAnswers room={room} />
     </div>
     <TimerChip room={room} engagement={context.id} />

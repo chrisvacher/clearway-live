@@ -12,7 +12,7 @@ async function main() {
   const step = async (name: string, run: () => Promise<void>) => { await run(); console.log(`ok · ${name}`); };
   try {
     await sql.connect(); browser = await chromium.launch();
-    const expired = "That link has expired. Enter this code on Screens instead.";
+    const expired = "That link has expired. Type this code in the live room instead.";
     const run = async (skin: "clearway" | "novetera") => {
       const room = await engagement(sql, ["Ruth"]), fac = await facilitator(env, sql, room.id), expect = skin === "novetera" ? app.noveteraOrigin : app.origin;
       if (skin === "novetera") await sql.query("update public.engagements set skin='novetera' where id=$1", [room.id]);

@@ -349,9 +349,10 @@ async function main() {
       await until(async () => (await layer().locator(".gfs-big").innerText()) === "3", "Ben back", 5000);
       await until(async () => await layer().locator(".gfs-name.is-sig").count() === 3, "with his signature, not only his name", 5000);
     });
-    await step("INT-10 Signing closed: the Sky mark with Closed, phones show their signature, nothing more arrives", async () => {
+    await step("INT-10 Signing closed: the quiet mark with no Closed marker (November 16), phones show their signature, nothing more arrives", async () => {
       await control.getByRole("button", { name: "Close signing" }).click();
-      await until(async () => await tv.locator(".tv-live.is-closed").count() === 1, "Closed on the TV", 5000);
+      await until(async () => await tv.locator(".tv-live.is-live").count() === 0, "the TV mark goes quiet", 5000);
+      assert.equal(await tv.locator(".tv-live.is-closed, .nvt-closed").count(), 0, "no Closed marker on the TV");
       await until(async () => (await priya.page.locator(".ph-body").innerText()).includes("Signing has closed"), "closed on the phone", 5000);
       await shot(tv, "int-10-closed-tv"); await shot(priya.page, "int-10-closed-phone");
       await control.getByRole("button", { name: "Reopen signing" }).click();

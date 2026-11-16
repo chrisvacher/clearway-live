@@ -1,11 +1,12 @@
 "use client";
 import { useEffect } from "react";
-import { ChevronLeft, ChevronRight, House, MonitorOff, Plus, QrCode, RotateCcw, Send, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
+import { ChevronLeft, ChevronRight, House, MonitorOff, Plus, QrCode, Send, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
 import { kindOf } from "@/lib/interactions/kinds";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { TvScreen } from "@/lib/control/types";
 import { MarkDecision } from "./mark-decision";
 import { burstLeft, type Room } from "./live-controls";
+import { AnswersToggle } from "./answers-toggle";
 
 // The live room's centre column, in fixed bands (November 15, "Live room centre column" research): the screens, a pinned
 // transport bar, the step controls in fixed slots, then the step panel. The screens and transport bar never move or
@@ -44,15 +45,15 @@ export function Transport({ room, context, previewing, onGoLive }: { room: Room;
   </div>;
 }
 
-// 4. The step controls: fixed slots (burst, phones, spotlight, hide, mark a decision). A slot the step doesn't use stays
-// empty, so each control is always in the same place.
+// 4. The step controls: fixed slots (burst, phones, spotlight, hide, answers, mark a decision). A slot the step doesn't use
+// stays empty, so each control is always in the same place.
 export function StepControls({ room, minutes, setMinutes, onPanel, workshop }: { room: Room; minutes: 3 | 4 | 5; setMinutes: (n: 3 | 4 | 5) => void; onPanel: () => void; workshop: boolean }) {
   const { frame, pending, press } = room;
   const session = frame?.session, busy = Boolean(pending) || !frame;
   const burst = burstLeft(room), down = Boolean(frame?.state.phones_down), spotlit = frame?.state.spotlight_key;
   if (!session) return <div className="ctl-stepctl is-quiet"><p>Nothing live on the TV. Go live with what&apos;s in preview, or press Back to return to the last step.</p></div>;
-  if (session.state === "closed") return <div className="ctl-stepctl is-quiet">
-    <button className="show-button is-primary" disabled={busy} onClick={() => void press("reopen")}><RotateCcw size={18} aria-hidden="true" />Reopen {session.title}</button></div>;
+  if (session.state === "closed") return <div className="ctl-stepctl is-quiet"><p>Answers for this step are stopped. Phones show it without taking answers.</p>
+    <div className="ctl-slot is-answers"><AnswersToggle room={room} /></div></div>;
   if (session.interaction === "content") return <div className="ctl-stepctl is-quiet"><p>Reading along. Nothing to run on this screen.</p>
     {!workshop && <div className="ctl-slot is-decision"><MarkDecision room={room} variant="laptop" host="ctl-decision-host" /></div>}</div>;
   const spotlightKind = (kindOf(session)?.spotlight ?? "none") !== "none";
@@ -72,6 +73,7 @@ export function StepControls({ room, minutes, setMinutes, onPanel, workshop }: {
       ? <button className="show-button" disabled={busy} onClick={() => void press("clear_spotlight")}><SunDim size={18} aria-hidden="true" />Clear spotlight</button>
       : <button className="show-button" disabled={busy} onClick={onPanel}><Sun size={18} aria-hidden="true" />Spotlight</button>)}</div>
     <div className="ctl-slot is-hide">{spotlightKind && <button className="show-button" disabled={busy} onClick={onPanel}><EyeOff size={18} aria-hidden="true" />Hide</button>}</div>
+    <div className="ctl-slot is-answers"><AnswersToggle room={room} /></div>
     <div className="ctl-slot is-decision">{!workshop && <MarkDecision room={room} variant="laptop" host="ctl-decision-host" />}</div>
   </div>;
 }

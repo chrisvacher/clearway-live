@@ -1,4 +1,4 @@
-# Practice-room script: milestones 3 to 7 and batch 1
+# Practice-room script: milestones 3 to 7, batch 1 and the live room before Pickering
 
 This is the acceptance run for milestone 3, the interaction library. It takes about three hours, so plan two sittings: sections 1 to 5 in one, sections 6 to 11 in the other. Each check names what you do, what the TV and phones should show, and the pass mark. Mark each one pass or fail, and note anything that felt slow, jumpy or confusing, even if it passed.
 
@@ -17,9 +17,9 @@ Section 11 carries the milestone 2 real-device checks forward. They still apply 
 
 | Do | What should happen | Pass when |
 | --- | --- | --- |
-| On the TV computer, open live.clearway.co/tv. On the laptop, open the practice room's setup, choose Screens and enter the code | The TV moves to the holding screen with the church's name | The TV pairs on the first try |
+| In the practice room's live room, press Open the TV and drag the window to the TV. For a separate computer at the TV, open live.clearway.co/tv there, then in Room admin choose Use a second computer and type the code | The TV moves to the holding screen with the church's name | The TV pairs on the first try, without visiting Setup |
 | Show the join screen, then join on every phone with the room link | Names arrive on the TV one at a time | Every phone is in and named on the TV |
-| Open the control surface on the laptop and the remote on your phone | Both show the same "On the TV now" | They match |
+| Open the control surface on the laptop and the remote on your phone | Both show the same "TV is live" | They match |
 
 ## 2. The content screens (15 minutes)
 
@@ -85,7 +85,7 @@ Section 11 carries the milestone 2 real-device checks forward. They still apply 
 | In the practice room's run of show, add an open text session as Self-paced, open from now for one hour. Add a multiple choice as Self-paced, opening in 10 minutes and closing 5 minutes after | Each row says Self-paced and its window, and takes no room time | The other sessions' times don't move |
 | On a phone, look at the waiting screen | Both are listed under On your phone. The later one says when it opens | No draft is ever listed |
 | Answer the open one while the TV shows something else | The answer saves on the phone. The TV never shows it | Not one self-paced answer reaches the TV |
-| Wait for the second one to open, without refreshing the phone | It opens on the phone on time, takes an answer, then closes on time with "This step is closed. Your answers are kept." | It opens and closes on its own, within a few seconds |
+| Wait for the second one to open, without refreshing the phone | It opens on the phone on time, takes an answer, then closes on time with "Answers for this step are finished." | It opens and closes on its own, within a few seconds |
 | In the team workshop engagement, send the invites. Open the invite on your phone | The email lists the open self-paced session under Before we meet, with your own link | The link opens that session after you sign in |
 
 ## 7. Templates and the run of show builder (15 minutes)
@@ -123,7 +123,7 @@ Run every session in order with Next, from the control surface. Every phone answ
 | Effort and impact (2x2 grid) | One dot per focus area at the average | Five dots, legend beside the plot |
 | Your questions (Q&A) | Questions fold and rise with votes. Spotlight the top one, then press Answered | It starts at 0 questions: the rehearsal's question is gone |
 | Our commitment (sign together) | Every signature arrives with its name. The count reaches everyone in the room | Every name is right |
-| Sending prayer, then Close Day 1 (tap twice) | The TV goes to its holding screen. Every session is closed | Phones show their own answers, read-only |
+| Sending prayer, then Close Day 1 (tap twice) | The TV goes to its holding screen. Every session is stopped | Phones show their own answers with "Answers for this step are finished." |
 
 ## 10. Export, the recap and AI disclosure (15 minutes)
 
@@ -656,10 +656,34 @@ Ships before Pickering Pentecostal (November 20). About two and a half hours. Th
 | Press Reset practice room | Answers and guests go, the timer goes, and the images, loop and Home setting stay with the run of show | The room is ready for the next practice |
 | Note the Phone to TV 95th from Room admin | Under one second | The latency standard holds |
 
+## 56. The live room before Pickering: steps stay open, the TV from the live room, Start fresh (20 minutes)
+
+Run this in the practice room's twin, a team workshop engagement, on real devices: the laptop, the TV window on a real external screen, and two phones (one of them Aidan's, if he can join). It repeats the November 16 demo. Ask before using the practice room in case another Claude is in it. Time it from opening the live room to the first phone answer: it should take under a minute, without visiting Setup.
+
+| Do | What should happen | Pass when |
+| --- | --- | --- |
+| Open the live room. Press the "No TV connected. Open the TV" chip on the live screen | A window opens already paired and shows the holding screen. The chip turns to "TV is live" | No code and no Setup page |
+| Join two phones by live.novetera.co/ppc (or the engagement's own link) | Names arrive on the TV | Both phones are in |
+| Run every step with Next. Answer each one from a phone | Each step goes live and the run of show shows it open with its answer count | No step closes when you move on |
+| Press Back twice | The step two back is on the TV, live and answering | Nothing is read-only |
+| On a phone, tap Earlier to a step two back and answer it | The answer lands and the run of show count rises | Phones answer any step still open |
+| On a live step, press Stop answers | The phone says "Answers for this step are finished." The run of show shows it stopped. No Closed marker beside the mark on the TV | The phone cannot send |
+| Press Next, then Back to the stopped step | It is still stopped | Stopped stays stopped |
+| Press Take answers | The phone takes answers again | It sends |
+| Press Home, then in Room admin press Export answers, then Start fresh and tap again | The CSV downloads. Every answer goes, every step is Ready, the timer clears. The TV stays paired and the phones reload still signed in | No new engagement and no pairing |
+| Press Start fresh while a step is live | It is held: "Choose Home under the live screen first" | Nothing is deleted |
+| End the workshop | Phones say "This workshop has ended. Thank you for taking part." The TV window says "Workshop ended" | No pairing code on the TV |
+| Press Reopen the workshop | The steps End closed take answers again. A step you stopped stays stopped | No Reopen on each step |
+| Press Open the TV (the chip) | The same window pairs again and shows the room | No code typed |
+| Close the TV window, then press the chip again | A new window opens paired | The chip mends the TV in one click |
+| On the TV window, sign a signature step on the laptop with the mouse, and on a phone with a finger | The line draws under the pointer | No offset, at either end of the pad |
+
+`npm run test:steps-stay-open` runs the same path with simulated phones in both skins.
+
 ## Afterward
 
 - Note the Phone to TV numbers you read in section 11 before breaking anything.
 - Note which phones and browsers you used, the venue network, and anything that felt slow or wrong.
-- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. Milestone 7 is accepted when sections 11 and 39 to 48 pass, with the rows marked (Real device) run on real devices at the venue. Batch 1 is ready for Pickering when sections 49 to 55 pass in both skins, with the TV opened from the MBP on a real external screen. A row that fails becomes the next fix.
+- Milestone 3 is accepted when sections 1 to 11 pass. Milestone 4 is accepted when sections 11 to 21 pass. Milestone 6 is accepted when sections 11 and 22 to 30 pass. Milestone 5 is accepted when sections 11 and 31 to 38 pass. Milestone 7 is accepted when sections 11 and 39 to 48 pass, with the rows marked (Real device) run on real devices at the venue. Batch 1 is ready for Pickering when sections 49 to 55 pass in both skins, with the TV opened from the MBP on a real external screen. The live room is ready for Pickering when section 56 passes on real devices. A row that fails becomes the next fix.
 
 The browser kits run most of these on every pull request (milestone 4 has `npm run test:acceptance-m4` and `npm run test:wayfinding`; milestone 6 has `npm run test:acceptance-m6`, and `npm run test:browser` carries its failure checks): each interaction with 50 simulated phones, and the team workshop end to end with eight phones, a rehearsal and Clear test answers (`npm run test:team-workshop`). Milestone 5 has `npm run test:acceptance-m5` (the scribe, promoting a quote, the overnight drafts and the Day 2 read-back with 50 simulated phones) and its failure checks (FAIL-03, in `npm run test:browser`). Milestone 7 has `npm run test:acceptance-m7` (after the retreat, end to end on Riverside) and its failure checks in `npm run test:browser`. Batch 1 has `npm run test:images`, `npm run test:loop`, `npm run test:hide` (with 50 phones on a wall while hiding) and `npm run test:timers`, each in both skins. This script is the real-device, real-room version of them.

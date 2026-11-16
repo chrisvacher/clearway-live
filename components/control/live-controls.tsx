@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, House, Play, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
 import { fillYears } from "@/lib/run-of-show/policy";
@@ -9,6 +8,8 @@ import type { RoomSize } from "@/lib/control/types";
 import type { useControlRoom } from "./use-control-room";
 import { controlItems } from "@/components/interactions/control-items";
 import { MarkDecision } from "./mark-decision";
+import { AnswersToggle } from "./answers-toggle";
+import { TvNoteLine, useOpenTv } from "./open-tv-window";
 import { ResponsesList } from "./responses";
 
 export type Room = ReturnType<typeof useControlRoom>;
@@ -28,17 +29,27 @@ export function burstLeft(room: Room) {
   return { ms, label: `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, "0")}` };
 }
 
-export function SyncChip({ room, href }: { room: Room; href?: string }) {
+export function SyncChip({ room, engagement }: { room: Room; engagement?: string }) {
   const screens = room.status?.screens ?? [];
   const connected = screens.filter(s => s.connected);
   const title = screens.map(s => `${s.label}: ${s.connected ? `confirmed, version ${s.confirmed_version}` : "reconnecting"}`).join("\n");
   if (room.syncing) return <span className="ctl-sync is-syncing" role="status" title={title}><RefreshCw size={14} aria-hidden="true" />Syncing</span>;
-  // A paired TV silent for 12 seconds is reconnecting (FAIL-02); none paired is no TV.
+  // A paired TV silent for 12 seconds is reconnecting (FAIL-02); none paired is no TV. In the live room the chip is the TV
+  // button (November 16): it opens the TV already paired, and pressing it again mends a TV that dropped.
   if (!connected.length) {
-    const chip = <span className="ctl-sync is-none" role="status" title={title || "Pair a TV in setup"}><MonitorOff size={14} aria-hidden="true" />{screens.length ? "TV reconnecting" : "No TV connected"}</span>;
-    return href ? <Link href={href} className="ctl-sync-link" aria-label={`${screens.length ? "TV reconnecting" : "No TV connected"}. Open Screens`}>{chip}</Link> : chip;
+    const words = screens.length ? "TV reconnecting" : "No TV connected";
+    if (engagement && !room.show.context.closed) return <OpenTvChip engagement={engagement} words={words} title={title} />;
+    return <span className="ctl-sync is-none" role="status" title={title || "Open the TV from the live room"}><MonitorOff size={14} aria-hidden="true" />{words}</span>;
   }
-  return <span className="ctl-sync" role="status" title={title}><CircleCheck size={14} aria-hidden="true" />On the TV now</span>;
+  return <span className="ctl-sync" role="status" title={title} data-testid="tv-live"><CircleCheck size={14} aria-hidden="true" />TV is live</span>;
+}
+function OpenTvChip({ engagement, words, title }: { engagement: string; words: string; title: string }) {
+  const { open, busy, note } = useOpenTv(engagement);
+  return <span className="ctl-sync-wrap">
+    <button type="button" className="ctl-sync is-none ctl-sync-button" disabled={busy} title={title || undefined} onClick={() => void open()} data-testid="tv-chip">
+      <MonitorOff size={14} aria-hidden="true" />{busy ? "Opening the TV" : `${words}. Open the TV`}</button>
+    <TvNoteLine note={note} />
+  </span>;
 }
 
 // One banner at a time: TV reconnecting > Syncing > fallback mode. Each can be dismissed with its X; it comes back only when
@@ -101,9 +112,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
   const spotlit = frame?.state.spotlight_key, tvOnPhones = Boolean(frame?.state.show_tv_on_phones);
   const up = room.upNext;
   const btn = variant === "remote" ? "ctl-r-btn" : "show-button";
-  const primary = readOnly
-    ? <button className={`${btn} is-primary is-wide`} disabled={busy} onClick={() => void press("reopen")}><RotateCcw size={20} aria-hidden="true" />Reopen {frame?.session?.title}</button>
-    : <button className={`${btn} ${burst ? "is-primary" : "is-live"} is-wide`} disabled={busy || !up} onClick={() => up && void press("go_live", { session: up.id })}><Play size={20} aria-hidden="true" />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
+  const primary = <button className={`${btn} ${burst ? "is-primary" : "is-live"} is-wide`} disabled={busy || !up} onClick={() => up && void press("go_live", { session: up.id })}><Play size={20} aria-hidden="true" />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
   return <div className={`ctl-controls is-${variant}`}>
     {burst && <div className="ctl-countdown" role="timer" aria-label={`Burst, ${burst.label} left`}><Timer size={20} aria-hidden="true" /><b>{burst.label}</b><progress className="ctl-progress" max={100} value={Math.min(100, burst.ms / ((current?.settings.burst_minutes ?? 4) * 600))} aria-hidden="true" />
       <button className={btn} disabled={busy} onClick={() => void press("extend_burst")}><Plus size={18} aria-hidden="true" />Extend 1 min</button></div>}
@@ -127,6 +136,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
         : <button className={btn} disabled={busy} onClick={() => void press("phones_down")}><Smartphone size={18} aria-hidden="true" />Phones down</button>)}
       <button className={btn} disabled={busy || !frame?.state.live_session_id} onClick={() => void press("nothing_live")}><House size={18} aria-hidden="true" />Home</button>
     </div>
+    {input && <div className="ctl-grid"><AnswersToggle room={room} className={btn} /></div>}
     {input && <div className="ctl-grid">
       {spotlit
         ? <button className={btn} disabled={busy} onClick={() => void press("clear_spotlight")}><SunDim size={18} aria-hidden="true" />Clear spotlight</button>

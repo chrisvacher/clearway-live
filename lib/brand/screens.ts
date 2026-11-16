@@ -14,7 +14,6 @@ export type Screens = {
   description: string;       // the default page description
   homeLabel: string;         // the aria label on the brand link in a phone's header
   markLabel: { live: string; down: string; quiet: string; plain: string };  // the TV and phone mark, by state (Clearway keeps its own words)
-  closed: string;            // the marker beside the mark while a step is closed
 };
 
 const screens: Record<Skin, Screens> = {
@@ -23,14 +22,12 @@ const screens: Record<Skin, Screens> = {
     description: "A shared space for your church team to listen, discern and decide together.",
     homeLabel: "Clearway Live home",
     markLabel: { live: "Live", down: "Phones down", quiet: "Clearway Live", plain: "Clearway Live" },
-    closed: "Closed",
   },
   novetera: {
     siteName: "Novetera", titleTemplate: "%s | Novetera",
     description: "A shared space for your church team to listen, discern and decide together.",
     homeLabel: "Novetera home",
     markLabel: { live: "Novetera, live", down: "Novetera, phones down", quiet: "Novetera, nothing live", plain: "Novetera" },
-    closed: "Closed",
   },
 };
 export const screensFor = (skin: Skin): Screens => screens[skin];

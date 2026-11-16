@@ -16,6 +16,8 @@ export function controlBody(value: unknown): { id: string; action: ControlAction
     p.from = v.from;
   }
   if (action === "go_live") { if (!uuid(v.session)) return null; p.session = v.session; }
+  // Stop answers and Take answers act on the live step, or on the step named.
+  if ((action === "stop_answers" || action === "take_answers") && v.session !== undefined) { if (!uuid(v.session)) return null; p.session = v.session; }
   if (action === "start_burst") { if (![3, 4, 5].includes(Number(v.minutes)) || typeof v.minutes !== "number") return null; p.minutes = v.minutes; }
   if (["spotlight", "hide", "unhide"].includes(action)) { if (typeof v.item !== "string" || !v.item || v.item.length > 200) return null; p.item = v.item; }
   if (action === "tv_on_phones") { if (typeof v.on !== "boolean") return null; p.on = v.on; }
@@ -64,9 +66,9 @@ export function timing(session: Pick<ShowSession, "planned_start" | "planned_min
   return { onTime: true, label: "On time" };
 }
 
-export const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", live: "Live", phones_down: "Phones down", open: "Taking late answers", closed: "Closed" };
+export const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", live: "Live", phones_down: "Phones down", open: "Open", closed: "Stopped" };
 export const actionNames: Record<string, string> = {
-  go_live: "Go live", next: "Next", back: "Back", nothing_live: "Home", reopen: "Reopen", start_burst: "Start burst",
+  go_live: "Go live", next: "Next", back: "Back", nothing_live: "Home", reopen: "Take answers", stop_answers: "Stop answers", take_answers: "Take answers", start_burst: "Start burst",
   extend_burst: "Extend 1 min", end_burst: "End burst", phones_down: "Phones down", open_phones: "Open phones", spotlight: "Spotlight",
   clear_spotlight: "Clear spotlight", hide: "Hide", unhide: "Unhide", refresh_phones: "Refresh phones", tv_on_phones: "TV view on phones",
   room_size: "Room size", close_part: "Close the day", tv_screen: "TV screen", burst_ended: "Burst ended",

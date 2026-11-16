@@ -1,4 +1,4 @@
-export const controlActions = ["go_live", "next", "back", "nothing_live", "reopen", "start_burst", "extend_burst", "end_burst", "phones_down", "open_phones",
+export const controlActions = ["go_live", "next", "back", "nothing_live", "reopen", "stop_answers", "take_answers", "start_burst", "extend_burst", "end_burst", "phones_down", "open_phones",
   "spotlight", "clear_spotlight", "hide", "unhide", "refresh_phones", "tv_on_phones", "room_size", "close_part", "tv_screen"] as const;
 export type ControlAction = typeof controlActions[number];
 // The screens the live room can put on the TV in place of a step: Blackout, Join and Home (the holding screen).
@@ -16,8 +16,10 @@ export type ControlStatus = {
   items: ControlItem[]; controls: ControlLogEntry[];
   // Step 6a: self-paced sessions with their state worked out from their times, and the rehearsal.
   self_paced?: ControlSelfPaced[]; rehearsal?: ControlRehearsal;
+  // November 16: each live step's answer count for the run of show, and every answer in the engagement (for Start fresh).
+  step_answers?: Record<string, number>; answers_total?: number;
 };
 export type ControlSelfPaced = { id: string; title: string; part: string; interaction: string; state: string; opens_at: string | null; closes_at: string | null; answered: number };
-export type ControlRehearsal = { since: string | null; test_answers: number; test_counts?: { answers: number; themes: number; signals: number; other: number; total: number }; last_clear: { at: string; answers: number; sessions: number; themes?: number; signals?: number; other?: number; by: string | null } | null };
+export type ControlRehearsal = { since: string | null; test_answers: number; test_counts?: { answers: number; themes: number; signals: number; other: number; total: number }; last_clear: { at: string; fresh?: boolean; answers: number; sessions: number; themes?: number; signals?: number; other?: number; by: string | null } | null };
 // Private notices on the facilitator topic. Hints only: the status read is authoritative.
 export type ControlNotice = { kind: "ack"; screen: string; version: number; at: string } | { kind: "scribe"; what: string } | { kind: "overnight"; what: string } | { kind: "signal"; session?: string } | { kind: "control"; id?: string; action: string; by?: string | null; version: number; changed?: boolean; at: string };

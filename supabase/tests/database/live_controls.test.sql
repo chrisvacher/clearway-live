@@ -74,7 +74,7 @@ select is(public.room_control(tests.id(100),tests.id(13),'next',jsonb_build_obje
 select lives_ok($$ select set_config('tests.v',tests.version()::text,true) $$,'Record version');
 select is(tests.ctl(14,'next')->>'status','ok','Next to the Five Lenses segment');
 select is(tests.version(),current_setting('tests.v')::bigint+1,'One press raises the version once');
-select is(tests.state(310),'closed','A step with no segment closes when the room moves on');
+select is(tests.state(310),'open','A step stays open when the room moves on (November 16)');
 select is(tests.live(),tests.id(311),'Congregation is live');
 
 -- Bursts and phones down lock only the step on the TV.
@@ -126,21 +126,37 @@ select is(tests.ctl(28,'spotlight','{"item":"care"}')->>'status','ok','Spotlight
 select is(tests.ctl(29,'spotlight','{"item":"missing"}')->>'status','missing','Only words on the TV can be spotlit');
 select is(tests.ctl(30,'clear_spotlight')->>'status','ok','Clear the spotlight');
 
--- Leaving the segment closes it; queued answers keep the grace window.
+-- Leaving the segment closes nothing (November 16). Stop answers closes one step; queued answers keep the grace window.
 select is(tests.ctl(31,'go_live',jsonb_build_object('session',tests.id(313)))->>'status','not_ready','Drafts cannot go live');
 select is(tests.ctl(32,'go_live',jsonb_build_object('session',tests.id(314)))->>'status','ok','Go live outside the segment');
-select is(tests.state(311),'closed','Congregation closed with its segment');
-select is(tests.state(312),'closed','Community closed with its segment');
+select is(tests.state(311),'open','Congregation stays open after its segment');
+select is(tests.state(312),'open','Community stays open after its segment');
 select tests.login(3);
-select is(tests.send(905,312,'Late')->>'status','closed','A closed segment takes no new answers');
-select is(tests.send(906,312,'Queued',now()-interval '1 second')->>'status','accepted','An answer queued before the close keeps its grace window');
+select is(tests.send(905,312,'Late')->>'status','accepted','A step left open still takes answers');
 select tests.login(1);
-select is(tests.ctl(33,'go_live',jsonb_build_object('session',tests.id(311)))->>'status','ok','Show a closed step');
-select is(tests.state(311),'closed','A closed step is shown read-only');
+select is(tests.ctl(131,'stop_answers',jsonb_build_object('session',tests.id(312)))->>'status','ok','Stop answers on an earlier step, by name');
+select is(tests.state(312),'closed','The stopped step is closed');
+select is((select closed_by from sessions where id=tests.id(312)),'stop','It is closed by Stop answers');
+select is(tests.ctl(132,'stop_answers',jsonb_build_object('session',tests.id(312)))->>'status','unchanged','Stopping twice changes nothing');
+select tests.login(3);
+select is(tests.send(906,312,'Late again')->>'status','closed','A stopped step takes no new answers');
+select is(tests.send(907,312,'Queued',now()-interval '1 second')->>'status','accepted','An answer queued before the stop keeps its grace window');
+select tests.login(1);
+select is(tests.ctl(33,'go_live',jsonb_build_object('session',tests.id(311)))->>'status','ok','Show an earlier step');
+select is(tests.state(311),'live','A step left open goes live and answering');
 select ok(not ((select hidden_keys from room_states where engagement_id=tests.id(100)) @> array['care']) and (select hidden_keys from room_states where engagement_id=tests.id(100)) @> array['hope'],'Its hidden words come back with it');
-select is(tests.ctl(34,'start_burst','{"minutes":3}')->>'status','invalid_state','A read-only step takes no burst');
-select is(tests.ctl(35,'reopen')->>'status','ok','Reopen');
-select is(tests.state(311),'live','Reopened step takes answers');
+select is(tests.ctl(133,'stop_answers')->>'status','ok','Stop answers on the live step');
+select is(tests.state(311),'closed','The live step is stopped');
+select is(tests.live(),tests.id(311),'It stays on the TV');
+select is(tests.ctl(34,'start_burst','{"minutes":3}')->>'status','invalid_state','A stopped step takes no burst');
+select is(tests.ctl(134,'next')->>'status','ok','Move on');
+select is(tests.ctl(135,'back')->>'status','ok','Back to the stopped step');
+select is(tests.state(311),'closed','A stopped step stays stopped when it comes back');
+select is(tests.ctl(35,'take_answers')->>'status','ok','Take answers');
+select is(tests.state(311),'live','It takes answers again');
+select is((select closed_by from sessions where id=tests.id(311)),null,'Taking answers clears why it was closed');
+select is(tests.ctl(136,'take_answers',jsonb_build_object('session',tests.id(312)))->>'status','ok','Take answers on an earlier step, by name');
+select is(tests.state(312),'open','The earlier step is open, not live');
 
 -- Nothing live is a break: the segment stays open.
 select is(tests.ctl(36,'nothing_live')->>'status','ok','Nothing live');
@@ -152,6 +168,7 @@ select is(tests.live(),tests.id(311),'Back shows the step left for the break');
 -- Close the day.
 select is(tests.ctl(38,'close_part','{"part":"Day 1"}')->>'status','ok','Close Day 1');
 select is(tests.state(311),'closed','Closing the day closes its steps');
+select is((select closed_by from sessions where id=tests.id(311)),'part','Closed with its part');
 select ok((select live_session_id is null and tv_content='holding' from room_states where engagement_id=tests.id(100)),'Closing the live day goes to holding');
 select is(tests.ctl(39,'close_part','{"part":"Day 1"}')->>'status','unchanged','Closing twice changes nothing');
 

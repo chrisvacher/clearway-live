@@ -5,6 +5,7 @@ import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { Blocks } from "@/components/room/phone-content";
 import { depthBlocks } from "@/lib/interactions/kinds";
 import { addPoint, inkLength, maxInk, signaturePath, signText, sigHeight, sigWidth, strokesOf } from "@/lib/interactions/grid-form-sign";
+import { pointInViewBox } from "./sign-point";
 import "./grid-form-sign.css";
 
 // INT-10 on the phone (pass 3 change 13): the full text to read, its "## Title" sections
@@ -21,10 +22,8 @@ function SignStep({ step, mine, open, send, change, name }: PhoneInputProps) {
   const [again, setAgain] = useState(false);
   const pad = useRef<SVGSVGElement>(null), drawing = useRef<number | null>(null);
   const text = signText(step.options), full = inkLength(strokes) >= maxInk;
-  const point = (e: PointerEvent) => {
-    const r = pad.current!.getBoundingClientRect();
-    return [((e.clientX - r.left) / r.width) * sigWidth, ((e.clientY - r.top) / r.height) * sigHeight] as const;
-  };
+  // Read the rect on every event: it follows ancestor transform scales, scroll and resizes.
+  const point = (e: PointerEvent) => pointInViewBox(e.clientX, e.clientY, pad.current!.getBoundingClientRect(), sigWidth, sigHeight);
   function down(e: PointerEvent<SVGSVGElement>) {
     if (!open || full) return;
     e.preventDefault(); pad.current!.setPointerCapture(e.pointerId);

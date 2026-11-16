@@ -8,7 +8,7 @@ export const pairLinkMs = 5 * 60 * 1000;
 // The window the facilitator drags to the TV or shares in a call.
 export const tvWindowFeatures = "popup=yes,width=1280,height=720,left=80,top=80";
 export const tvWindowName = "cwl-tv";
-export const expiredLinkLine = "That link has expired. Enter this code on Screens instead.";
+export const expiredLinkLine = "That link has expired. Type this code in the live room instead.";
 export const blockedPopupLine = "Your browser blocked the pop-up window, so the TV opened in a new tab.";
 
 // 32 random bytes as base64url: 43 characters.
@@ -28,17 +28,25 @@ export function withoutToken(path: string, search: string, hash = "") {
   return `${path}${rest ? `?${rest}` : ""}${hash}`;
 }
 
-type Popup = { location: { href: string }; close: () => void; opener: unknown };
+type Popup = { location: { href: string }; close: () => void; opener: unknown; closed?: boolean; focus?: () => void };
 export type WindowHost = { open: (url?: string, target?: string, features?: string) => Popup | null };
 export type OpenResult = { how: "window" | "tab" | "failed" | "link"; url?: string };
+// The TV window this page opened. Open the TV points that same window at a new link (November 16: the button that opens
+// the TV also mends it), by holding the window or by its name after the live room reloads. A Novetera TV opens at
+// live.novetera.co while the live room is at live.clearway.co, and a browser lets a page navigate a window at another
+// address only if it opened that window, so the pop-up keeps its opener. The window only ever shows this app's /tv page.
+export type TvWindowMemory = { window: Popup | null };
+const opened: TvWindowMemory = { window: null };
 // One click. The window opens first, while the click still counts, and is pointed at the link when the server has made
 // it; browsers that refuse a pop-up get the same link in a new tab, and one that refuses that too is handed the link.
-export async function openTvWindow(host: WindowHost, issue: () => Promise<string | null>): Promise<OpenResult> {
-  const popup = host.open("", tvWindowName, tvWindowFeatures);
-  if (popup) popup.opener = null;
+export async function openTvWindow(host: WindowHost, issue: () => Promise<string | null>, memory: TvWindowMemory = opened): Promise<OpenResult> {
+  const kept = memory.window && !memory.window.closed ? memory.window : null;
+  const popup = kept ?? host.open("", tvWindowName, tvWindowFeatures);
+  if (popup && !kept) memory.window = popup;
+  try { kept?.focus?.(); } catch { /* A browser may refuse to focus another window. */ }
   let url: string | null = null;
   try { url = await issue(); } catch { url = null; }
-  if (!url) { popup?.close(); return { how: "failed" }; }
+  if (!url) { if (!kept) { popup?.close(); memory.window = null; } return { how: "failed" }; }
   if (popup) { popup.location.href = url; return { how: "window" }; }
   const tab = host.open(url, "_blank");
   if (tab) { tab.opener = null; return { how: "tab" }; }

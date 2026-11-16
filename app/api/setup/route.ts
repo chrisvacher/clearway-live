@@ -68,7 +68,8 @@ export async function POST(request:NextRequest){
     }
     // End the workshop: the Details form as it stands with the status set to closed, saved through the same function Details uses.
     // Closing signs out every phone and closes answers, in the database, whichever page asks.
-    // Reopen the workshop (Chris, November 16): the same save with the status back to setup, from the live room. People sign in again.
+    // Reopen the workshop (Chris, November 16): the same save with the status back to setup, from the live room. The database reopens
+    // the steps End closed (private.reopen_ended_steps); people sign in again and Open the TV pairs the screen again.
     if(action==="end_workshop"||action==="reopen_workshop"){
       const reopen=action==="reopen_workshop";
       const e=await scoped();if(e.type!=="team_workshop")return answer({ok:false,message:reopen?"Only a workshop can be reopened this way.":"Only a workshop can be ended this way."},400);

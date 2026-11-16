@@ -27,7 +27,8 @@ export function EndWorkshop({ engagement, closed, className = "show-button", via
     } catch (e) { setError(e instanceof Error ? e.message : "We couldn’t end the workshop. Please try again."); }
     finally { setBusy(false); }
   }
-  // Reopen (Chris, November 16): the same save with the status back to setup. Phones and the TV sign in again; closed steps reopen one at a time.
+  // Reopen (Chris, November 16): the same save with the status back to setup. The database reopens every step End closed
+  // (steps stopped by hand stay stopped). Phones sign in again; the TV window shows Workshop ended until Open the TV.
   async function reopen() {
     setBusy(true); setError("");
     try {
@@ -48,7 +49,7 @@ export function EndWorkshop({ engagement, closed, className = "show-button", via
     {asking && <div className="ctl-dialog-scrim" onClick={() => !busy && setAsking(false)}>
       <div className="ctl-dialog" role="alertdialog" aria-modal="true" aria-labelledby="end-workshop-title" aria-describedby="end-workshop-text" onClick={e => e.stopPropagation()}>
         <h2 id="end-workshop-title">End the workshop?</h2>
-        <p id="end-workshop-text">Phones are signed out and answers close. Results stay here to read and download. You can reopen it from here, and people sign in again.</p>
+        <p id="end-workshop-text">Phones are signed out and answers close. Results stay here to read and download. You can reopen it from here: its steps take answers again, people sign in again and Open the TV brings the screen back.</p>
         {error && <p className="show-message is-error" role="alert">{error}</p>}
         <div className="ctl-row">
           <button type="button" className="show-button is-primary" disabled={busy} onClick={() => void end()} data-testid="end-workshop-confirm">{busy ? "Ending…" : "End the workshop"}</button>

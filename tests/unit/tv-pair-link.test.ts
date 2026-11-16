@@ -34,7 +34,7 @@ test("the TV page reads the token from its address and removes it, keeping anyth
 test("the window is 1280 by 720 and the copy follows the app's rules", () => {
   assert.match(tvWindowFeatures, /popup/); assert.match(tvWindowFeatures, /width=1280/); assert.match(tvWindowFeatures, /height=720/);
   for (const line of [expiredLinkLine, blockedPopupLine]) assert.ok(!/[–—]/.test(line));
-  assert.equal(expiredLinkLine, "That link has expired. Enter this code on Screens instead.");
+  assert.equal(expiredLinkLine, "That link has expired. Type this code in the live room instead.");
 });
 function fake(allowPopup: boolean, allowTab: boolean) {
   const calls: unknown[][] = [], popup = { location: { href: "about:blank" }, closed: false, opener: {} as unknown, close() { this.closed = true; } };
@@ -44,23 +44,38 @@ function fake(allowPopup: boolean, allowTab: boolean) {
 }
 test("one click opens the pop-up at once, then points it at the link", async () => {
   const f = fake(true, true); let asked = false;
-  const result = await openTvWindow(f.host, async () => { asked = true; assert.equal(f.calls.length, 1, "the window opened before the server was asked"); return "https://live.clearway.co/tv?pair=abc"; });
+  const result = await openTvWindow(f.host, async () => { asked = true; assert.equal(f.calls.length, 1, "the window opened before the server was asked"); return "https://live.clearway.co/tv?pair=abc"; }, { window: null });
   assert.deepEqual(result, { how: "window" }); assert.ok(asked);
-  assert.equal(f.calls[0][2], tvWindowFeatures); assert.equal(f.popup.location.href, "https://live.clearway.co/tv?pair=abc"); assert.equal(f.popup.opener, null);
+  assert.equal(f.calls[0][2], tvWindowFeatures); assert.equal(f.popup.location.href, "https://live.clearway.co/tv?pair=abc"); assert.notEqual(f.popup.opener, null, "the pop-up keeps its opener, so the live room can point it at a new link at another address");
 });
 test("a blocked pop-up falls back to a new tab", async () => {
   const f = fake(false, true);
-  assert.deepEqual(await openTvWindow(f.host, async () => "https://x/tv?pair=abc"), { how: "tab" });
+  assert.deepEqual(await openTvWindow(f.host, async () => "https://x/tv?pair=abc", { window: null }), { how: "tab" });
   assert.deepEqual(f.calls[1], ["https://x/tv?pair=abc", "_blank"]);
 });
 test("when a tab is refused too, the link is handed back", async () => {
   const f = fake(false, false);
-  assert.deepEqual(await openTvWindow(f.host, async () => "https://x/tv?pair=abc"), { how: "link", url: "https://x/tv?pair=abc" });
+  assert.deepEqual(await openTvWindow(f.host, async () => "https://x/tv?pair=abc", { window: null }), { how: "link", url: "https://x/tv?pair=abc" });
 });
 test("a refused request closes the blank window and opens nothing", async () => {
   const f = fake(true, true);
-  assert.deepEqual(await openTvWindow(f.host, async () => null), { how: "failed" }); assert.ok(f.popup.closed);
+  assert.deepEqual(await openTvWindow(f.host, async () => null, { window: null }), { how: "failed" }); assert.ok(f.popup.closed);
   const g = fake(true, true);
-  assert.deepEqual(await openTvWindow(g.host, async () => { throw new Error("offline"); }), { how: "failed" }); assert.ok(g.popup.closed);
+  assert.deepEqual(await openTvWindow(g.host, async () => { throw new Error("offline"); }, { window: null }), { how: "failed" }); assert.ok(g.popup.closed);
   assert.equal(f.calls.length, 1);
+});
+
+test("pressing Open the TV again points the same window at the new link, even across addresses", async () => {
+  const f = fake(true, true), memory = { window: null };
+  assert.deepEqual(await openTvWindow(f.host, async () => "https://live.novetera.co/tv?pair=one", memory), { how: "window" });
+  assert.deepEqual(await openTvWindow(f.host, async () => "https://live.novetera.co/tv?pair=two", memory), { how: "window" });
+  assert.equal(f.calls.length, 1, "no second window was opened"); assert.equal(f.popup.location.href, "https://live.novetera.co/tv?pair=two");
+  f.popup.close();
+  assert.deepEqual(await openTvWindow(f.host, async () => "https://live.novetera.co/tv?pair=three", memory), { how: "window" });
+  assert.equal(f.calls.length, 2, "a closed window is opened again");
+});
+test("a failed link leaves a kept TV window open", async () => {
+  const f = fake(true, true), memory = { window: null };
+  await openTvWindow(f.host, async () => "https://live.clearway.co/tv?pair=one", memory);
+  assert.deepEqual(await openTvWindow(f.host, async () => null, memory), { how: "failed" }); assert.ok(!f.popup.closed, "the TV stays up");
 });

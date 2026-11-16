@@ -53,12 +53,15 @@ export async function syncTv(request: NextRequest) {
     let state = await rpc("sync", payload), link: "expired" | null = null;
     if (["denied", "invalid_request"].includes(state.status)) return answer({ status: "unavailable" }, 403);
     if (state.status === "closed") return answer({status:"closed"});
+    // A window whose workshop ended says so until Open the TV pairs it again (its link arrives below).
+    if (state.status === "ended" && !linkToken) return answer({ status: "ended" });
     if (state.status === "limited") return answer({ status: "limited" }, 429);
     if (linkToken) {
       // The same step as entering the code on Screens: the device is paired to the link's engagement, then the usual exchange below finishes it.
       const claimed = await rpc("claim", { device: device.id, proof, rate: payload.rate, token_hash: digest(secret, "tv-pair-link", linkToken) });
       if (claimed.status === "limited") return answer({ status: "limited" }, 429);
       if (claimed.status === "paired") state = await rpc("sync", payload); else link = "expired";
+      if (state.status === "ended") return answer({ status: "ended" });
     }
     if (state.status === "pair") {
       // The short code is held only in an HttpOnly cookie and displayed on this TV.

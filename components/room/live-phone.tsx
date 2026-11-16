@@ -20,6 +20,7 @@ import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
 import { lensOptions, seedingWhoText } from "@/lib/interactions/lens";
 import { skinOf, type Skin } from "@/lib/brand";
+import { stepFinished } from "@/lib/room/copy";
 
 const draftKey = (engagement: string, session: string) => `cw-draft-${engagement}-${session}`;
 const statusLabel = { sent: "Sent", saved: "Saved on this phone", sending: "Sending", failed: "Not sent" } as const;
@@ -126,6 +127,9 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
     if (!shownId || drafts[shownId] !== undefined) return;
     setDrafts(d => ({ ...d, [shownId]: browserStore.get(draftKey(engagement, shownId)) ?? "" }));
   }, [shownId, drafts, engagement]);
+  // Looking back reads the reached steps again, so a step stopped or opened since shows as it is now.
+  const reloadSteps = phone.reload;
+  useEffect(() => { if (viewing) reloadSteps(); }, [viewing, reloadSteps]);
   const draft = shownId ? drafts[shownId] ?? "" : "";
   const setDraft = (value: string) => { if (!shownId) return; setDrafts(d => ({ ...d, [shownId]: value })); browserStore.set(draftKey(engagement, shownId), value); };
 
@@ -211,7 +215,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
         {selfList}
       </section> : <section className="ph-step" aria-live="polite">
         {selfView && <><p className="ph-muted">{view.title} · Self-paced</p><p className="ph-window">{windowLabel(view, zone, serverNow)}</p></>}
-        {lookingBack && <p className="ph-muted">{view.title} · {view.state === "open" ? "still open" : !asks ? "earlier" : "closed"}</p>}
+        {lookingBack && <p className="ph-muted">{view.title} · {view.state === "open" ? "still open" : !asks ? "earlier" : "finished"}</p>}
         {isLive && burstLeft !== null && burstLeft > 0 && burstLength.current && <Burst left={burstLeft} total={burstLength.current.total} />}
         {!asks ? <PhoneContent engagement={engagement} step={view} startedAt={isLive && view.id === frame?.session?.id ? frame?.state.screen_started_at ?? null : null} />
           : <><h1 className="ph-prompt">{view.prompt}</h1>
@@ -231,7 +235,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
               onWithdraw={() => phone.submit({ id: a.id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" })}
               onDismiss={() => phone.dismiss(a.id, a.revision)} />)}</ul>}
             {down && running && draft.trim() && <p className="ph-muted">Your draft is kept for when phones open.</p>}
-            {closed && <p className="ph-text">This step is closed. Your answers are kept.</p>}
+            {closed && <p className="ph-text">{stepFinished}</p>}
             {!takesInput && !down && !closed && isLive && !running && <p className="ph-text">Watch the screen. This will open in a moment.</p>}
           </>}
         <PhoneStepImage engagement={engagement} step={view} />

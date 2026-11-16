@@ -12,7 +12,7 @@ test("Novetera's names carry no Clearway and no dashes", () => {
   const s = screensFor("novetera");
   assert.equal(pageTitle("novetera", "TV"), "TV | Novetera");
   assert.deepEqual(Object.values(s.markLabel), ["Novetera, live", "Novetera, phones down", "Novetera, nothing live", "Novetera"]);
-  for (const text of [s.siteName, s.titleTemplate, s.description, s.homeLabel, s.closed, ...Object.values(s.markLabel)]) { assert.ok(!/clearway/i.test(text), text); assert.ok(!/[–—]/.test(text), text); }
+  for (const text of [s.siteName, s.titleTemplate, s.description, s.homeLabel, ...Object.values(s.markLabel)]) { assert.ok(!/clearway/i.test(text), text); assert.ok(!/[–—]/.test(text), text); }
 });
 test("Novetera phones draw on Chalk and Clearway phones stay dark (one constant)", () => {
   assert.deepEqual(phoneTheme, { clearway: "dark", novetera: "light" });

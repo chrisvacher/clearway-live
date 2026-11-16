@@ -125,7 +125,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
   const inputOn = mode === "session" && Boolean(kind?.input);
   // A screen check in the run of show uses the full-bleed check, like the room's own.
   const checkOn = mode === "screen_check" || (mode === "session" && session?.interaction === "content" && contentOf(session.options).screen === "screen_check");
-  const mark: MarkState = !inputOn || !session ? null : session.state === "closed" ? "closed"
+  const mark: MarkState = !inputOn || !session ? null
     : ["live", "phones_down"].includes(session.state) ? (frame!.state.phones_down || session.state === "phones_down" ? "down" : "live") : null;
   return <>
     <div className="tv-texture" aria-hidden="true"><span /></div>
@@ -136,7 +136,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
     <div className="tv-scenes">
       <section className={`tv-scene tv-pair${mode === "pair" ? " is-active" : ""}`} aria-hidden={mode !== "pair"}>
         <h1 className="tv-eyebrow">Pair this screen</h1><div className="tv-code" aria-label={code ? `Pairing code ${code.split("").join(" ")}` : "Pairing code"}>{(code ?? "      ").split("").map((digit, i) => <span key={i} className={i === 3 ? "has-gap" : ""}>{digit}</span>)}</div>
-        <p className="tv-body">On your laptop, open your engagement and choose <strong>Pair a TV</strong>. Enter this code.</p>
+        <p className="tv-body">Open this screen from the live room with <strong>Open the TV</strong>. Using a second computer? Type this code in the live room.</p>
       </section>
       <section className={`tv-scene tv-holding${mode === "holding" ? " is-active" : ""}`} aria-hidden={mode !== "holding"}>
         <p className="tv-eyebrow">{display?.title}</p><h1 className="tv-headline-xl"><strong>{display?.church}</strong></h1><p className="tv-body tv-muted"><Check aria-hidden="true" /> This screen is paired</p>
@@ -148,7 +148,8 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
         <SessionLayers frame={paired ? frame : null} flow={flow} asking={Boolean(ask)} />
         <NeutralQuestion frame={frame} text={ask} />
       </section>
-      <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1></section>
+      <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "ended" ? "Workshop ended" : status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1>
+        {status.status === "ended" && <p className="tv-body tv-muted" data-testid="tv-ended">Press Open the TV in the live room to show this screen again.</p>}</section>
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
     {paired && <TvImageStage frame={frame} reduced={Boolean(display?.reduced_motion)} />}

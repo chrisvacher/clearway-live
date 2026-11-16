@@ -293,7 +293,7 @@ async function main() {
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsal[data-rehearsing='on']").count() === 1, "rehearsing", 10000);
       await press(fac, sql, second.id, "go_live", { session: (await sql.query("select id from public.sessions where engagement_id=$1 and title='Check-in'", [second.id])).rows[0].id });
-      const exportLink = control.getByRole("link", { name: "Export answers", exact: true });
+      const exportLink = control.locator(".ctl-screen.is-live").getByRole("link", { name: "Export answers", exact: true });
       await until(async () => await exportLink.isVisible(), "Export answers", 10000);
       const [download] = await Promise.all([control.waitForEvent("download"), exportLink.click()]);
       assert.match(download.suggestedFilename(), /\.csv$/);
