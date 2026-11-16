@@ -323,6 +323,7 @@ async function main() {
       await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
       await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
     }
+    if(mail.count) console.log(JSON.stringify(mail.messages.map(m=>({to:m.to,subject:m.subject,text:(m.text||"").slice(0,200)}))));
     assert.equal(mail.count,0,"admin audit sends no email");
     console.log(`Admin ${area} kit passed at desktop and narrow widths${before?" (baseline)":""}.`);
   } finally {await browser.close(); app.stop(); await mail.close(); await sql.end();}

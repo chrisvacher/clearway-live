@@ -11,7 +11,8 @@
 --    A timer started by hand keeps running through every step until it is stopped.
 -- 4. timer_control, for the facilitators (the control surface and the phone remote): start (asks before replacing a running
 --    timer), start the live step's own timer, pause, resume, add or take off a minute, add five, reset and stop.
--- 5. The room state carries the timer, and resetting the practice room clears it.
+-- 5. The room state carries the timer, read in one pass with the other batch 1 fields, and resetting the practice room
+--    clears the timer.
 begin;
 
 -- ---------- 1. The step option ----------
@@ -175,13 +176,24 @@ revoke all on function private.reset_practice_room(),private.reset_practice_room
 grant execute on function private.reset_practice_room() to authenticated;
 
 -- ---------- 5. The room state ----------
+-- One function adds batch 1's fields (the image preload list, when the screen changed, the Home loop and the timer) to the
+-- room state, reading the state underneath once. The images and loop migrations wrapped it in SQL functions that name the
+-- inner state three times; inlined, each wrapper ran everything underneath it three times, so every broadcast cost several
+-- times what it should. This replaces both wrappers.
 alter function private.live_public_state(uuid) rename to live_public_state_pre_timer;
 create function private.live_public_state(p_engagement uuid) returns jsonb
-language sql stable security definer set search_path='' as $$
- select case when b ? 'state' then jsonb_set(b,'{state,timer}',coalesce(r.timer,'null'::jsonb)) else b end
-  from (select private.live_public_state_pre_timer(p_engagement) b) x
-  left join public.room_states r on r.engagement_id=p_engagement and not r.deleted
-$$;
+language plpgsql stable security definer set search_path='' as $$
+declare b jsonb; r public.room_states; h jsonb;
+begin
+ b:=private.live_public_state_pre_images(p_engagement);
+ if b is null or not (b ? 'state') then return b; end if;
+ select * into r from public.room_states where engagement_id=p_engagement and not deleted;
+ h:=private.home_loop(p_engagement);
+ b:=jsonb_set(b,'{state,preload}',private.image_preload(p_engagement));
+ b:=jsonb_set(b,'{state,screen_started_at}',coalesce(to_jsonb(r.screen_started_at),'null'::jsonb));
+ b:=jsonb_set(b,'{state,home}',case when jsonb_array_length(coalesce(h->'images','[]'::jsonb))>0 then h-'title' else 'null'::jsonb end);
+ return jsonb_set(b,'{state,timer}',coalesce(r.timer,'null'::jsonb));
+end $$;
 revoke all on function private.live_public_state(uuid),private.live_public_state_pre_timer(uuid) from public,anon,authenticated;
 
 commit;
