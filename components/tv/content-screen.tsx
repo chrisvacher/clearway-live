@@ -7,6 +7,7 @@ import { mediaUrl } from "@/lib/interactions/media";
 import { imageUrl, stepImage } from "@/lib/images/shared";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { brandFor, skinOf } from "@/lib/brand";
+import { roomPath } from "@/lib/tv/policy";
 
 // Which signed-in surface is drawing the TV: the TV itself, the control surface's
 // mirror, or a phone showing the TV view. Images are read with that surface's session.
@@ -53,7 +54,7 @@ function ContentInner({ frame }: { frame: LiveSnapshot }) {
       return <div className="tv-content tv-docpage">
         {o.media ? <Image unoptimized className="tv-page" src={mediaUrl(frame.state.engagement_id, o.media, surface)} alt={session.prompt || session.title} width={1600} height={900} />
           : <p className="tv-body tv-muted">{session.prompt || session.title}</p>}
-        {frame.display && <span className="tv-corner-link tv-upclose"><Smartphone aria-hidden="true" />{brandFor(skinOf(frame.display.skin)).host}/{frame.display.room_code}</span>}
+        {frame.display && <span className="tv-corner-link tv-upclose"><Smartphone aria-hidden="true" />{brandFor(skinOf(frame.display.skin)).host}/{roomPath(frame.display.room_code, frame.display.link_name)}</span>}
       </div>;
     case "screen_check":
       return <div className="tv-content" />;

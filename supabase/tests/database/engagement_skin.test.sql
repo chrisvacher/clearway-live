@@ -84,7 +84,8 @@ select is((select count(*)::integer from jsonb_object_keys(private.room_public_i
  (select count(*)::integer from jsonb_object_keys(private.room_public_info_pre_skin(tests.id(10))))+1,'The join page lookup gained the skin and nothing else');
 select is(private.tv_room_info(tests.id(10))#>>'{display,skin}','novetera','The TV and phone display carries the skin');
 select is(private.tv_room_info(tests.id(10))#>>'{display,church}','Room A church','The display still carries what it did');
-select is((select count(*)::integer from jsonb_object_keys(private.tv_room_info(tests.id(10))->'display')),(select count(*)::integer from jsonb_object_keys(private.tv_room_info_pre_skin(tests.id(10))->'display'))+1,'The display gained the skin and nothing else');
+select is((select count(*)::integer from jsonb_object_keys(private.tv_room_info(tests.id(10))->'display')),(select count(*)::integer from jsonb_object_keys(private.tv_room_info_pre_skin(tests.id(10))->'display'))+2,'The display gained the skin and the link name, and nothing else');
+select is(private.tv_room_info(tests.id(10))->'display'->'link_name','null'::jsonb,'With no chosen name, the display carries a null link name');
 select is(private.tv_room_info(tests.id(11))#>>'{display,skin}','clearway','A Clearway engagement says clearway');
 select is(private.live_public_state(tests.id(10))#>>'{display,skin}','novetera','The live snapshot carries the skin');
 set local role authenticated;

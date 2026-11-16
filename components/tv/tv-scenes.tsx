@@ -3,7 +3,7 @@ import { expiredLinkLine } from "@/lib/tv/pair-link";
 import { Check } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { roomQr } from "@/lib/tv/qr";
-import { shortRoomLink } from "@/lib/tv/policy";
+import { roomPath, shortRoomLink } from "@/lib/tv/policy";
 import { brandFor, skinOf, type Skin } from "@/lib/brand";
 import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvStatus } from "@/lib/tv/types";
@@ -22,8 +22,8 @@ import { TvTimer } from "./tv-timer";
 import { TvImageStage } from "./image-stage";
 import { imageUrl, stepImage } from "@/lib/images/shared";
 
-function Qr({ code, skin }: { code: string; skin?: Skin }) {
-  const qr = useMemo(() => roomQr(code, skinOf(skin)), [code, skin]);
+function Qr({ code, skin, name }: { code: string; skin?: Skin; name?: string | null }) {
+  const qr = useMemo(() => roomQr(code, skinOf(skin), name), [code, skin, name]);
   return <svg className="tv-qr" viewBox={`0 0 ${qr.size} ${qr.size}`} role="img" aria-label="Scan to open your room" shapeRendering="crispEdges"><rect width={qr.size} height={qr.size} className="tv-qr-ground" /><path d={qr.path} className="tv-qr-ink" /></svg>;
 }
 // The countdown comes from the TV's pairing connection, measured against the
@@ -71,7 +71,7 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
         <InputHead session={session} engagement={shown.state.engagement_id} />
         {View && <View session={session.id} frame={shown} flow={flow} />}
         {!kind?.structured && <p className="tv-note tv-muted">Waiting for answers</p>}
-        {session.settings?.join_strip && shown.display && <div className="tv-join-strip"><span className="tv-upclose">{brandFor(skinOf(shown.display.skin)).host}/{shown.display.room_code}</span><Qr code={shown.display.room_code} skin={shown.display.skin} /></div>}
+        {session.settings?.join_strip && shown.display && <div className="tv-join-strip"><span className="tv-upclose">{brandFor(skinOf(shown.display.skin)).host}/{roomPath(shown.display.room_code, shown.display.link_name)}</span><Qr code={shown.display.room_code} skin={shown.display.skin} name={shown.display.link_name} /></div>}
       </> : <ContentScreen frame={shown} />}
     </div>;
   })}</div>;
@@ -117,7 +117,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
   const display = frame?.display, presence = frame?.presence;
   const paired = status.status === "paired" && Boolean(display);
   const mode = paired ? frame!.state.tv_content : status.status === "pair" ? "pair" : "opening";
-  const link = display ? shortRoomLink(display.room_code, skinOf(display.skin)) : "";
+  const link = display ? shortRoomLink(display.room_code, skinOf(display.skin), undefined, display.link_name) : "";
   const skin: Skin = display ? skinOf(display.skin) : skinOf(address?.skin);
   const session = frame?.session ?? null, kind = kindOf(session);
   const surface = useContext(MediaSurface);
@@ -142,7 +142,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
         <p className="tv-eyebrow">{display?.title}</p><h1 className="tv-headline-xl"><strong>{display?.church}</strong></h1><p className="tv-body tv-muted"><Check aria-hidden="true" /> This screen is paired</p>
       </section>
       <section className={`tv-scene tv-join${mode === "join" ? " is-active" : ""}`} aria-hidden={mode !== "join"}>
-        {display && <><Qr code={display.room_code} skin={display.skin} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>{brandFor(skinOf(display.skin)).host}</span><span>/{display.room_code}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
+        {display && <><Qr code={display.room_code} skin={display.skin} name={display.link_name} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>{brandFor(skinOf(display.skin)).host}</span><span>/{roomPath(display.room_code, display.link_name)}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
       </section>
       <section className={`tv-scene tv-session${mode === "session" ? " is-active" : ""}`} aria-hidden={mode !== "session"}>
         <SessionLayers frame={paired ? frame : null} flow={flow} asking={Boolean(ask)} />

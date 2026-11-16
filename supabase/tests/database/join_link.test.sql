@@ -55,6 +55,7 @@ select tests.login(4);
 select is(public.joining_save(tests.id(11),'{"open_join":true,"link_name":"roomb"}')->>'status','ok','An admin turns open joining on for a team workshop and names its link');
 reset role;
 select is((select link_name from engagements where id=tests.id(10)),'roomachurch','The link name is stored');
+select is(private.tv_room_info(tests.id(10))#>>'{display,link_name}','roomachurch','The TV and phones get the link name to show in place of the code');
 select is((select how_the_room_decides from engagements where id=tests.id(10)),'By consensus, together.','How the room decides is stored');
 select is((select settings->>'neutral_join_message' from engagements where id=tests.id(10)),'true','The neutral message setting is stored');
 select is((select settings->>'open_join' from engagements where id=tests.id(11)),'true','Open joining is stored');

@@ -9,10 +9,13 @@ export function pairingCode(value: unknown) {
 export const roomCode = (value: string) => /^[A-F0-9]{8}$/i.test(value);
 // The room link on the TV and in its QR code: the engagement's address (live.clearway.co for Clearway,
 // live.novetera.co for Novetera) and the code. The older /r/CODE keeps working for links already sent.
-export function shortRoomLink(code: string, skin: Skin = "clearway", env?: Parameters<typeof roomOrigin>[1]) {
+// A chosen link name (live.novetera.co/ppc) takes the code's place wherever the room sees the link; the code keeps working.
+export function shortRoomLink(code: string, skin: Skin = "clearway", env?: Parameters<typeof roomOrigin>[1], name?: string | null) {
   if (!roomCode(code)) throw new Error("Invalid room code");
-  return `${roomOrigin(skin, env)}/${code.toUpperCase()}`;
+  return `${roomOrigin(skin, env)}/${roomPath(code, name)}`;
 }
+// What follows the host in the room link: the chosen link name when there is one, else the code in capitals.
+export const roomPath = (code: string, name?: string | null) => name && /^[a-z0-9]{3,24}$/.test(name) ? name : code.toUpperCase();
 // What a person types or pastes into the join box: the code alone, with spaces or a
 // hyphen, or the whole link from the screen. Returns the code in capitals, or "".
 export function typedRoomCode(value: unknown) {

@@ -57,7 +57,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
           <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/setup/${id}/tv`} action="Pair a TV" />
         </ul>
       </section>
-      <InviteCard id={id} code={e.room_code} link={link} href={href} host={brand.host} qr={roomQr(e.room_code, brand.skin)} invite={inviteText(churchName, e.title, when, href, e.room_code, brand.host)} closed={e.status === "closed"} />
+      <InviteCard id={id} code={e.room_code} link={link} href={href} host={brand.host} qr={roomQr(e.room_code, brand.skin, e.link_name)} invite={inviteText(churchName, e.title, when, href, e.room_code, brand.host)} closed={e.status === "closed"} />
     </div>
   </main>;
 }

@@ -195,7 +195,10 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .show-parts { height: 100%; overflow-y: auto; }
 .show-panel { height: 100%; min-height: 0; display: flex; flex-direction: column; }
 .show-form { min-height: 0; flex: 1; overflow-y: auto; }
+/* The run of show builder and the template library scroll their own main column; the palette stays sticky inside it. */
+.show-workspace > .rb-body, .show-workspace > .tpl-body { flex: 1; min-height: 0; overflow-y: auto; }
 @media (max-width: 900px) {
+  .show-workspace > .rb-body, .show-workspace > .tpl-body { overflow: visible; }
   .show-app { height: auto; overflow: visible; }
   .show-workspace, .show-body { overflow: visible; }
   .show-parts, .show-panel { height: auto; }

@@ -312,7 +312,9 @@ async function main() {
       await ask.getByRole("button",{name:"Keep the workshop going",exact:true}).click(); assert.equal(await status(),"setup","keeping it going changes nothing");
       await more.click(); await page.getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click();
       await page.getByTestId("workshop-ended").waitFor(); assert.equal(await status(),"closed","the same closed status Details sets");
-      await sql.query("update public.engagements set status='setup' where id=$1",[room.id]);
+      // Reopen the workshop from the live room: the status goes back to setup and End the workshop returns.
+      await page.getByTestId("reopen-workshop").click(); await page.getByTestId("workshop-ended").waitFor({state:"detached"});
+      assert.equal(await status(),"setup","Reopen puts the workshop back to setup");
       await page.goto(`${app.origin}/control/${room.id}/recap`); await page.waitForLoadState("networkidle");
       assert.equal(await page.getByRole("link",{name:"Back to the engagement",exact:true}).last().getAttribute("href"),`/setup/${room.id}`,"Results leads back to the engagement");
       assert.equal(await page.locator("main").getByRole("link",{name:"All engagements",exact:true}).getAttribute("href"),"/setup");

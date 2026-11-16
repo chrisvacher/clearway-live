@@ -1,7 +1,7 @@
 import qrcode from "./qr-code";
 import { shortRoomLink } from "./policy";
 import type { Skin } from "../brand";
-export function roomQr(code: string, skin: Skin = "clearway") { return linkQr(shortRoomLink(code, skin)); }
+export function roomQr(code: string, skin: Skin = "clearway", name?: string | null) { return linkQr(shortRoomLink(code, skin, undefined, name)); }
 // The same drawing for any link, such as the phone remote's.
 export function linkQr(link: string) {
   const qr = qrcode(0, "M"); qr.addData(link); qr.make();

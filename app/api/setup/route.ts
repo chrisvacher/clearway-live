@@ -68,11 +68,14 @@ export async function POST(request:NextRequest){
     }
     // End the workshop: the Details form as it stands with the status set to closed, saved through the same function Details uses.
     // Closing signs out every phone and closes answers, in the database, whichever page asks.
-    if(action==="end_workshop"){
-      const e=await scoped();if(e.type!=="team_workshop")return answer({ok:false,message:"Only a workshop can be ended this way."},400);
+    // Reopen the workshop (Chris, November 16): the same save with the status back to setup, from the live room. People sign in again.
+    if(action==="end_workshop"||action==="reopen_workshop"){
+      const reopen=action==="reopen_workshop";
+      const e=await scoped();if(e.type!=="team_workshop")return answer({ok:false,message:reopen?"Only a workshop can be reopened this way.":"Only a workshop can be ended this way."},400);
+      if(reopen&&e.status!=="closed")return answer({ok:true});
       const [{data:c},{data:assignments}]=await Promise.all([client.from("churches").select("*").eq("id",e.church_id).eq("deleted",false).maybeSingle(),client.from("engagement_facilitators").select("clearway_user_id,role").eq("engagement_id",e.id).eq("deleted",false)]);
       if(!c)throw new Error("missing");
-      const form=setupFormFromRows(e,c,assignments);form.engagement.status="closed";
+      const form=setupFormFromRows(e,c,assignments);form.engagement.status=reopen?"setup":"closed";
       const input=setupInput(form as unknown as Record<string,unknown>);if(!profile.is_admin)delete (input.engagement.settings as Record<string,unknown>).open_join;
       await rpc("save_engagement",{p_id:e.id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(form.lead)?form.lead:null,p_co:uuid(form.co)?form.co:null,p_client:e.team_hub_client_id,p_hub_engagement:e.team_hub_engagement_id});return answer({ok:true});
     }
