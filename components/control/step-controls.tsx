@@ -125,7 +125,14 @@ export function useRoomKeys({ room, previewing, onGoLive, minutes }: { room: Roo
       if (!act) return;
       e.preventDefault(); act();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    // A mouse click leaves the button focused, and Enter would press it again (Preview, Next) instead of Go live. A click
+    // with the mouse lets go of the run of show and transport buttons; keyboard presses keep their focus.
+    const onClick = (e: MouseEvent) => {
+      if (e.detail === 0) return;
+      const button = e.target instanceof Element ? e.target.closest<HTMLButtonElement>(".ctl-run-actions button, .ctl-transport button, .ctl-stepctl button") : null;
+      if (button && document.activeElement === button) button.blur();
+    };
+    window.addEventListener("keydown", onKey); window.addEventListener("click", onClick);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("click", onClick); };
   }, [room, previewing, onGoLive, minutes]);
 }
