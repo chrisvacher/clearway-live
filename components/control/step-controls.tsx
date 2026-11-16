@@ -5,37 +5,13 @@ import { kindOf } from "@/lib/interactions/kinds";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { TvScreen } from "@/lib/control/types";
 import { MarkDecision } from "./mark-decision";
-import { SyncChip, burstLeft, type Room } from "./live-controls";
+import { burstLeft, type Room } from "./live-controls";
 
-// The live room's centre column, in fixed bands (November 15, "Live room centre column" research): a status line, the
-// screens, a pinned transport bar, the step controls in fixed slots, then the step panel. Bands 1 to 3 never move or
+// The live room's centre column, in fixed bands (November 15, "Live room centre column" research): the screens, a pinned
+// transport bar, the step controls in fixed slots, then the step panel. The screens and transport bar never move or
 // change size from step to step; the step controls keep their slots and change only with the live step's kind.
 
-const screenNames: Record<string, string> = { blackout: "Blackout", join: "Join screen", holding: "Home screen", screen_check: "Screen check" };
 const Key = ({ k }: { k: string }) => <kbd className="ctl-kbd" aria-hidden="true">{k}</kbd>;
-
-function phonesState(room: Room) {
-  const frame = room.frame, burst = burstLeft(room);
-  if (!frame?.session) return frame?.state.tv_content === "blackout" ? "TV is black" : "Waiting for the next step";
-  if (frame.session.state === "closed") return "Showing own answers, read-only";
-  if (frame.session.interaction === "content") return "Reading along";
-  if (frame.state.phones_down) return "Phones down";
-  return burst ? "Phones open, burst running" : "Phones open";
-}
-
-// 1. One glanceable line: what's live, phones, burst time left, how many answered, the TV.
-export function StatusLine({ room, context }: { room: Room; context: ShowContext }) {
-  const frame = room.frame, content = frame?.state.tv_content ?? "holding", burst = burstLeft(room);
-  const counts = room.status?.counts, input = frame?.session && frame.session.interaction !== "content";
-  const black = !frame?.state.live_session_id && content === "blackout";
-  return <div className={`ctl-status${black ? " is-black" : ""}`} role="status" aria-live="polite">
-    <span className="ctl-status-live"><b>{room.current ? room.current.title : screenNames[content] ?? "Home screen"}</b></span>
-    <span>{phonesState(room)}</span>
-    {burst && <span className="ctl-status-burst">Burst {burst.label} left</span>}
-    {input && counts && <span>{counts.answered} of {counts.signed_in} answered</span>}
-    <span className="ctl-status-tv"><SyncChip room={room} href={`/setup/${context.id}/tv`} /></span>
-  </div>;
-}
 
 // 3. The transport bar: Back, Go live with what&apos;s in preview, Next, then the screens the TV can show in place of a step.
 const screenButtons: { screen: TvScreen; label: string; key: string; Icon: typeof House }[] = [

@@ -11,8 +11,8 @@ import { partOpen } from "@/lib/run-of-show/self-paced";
 import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
 import { usePreview } from "./use-preview";
-import { Banners, ItemList, ReloadNotice, Toasts, roomSizes, useSecondTap, type Room } from "./live-controls";
-import { StatusLine, StepControls, Transport, useRoomKeys } from "./step-controls";
+import { Banners, ItemList, ReloadNotice, SyncChip, Toasts, roomSizes, useSecondTap, type Room } from "./live-controls";
+import { StepControls, Transport, useRoomKeys } from "./step-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
@@ -56,10 +56,26 @@ const screenNames: Record<string, string> = { blackout: "Blackout", join: "Join 
 const sideKey = "clearway-live.room-admin";
 function useRoomAdmin() {
   const [open, setOpen] = useState(false);
+  // The drawer animates both ways: "opening" draws it at nothing for a frame and "closing" shrinks it away before it hides.
+  const [phase, setPhase] = useState<"closed" | "opening" | "open" | "closing">("closed");
   // A light per-browser convenience: the drawer stays as the facilitator left it.
-  useEffect(() => { try { if (localStorage.getItem(sideKey) === "open") setOpen(true); } catch { /* Storage can be unavailable. */ } }, []);
-  const set = (next: boolean) => { setOpen(next); try { localStorage.setItem(sideKey, next ? "open" : "closed"); } catch { /* Storage can be unavailable. */ } };
-  return { open, set };
+  useEffect(() => { try { if (localStorage.getItem(sideKey) === "open") { setOpen(true); setPhase("open"); } } catch { /* Storage can be unavailable. */ } }, []);
+  useEffect(() => {
+    if (phase === "opening") {
+      let stopped = false; requestAnimationFrame(() => requestAnimationFrame(() => { if (!stopped) setPhase("open"); }));
+      return () => { stopped = true; };
+    }
+    if (phase === "closing") {
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const t = setTimeout(() => setPhase("closed"), still ? 0 : 320);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+  const set = (next: boolean) => {
+    setOpen(next); setPhase(p => next ? (p === "closed" ? "opening" : "open") : (p === "closed" ? "closed" : "closing"));
+    try { localStorage.setItem(sideKey, next ? "open" : "closed"); } catch { /* Storage can be unavailable. */ }
+  };
+  return { open, set, phase };
 }
 
 // FAC-01, laid out like a presentation switcher: the run of show left; the preview and live screens side by side in the
@@ -121,7 +137,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
         </button>
       </div>
     </header>
-    <div className={`ctl-cols${side.open ? " has-side" : ""}`}>
+    <div className={`ctl-cols${side.phase !== "closed" ? " has-side" : ""}${side.phase === "opening" || side.phase === "closing" ? " is-side-off" : ""}`}>
       <nav className={`ctl-col ctl-run${runOpen ? "" : " is-folded"}`} aria-label="Run of show">
         <div className="ctl-row is-between"><h2>Run of show</h2>{clock && <span className={`ctl-chip${clock.onTime ? " is-success" : ""}`}><Clock size={14} aria-hidden="true" />{clock.label}</span>}
           <button type="button" className="show-button is-small ctl-run-toggle" aria-expanded={runOpen} aria-controls="ctl-run-body" onClick={() => setRunOpen(v => !v)}>{runOpen ? "Hide the run of show" : "Show the run of show"}</button></div>
@@ -154,10 +170,9 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
         <ReloadNotice room={room} />
         <Banners room={room} />
         {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
-        <StatusLine room={room} context={context} />
         <div className="ctl-screens">
           <PreviewScreen room={room} session={previewing} context={context} chosen={Boolean(chosen)} />
-          <LiveScreen room={room} />
+          <LiveScreen room={room} context={context} />
         </div>
         <Transport room={room} context={context} previewing={previewing} onGoLive={goLive} />
         <StepControls room={room} minutes={minutes} setMinutes={setMinutes} onPanel={openPanel} workshop={workshop} />
@@ -168,7 +183,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
           <QaAnyTime room={room} />
         </section>
       </main>
-      <aside id="ctl-side" className="ctl-col ctl-side" aria-label="Room admin" hidden={!side.open}>
+      <aside id="ctl-side" className="ctl-col ctl-side" aria-label="Room admin" hidden={side.phase === "closed"} inert={side.phase === "closing" || undefined}>
         <div className="ctl-row is-between ctl-side-head"><h2>Room admin</h2><button type="button" className="show-button is-small" onClick={() => side.set(false)}><PanelRightClose size={16} aria-hidden="true" />Hide</button></div>
         {!workshop && <SignalPanel room={room} />}
         <AiPanel room={room} />
@@ -222,13 +237,14 @@ function PreviewScreen({ room, session, context, chosen }: { room: Room; session
 }
 
 // Live: what the TV has confirmed it shows, kept smaller as a confidence monitor; the TV itself is in the room.
-function LiveScreen({ room }: { room: Room }) {
+function LiveScreen({ room, context }: { room: Room; context: ShowContext }) {
   const { frame, current } = room;
   const content = frame?.state.tv_content ?? "holding";
   return <section className="ctl-screen is-live ctl-tv" aria-labelledby="ctl-live-title">
     <div className="ctl-screen-head">
       <span className="ctl-screen-tag is-live">Live</span>
       <h2 id="ctl-live-title" className="ctl-screen-title">{current ? current.title : screenNames[content] ?? "Home screen"}</h2>
+      <SyncChip room={room} href={`/setup/${context.id}/tv`} />
       <ExportAnswers room={room} />
     </div>
     <div className="ctl-screen-frame"><TvMirror frame={room.mirror} /></div>

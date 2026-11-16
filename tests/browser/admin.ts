@@ -241,7 +241,7 @@ async function main() {
       assert.ok(await colX(".ctl-screen.is-preview")<await colX(".ctl-screen.is-live"),"preview left, live right");
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await columns(),3,"Room admin opens as a third column");
       assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, screens and Room admin run left to right");
-      await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await page.locator(".ctl-side").isVisible(),false,"and hides again");
+      await page.getByRole("button",{name:"Room admin",exact:true}).click(); await page.locator(".ctl-side").waitFor({state:"hidden",timeout:2000}); assert.equal(await columns(),2,"and hides again, after it slides away");
       // The centre column's bands (November 15): Go live is the one big lime button, in a transport bar pinned in view.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
       assert.ok(take.height>=63&&take.width>=199,`Go live is at least 64 by 200: ${take.width}x${take.height}`);
@@ -253,7 +253,7 @@ async function main() {
       assert.equal(await page.locator(".ctl-side").getByRole("button",{name:"TV view on phones",exact:true}).count(),1,"TV view on phones lives in Room admin");
       assert.equal(await page.locator(".ctl-side").getByRole("button",{name:"Refresh phones",exact:true}).count(),1,"Refresh phones lives in Room admin");
       assert.equal(await page.locator(".ctl-centre").getByRole("button",{name:"Refresh phones",exact:true}).count(),0,"and not in the centre column");
-      await page.getByRole("button",{name:"Room admin",exact:true}).click();
+      await page.getByRole("button",{name:"Room admin",exact:true}).click(); await page.locator(".ctl-side").waitFor({state:"hidden",timeout:2000});
       // The page never scrolls past the live room.
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),"nothing below the live room at 1512");
       // 3. The room's identity, on the engagement's own address.

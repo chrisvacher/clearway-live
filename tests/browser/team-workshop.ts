@@ -211,14 +211,14 @@ async function main() {
       await control.locator(".ctl-steps").getByRole("button", { name: "Back", exact: true }).click();
       await until(async () => await liveId() === await idOf("Your questions"), "Back returns to the step left", 8000);
       // The same from the keyboard: B blacks out the TV, B again goes back to the step.
-      await until(async () => (await control.locator(".ctl-status-live").innerText()) === "Your questions", "the control surface shows the step live", 8000);
+      await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Your questions", "the control surface shows the step live", 8000);
       await control.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await control.keyboard.press("b");
       await until(async () => await tv.locator(".tv-blackout.is-active").count() === 1 && await liveId() === null, "B blacks out the TV", 8000);
-      await until(async () => (await control.locator(".ctl-status").getAttribute("class"))?.includes("is-black") ?? false, "the status line shows the TV is black", 8000);
+      await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Blackout", "the live screen shows the TV is black", 8000);
       await control.keyboard.press("b");
       await until(async () => await liveId() === await idOf("Your questions"), "B again returns to the step", 8000);
-      await until(async () => (await control.locator(".ctl-status-live").innerText()) === "Your questions", "and the control surface shows it", 8000);
+      await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Your questions", "and the control surface shows it", 8000);
       // The preview: Preview on a row puts that step in the preview screen, and the preview draws it before it goes live.
       await control.getByRole("button", { name: "Preview Check-in", exact: true }).click();
       await until(async () => (await control.locator("#ctl-preview-title").innerText()) === "Check-in", "Check-in in the preview", 8000);
