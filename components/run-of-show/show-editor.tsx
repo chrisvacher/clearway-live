@@ -10,6 +10,9 @@ import { SaveTemplate } from "./save-template";
 import { AddImages, type ImageTarget } from "./add-images";
 import type { EngagementImage } from "@/lib/images/shared";
 import { loopOf } from "@/lib/images/loop";
+import { stepTimer, timerMarks } from "@/lib/live/timer";
+import { sortSessions } from "@/lib/run-of-show/policy";
+import { Timer as TimerIcon } from "lucide-react";
 import { contentLabels, contentOf, fallbackKinds, type ContentScreen, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { canSelfPace, clock, droppedSession, endOfRun, hasSections, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, sectionAt, sectionLine, sectionName, sectionsOf, slots, stepSlot, type PaletteEntry, type Section, type Slot } from "@/lib/run-of-show/builder";
 import type { Template } from "@/lib/templates/types";
@@ -117,6 +120,8 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const kinds: KindInfo[] = ctx.kinds?.length ? ctx.kinds : Object.values(fallbackKinds);
   const tiles = useMemo(() => palette(kinds), [kinds]);
   const sessions = useMemo(() => pending.reduce((list, op) => op.apply(list), show.sessions), [pending, show.sessions]);
+  // Timers that run through later steps (D21): a blue edge on each step they span, with a chip.
+  const marks = useMemo(() => timerMarks(sortSessions(sessions).filter(x => x.mode === "live")), [sessions]);
   const locked = ctx.closed || reloadNeeded;
   const panelMs = () => runRef.current && !reducedMotion(runRef.current) ? tokenMs(runRef.current, "cwl-dur-panel") || 300 : 0;
 
@@ -459,13 +464,14 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
               const time = s.mode !== "live" ? "Self-paced" : t?.at ? hour.format(new Date(t.at)) : clock(t?.offset ?? 0);
               const StateIcon = s.state === "draft" ? PencilLine : CircleCheck;
               const toggle = () => { if (!dragRef.current) openOptions(open ? null : s.id); };
-              out.push(<li key={s.id} data-row={s.id} data-sec={sec.name} data-glide={s.id} className={`rb-row${open ? " is-open" : ""}${s.id === moving ? " is-moving" : ""}`}>
+              out.push(<li key={s.id} data-row={s.id} data-sec={sec.name} data-glide={s.id} className={`rb-row${open ? " is-open" : ""}${s.id === moving ? " is-moving" : ""}${marks.get(s.id) && (marks.get(s.id)!.role !== "owner" || stepTimer(s.options)?.through) ? " has-timer-span" : ""}`}>
                 <div className="rb-head" onClick={e => { if (!(e.target as HTMLElement).closest("button")) toggle(); }}>
                   <button type="button" className="rb-grip" aria-label={`Move ${s.title}`} aria-describedby="rb-move-help" disabled={locked} onPointerDown={e => pointerStart(e, { type: "row", session: s })} onKeyDown={e => gripKey(e, s)}><GripVertical size={18} aria-hidden="true" /></button>
                   <span className="rb-time">{time}</span>
                   <span className="rb-ic"><Kind aria-hidden="true" /></span>
                   <div className="rb-name"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><span className="show-muted">{kindLabel(s)} · {s.mode === "live" ? `${s.planned_minutes} min` : windowLabel(s, tz, Date.now()) || "Set its times"}</span></div>
                   {loopChips(s, home)}
+                  {marks.get(s.id) && <span className="rb-chip is-info" data-timer-mark={marks.get(s.id)!.role}><TimerIcon aria-hidden="true" />{marks.get(s.id)!.label}</span>}
                   {dirty.has(s.id) && !open && <span className="rb-chip is-unsaved">Unsaved edits</span>}
                   <span className={`rb-chip is-${s.state}`}><StateIcon aria-hidden="true" />{stateLabels[s.state] ?? s.state}</span>
                   <button type="button" className="rb-tog" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} options for ${s.title}`} onClick={toggle}><ChevronDown size={20} aria-hidden="true" /></button>

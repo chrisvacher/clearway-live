@@ -9,6 +9,7 @@ import { contentOf, fallbackKinds, type InteractionKind, type KindInfo } from "@
 import { kindDefaults, optionEditors } from "@/components/interactions/option-editors";
 import { contentPromptLabel } from "./content-options";
 import { Select } from "@/components/ui/select";
+import { StepTimerField } from "./step-timer";
 import { StepImageField } from "./step-image";
 
 // Every step can carry one image, except the screens that are images already (the Image step and the loop) and the screen check.
@@ -126,6 +127,8 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
             {text && <><label htmlFor="session-characters">Characters per answer<input id="session-characters" type="number" min={1} max={280} required value={value.max_characters} onChange={e => change("max_characters", Number(e.target.value))} /></label>
               <label htmlFor="session-words">Words per answer<input id="session-words" type="number" min={1} max={50} required value={value.max_words} onChange={e => change("max_words", Number(e.target.value))} /></label></>}
           </>}
+          <h3 className="is-full show-group">Timer</h3>
+          <StepTimerField session={session} others={others} value={value.options ?? {}} locked={busy || blocked || context.closed} onChange={options => change("options", options)} />
           <h3 className="is-full show-group">Your notes</h3>
           <label className="is-full" htmlFor="session-notes"><span><LockKeyhole size={15} aria-hidden="true" /> Presenter notes</span><textarea id="session-notes" maxLength={30000} rows={5} value={value.notes} onChange={e => change("notes", e.target.value)} /><span className="show-help">Only facilitators see these. They never reach the TV or phones.</span></label>
           <label className="is-full" htmlFor="session-lands">Lands in<input id="session-lands" maxLength={200} value={value.lands_in} onChange={e => change("lands_in", e.target.value)} /></label>

@@ -4,6 +4,7 @@ import { EyeOff, X } from "lucide-react";
 import type { RunOfShow } from "@/lib/run-of-show/types";
 import type { RoomSize } from "@/lib/control/types";
 import { useControlRoom } from "./use-control-room";
+import { TimerCard } from "./timer-panel";
 import { Banners, ItemList, LiveControls, PreviewCard, ReloadNotice, SyncChip, Toasts, roomSizes } from "./live-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
@@ -37,6 +38,8 @@ export function Remote({ initial }: { initial: RunOfShow }) {
           <button className="show-button is-small" onClick={() => setSheet("preview")}>Preview</button></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
       <QuoteOnTv room={room} />
       <LiveControls room={room} variant="remote" onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
+      <section className="ctl-private" aria-label="Timer, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Timer</span></div>
+        <div className="ctl-private-body"><TimerCard room={room} engagement={initial.context.id} compact /></div></section>
       <AiRemote room={room} />
       <SignalList room={room} />
       <ReadBackRemote room={room} />

@@ -15,6 +15,7 @@ import { Banners, ItemList, ReloadNotice, SyncChip, Toasts, roomSizes, useSecond
 import { StepControls, Transport, useRoomKeys } from "./step-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
 import { imageShowFor } from "@/components/tv/image-stage";
+import { TimerCard, TimerChip } from "./timer-panel";
 import { loopIndex, loopNextIn } from "@/lib/images/loop";
 import { serverNow } from "@/lib/live/protocol";
 import { controlPanels } from "@/components/interactions/control-panels";
@@ -200,6 +201,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
           <label className="ctl-size" htmlFor="ctl-room-size">Room size<select id="ctl-room-size" value={frame?.display?.room_size ?? "very_small"} disabled={busy} onChange={e => void room.press("room_size", { size: e.target.value as RoomSize })}>{roomSizes.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><span className="show-help">Scales all TV type at once.</span></label>
           <Link className="show-button is-small" href={`/control/${engagement}/latency`}>See the phone to TV report</Link>
         </Private>
+        <Private title="Timer"><TimerCard room={room} engagement={engagement} /></Private>
         <Private title="TV and phones">
           <div className="ctl-row">
             <button type="button" className="show-button" disabled={busy} aria-pressed={tvOnPhones} onClick={() => void room.press("tv_on_phones", { on: !tvOnPhones })}>{tvOnPhones ? <Eye size={18} aria-hidden="true" /> : <MonitorSmartphone size={18} aria-hidden="true" />}{tvOnPhones ? "Stop the TV view on phones" : "TV view on phones"}</button>
@@ -264,6 +266,7 @@ function LiveScreen({ room, context }: { room: Room; context: ShowContext }) {
       <SyncChip room={room} href={`/setup/${context.id}/tv`} />
       <ExportAnswers room={room} />
     </div>
+    <TimerChip room={room} engagement={context.id} />
     <div className="ctl-screen-frame"><TvMirror frame={room.mirror} /></div>
     <LoopLine room={room} />
     {current && <div className="ctl-screen-foot"><details className="ctl-screen-notes" open><summary>Presenter notes</summary><p className="ctl-notes">{current.notes || "No presenter notes."}</p></details></div>}

@@ -1,6 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { LiveAnswer, LiveResults, LiveSession, LiveSnapshot } from "@/lib/live/types";
+import { stepTimer, type LiveTimer } from "@/lib/live/timer";
+import { serverNow } from "@/lib/live/protocol";
+
+// The timer the TV will show when this step goes live: a timer started by hand keeps running, and so does the step's own;
+// otherwise the step's own timer, held at its full length, if it starts on Go live.
+function previewTimer(base: LiveSnapshot, session: LiveSession): LiveTimer | null {
+  const running = base.state.timer;
+  if (running && (running.source === "manual" || running.from === session.id)) return running;
+  const own = stepTimer(session.options);
+  if (!own || own.start !== "live") return null;
+  const now = serverNow(), at = new Date(now).toISOString();
+  let ends: number | null = own.kind === "down" ? now + (own.seconds ?? 0) * 1000 : null;
+  if (own.kind === "to" && own.at) { const d = new Date(now); const [h, m] = own.at.split(":").map(Number); d.setHours(h, m, 0, 0); ends = d.getTime(); }
+  return { id: `preview:${session.id}`, kind: own.kind, seconds: own.seconds, at: own.at, started_at: at, ...(ends ? { ends_at: new Date(ends).toISOString() } : {}), paused_at: at, tv: own.tv, phones: own.phones, source: "step", from: session.id };
+}
 
 type PreviewEntry = { status: "ok"; server_time: string; session: LiveSession; hidden_keys: string[]; hidden_ids: string[]; results: LiveResults; answers: LiveAnswer[] };
 
@@ -10,7 +25,7 @@ export function previewFrame(base: LiveSnapshot, entry: PreviewEntry): LiveSnaps
   return {
     ...base, answer: null, qa: null, promoted_quote: null, next: null, phone_depth: null,
     state: { ...base.state, live_session_id: entry.session.id, tv_content: "session", phones_down: false, burst_ends_at: null,
-      spotlight_key: null, spotlight_id: null, neutral_question: undefined, hidden_keys: entry.hidden_keys, hidden_ids: entry.hidden_ids, show_tv_on_phones: false, results: entry.results },
+      spotlight_key: null, spotlight_id: null, neutral_question: undefined, hidden_keys: entry.hidden_keys, hidden_ids: entry.hidden_ids, show_tv_on_phones: false, results: entry.results, timer: previewTimer(base, entry.session) },
     session: { ...entry.session, state: entry.session.state === "closed" ? "closed" : "open" },
     answers: entry.answers,
   };

@@ -6,6 +6,7 @@ import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
 import { PhoneContent, PhoneLoop, PhoneStepImage, phoneContentWaits } from "./phone-content";
+import { PhoneTimer } from "@/components/tv/tv-timer";
 import { bannerKey, bannerTaken, checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
 import { browserStore } from "@/lib/phone/outbox";
 import type { PhoneStep } from "@/lib/phone/types";
@@ -185,7 +186,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
 
   return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={(takesInput || view?.interaction === "content") && !phoneContentWaits(view) ? "phone-answering" : "phone-waiting"}>
     <div className="ph-texture" aria-hidden="true" />
-    <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} />{marker}</header>
+    <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} /><PhoneTimer timer={frame?.state.timer} />{marker}</header>
     <div className="ph-body">
       <PhoneTeamRemote engagement={engagement} frame={frame} />
       {bannerShown && !bannerSeen && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />

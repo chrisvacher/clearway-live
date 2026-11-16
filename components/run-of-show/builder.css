@@ -182,3 +182,9 @@
 @media (max-width: 900px) { .loop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .loop-switch::after { transition: none; } }
 .rb-chip.is-info { background: var(--cwl-app-sunken); color: var(--cwl-app-text); }
+
+/* Timers (TM-1, TM-2): the step's timer settings, and the steps a timer runs through (D21). */
+.step-timer-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-1); padding: var(--space-1); border-radius: var(--cwl-radius-button); background: var(--cwl-app-sunken); }
+.step-timer-kinds button { min-height: var(--cwl-phone-touch); border: 0; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text-muted); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); cursor: pointer; }
+.step-timer-kinds button.is-on { background: var(--cwl-app-card); color: var(--cwl-app-text); box-shadow: var(--shadow-md); }
+.rb-row.has-timer-span { box-shadow: inset 4px 0 0 var(--cwl-app-primary); }

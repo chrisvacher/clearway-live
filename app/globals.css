@@ -586,6 +586,23 @@ span.ctl-resp-text { cursor: default; }
 .ctl-screen-foot { display: flex; flex-direction: column; gap: var(--space-2); }
 .ctl-loop-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); }
 .ctl-loop-line > span { white-space: nowrap; }
+/* The timer on the control surface (TM-3): a chip under the Live title, and the Room admin and remote card. */
+.ctl-timer-chip { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.ctl-timer-time { font-variant-numeric: tabular-nums; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); color: var(--cwl-app-text); }
+.ctl-timer-time.is-last, .ctl-timer-time.is-over { color: var(--cwl-app-text); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+.ctl-timer { display: flex; flex-direction: column; gap: var(--space-3); }
+.ctl-timer-now { display: flex; flex-direction: column; gap: var(--space-2); }
+.ctl-timer-line { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); }
+.ctl-timer-line .ctl-timer-time { font-size: var(--cwl-fs-app-section-title); }
+.ctl-timer-buttons { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.ctl-timer-start summary { cursor: pointer; font-weight: var(--fw-semibold); }
+.ctl-timer-form { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
+.ctl-timer-form label:not(.show-check) { display: flex; flex-direction: column; gap: var(--space-1); font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); }
+.ctl-timer-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-1); padding: var(--space-1); border-radius: var(--cwl-radius-button); background: var(--cwl-app-sunken); }
+.ctl-timer-kinds button { min-height: 36px; border: 0; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text-muted); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); cursor: pointer; }
+.ctl-timer-kinds button.is-on { background: var(--cwl-app-card); color: var(--cwl-app-text); box-shadow: var(--shadow-md); }
+.ctl-timer-ask { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-selected); }
+.ctl-timer-ask p { margin: 0; }
 .ctl-loop-line > span:first-child { display: inline-flex; align-items: center; gap: var(--space-2); }
 .ctl-screen-line { display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .ctl-screen-line > span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: var(--fw-semibold); }
@@ -765,6 +782,18 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .tv-count b { min-width: 0.6em; font-weight: var(--fw-bold); color: var(--cwl-text); font-variant-numeric: tabular-nums; }
 .tv-counts:not(.is-several) .tv-count-sent { display: none; }
 [data-motion="reduced"] .tv-count { transition-duration: var(--cwl-dur-reduced); }
+/* The timer (TM-1 to TM-3, D8 and D17): the count badge's shape, left of the live mark and 48 px from it. The last minute and
+   overtime take the callout colour on the outline and digits; nothing flashes. The digits keep their width as they change. */
+.tv-timer { display: inline-flex; align-items: center; gap: 0.35em; height: 56px; padding: 0 0.55em 0 0.45em; margin-right: calc(48px - var(--cwl-tv-gap)); border-radius: 12px;
+  box-shadow: inset 0 0 0 2px var(--cwl-border-strong); font-size: var(--cwl-fs-tv-floor); line-height: 1; color: var(--cwl-text); white-space: nowrap; font-variant-numeric: tabular-nums;
+  opacity: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), color var(--cwl-dur-make-room) var(--cwl-ease-signature), box-shadow var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-timer.is-on { opacity: 1; }
+.tv-timer svg { width: 0.9em; height: 0.9em; flex: none; color: var(--cwl-text-muted); transition: color var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-timer.is-last, .tv-timer.is-over { color: var(--cwl-callout); box-shadow: inset 0 0 0 2px var(--cwl-callout); }
+.tv-timer.is-last svg, .tv-timer.is-over svg { color: var(--cwl-callout); }
+[data-motion="reduced"] .tv-timer, [data-motion="reduced"] .tv-timer svg { transition-duration: var(--cwl-dur-reduced); }
+.ph-timer { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1); padding: 2px var(--space-2); border-radius: var(--cwl-radius-pill); box-shadow: inset 0 0 0 1px var(--cwl-border-strong);
+  font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums; color: var(--cwl-text); white-space: nowrap; }
 .tv-foot { align-items: baseline; }
 .tv-foot-left, .tv-foot-right { display: inline-flex; align-items: baseline; gap: 32px; }
 .tv-here { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-medium); color: var(--cwl-text); font-variant-numeric: tabular-nums; }
@@ -776,6 +805,7 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ph-live.is-down { color: var(--cwl-text-muted); width: 22px; height: 22px; }
 .ph-reconnecting { width: 28px; height: 28px; }
 .ph-head .ph-mark-slot { margin-left: auto; }
+.ph-head:has(.ph-timer) .ph-mark-slot { margin-left: 0; }
 
 /* Content screens on the TV (glow only; holding carries the oversized mark). */
 .tv-content { width: 100%; }

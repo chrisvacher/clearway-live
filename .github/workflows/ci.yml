@@ -143,6 +143,19 @@ jobs:
           path: hide-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test timers (batch 1, TM-1 to TM-3) in both skins in real browsers
+        if: ${{ !cancelled() }}
+        run: mkdir -p timer-shots && npm run test:timers
+        env:
+          KIT_SHOTS: timer-shots
+      - name: Upload the timer screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: timer-screens
+          path: timer-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the Novetera skin on the TV, phones, join pages and the control surface's TV preview, and that a Clearway engagement is unchanged, in real browsers
         if: ${{ !cancelled() }}
         run: mkdir -p novetera-shots && npm run test:novetera-screens

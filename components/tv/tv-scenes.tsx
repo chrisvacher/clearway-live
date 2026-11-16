@@ -18,6 +18,7 @@ import { QaWaiting } from "@/components/interactions/qa/qa-tv";
 import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
 import { PromotedQuoteSpot } from "./promoted-quote";
 import { AiFoot } from "@/components/interactions/ai/ai-foot";
+import { TvTimer } from "./tv-timer";
 import { TvImageStage } from "./image-stage";
 import { imageUrl, stepImage } from "@/lib/images/shared";
 
@@ -130,7 +131,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
     <div className="tv-texture" aria-hidden="true"><span /></div>
     <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}
       {inputOn && frame && kind?.counts !== "none" && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} /></span>}</div>
-      <div className="tv-top-status"><LiveMark state={mark} reconnecting={reconnecting} skin={skin} lockup={mode === "join"} /></div>
+      <div className="tv-top-status">{paired && surface !== "phone" && <TvTimer timer={mode === "pair" ? null : frame?.state.timer} />}<LiveMark state={mark} reconnecting={reconnecting} skin={skin} lockup={mode === "join"} /></div>
     </header>
     <div className="tv-scenes">
       <section className={`tv-scene tv-pair${mode === "pair" ? " is-active" : ""}`} aria-hidden={mode !== "pair"}>

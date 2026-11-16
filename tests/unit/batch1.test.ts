@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { loopIndex, loopNextIn, loopOf } from "../../lib/images/loop";
 import { stepImage, imageProblem } from "../../lib/images/shared";
 import { responsesView } from "../../lib/control/responses";
+import { clock, stepTimer, timerMarks, timerView } from "../../lib/live/timer";
 
 const a = "8d000000-0000-4000-8000-000000000050", b = "8d000000-0000-4000-8000-000000000051", c = "8d000000-0000-4000-8000-000000000052";
 
@@ -47,4 +48,32 @@ test("the Responses list counts shown and hidden answers, and the Hidden filter 
   assert.equal(all.shown, 2); assert.equal(all.hidden, 1); assert.equal(all.list.length, 3);
   assert.deepEqual(hidden.list.map(i => i.key), ["2"]);
   assert.deepEqual(responsesView([], "hidden"), { shown: 0, hidden: 0, list: [] });
+});
+
+test("a timer shows the time left, the last minute, then overtime counting up, from the server clock", () => {
+  const t0 = Date.parse("2026-11-20T14:00:00.000Z"), started_at = new Date(t0).toISOString();
+  const down = { id: "t", kind: "down" as const, seconds: 300, started_at, ends_at: new Date(t0 + 300000).toISOString(), tv: true, phones: false, source: "manual" as const };
+  assert.deepEqual(timerView(down, t0), { text: "5:00", phase: "normal", paused: false, label: "5:00 left" });
+  assert.equal(timerView(down, t0 + 1).text, "5:00", "a part second rounds up, so it never shows 4:59 at the start");
+  assert.equal(timerView(down, t0 + 239000).phase, "normal");
+  assert.equal(timerView(down, t0 + 240000).phase, "last", "the last minute");
+  assert.deepEqual(timerView(down, t0 + 372000), { text: "+1:12", phase: "over", paused: false, label: "1:12 over" });
+  const paused = { ...down, paused_at: new Date(t0 + 60000).toISOString() };
+  assert.equal(timerView(paused, t0 + 200000).text, "4:00", "paused, it holds");
+  assert.equal(timerView(paused, t0 + 200000).paused, true);
+  const up = { id: "u", kind: "up" as const, started_at, tv: true, phones: true, source: "manual" as const };
+  assert.equal(timerView(up, t0 + 3725000).text, "1:02:05", "counting up past an hour");
+  assert.equal(clock(59.9), "0:59");
+});
+
+test("a step's timer reads its setting, and the run of show marks the steps it runs through", () => {
+  const a = "8d000000-0000-4000-8000-0000000000a1", b = "8d000000-0000-4000-8000-0000000000a2", c = "8d000000-0000-4000-8000-0000000000a3", d = "8d000000-0000-4000-8000-0000000000a4";
+  assert.deepEqual(stepTimer({ timer: { kind: "down", seconds: 600 } }), { kind: "down", seconds: 600, at: undefined, tv: true, phones: false, start: "live", through: undefined });
+  assert.equal(stepTimer({ timer: { kind: "sideways" } }), null);
+  const marks = timerMarks([{ id: a, options: {} }, { id: b, options: { timer: { kind: "down", seconds: 600, through: d } } }, { id: c, options: {} }, { id: d, options: {} }]);
+  assert.equal(marks.get(a), undefined);
+  assert.deepEqual(marks.get(b), { role: "owner", label: "Timer 10:00" });
+  assert.deepEqual(marks.get(c), { role: "running", label: "Timer running" });
+  assert.deepEqual(marks.get(d), { role: "end", label: "Timer ends here" });
+  assert.equal(timerMarks([{ id: a, options: { timer: { kind: "up", through: a } } }]).get(a)?.label, "Timer counts up", "running through itself is just this step");
 });
