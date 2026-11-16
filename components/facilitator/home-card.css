@@ -1,0 +1,11 @@
+/* The Screens page's Home card (LP-1). */
+.home-card-options { display: flex; flex-direction: column; gap: var(--space-3); }
+.home-card .show-check { display: flex; align-items: center; gap: var(--space-2); font-weight: var(--fw-semibold); }
+.home-card .show-check .tv-screens-help { font-weight: var(--fw-regular); color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-table); }
+.home-card-loop { display: flex; flex-direction: column; gap: var(--space-3); padding-left: calc(var(--space-5) + var(--space-2)); max-width: 560px; }
+.home-card-preview { display: flex; gap: var(--space-3); align-items: flex-start; }
+.home-card-preview .tv-screens-help { color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-table); line-height: var(--lh-body); }
+.home-card .step-image-thumb { margin: 0; width: 220px; flex: none; aspect-ratio: 16 / 9; display: grid; place-items: center; background: var(--cw-navy); border-radius: var(--radius-md); overflow: hidden; }
+.home-card .step-image-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.home-card a { color: var(--cwl-app-primary); text-decoration: underline; }
+.app-shell .tv-screens-form.home-card .show-check + .show-check { margin-top: 0; }

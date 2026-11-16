@@ -566,6 +566,9 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
   .ctl-slot:empty { display: none; }
 }
 .ctl-screen-foot { display: flex; flex-direction: column; gap: var(--space-2); }
+.ctl-loop-line { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-1) var(--space-3); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); }
+.ctl-loop-line > span { white-space: nowrap; }
+.ctl-loop-line > span:first-child { display: inline-flex; align-items: center; gap: var(--space-2); }
 .ctl-screen-line { display: flex; flex-direction: column; overflow-wrap: anywhere; }
 .ctl-screen-line > span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); font-weight: var(--fw-semibold); }
 .ctl-screen-notes { border-top: 1px solid var(--cwl-app-border); padding-top: var(--space-2); }

@@ -17,7 +17,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { id, image } = await params, config = authConfig();
   const surface = request.nextUrl.searchParams.get("surface") || "phone";
   const fail = (status: number) => privateResponse(new NextResponse(null, { status }));
-  if (!config || !uuid(id) || !uuid(image) || !["phone", "tv", "control"].includes(surface)) return fail(404);
+  if (!config || !uuid(id) || !uuid(image) || !["phone", "tv", "control", "join"].includes(surface)) return fail(404);
+  // A phone that hasn't joined yet sees only the Home loop's images, and only while Home is on the TV (LP-1).
+  if (surface === "join") {
+    try {
+      const { data: path, error } = await serviceClient().rpc("home_image_path", { p_engagement: id, p_image: image });
+      if (error) throw error;
+      if (!path) return fail(404);
+      return await signed(path as string, null);
+    } catch { return fail(503); }
+  }
   const response = new NextResponse(null);
   const jar = { getAll: () => request.cookies.getAll(), setAll: (values: { name: string; value: string; options: Parameters<typeof response.cookies.set>[2] }[]) => {
     for (const { name, value, options } of values) { request.cookies.set(name, value); response.cookies.set(name, value, options); }
@@ -30,13 +39,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const { data, error } = await client.rpc("image_read", { p_engagement: id, p_image: image });
     if (error) throw error;
     if (data?.status !== "ok") return fail(data?.status === "denied" ? 403 : 404);
-    const signed = await serviceClient().storage.from(imageBucket).createSignedUrl(data.path, signedSeconds);
-    if (signed.error || !signed.data) return fail(503);
-    const out = NextResponse.redirect(signed.data.signedUrl, 302);
-    // The browser keeps the redirect for half the signed address's life, so a TV preloading an image and then showing it asks once.
-    out.headers.set("Cache-Control", `private, max-age=${signedSeconds / 2}`);
-    out.headers.set("X-Content-Type-Options", "nosniff");
-    for (const cookie of response.cookies.getAll()) out.cookies.set(cookie);
-    return out;
+    return await signed(data.path, response);
   } catch { return fail(503); }
+}
+
+async function signed(path: string, response: NextResponse | null) {
+  const made = await serviceClient().storage.from(imageBucket).createSignedUrl(path, signedSeconds);
+  if (made.error || !made.data) return privateResponse(new NextResponse(null, { status: 503 }));
+  const out = NextResponse.redirect(made.data.signedUrl, 302);
+  // The browser keeps the redirect for half the signed address's life, so a TV preloading an image and then showing it asks once.
+  out.headers.set("Cache-Control", `private, max-age=${signedSeconds / 2}`);
+  out.headers.set("X-Content-Type-Options", "nosniff");
+  for (const cookie of response?.cookies.getAll() ?? []) out.cookies.set(cookie);
+  return out;
 }

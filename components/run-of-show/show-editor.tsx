@@ -2,13 +2,14 @@
 import { ShellNav, type ShellEngagement } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutTemplate,
+import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, House, Image as ImageIcon, LayoutTemplate,
   CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, MousePointerClick, Newspaper, PencilLine, PenLine, Plus, Printer, Radio, Repeat, ScanLine, Images, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
 import { AddImages, type ImageTarget } from "./add-images";
 import type { EngagementImage } from "@/lib/images/shared";
+import { loopOf } from "@/lib/images/loop";
 import { contentLabels, contentOf, fallbackKinds, type ContentScreen, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { canSelfPace, clock, droppedSession, endOfRun, hasSections, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, sectionAt, sectionLine, sectionName, sectionsOf, slots, stepSlot, type PaletteEntry, type Section, type Slot } from "@/lib/run-of-show/builder";
 import type { Template } from "@/lib/templates/types";
@@ -20,6 +21,13 @@ import "./builder.css";
 type Icon = ComponentType<LucideProps>;
 const kindIcons: Partial<Record<InteractionKind, Icon>> = { word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
   points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck, four_lists: Columns4 };
+// An image loop's row says whether it is Home and how it runs (LP-1).
+function loopChips(s: ShowSession, home: string | null | undefined) {
+  if (s.interaction !== "content" || contentOf(s.options).screen !== "loop") return null;
+  const loop = loopOf(s.options);
+  return <>{home === s.id && <span className="rb-chip is-info"><House aria-hidden="true" />Home screen</span>}
+    <span className="rb-chip is-info"><Repeat aria-hidden="true" />{loop ? `${loop.images.length} ${loop.images.length === 1 ? "image" : "images"} · ${loop.seconds}s` : "No images yet"}</span></>;
+}
 const screenIcons: Record<ContentScreen, Icon> = { scripture: BookOpen, headline: Newspaper, prayer: HandHeart, image: ImageIcon, holding: Monitor, screen_check: ScanLine, loop: Repeat };
 const iconOf = (kind: InteractionKind, screen?: ContentScreen | null) => kind === "content" && screen ? screenIcons[screen] : kindIcons[kind] ?? Monitor;
 const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", open: "Open", live: "Live", phones_down: "Phones down", closed: "Closed" };
@@ -103,6 +111,9 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const pointer = useRef<{ x: number; y: number } | null>(null), settleUntil = useRef(0);
   dragRef.current = drag;
   const ctx = show.context, base = `/setup/${ctx.id}`, endpoint = `/api/run-of-show/${ctx.id}`;
+  // Which loop is Home (LP-1). The loop's own switch announces a change, so every row's chip follows at once.
+  const [home, setHome] = useState(ctx.home_session ?? null);
+  useEffect(() => { const on = (e: Event) => setHome((e as CustomEvent<string | null>).detail); window.addEventListener("cwl:home", on); return () => window.removeEventListener("cwl:home", on); }, []);
   const kinds: KindInfo[] = ctx.kinds?.length ? ctx.kinds : Object.values(fallbackKinds);
   const tiles = useMemo(() => palette(kinds), [kinds]);
   const sessions = useMemo(() => pending.reduce((list, op) => op.apply(list), show.sessions), [pending, show.sessions]);
@@ -454,6 +465,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                   <span className="rb-time">{time}</span>
                   <span className="rb-ic"><Kind aria-hidden="true" /></span>
                   <div className="rb-name"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><span className="show-muted">{kindLabel(s)} · {s.mode === "live" ? `${s.planned_minutes} min` : windowLabel(s, tz, Date.now()) || "Set its times"}</span></div>
+                  {loopChips(s, home)}
                   {dirty.has(s.id) && !open && <span className="rb-chip is-unsaved">Unsaved edits</span>}
                   <span className={`rb-chip is-${s.state}`}><StateIcon aria-hidden="true" />{stateLabels[s.state] ?? s.state}</span>
                   <button type="button" className="rb-tog" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} options for ${s.title}`} onClick={toggle}><ChevronDown size={20} aria-hidden="true" /></button>

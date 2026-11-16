@@ -34,8 +34,9 @@ create function tests.step1_state(p_engagement uuid) returns jsonb language sql 
  where r.engagement_id=p_engagement and not r.deleted
 $$;
 create function tests.same_state() returns boolean language sql stable security definer set search_path='' as $$
- -- Batch 1 (November 15) adds the TV's image preload list to the shared state; everything else is step 1's exactly.
- select (private.live_public_state(tests.id(100))-'qa'-'promoted_quote') #- '{state,preload}' = tests.step1_state(tests.id(100)) and private.live_public_state(tests.id(100)) ? 'qa' $$;
+ -- Batch 1 (November 15) adds the TV's image preload list, the Home loop and when the screen changed to the shared state;
+ -- everything else is step 1's exactly.
+ select (private.live_public_state(tests.id(100))-'qa'-'promoted_quote') #- '{state,preload}' #- '{state,home}' #- '{state,screen_started_at}' = tests.step1_state(tests.id(100)) and private.live_public_state(tests.id(100)) ? 'qa' $$;
 grant execute on all functions in schema tests to authenticated,anon,service_role;
 
 insert into churches(id,name,timezone) values(tests.id(200),'Riverside Church','America/Toronto');
@@ -230,7 +231,7 @@ select ok(exists(select 1 from jsonb_array_elements(public.phone_room(tests.id(1
 -- Existing behaviour holds: every field of the shared state and every phone field, exactly.
 select tests.login(4);
 select is((select array_agg(k order by k) from jsonb_object_keys(public.live_snapshot(tests.id(100))->'state') k),
- array['burst_ends_at','engagement_id','hidden_ids','hidden_keys','live_session_id','phone_refresh_version','phones_down','preload','remote_holder_id','results','show_tv_on_phones','spotlight_id','spotlight_key','team_led_block_id','tv_content','version'],'The room state keeps every field');
+ array['burst_ends_at','engagement_id','hidden_ids','hidden_keys','home','live_session_id','phone_refresh_version','phones_down','preload','remote_holder_id','results','screen_started_at','show_tv_on_phones','spotlight_id','spotlight_key','team_led_block_id','tv_content','version'],'The room state keeps every field');
 select is((select array_agg(k order by k) from jsonb_object_keys(public.live_snapshot(tests.id(100))->'session') k),
  array['base_year','id','interaction','kind','max_characters','max_sends','max_words','options','prompt','revision','settings','state','title'],'The live step keeps every field');
 select ok((select array_agg(k) from jsonb_object_keys(public.live_snapshot(tests.id(100))) k) @> array['state','session','display','presence','answers','qa'],'The shared state keeps the TV fields and adds qa');

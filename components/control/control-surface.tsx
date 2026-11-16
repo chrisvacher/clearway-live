@@ -3,7 +3,7 @@ import { HandoverPanel } from "@/components/interactions/intent/handover";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ArrowLeft, Circle, Clock, Eye, EyeOff, Inbox, LayoutGrid, Lock, Map as MapIcon, MonitorSmartphone, PanelRightClose, PanelRightOpen, PencilLine, Play, Printer, Radio, RefreshCw, Smartphone } from "lucide-react";
+import { ArrowLeft, Circle, Clock, Eye, EyeOff, Inbox, LayoutGrid, Lock, Map as MapIcon, MonitorSmartphone, PanelRightClose, PanelRightOpen, PencilLine, Play, Printer, Radio, RefreshCw, Repeat, Smartphone } from "lucide-react";
 import { actionNames, stateLabels, timing } from "@/lib/control/policy";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { parts, type RunOfShow, type ShowContext, type ShowSession } from "@/lib/run-of-show/types";
@@ -14,6 +14,9 @@ import { usePreview } from "./use-preview";
 import { Banners, ItemList, ReloadNotice, SyncChip, Toasts, roomSizes, useSecondTap, type Room } from "./live-controls";
 import { StepControls, Transport, useRoomKeys } from "./step-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
+import { imageShowFor } from "@/components/tv/image-stage";
+import { loopIndex, loopNextIn } from "@/lib/images/loop";
+import { serverNow } from "@/lib/live/protocol";
 import { controlPanels } from "@/components/interactions/control-panels";
 import { QaAnyTime } from "@/components/interactions/qa/qa-panel";
 import { ExportAnswers, RehearsalPanel, SelfPacedList } from "./rehearsal";
@@ -153,7 +156,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
               const isLive = s.id === shownId, inPreview = s.id === previewing?.id;
               return <li key={s.id} className={`${isLive ? "is-current" : ""}${inPreview ? " is-preview" : ""}${s.id === room.upNext?.id ? " is-next" : ""}`} data-session={s.id}>
                 <span className="ctl-time">{time(s.planned_start, context.timezone)}</span>
-                <span className="ctl-run-title"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min</small></span>
+                <span className="ctl-run-title"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min{s.id === room.frame?.state.home?.session ? " · Home screen" : ""}</small></span>
                 <StateIcon state={s.state} />
                 <span className="ctl-run-actions">
                   <button className="show-button is-small" aria-pressed={inPreview} onClick={() => setChosen(s.id)} aria-label={`Preview ${s.title}`}>Preview</button>
@@ -236,6 +239,20 @@ function PreviewScreen({ room, session, context, chosen }: { room: Room; session
   </section>;
 }
 
+// A running image loop, live or as Home (LP-1): which image is up and when the next comes, from the room's clock.
+function LoopLine({ room }: { room: Room }) {
+  const show = imageShowFor(room.frame), [now, setNow] = useState(() => serverNow());
+  const running = Boolean(show && show.images.length > 1 && show.seconds);
+  useEffect(() => { if (!running) return; const t = setInterval(() => setNow(serverNow()), 500); return () => clearInterval(t); }, [running]);
+  if (!show || !show.seconds) return null;
+  const home = room.frame?.state.tv_content === "holding" ? room.show.sessions.find(s => s.id === room.frame?.state.home?.session) : null;
+  const next = loopNextIn(show, now);
+  return <div className="ctl-loop-line" data-loop-line>
+    <span><Repeat size={15} aria-hidden="true" />{home ? `Home: ${home.title}` : "Image loop"}</span>
+    <span className="show-muted">{show.images.length > 1 ? `Image ${loopIndex(show, now) + 1} of ${show.images.length}${next ? ` · next in ${next}s` : ""}` : "1 image"}</span>
+  </div>;
+}
+
 // Live: what the TV has confirmed it shows, kept smaller as a confidence monitor; the TV itself is in the room.
 function LiveScreen({ room, context }: { room: Room; context: ShowContext }) {
   const { frame, current } = room;
@@ -248,6 +265,7 @@ function LiveScreen({ room, context }: { room: Room; context: ShowContext }) {
       <ExportAnswers room={room} />
     </div>
     <div className="ctl-screen-frame"><TvMirror frame={room.mirror} /></div>
+    <LoopLine room={room} />
     {current && <div className="ctl-screen-foot"><details className="ctl-screen-notes" open><summary>Presenter notes</summary><p className="ctl-notes">{current.notes || "No presenter notes."}</p></details></div>}
   </section>;
 }

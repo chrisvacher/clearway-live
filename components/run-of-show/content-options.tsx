@@ -4,10 +4,11 @@ import { contentLabels, contentOf, contentScreens, type ContentScreen } from "@/
 import { mediaUrl } from "@/lib/interactions/media";
 import type { OptionsEditorProps } from "@/components/interactions/option-editors";
 import { StepImageField } from "./step-image";
+import { LoopOptions } from "./loop-options";
 import { stepImage } from "@/lib/images/shared";
 import { Select } from "@/components/ui/select";
 
-export function ContentOptions({ value, context, locked, onChange }: OptionsEditorProps) {
+export function ContentOptions({ session, value, context, fresh, locked, onChange }: OptionsEditorProps) {
   const o = contentOf(value);
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch });
   const text = (key: "number" | "source" | "reference" | "translation" | "line", label: string, max: number, help?: string, placeholder?: string) =>
@@ -21,6 +22,7 @@ export function ContentOptions({ value, context, locked, onChange }: OptionsEdit
     {o.screen === "holding" && <>{text("line", "Line under the welcome (optional)", 200, undefined, "Coffee is at the back. We start at 9:00.")}
       <label className="is-full" htmlFor="content-outline">The day’s outline (optional)<textarea id="content-outline" rows={5} maxLength={1000} value={String(value.outline ?? "")} onChange={e => set({ outline: e.target.value })} />
         <span className="show-help">One item per line, a time first if you like: 9:00 Welcome and prayer. Up to twelve lines; seven or more show in two columns. Shown in place of the line.</span></label></>}
+    {o.screen === "loop" && <LoopOptions session={session} value={value} context={context} fresh={fresh} locked={locked} onChange={onChange} />}
     {o.screen === "image" && <>
       {o.media && !stepImage(value) && <div className="is-full show-media">
         <Image unoptimized src={mediaUrl(context.id, o.media, "control")} alt="The image on the TV" width={320} height={180} className="show-media-preview" />

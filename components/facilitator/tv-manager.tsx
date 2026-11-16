@@ -7,7 +7,9 @@ import { brandFor, skinOf } from "@/lib/brand";
 import { roomSizes } from "@/components/control/live-controls";
 import { Select } from "@/components/ui/select";
 import { OpenTvWindow } from "@/components/control/open-tv-window";
-export function TvManager({ id, initial }: { id: string; initial: TvManagerData }) {
+import { HomeCard } from "./home-card";
+import type { HomeList } from "@/lib/images/home";
+export function TvManager({ id, initial, home }: { id: string; initial: TvManagerData; home: HomeList | null }) {
   const [data, setData] = useState(initial), [display, setDisplay] = useState(initial.display);
   const [code, setCode] = useState(""), [label, setLabel] = useState("Front TV"), [busy, setBusy] = useState(false), [message, setMessage] = useState(""), [error, setError] = useState(false), [at, setAt] = useState("");
   const brand = brandFor(skinOf(data.display.skin));
@@ -48,6 +50,7 @@ export function TvManager({ id, initial }: { id: string; initial: TvManagerData 
     </form>
     <section className="admin-panel"><h2>Paired screens</h2>{data.screens.length ? <ul className="tv-screen-list">{data.screens.map(screen => <li key={screen.id}><Monitor size={24} aria-hidden="true" /><div><strong>{screen.label}</strong><p>{screen.browser}</p><p className="tv-screens-help">{screen.last_seen_at ? seen(screen.last_seen_at) : "Waiting for the screen to join"}</p></div><button className="admin-button is-small" disabled={busy || data.closed} onClick={() => { if (window.confirm(`Unpair ${screen.label}? It will show a new code.`)) void change("unpair", { device: screen.id }); }}>Unpair</button></li>)}</ul> : <p>No screens paired yet.</p>}{said("unpair")}</section></div>
     <section className="admin-panel"><h2>Prepare the screen</h2><p>These views appear on every paired TV.</p><div className="admin-actions">{[["join", "Show join screen"], ["screen_check", "Show screen check"], ["holding", "Show holding screen"]].map(([content, title]) => <button key={content} className="show-button" aria-pressed={data.tv_content === content} disabled={busy || data.closed} onClick={() => void change("screen", { content })}>{title}</button>)}</div>{said("screen")}</section>
+    {home && <HomeCard id={id} initial={home} closed={data.closed} />}
     <form className="admin-panel tv-screens-form" onSubmit={event => { event.preventDefault(); void change("display", { room_size: display.room_size, theme: display.theme, texture: display.texture, reduced_motion: display.reduced_motion }); }}>
       <h2>Display settings</h2><div className="admin-columns"><label htmlFor="tv-room-size">Room size<Select id="tv-room-size" value={display.room_size} onChange={e => setDisplay(v => ({ ...v, room_size: e.target.value as typeof v.room_size }))}>{roomSizes.map(([value, title]) => <option key={value} value={value}>{title}</option>)}</Select><span className="tv-screens-help">Scales all TV type at once. Very small screen gives the largest type.</span></label>
       <label htmlFor="tv-theme">TV theme<Select id="tv-theme" value={display.theme} onChange={e => setDisplay(v => ({ ...v, theme: e.target.value as typeof v.theme }))}><option value="dark">Navy</option><option value="light">Off-White</option></Select></label></div>

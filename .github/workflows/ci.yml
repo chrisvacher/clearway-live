@@ -117,6 +117,19 @@ jobs:
           path: images-shots/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the image loop and a loop as Home (batch 1, LP-1) in both skins in real browsers with Storage
+        if: ${{ !cancelled() }}
+        run: mkdir -p loop-shots && npm run test:loop
+        env:
+          KIT_SHOTS: loop-shots
+      - name: Upload the image loop screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-screens
+          path: loop-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the Novetera skin on the TV, phones, join pages and the control surface's TV preview, and that a Clearway engagement is unchanged, in real browsers
         if: ${{ !cancelled() }}
         run: mkdir -p novetera-shots && npm run test:novetera-screens

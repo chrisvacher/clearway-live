@@ -5,7 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Lock, FlaskConical, MonitorSmartphone
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
-import { PhoneContent, PhoneStepImage, phoneContentWaits } from "./phone-content";
+import { PhoneContent, PhoneLoop, PhoneStepImage, phoneContentWaits } from "./phone-content";
 import { bannerKey, bannerTaken, checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
 import { browserStore } from "@/lib/phone/outbox";
 import type { PhoneStep } from "@/lib/phone/types";
@@ -198,6 +198,8 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
       </nav>}
       {isLive && frame?.state.show_tv_on_phones && <TvMirror frame={frame} label="The TV" surface="phone" />}
       {!view ? <section className="ph-waiting" aria-live="polite">
+        {frame?.state.tv_content === "holding" && frame.state.home && frame.state.home.images.length > 0 &&
+          <PhoneLoop engagement={engagement} images={frame.state.home.images} seconds={frame.state.home.seconds} startedAt={frame.state.screen_started_at ?? null} />}
         <h1 className="ph-headline">{name || room?.name ? `You’re in, ${name || room?.name}.` : "You’re in."}</h1>
         <p className="ph-text">Watch the screen. Questions will appear here.</p>
         {selfList}
@@ -210,7 +212,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
         {selfView && <><p className="ph-muted">{view.title} · Self-paced</p><p className="ph-window">{windowLabel(view, zone, serverNow)}</p></>}
         {lookingBack && <p className="ph-muted">{view.title} · {view.state === "open" ? "still open" : !asks ? "earlier" : "closed"}</p>}
         {isLive && burstLeft !== null && burstLeft > 0 && burstLength.current && <Burst left={burstLeft} total={burstLength.current.total} />}
-        {!asks ? <PhoneContent engagement={engagement} step={view} />
+        {!asks ? <PhoneContent engagement={engagement} step={view} startedAt={isLive && view.id === frame?.session?.id ? frame?.state.screen_started_at ?? null : null} />
           : <><h1 className="ph-prompt">{view.prompt}</h1>
             {view.phone_depth && <details className="ph-more"><summary>More detail</summary><div className="ph-depth">{view.phone_depth}</div></details>}
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
