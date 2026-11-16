@@ -9,6 +9,10 @@ import { contentOf, fallbackKinds, type InteractionKind, type KindInfo } from "@
 import { kindDefaults, optionEditors } from "@/components/interactions/option-editors";
 import { contentPromptLabel } from "./content-options";
 import { Select } from "@/components/ui/select";
+import { StepImageField } from "./step-image";
+
+// Every step can carry one image, except the screens that are images already (the Image step and the loop) and the screen check.
+const stepTakesImage = (s: Pick<ShowSession, "interaction" | "options">) => s.interaction !== "content" || !["image", "loop", "screen_check"].includes(contentOf(s.options).screen);
 
 // The builder (SET-07) opens this form in place, in the run ("inline"): Done saves, Remove
 // takes the session out, and unsaved edits survive the options sliding closed (draft).
@@ -87,7 +91,7 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
       <fieldset disabled={busy || blocked || context.closed}>
         <div className="show-fields">
           <h3 className="is-full show-group">Basics</h3>
-          <label className="is-full" htmlFor="session-title">Title<input ref={first} id="session-title" required maxLength={200} value={value.title} onChange={e => change("title", e.target.value)} /></label>
+          <label className="is-full" htmlFor="session-title">Title<input ref={first} id="session-title" required maxLength={200} value={value.title} onChange={e => { const title = e.target.value; setValue(previous => { const { untitled: _u, ...options } = (previous.options ?? {}) as Record<string, unknown>; void _u; return { ...previous, title, options }; }); }} /></label>
           <label className="is-full" htmlFor="session-segment">Segment<input id="session-segment" maxLength={100} value={value.segment ?? ""} onChange={e => change("segment", e.target.value)} /><span className="show-help">Steps in the same segment, like Five Lenses, keep taking answers until the room moves on from the segment.</span></label>
           <label htmlFor="session-section">Section<input id="session-section" maxLength={100} list="session-sections" value={value.section ?? ""} onChange={e => change("section", e.target.value)} />
             <datalist id="session-sections">{[...new Set(others.filter(s => s.part === value.part).map(s => (s.section ?? "").trim()).filter(Boolean))].map(name => <option key={name} value={name} />)}</datalist>
@@ -106,6 +110,8 @@ export function SessionForm({ session, fresh, context, busy, blocked, feedback, 
             <option value="">Nothing, start empty</option>{seedable.map(s => <option key={s.id} value={s.id}>{s.part}: {s.title}</option>)}</Select>
             <span className="show-help">Starts this step from the earlier step’s answers, so the room does not begin from nothing.</span></label>}
           {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={fresh} locked={busy || blocked || context.closed} onChange={options => change("options", options)} setPrompt={prompt => change("prompt", prompt)} />}
+          {stepTakesImage(value) && <><h3 className="is-full show-group">Image</h3>
+            <StepImageField engagement={context.id} value={value.options ?? {}} canFill={value.interaction === "content"} locked={busy || blocked || context.closed} onChange={options => change("options", options)} /></>}
           <label className="is-full" htmlFor="session-prompt">{value.interaction === "content" ? contentPromptLabel[contentOf(value.options).screen] : "Prompt on the TV and phones"}<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>
           <p className="show-help is-full">Use {"{base year + 10}"}, {"{base year + 3}"} or {"{base year + 1}"} to fill in the year.</p>
           {value.prompt.includes("{base year") && <div className="show-preview is-full"><span className="show-help">Prompt preview</span><p>{fillYears(value.prompt, context.base_year)}</p></div>}

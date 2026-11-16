@@ -43,10 +43,16 @@ export function retryDelay(attempt: number, random = Math.random) {
   return Math.round(Math.min(30000, 500 * 2 ** Math.min(attempt, 6)) * (0.75 + 0.5 * random()));
 }
 // Cross-device wall-clock comparisons need a measured offset and uncertainty.
+// Every surface measures one each time it reads the room; the most certain recent one is kept for anything that
+// runs on the room's clock (an image loop, the timer), so the TV, the preview and phones agree.
+let offsetKept = { offsetMs: 0, uncertaintyMs: Infinity, at: 0 };
 export function clockSample(sent: number, received: number, serverTime: number) {
   if (![sent, received, serverTime].every(Number.isFinite) || received < sent) throw new Error("Invalid clock sample");
-  return { offsetMs: serverTime - (sent + received) / 2, uncertaintyMs: (received - sent) / 2 };
+  const sample = { offsetMs: serverTime - (sent + received) / 2, uncertaintyMs: (received - sent) / 2 };
+  if (sample.uncertaintyMs <= offsetKept.uncertaintyMs || received - offsetKept.at > 60000) offsetKept = { ...sample, at: received };
+  return sample;
 }
+export const serverNow = () => Date.now() + offsetKept.offsetMs;
 // A structured answer (a choice, a value, a ranking, points, a placement) is plain JSON,
 // small, and checked again by its kind in the database.
 function validValue(value: unknown) {

@@ -137,3 +137,28 @@
 .rb-block-remove { flex: none; min-height: var(--space-10); padding: var(--space-1) var(--space-2); border: 0; border-radius: var(--cwl-radius-button); background: none; color: var(--cwl-app-text-muted); font: inherit; font-size: var(--cwl-fs-app-micro); cursor: pointer; }
 .rb-block-remove:hover:not(:disabled) { background: var(--cwl-app-hover); color: var(--cwl-app-text); }
 .rb-mode + .rb-mode { margin-top: var(--space-2); }
+/* Batch 1: an image on a step (TC-3) and the Image step (TC-2). */
+.step-image { display: flex; flex-direction: column; gap: var(--space-2); }
+.step-image-thumb { margin: 0; width: 240px; aspect-ratio: 16 / 9; display: grid; place-items: center; background: var(--cw-navy); border-radius: var(--radius-md); overflow: hidden; }
+.step-image-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.step-image-tools { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.step-image-display { display: flex; flex-direction: column; gap: var(--space-1); }
+.step-image-display .rb-mode { max-width: 280px; }
+.rb-name strong.is-untitled { color: var(--cw-gray-500); font-style: italic; font-weight: var(--fw-medium); }
+.rb-modal.add-images { width: min(880px, 100%); outline: none; }
+.add-images .rb-modal-foot { align-items: center; }
+.add-images .rb-modal-foot > .show-help { margin-right: auto; }
+.add-images-drop { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4); border: 2px dashed var(--cw-sky-blue); border-radius: var(--cwl-radius-card); background: var(--cwl-sky-pale); }
+.add-images-drop p { margin: var(--space-1) 0 0; }
+.add-images-bar { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+.add-images-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.add-images-item { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); border: 1px solid var(--cwl-app-border); border-radius: var(--radius-lg); background: var(--cwl-app-card); cursor: grab; }
+.add-images-item.is-drag { opacity: 0.5; }
+.add-images-item.is-failed { border-color: var(--cw-error); }
+.add-images-item-head { display: flex; align-items: center; gap: var(--space-1); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); }
+.add-images-num { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: var(--radius-md); background: var(--cw-navy); color: var(--cw-white); font-size: 12px; flex: none; }
+.add-images-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.add-images-thumb { aspect-ratio: 16 / 9; display: grid; place-items: center; background: var(--cw-navy); border-radius: var(--radius-md); overflow: hidden; }
+.add-images-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.add-images-target { display: flex; flex-direction: column; gap: var(--space-1); font-weight: var(--fw-semibold); }
+@media (max-width: 700px) { .add-images-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

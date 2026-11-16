@@ -31,6 +31,7 @@ async function main() {
     const check = await add("Screen check", "", 6, { screen: "screen_check" });
     const cloud = await room.session("Celebration", "word_cloud", "One word for what God is doing at Riverside", 7);
     const fac = await facilitator(env, sql, room.id);
+    assert.equal((await sql.query("select private.engagement_images_setup() as s")).rows[0].s, "ready", "Storage is running, so the image bucket can be made");
     browser = await chromium.launch();
 
     const tvContext = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
@@ -64,10 +65,10 @@ async function main() {
       await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
       await editor.locator(".rb-row", { hasText: "Survey page" }).getByRole("button", { name: /Open options/ }).click();
       await editor.locator(".rb-row.is-open #content-file").setInputFiles({ name: "page-3.png", mimeType: "image/png", buffer: png });
-      await editor.getByText("Image added. Save to put it in the run of show.").waitFor({ timeout: 10000 });
+      await editor.getByText("Image added. Press Done to put it in the run of show.").waitFor({ timeout: 20000 });
       await shot(editor, "set-07-image-options");
       await editor.locator(".rb-row.is-open").getByRole("button", { name: "Done", exact: true }).click();
-      await until(async () => (await sql.query("select options->>'media' as m from public.sessions where id=$1", [image])).rows[0].m, "image saved on the session", 10000);
+      await until(async () => (await sql.query("select options#>>'{image,id}' as m from public.sessions where id=$1", [image])).rows[0].m, "image saved on the session", 10000);
     });
 
     const live = async (session: string) => { await press(fac, sql, room.id, "go_live", { session }); await delay(1100); };
@@ -102,11 +103,13 @@ async function main() {
       await until(async () => (await ben.locator(".ph-body").innerText()).includes("Phones away"), "Phones away");
       await shot(tv, "content-prayer-tv"); await shot(ben, "content-prayer-phone");
     });
-    await step("Image or document page: the page at its own shape on the TV, and on phones to zoom", async () => {
+    await step("Image step: the page fills the TV at its own shape, letterboxed on the TV ground, and phones zoom it", async () => {
       await live(image);
-      const img = layer().locator("img.tv-page");
+      const img = tv.locator(".tv-imgstage.is-active .tv-img-layer:not(.is-leaving) img");
       await until(async () => await img.evaluate(el => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0).catch(() => false), "image loads on the TV", 10000);
-      const box = await img.boundingBox(); assert.ok(box && Math.abs(box.width / box.height - 850 / 1100) < 0.02, "never stretched");
+      const natural = await img.evaluate(el => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
+      assert.ok(Math.abs(natural.w / natural.h - 850 / 1100) < 0.02, "the whole image, never stretched or cropped");
+      assert.equal(await img.evaluate(el => getComputedStyle(el).objectFit), "contain", "shown whole, letterboxed");
       await until(async () => await ruth.locator(".ph-zoom img").evaluate(el => (el as HTMLImageElement).naturalWidth > 0).catch(() => false), "image loads on the phone", 10000);
       await shot(tv, "content-image-tv"); await shot(ruth, "content-image-phone");
     });

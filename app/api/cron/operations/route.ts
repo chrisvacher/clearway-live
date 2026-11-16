@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { runFileBackups } from "@/lib/operations/backups";
 import { sendOperationsAlert } from "@/lib/operations/server";
+import { purgeDeletedImages } from "@/lib/images/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 const answer = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });
@@ -11,6 +12,8 @@ export async function GET(request: NextRequest) {
   if (!secret || given.length !== want.length || !timingSafeEqual(given, want)) return answer({ status: "denied" }, 401);
   try {
     const result = await runFileBackups();
+    // A deleted engagement's images leave Storage too. A failure here is logged and tried again tomorrow.
+    try { await purgeDeletedImages(); } catch { console.error("Image clean-up unavailable"); }
     await sendOperationsAlert();
     return answer({ status: result.failed ? "attention" : "ok", ...result }, result.failed ? 503 : 200);
   } catch { console.error("Operational sweep unavailable"); return answer({ status: "unavailable" }, 503); }

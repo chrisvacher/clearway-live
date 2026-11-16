@@ -137,7 +137,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
               const isLive = s.id === shownId, inPreview = s.id === previewing?.id;
               return <li key={s.id} className={`${isLive ? "is-current" : ""}${inPreview ? " is-preview" : ""}${s.id === room.upNext?.id ? " is-next" : ""}`} data-session={s.id}>
                 <span className="ctl-time">{time(s.planned_start, context.timezone)}</span>
-                <span className="ctl-run-title"><strong>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min</small></span>
+                <span className="ctl-run-title"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><small>{s.segment ? `${s.segment} · ` : ""}{context.kinds?.find(k => k.kind === s.interaction)?.label ?? (s.interaction === "word_cloud" ? "Word cloud" : s.interaction === "wall" ? "Wall" : "Content")} · {s.planned_minutes} min</small></span>
                 <StateIcon state={s.state} />
                 <span className="ctl-run-actions">
                   <button className="show-button is-small" aria-pressed={inPreview} onClick={() => setChosen(s.id)} aria-label={`Preview ${s.title}`}>Preview</button>

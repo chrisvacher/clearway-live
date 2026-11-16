@@ -5,7 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Lock, FlaskConical, MonitorSmartphone
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
-import { PhoneContent, phoneContentWaits } from "./phone-content";
+import { PhoneContent, PhoneStepImage, phoneContentWaits } from "./phone-content";
 import { bannerKey, bannerTaken, checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
 import { browserStore } from "@/lib/phone/outbox";
 import type { PhoneStep } from "@/lib/phone/types";
@@ -231,6 +231,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
             {closed && <p className="ph-text">This step is closed. Your answers are kept.</p>}
             {!takesInput && !down && !closed && isLive && !running && <p className="ph-text">Watch the screen. This will open in a moment.</p>}
           </>}
+        <PhoneStepImage engagement={engagement} step={view} />
         {selfList}
       </section>}
     </div>

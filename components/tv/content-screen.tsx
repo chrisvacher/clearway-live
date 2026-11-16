@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Smartphone } from "lucide-react";
 import { boldParts, contentOf, outlineRows } from "@/lib/interactions/kinds";
 import { mediaUrl } from "@/lib/interactions/media";
+import { imageUrl, stepImage } from "@/lib/images/shared";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { brandFor, skinOf } from "@/lib/brand";
 
@@ -27,6 +28,17 @@ export function ScreenCheck() {
 // Content screens (no input). Each is still: nothing on them moves except a change the
 // facilitator saves, which cross-fades with the session layer.
 export function ContentScreen({ frame }: { frame: LiveSnapshot }) {
+  const session = frame.session!, o = contentOf(session.options), surface = useContext(MediaSurface), image = stepImage(session.options);
+  // Fill and the image loop draw on the image stage, over the whole TV. The layer beneath stays empty.
+  if (o.screen === "loop" || image?.display === "fill") return <div className="tv-content tv-filled" />;
+  const inner = <ContentInner frame={frame} />;
+  if (image?.display !== "place") return inner;
+  // In place: the image sits beside the headline, shown whole.
+  return <div className="tv-inplace"><div className="tv-inplace-main">{inner}</div>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <figure className="tv-inplace-img"><img src={imageUrl(frame.state.engagement_id, image.id, surface)} alt="" decoding="async" /></figure></div>;
+}
+function ContentInner({ frame }: { frame: LiveSnapshot }) {
   const session = frame.session!, o = contentOf(session.options), surface = useContext(MediaSurface);
   const church = frame.display?.church ?? "";
   switch (o.screen) {

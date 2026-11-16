@@ -48,12 +48,12 @@ export const countLabel = (people: number, total: number, counts: KindInfo["coun
   counts === "people" ? `${people} ${countUnit(people, counts, kind)}` : `${total} ${countUnit(total, counts, kind)} from ${people} ${people === 1 ? "person" : "people"}`;
 
 // Content screens (PRD "Content screens").
-export const contentScreens = ["headline", "scripture", "prayer", "image", "holding", "screen_check"] as const;
+export const contentScreens = ["headline", "scripture", "prayer", "image", "holding", "screen_check", "loop"] as const;
 export type ContentScreen = typeof contentScreens[number];
 export const contentLabels: Record<ContentScreen, string> = {
-  headline: "Headline with depth", scripture: "Scripture", prayer: "Prayer and silence", image: "Image or document page", holding: "Holding and walk-in", screen_check: "Screen check",
+  headline: "Headline with depth", scripture: "Scripture", prayer: "Prayer and silence", image: "Image", holding: "Holding and walk-in", screen_check: "Screen check", loop: "Image loop",
 };
-export type ContentOptions = { screen?: ContentScreen; number?: string; source?: string; reference?: string; translation?: string; line?: string; outline?: string; media?: string; size?: "body" };
+export type ContentOptions = { screen?: ContentScreen; number?: string; source?: string; reference?: string; translation?: string; line?: string; outline?: string; media?: string; size?: "body"; images?: string[]; seconds?: number; transition?: string };
 export const contentOf = (options: unknown): ContentOptions & { screen: ContentScreen } => {
   const o = options && typeof options === "object" && !Array.isArray(options) ? options as ContentOptions : {};
   const { size, ...rest } = o;

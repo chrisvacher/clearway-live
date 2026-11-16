@@ -18,6 +18,8 @@ import { QaWaiting } from "@/components/interactions/qa/qa-tv";
 import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
 import { PromotedQuoteSpot } from "./promoted-quote";
 import { AiFoot } from "@/components/interactions/ai/ai-foot";
+import { TvImageStage } from "./image-stage";
+import { imageUrl, stepImage } from "@/lib/images/shared";
 
 function Qr({ code, skin }: { code: string; skin?: Skin }) {
   const qr = useMemo(() => roomQr(code, skinOf(skin)), [code, skin]);
@@ -65,14 +67,23 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
     const kind = kindOf(session), input = Boolean(kind?.input), View = tvViews[session.interaction];
     return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} data-kind={session.interaction} aria-hidden={layer.leaving}>
       {input ? <>
-        <p className="tv-eyebrow">{session.title}</p>
-        <h1 className="tv-headline">{session.prompt}</h1>
+        <InputHead session={session} engagement={shown.state.engagement_id} />
         {View && <View session={session.id} frame={shown} flow={flow} />}
         {!kind?.structured && <p className="tv-note tv-muted">Waiting for answers</p>}
         {session.settings?.join_strip && shown.display && <div className="tv-join-strip"><span className="tv-upclose">{brandFor(skinOf(shown.display.skin)).host}/{shown.display.room_code}</span><Qr code={shown.display.room_code} skin={shown.display.skin} /></div>}
       </> : <ContentScreen frame={shown} />}
     </div>;
   })}</div>;
+}
+
+// An input step's eyebrow and prompt. An image set In place sits beside them, shown whole, so the live results below keep their room.
+function InputHead({ session, engagement }: { session: NonNullable<LiveSnapshot["session"]>; engagement: string }) {
+  const surface = useContext(MediaSurface), image = stepImage(session.options);
+  const head = <><p className="tv-eyebrow">{session.title}</p><h1 className="tv-headline">{session.prompt}</h1></>;
+  if (image?.display !== "place") return head;
+  return <div className="tv-inplace-head"><div className="tv-inplace-text">{head}</div>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <figure className="tv-inplace-thumb"><img src={imageUrl(engagement, image.id, surface)} alt="" decoding="async" /></figure></div>;
 }
 
 // The facilitator's neutral question (FAC-02, Ask the room): a layer over the live step that cross-fades in and out like a session change.
@@ -139,6 +150,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
       <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1></section>
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
+    {paired && <TvImageStage frame={frame} reduced={Boolean(display?.reduced_motion)} />}
     {/* Blackout covers everything on the TV, header and footer included, and fades in and out like a scene. */}
     <div className={`tv-blackout${mode === "blackout" ? " is-active" : ""}`} aria-hidden="true" data-testid="tv-blackout" />
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}

@@ -1,0 +1,27 @@
+/* Batch 1: images on the TV (TC-2, TC-3) and the image loop (LP-1). Tokens only. */
+/* The image stage covers the whole TV, header and footer included, on the skin's TV ground. */
+.tv-imgstage { position: absolute; inset: 0; z-index: 5; background: var(--cwl-surface); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); overflow: hidden; }
+.tv-imgstage.is-active { opacity: 1; }
+.tv-img-layer { position: absolute; inset: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-imgstage.is-loop-fade .tv-img-layer { transition-duration: var(--cwl-dur-regroup); transition-timing-function: var(--cwl-ease-calm); }
+.tv-img-layer img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.tv-img-layer.is-fade.is-entering { opacity: 0; }
+.tv-img-layer.is-slide.is-entering { transform: translateX(100%); }
+.tv-img-layer.is-slide.is-leaving { transform: translateX(-100%); }
+.tv-img-layer.is-cut { transition: none; }
+.tv-img-preload { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.tv-img-preload img { width: 1px; height: 1px; }
+.tv-viewport[data-motion="reduced"] .tv-imgstage, .tv-mirror[data-motion="reduced"] .tv-imgstage { transition-duration: var(--cwl-dur-reduced); }
+/* In place: beside the headline, shown whole. A content step gives it up to 860px; an interaction step 480 by 270, and the results below don't move. */
+.tv-inplace { display: grid; grid-template-columns: minmax(0, 1fr) 860px; gap: 72px; align-items: center; height: 100%; }
+.tv-inplace-main { min-width: 0; }
+.tv-inplace-img, .tv-inplace-thumb { margin: 0; display: grid; place-items: center; overflow: hidden; border-radius: var(--cwl-radius-tv-card); }
+.tv-inplace-img { width: 860px; height: 484px; }
+.tv-inplace-thumb { width: 480px; height: 270px; flex: none; }
+.tv-inplace-img img, .tv-inplace-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; border-radius: var(--cwl-radius-tv-card); }
+.tv-inplace-head { display: flex; align-items: flex-start; gap: 56px; }
+.tv-inplace-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+/* Phones: the image under the step's phone content, with pinch to zoom. */
+.ph-step-image { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-4); }
+.ph-step-image .ph-zoom img { width: 100%; height: auto; display: block; }
+.ctl-run-title strong.is-untitled { color: var(--cwl-app-text-muted); font-style: italic; font-weight: var(--fw-medium); }

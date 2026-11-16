@@ -4,6 +4,8 @@ import { ChevronDown, Smartphone, ZoomIn } from "lucide-react";
 import { Bold } from "@/components/tv/content-screen";
 import { contentOf, depthBlocks, plainText, type DepthBlock } from "@/lib/interactions/kinds";
 import { mediaUrl } from "@/lib/interactions/media";
+import { imageUrl, stepImage } from "@/lib/images/shared";
+import "@/components/tv/images.css";
 import type { PhoneStep } from "@/lib/phone/types";
 
 export function Blocks({ blocks }: { blocks: DepthBlock[] }) {
@@ -26,12 +28,16 @@ export function PhoneContent({ engagement, step }: { engagement: string; step: P
     case "prayer":
       return <div className="ph-content ph-still"><p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones away</p>
         <p className="ph-muted">{step.phone_depth.trim() || "We’re praying together. Your phone will wake when we’re back."}</p></div>;
-    case "image":
+    case "image": {
+      const image = stepImage(step.options), src = image ? imageUrl(engagement, image.id, "phone") : o.media ? mediaUrl(engagement, o.media, "phone") : null;
+      // An Image step shows its title once the facilitator has typed one (the greyed "Image 1" is only for the run of show).
       return <div className="ph-content">
-        {o.media ? <div className="ph-zoom"><Image unoptimized src={mediaUrl(engagement, o.media, "phone")} alt={plainText(step.prompt) || step.title} width={1200} height={1600} /></div> : null}
+        {image && !(step.options as { untitled?: boolean } | undefined)?.untitled && <h1 className="ph-headline">{step.title}</h1>}
+        {src ? <div className="ph-zoom"><Image unoptimized src={src} alt={plainText(step.prompt) || step.title} width={1200} height={1600} /></div> : null}
         <p className="ph-note"><ZoomIn size={16} aria-hidden="true" />Pinch to zoom.</p>
         {step.phone_depth && <Blocks blocks={depthBlocks(step.phone_depth)} />}
       </div>;
+    }
     case "screen_check":
       return <div className="ph-content"><h1 className="ph-headline">If the screen looks wrong</h1>
         {[["A Lime corner is cut off", "The TV is overscanning. In its picture settings choose Just Scan, Screen Fit, 1:1 or Full pixel."],
@@ -52,3 +58,13 @@ export function PhoneContent({ engagement, step }: { engagement: string; step: P
 }
 // Waiting screens: prayer and holding carry the offset pattern like waiting phones.
 export const phoneContentWaits = (step: PhoneStep | null) => Boolean(step && step.interaction === "content" && ["prayer", "holding"].includes(contentOf(step.options).screen));
+
+// An image on any other step: under the step's phone content, with pinch to zoom (TC-3). The Image screen and the loop draw their own.
+export function PhoneStepImage({ engagement, step }: { engagement: string; step: PhoneStep }) {
+  const image = stepImage(step.options);
+  if (!image || (step.interaction === "content" && ["image", "loop"].includes(contentOf(step.options).screen))) return null;
+  return <figure className="ph-step-image">
+    <div className="ph-zoom"><Image unoptimized src={imageUrl(engagement, image.id, "phone")} alt="" width={1200} height={675} /></div>
+    <figcaption className="ph-note"><ZoomIn size={16} aria-hidden="true" />Pinch to zoom.</figcaption>
+  </figure>;
+}

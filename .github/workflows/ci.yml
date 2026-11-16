@@ -104,6 +104,19 @@ jobs:
         run: npm run test:load
       - name: Test the content screens and the pass 3 chrome in real browsers
         run: npm run test:content
+      - name: Test images (batch 1, TC-2 and TC-3) in both skins in real browsers with Storage
+        if: ${{ !cancelled() }}
+        run: mkdir -p images-shots && npm run test:images
+        env:
+          KIT_SHOTS: images-shots
+      - name: Upload the image screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: images-screens
+          path: images-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test the Novetera skin on the TV, phones, join pages and the control surface's TV preview, and that a Clearway engagement is unchanged, in real browsers
         if: ${{ !cancelled() }}
         run: mkdir -p novetera-shots && npm run test:novetera-screens

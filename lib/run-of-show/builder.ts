@@ -4,6 +4,8 @@
 // same, so what the builder shows before Save is what the database stores).
 import { contentLabels, type ContentScreen, type InteractionKind, type KindInfo } from "../interactions/kinds";
 import { parts, type Part, type ShowSession } from "./types";
+import { stepImage } from "../images/shared";
+import { loopOf } from "../images/loop";
 
 export type PaletteEntry = { id: string; kind: InteractionKind; screen?: ContentScreen; label: string; blurb: string; minutes: number };
 
@@ -19,13 +21,14 @@ const blurbs: Partial<Record<InteractionKind, string>> = {
 };
 const screenBlurbs: Record<ContentScreen, string> = {
   scripture: "Passage, reference, translation", headline: "One line on the TV, depth on phones", prayer: "A still screen or a single line",
-  image: "An image or document page", holding: "Walk-in and break screen", screen_check: "Set up the TV before the room arrives",
+  image: "A slide or picture that fills the screen", holding: "Walk-in and break screen", screen_check: "Set up the TV before the room arrives",
+  loop: "Images that rotate before and after a session",
 };
 // Starting lengths in minutes (the pass 3 builder's), editable per session.
 export const kindMinutes: Partial<Record<InteractionKind, number>> = {
   word_cloud: 10, wall: 15, qa: 10, choice: 5, scale: 5, ranking: 10, points: 15, grid: 15, form: 10, sign: 5, statements: 5, goals: 20, lens: 15, content: 5, bullets: 15, confirm: 15, intent: 30, candidates: 25, lens_summary: 25, four_lists: 30, read_back: 30,
 };
-export const paletteScreens: ContentScreen[] = ["scripture", "headline", "prayer", "image", "holding", "screen_check"];
+export const paletteScreens: ContentScreen[] = ["scripture", "headline", "prayer", "image", "loop", "holding", "screen_check"];
 
 // Every interaction the server runs, then every content screen.
 export function palette(kinds: KindInfo[]): { interactions: PaletteEntry[]; screens: PaletteEntry[] } {
@@ -70,7 +73,8 @@ const readyScreens: ContentScreen[] = ["prayer", "holding", "screen_check"];
 export function hasContent(session: Pick<ShowSession, "interaction" | "prompt" | "options">): boolean {
   if (session.interaction !== "content") return true;
   const screen = (session.options as { screen?: unknown }).screen ?? "headline";
-  if (screen === "image") return typeof (session.options as { media?: unknown }).media === "string" && Boolean((session.options as { media: string }).media);
+  if (screen === "image") return Boolean(stepImage(session.options)) || typeof (session.options as { media?: unknown }).media === "string" && Boolean((session.options as { media: string }).media);
+  if (screen === "loop") return Boolean(loopOf(session.options));
   if (screen === "scripture" || screen === "headline") return session.prompt.trim().length > 0;
   return true;
 }

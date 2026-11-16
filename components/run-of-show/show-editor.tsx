@@ -3,10 +3,12 @@ import { ShellNav, type ShellEngagement } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, Image as ImageIcon, LayoutTemplate,
-  CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, MousePointerClick, Newspaper, PencilLine, PenLine, Plus, Printer, Radio, ScanLine, type LucideProps } from "lucide-react";
+  CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, MousePointerClick, Newspaper, PencilLine, PenLine, Plus, Printer, Radio, Repeat, ScanLine, Images, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type SessionInput, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
+import { AddImages, type ImageTarget } from "./add-images";
+import type { EngagementImage } from "@/lib/images/shared";
 import { contentLabels, contentOf, fallbackKinds, type ContentScreen, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { canSelfPace, clock, droppedSession, endOfRun, hasSections, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, sectionAt, sectionLine, sectionName, sectionsOf, slots, stepSlot, type PaletteEntry, type Section, type Slot } from "@/lib/run-of-show/builder";
 import type { Template } from "@/lib/templates/types";
@@ -18,7 +20,7 @@ import "./builder.css";
 type Icon = ComponentType<LucideProps>;
 const kindIcons: Partial<Record<InteractionKind, Icon>> = { word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
   points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck, four_lists: Columns4 };
-const screenIcons: Record<ContentScreen, Icon> = { scripture: BookOpen, headline: Newspaper, prayer: HandHeart, image: ImageIcon, holding: Monitor, screen_check: ScanLine };
+const screenIcons: Record<ContentScreen, Icon> = { scripture: BookOpen, headline: Newspaper, prayer: HandHeart, image: ImageIcon, holding: Monitor, screen_check: ScanLine, loop: Repeat };
 const iconOf = (kind: InteractionKind, screen?: ContentScreen | null) => kind === "content" && screen ? screenIcons[screen] : kindIcons[kind] ?? Monitor;
 const stateLabels: Record<string, string> = { draft: "Draft", ready: "Ready", open: "Open", live: "Live", phones_down: "Phones down", closed: "Closed" };
 
@@ -89,6 +91,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const [saving, setSaving] = useState<string | null>(null), [formFeedback, setFormFeedback] = useState<{ text: string; failed: boolean }>({ text: "", failed: false });
   const [dropMode, setDropMode] = useState<"live" | "self_paced">("live");
   const [dirty, setDirty] = useState<Set<string>>(() => new Set()), [drag, setDrag] = useState<Drag | null>(null), [saveTemplate, setSaveTemplate] = useState(false);
+  const [addingImages, setAddingImages] = useState(false);
   // Sections and saved blocks (design pass 8, step 5). A new section is kept once a session lands in it.
   const [pendingSection, setPendingSection] = useState<{ part: Part; name: string } | null>(null), [adding, setAdding] = useState<{ part: Part; name: string } | null>(null);
   const [blockOf, setBlockOf] = useState<{ name: string; ids: string[] } | null>(null), [paletteTab, setPaletteTab] = useState<"elements" | "blocks">("elements");
@@ -199,6 +202,21 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
       ok => { if (!ok) { forget(s.id); if (nextOpen.current === s.id) nextOpen.current = null; if (pendingOpen.current === s.id) pendingOpen.current = null; if (openRef.current === s.id) setOpen(null); } });
     openOptions(s.id);
     setAnnounce(`${entry.label} added to ${section || slot.part}, position ${slot.index + 1}. Its options are open.`);
+  }
+  // Images as slides (TC-2): one Image step per image, in order, at the end of the chosen section. Each title stays "Image 1",
+  // "Image 2" and so on, shown greyed until the facilitator types one; nothing is blocked.
+  function addImages(images: EngagementImage[], target: ImageTarget) {
+    const entry = tiles.screens.find(e => e.screen === "image");
+    if (!entry || !images.length) return;
+    const taken = sessions.filter(x => x.interaction === "content" && contentOf(x.options).screen === "image").length;
+    images.forEach((image, i) => {
+      const s: ShowSession = { ...droppedSession(entry, ctx.id, target.part, kinds, crypto.randomUUID(), "live"), section: target.section, title: `Image ${taken + i + 1}`, state: "ready",
+        options: { screen: "image", image: { id: image.id, display: "fill" }, untitled: true } };
+      const at = (list: ShowSession[]) => { const group = partOf(list, target.part); let last = -1; group.forEach((x, k) => { if (sectionName(x) === target.section) last = k; }); return last >= 0 ? last + 1 : group.length; };
+      enqueue(list => placeSession(list, s, target.part, at(list)), current => ({ action: "save", input: { ...s, revision: null, index: at(current.sessions) } }));
+    });
+    setAddingImages(false); setError(false);
+    setMessage(`${images.length} ${images.length === 1 ? "slide" : "slides"} added to ${target.section || target.part}. Type a title for each in its options.`);
   }
   function place(session: ShowSession, slot: Slot) {
     const rest = partOf(sessions.filter(s => s.id !== session.id), slot.part);
@@ -399,6 +417,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
       <header className="show-header"><div><p className="show-eyebrow">{ctx.church} · {ctx.title}</p><h1>Run of show</h1></div><div className="show-actions">
         {!empty && <span className="show-muted" aria-live="polite">{count} {count === 1 ? "session" : "sessions"} · {clock(total)}</span>}
+        <button className="show-button" type="button" disabled={locked || !tiles.screens.some(e => e.screen === "image")} onClick={() => setAddingImages(true)}><Images size={16} aria-hidden="true" />Add images as slides</button>
         <button className="show-button" type="button" disabled={empty || locked || pending.length > 0} onClick={() => setSaveTemplate(true)}><Copy size={16} aria-hidden="true" />Save as template</button>
         <Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={16} aria-hidden="true" />Use a template</Link>
         <Link className="show-button" href={`${base}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={16} aria-hidden="true" />Print run of show</Link>
@@ -434,7 +453,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                   <button type="button" className="rb-grip" aria-label={`Move ${s.title}`} aria-describedby="rb-move-help" disabled={locked} onPointerDown={e => pointerStart(e, { type: "row", session: s })} onKeyDown={e => gripKey(e, s)}><GripVertical size={18} aria-hidden="true" /></button>
                   <span className="rb-time">{time}</span>
                   <span className="rb-ic"><Kind aria-hidden="true" /></span>
-                  <div className="rb-name"><strong>{s.title}</strong><span className="show-muted">{kindLabel(s)} · {s.mode === "live" ? `${s.planned_minutes} min` : windowLabel(s, tz, Date.now()) || "Set its times"}</span></div>
+                  <div className="rb-name"><strong className={(s.options as { untitled?: boolean } | undefined)?.untitled ? "is-untitled" : undefined}>{s.title}</strong><span className="show-muted">{kindLabel(s)} · {s.mode === "live" ? `${s.planned_minutes} min` : windowLabel(s, tz, Date.now()) || "Set its times"}</span></div>
                   {dirty.has(s.id) && !open && <span className="rb-chip is-unsaved">Unsaved edits</span>}
                   <span className={`rb-chip is-${s.state}`}><StateIcon aria-hidden="true" />{stateLabels[s.state] ?? s.state}</span>
                   <button type="button" className="rb-tog" aria-expanded={open} aria-label={`${open ? "Close" : "Open"} options for ${s.title}`} onClick={toggle}><ChevronDown size={20} aria-hidden="true" /></button>
@@ -500,6 +519,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
     </div>
     {drag && !drag.keys && DragIcon && <div ref={ghost} className="rb-ghost" aria-hidden="true"><DragIcon aria-hidden="true" /><b>{sourceLabel(drag.source)}</b></div>}
     {blockOf && <SaveTemplate engagement={ctx.id} name={blockOf.name} count={blockOf.ids.length} sessions={blockOf.ids} onClose={saved => { setBlockOf(null); if (saved) { setError(false); setMessage(saved); setBlocks(null); } }} />}
+    {addingImages && <AddImages engagement={ctx.id} sessions={sessions} parts={parts.filter(part => part !== "Discover" || fourLists || partOf(sessions, part).length > 0)} onAdd={addImages} onClose={() => setAddingImages(false)} />}
     {saveTemplate && <SaveTemplate engagement={ctx.id} name={ctx.title} count={count} onClose={saved => { setSaveTemplate(false); if (saved) { setError(false); setMessage(saved); } }} />}
   </main>;
 }

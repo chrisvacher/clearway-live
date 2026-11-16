@@ -33,6 +33,7 @@
     "test:browser": "node --import tsx tests/browser/failures.ts",
     "test:load": "node --import tsx tests/browser/load.ts",
     "test:content": "node --import tsx tests/browser/content.ts",
+    "test:images": "node --import tsx tests/browser/images.ts",
     "test:bars": "node --import tsx tests/browser/bars.ts",
     "test:grid-form-sign": "node --import tsx tests/browser/grid-form-sign.ts",
     "test:handover-intent": "node --import tsx tests/browser/handover-intent.ts",
