@@ -33,10 +33,17 @@ test("the remote follows what every connected TV confirmed, and a silent TV drop
   assert.equal(isSyncing(11, null, 1000, 9000), false, "No TV connected is not Syncing");
 });
 
-test("Next and Back skip drafts and self-paced sessions; Up next is the next ready step", () => {
+test("Next and Back skip drafts and self-paced sessions; Up next is the step Next goes to", () => {
   const show = [step(1, { state: "closed" }), step(2, { state: "draft" }), step(3, { state: "live" }), step(4, { mode: "self_paced" }), step(5), step(6, { part: "Day 2", position: 0 })];
   assert.deepEqual([neighbours(show, id(3), id(3)).back?.id, neighbours(show, id(3), id(3)).next?.id], [id(1), id(5)]);
   assert.equal(upNext(show, id(3), id(3))?.id, id(5));
+  // A re-run: steps already run (stopped or open) are still up next in order, never skipped to the end of the show.
+  const rerun = [step(1, { state: "live" }), step(2, { state: "closed" }), step(3, { state: "open" }), step(4)];
+  assert.equal(upNext(rerun, id(1), id(1))?.id, id(2));
+  assert.equal(upNext(rerun, id(2), id(2))?.id, id(3));
+  assert.equal(upNext(rerun, null, id(1))?.id, id(2), "After a break, Up next is the step after the one left");
+  assert.equal(upNext(rerun, id(4), id(4)), null);
+  for (const [shown, anchor] of [[id(1), id(1)], [null, id(1)], [null, null]] as const) assert.equal(upNext(rerun, shown, anchor)?.id, neighbours(rerun, shown, anchor).next?.id);
   assert.deepEqual([neighbours(show, null, id(3)).back?.id, neighbours(show, null, id(3)).next?.id], [id(3), id(5)], "After a break, Back returns to the step left");
   assert.deepEqual([neighbours(show, null, null).back, neighbours(show, null, null).next?.id], [null, id(1)]);
   assert.equal(neighbours(show, id(6), id(6)).next, null);
