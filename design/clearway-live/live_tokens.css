@@ -44,6 +44,8 @@
   --cwl-on-live: var(--cw-navy, #03294E); /* Text and icons on a cwl-live fill. */
   --cwl-callout: var(--cwl-sunrise); /* LOOK HERE: spotlit item, key number, leading answer. One moment per screen. Never beside cwl-live. */
   --cwl-on-callout: var(--cw-navy, #03294E); /* Text and icons on a cwl-callout fill. */
+  --cwl-timer: var(--cw-error, #DC2626); /* The TV timer's fill (Chris, November 16): red, so the clock reads from the back of the room. The timer only. */
+  --cwl-on-timer: var(--cw-white, #FFFFFF); /* Digits and icon on a cwl-timer fill. */
   --cwl-bar: var(--cw-royal-blue, #3F72DE); /* Poll, ranking and 100-point bars. */
   --cwl-bar-leader: var(--cwl-sunrise); /* The leading bar (ties share it). This is the screen's Sunrise moment. */
   --cwl-bar-track: var(--cwl-bar-track-ink); /* The empty track behind a bar. */

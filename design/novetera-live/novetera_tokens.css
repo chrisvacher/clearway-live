@@ -77,6 +77,8 @@
   --cwl-texture-ink: transparent; /* Texture off in this skin. transparent */
   --cwl-glow: none; /* Glow off in this skin: it is a gradient. none */
   --cwl-typing: var(--nvl-oxblood-500); /* Oxblood 500 #9A3542 */
+  --cwl-timer: var(--nvl-oxblood-500); /* The TV timer's fill: Novetera's red. White label 7.1:1. Oxblood 500 #9A3542 */
+  --cwl-on-timer: var(--nvl-white); /* White #FFFFFF */
   --cwl-letter-hatch-ink: rgba(31, 35, 40, 0.18); /* Charcoal at 18% */
   --cwl-letter-hatch: var(--cwl-letter-hatch-ink); /* Re-points to this skin's hatch ink. follows cwl-letter-hatch-ink */
   --cwl-guard-sunrise: var(--nvl-brass-300); /* Same value as cwl-sunrise, written out: a nested guard must not depend on a role an app surface sets to initial. Brass 300 (live-only, derived from Ochre) #E5BF6D */

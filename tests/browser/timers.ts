@@ -1,8 +1,8 @@
 // Batch 1: timers (TM-1 to TM-3) in real browsers against the production build and the local stack. The facilitator adds a
 // timer to a step in the run of show that runs through the next step; the run of show marks the span. On Go live the TV shows
 // it top right, left of the live mark and 48 px from it, the Preview shows it as the TV will, and phones show a plain chip.
-// In the last minute it turns the callout colour (Sunrise, Brass 300 in Novetera); past zero it counts overtime up with the
-// same look. Room admin pauses, resumes, adds and takes off minutes, resets, and asks before replacing it. It keeps running
+// It is red with white digits; in the last minute a callout ring (Sunrise, Brass 300 in Novetera) goes round it; past zero it
+// counts overtime up with the same look. Room admin pauses, resumes, adds and takes off minutes, resets, and asks before replacing it. It keeps running
 // into the step it runs through and stops past it. The same steps run in the Novetera skin.
 // KIT_SHOTS=<folder> saves a screenshot of each screen. Local only.
 import assert from "node:assert/strict";
@@ -79,11 +79,14 @@ async function main() {
         await shot(tv, `${skin}-timer-tv`); await shot(phonePage, `${skin}-timer-phone`);
       });
 
-      await step(`${skin}: the last minute takes the callout colour, and past zero it counts overtime up with the same look`, async () => {
+      await step(`${skin}: the last minute rings the red timer in the callout colour, and past zero it counts overtime up with the same look`, async () => {
         await until(async () => (await timerOnTv.getAttribute("data-timer")) === "last", "the last minute", 15000);
         await delay(1200);
-        const [colour, callout] = await timerOnTv.evaluate(el => { const probe = document.createElement("i"); probe.style.color = "var(--cwl-callout)"; el.appendChild(probe); const c = getComputedStyle(probe).color; probe.remove(); return [getComputedStyle(el).color, c]; });
-        assert.equal(colour, callout, "the callout colour");
+        // The timer is red with white digits (Chris, November 16); the last minute rings the red in the callout colour.
+        const look = await timerOnTv.evaluate(el => { const [callout, fill, digits] = ["var(--cwl-callout)", "var(--cwl-timer)", "var(--cwl-on-timer)"].map(v => { const probe = document.createElement("i"); probe.style.color = v; el.appendChild(probe); const c = getComputedStyle(probe).color; probe.remove(); return c; }); const s = getComputedStyle(el); return { callout, fill, digits, background: s.backgroundColor, color: s.color, ring: s.boxShadow }; });
+        assert.equal(look.background, look.fill, "the timer's red fill");
+        assert.equal(look.color, look.digits, "white digits on the red");
+        assert.ok(look.ring.includes(look.callout), `the callout ring (${look.ring})`);
         await shot(tv, `${skin}-timer-tv-last`);
         const card = control.locator("[data-timer-card]");
         await card.getByRole("button", { name: "−1 min" }).click();
