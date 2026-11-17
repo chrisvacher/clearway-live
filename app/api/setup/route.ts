@@ -16,6 +16,7 @@ import { clearwayEmail } from "@/lib/auth/policy";
 import { fictionalEmail, practiceId } from "@/lib/room/practice";
 import { uuid } from "@/lib/room/policy";
 import { deliberate,SetupRefusal } from "@/lib/setup/errors";
+import { linkNameProblem } from "@/lib/setup/link-name";
 const answer=(data:Record<string,unknown>,status=200)=>privateResponse(NextResponse.json(data,{status}));
 type InviteBatch={id:string;status:string;payload:InvitationSnapshot};
 // The invite links to every self-paced session that is ready and not yet closed (step 6a).
@@ -57,14 +58,45 @@ export async function POST(request:NextRequest){
     }
     if(action==="create"||action==="save"){
       const input=setupInput(body);if(!profile.is_admin)delete (input.engagement.settings as Record<string,unknown>).open_join;let id:string|null=null,linkedClient:string|null=null,linkedEngagement:string|null=null;
+      // Create (November 17): the church is one already in Live (church_id), a Team Hub church (hub_client) or a new one by name.
+      // Linking a Team Hub engagement is optional. The room link can be chosen here and is saved as soon as the event exists.
+      let churchId:string|null=null,linkName:string|null=null;
       if(action==="create"){
-        admin();if(!uuid(body.hub_client)||!uuid(body.hub_engagement))return answer({ok:false,message:"Choose a church and engagement from Team Hub."},400);
-        const existing=await client.from("engagements").select("id").eq("team_hub_engagement_id",body.hub_engagement).eq("deleted",false).maybeSingle();
-        if(existing.error)throw new Error("save");
-        if(existing.data)return answer({ok:false,message:"This engagement is already in Live. Open it from your engagements.",existing_id:existing.data.id},409);
-        const hub=teamHubReader();const [c,e]=await Promise.all([hub.client(body.hub_client),hub.engagement(body.hub_engagement,body.hub_client)]);if(!c||!e)return answer({ok:false},400);linkedClient=c.id;linkedEngagement=e.id;
+        admin();
+        if(body.hub_engagement&&!uuid(body.hub_engagement))return answer({ok:false},400);
+        if(uuid(body.hub_engagement)&&!uuid(body.hub_client))return answer({ok:false,message:"Choose the Team Hub church for that engagement."},400);
+        if(uuid(body.church_id))churchId=body.church_id;
+        if(typeof body.link_name==="string"&&body.link_name.trim()){
+          const checked=linkNameProblem(body.link_name);if(checked.problem)return answer({ok:false,message:checked.problem},400);
+          const taken=await client.from("engagements").select("id").eq("link_name",checked.name).eq("deleted",false).maybeSingle();
+          if(taken.error)throw new Error("save");
+          if(taken.data)return answer({ok:false,message:"Another engagement uses that room link. Choose another."},409);
+          linkName=checked.name;
+        }
+        if(uuid(body.hub_engagement)){
+          const existing=await client.from("engagements").select("id").eq("team_hub_engagement_id",body.hub_engagement).eq("deleted",false).maybeSingle();
+          if(existing.error)throw new Error("save");
+          if(existing.data)return answer({ok:false,message:"That Team Hub engagement already has an event in Live. Open it, or create this one without the link.",existing_id:existing.data.id},409);
+        }
+        if(uuid(body.hub_client)){
+          const hub=teamHubReader();const [c,e]=await Promise.all([hub.client(body.hub_client),uuid(body.hub_engagement)?hub.engagement(body.hub_engagement,body.hub_client):Promise.resolve(null)]);
+          if(!c||(uuid(body.hub_engagement)&&!e))return answer({ok:false},400);linkedClient=c.id;linkedEngagement=e?.id??null;
+        }
       }else{const existing=await scoped();id=existing.id;linkedClient=existing.team_hub_client_id;linkedEngagement=existing.team_hub_engagement_id;}
-      const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});
+      const saved=await rpc("save_engagement",{p_id:id,p_church:churchId?{...input.church,id:churchId}:input.church,p_engagement:input.engagement,p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});
+      if(action==="create"&&linkName){
+        const joined=await client.rpc("joining_save",{p_engagement:saved,p:{link_name:linkName}});
+        if(joined.error||joined.data?.status!=="ok")return answer({ok:true,id:saved,message:"The event is ready, but its room link wasn’t saved. Choose it in People and joining."});
+      }
+      return answer({ok:true,id:saved});
+    }
+    // Churches already in Live, for the create form: a new event for a church Live knows needs no Team Hub link.
+    if(action==="live_churches"){
+      admin();const search=typeof body.search==="string"?body.search.trim().slice(0,100):"";
+      let query=client.from("churches").select("id,name,timezone,team_hub_client_id").eq("deleted",false).order("name").limit(20);
+      if(search)query=query.ilike("name",`%${search.replace(/[%_\\]/g,m=>`\\${m}`)}%`);
+      const {data,error}=await query;if(error)throw new Error("save");
+      return answer({ok:true,churches:data??[]});
     }
     // End the workshop: the Details form as it stands with the status set to closed, saved through the same function Details uses.
     // Closing signs out every phone and closes answers, in the database, whichever page asks.
