@@ -1,0 +1,74 @@
+/* The phone remote on one screen (November 17). The page is exactly the phone's visible height and never scrolls: the TV
+   mirror takes whatever height is left after the controls, and every control row keeps its place from step to step.
+   Sheets (Steps, Items, Timer, More) scroll on their own. */
+.ctl-remote.is-one-screen {
+  height: 100svh; height: 100dvh; min-height: 0; overflow: hidden;
+  width: 100%; display: grid; grid-template-columns: minmax(0,1fr); grid-template-rows: auto minmax(0,1fr) auto auto auto auto auto auto auto;
+  gap: var(--space-2); padding-bottom: env(safe-area-inset-bottom);
+}
+.ctl-remote.is-one-screen > :not(.ctl-remote-head, .ctl-sheet-scrim, .ctl-toasts) { margin-inline: var(--cwl-phone-gutter); }
+.ctl-remote.is-one-screen .ctl-remote-head { position: static; min-width: 0; padding-block: var(--space-2); }
+.ctl-remote.is-one-screen .ctl-remote-head > :last-child { flex: none; }
+.rm-church { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* The mirror shrinks to the height left over, keeping 16:9, centred. The signal list, when one runs, shares the stage. */
+.rm-stage { min-height: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.rm-mirror { position: relative; flex: 1 1 0; min-height: 0; display: flex; justify-content: center; align-items: center; }
+.rm-mirror .tv-mirror { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
+.rm-signal { flex: 0 1 auto; max-height: 60%; overflow-y: auto; overscroll-behavior: contain; }
+.rm-signal:empty { display: none; }
+.rm-alerts { position: absolute; inset: auto 0 0 0; z-index: 4; display: flex; flex-direction: column; gap: var(--space-1); pointer-events: none; }
+.rm-alerts > * { pointer-events: auto; box-shadow: var(--shadow-md); }
+.rm-alerts .ctl-banner { margin: 0; }
+
+.rm-now { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-height: 40px; }
+.rm-now-text { display: flex; flex-direction: column; min-width: 0; }
+.rm-now-text .ctl-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.rm-next { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: var(--space-2); min-height: 44px; padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; text-align: left; cursor: pointer; }
+.rm-next:disabled { cursor: default; color: var(--cwl-app-text-muted); }
+.rm-next-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: var(--fw-semibold); }
+.rm-next-hint { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); color: var(--cwl-app-text-muted); }
+
+.ctl-r-btn.rm-go { width: auto; min-width: 0; min-height: 60px; font-size: var(--cwl-fs-phone-input); }
+.ctl-r-btn.rm-go span, .ctl-r-btn.rm-go { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctl-r-btn.is-live { background: var(--cwl-live); color: var(--cwl-on-live); border-color: var(--cwl-live); }
+.ctl-r-btn.is-live:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); border-color: var(--cwl-app-border); }
+
+.rm-row { display: grid; gap: var(--space-2); }
+.rm-row.is-two { grid-template-columns: 1fr 1fr; }
+.rm-row.is-three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.rm-row.is-four { grid-template-columns: repeat(3, minmax(0,1fr)) minmax(0,1.4fr); }
+.rm-row .ctl-r-btn { min-height: 48px; min-width: 0; padding: var(--space-2); font-size: var(--cwl-fs-app-label); line-height: 1.15; }
+.rm-row .ctl-r-btn svg { flex: none; }
+/* The tight rows read as words: icons stay on Back, Next and the countdown only. */
+.rm-row:is(.is-three, .is-four) .ctl-r-btn svg { display: none; }
+.rm-countdown { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); min-height: 48px; border-radius: var(--cwl-radius-card); background: var(--cwl-live); color: var(--cwl-on-live); font-variant-numeric: tabular-nums; }
+.rm-countdown b { font-size: var(--cwl-fs-phone-input); }
+.ctl-r-btn.rm-banner[aria-pressed="true"] { background: var(--cwl-live); color: var(--cwl-on-live); border-color: var(--cwl-live); }
+
+.rm-dock { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); margin-inline: 0 !important; border-top: 1px solid var(--cwl-app-border); background: var(--cwl-app-card); }
+.rm-dock-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; padding: var(--space-1); border: 0; background: transparent; color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); cursor: pointer; }
+.rm-dock-btn:disabled { color: var(--cwl-app-text-subtle); cursor: not-allowed; }
+.rm-dock-btn.is-on { color: var(--cwl-app-primary); }
+.rm-dock-btn:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -2px; }
+
+.rm-sheet-head { margin-bottom: var(--space-3); }
+.rm-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.rm-steps li { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: var(--space-2); align-items: center; padding: var(--space-1); border-radius: var(--cwl-radius-card); }
+.rm-steps li.is-live { background: var(--cwl-app-selected); }
+.rm-step { display: flex; flex-direction: column; align-items: flex-start; min-height: 44px; min-width: 0; padding: var(--space-1) var(--space-2); border: 0; background: transparent; color: var(--cwl-app-text); font: inherit; text-align: left; cursor: pointer; }
+.rm-step strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rm-step span { font-size: var(--cwl-fs-app-micro); color: var(--cwl-app-text-muted); }
+.rm-steps li.is-next .rm-step span { color: var(--cwl-app-primary); font-weight: var(--fw-semibold); }
+.rm-more { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* Very short screens (a phone in landscape, or a small phone with the browser bar showing) give up the mirror first. */
+@media (max-height: 560px) {
+  .ctl-remote.is-one-screen { grid-template-rows: auto minmax(0,auto) auto auto auto auto auto auto auto; }
+  .rm-mirror { flex: 0 0 0; }
+  .rm-mirror .tv-mirror { display: none; }
+  .rm-signal { max-height: none; }
+  .rm-alerts { position: fixed; top: 48px; bottom: auto; left: var(--cwl-phone-gutter); right: var(--cwl-phone-gutter); }
+}

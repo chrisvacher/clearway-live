@@ -293,7 +293,7 @@ async function main() {
       await press(fac, sql, room.id, "go_live", { session: qa });
       const remote = await facContext.newPage(); await remote.setViewportSize({ width: 390, height: 844 });
       await remote.goto(`${app.origin}/remote/${room.id}`);
-      await remote.getByRole("button", { name: "Spotlight" }).first().click();
+      await remote.getByRole("button", { name: "Items" }).click();
       await remote.locator(".qa-ctl").waitFor({ timeout: 10000 });
       await shot(remote, "int-03-remote");
       await remote.close();

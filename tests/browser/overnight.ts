@@ -92,6 +92,7 @@ async function main() {
 
     await step("Drafts ready shows on the control surface and the remote, and review is a link on the laptop only", async () => {
       await control.locator("[data-testid=overnight-ready]").waitFor({ timeout: 15000 });
+      await remote.getByRole("button", { name: "More" }).click();
       await remote.locator("[data-testid=overnight-ready]").waitFor({ timeout: 15000 });
       assert.equal(await remote.locator("a[href$='/review']").count(), 0, "no review link on the remote");
       assert.ok(await control.locator("a[href$='/review']").count() > 0);

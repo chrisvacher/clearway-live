@@ -348,6 +348,15 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .tv-join-strip { position: absolute; right: 0; bottom: max(0px, calc(var(--cwl-fs-tv-body) * 1.3 + var(--space-10) + var(--space-6) - 112px)); display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
 .tv-join-strip .tv-qr { width: 160px; height: 160px; padding: 12px; border-radius: 12px; }
 .tv-layer.is-input:has(.tv-join-strip) .tv-board { margin-right: 380px; }
+/* The join banner (November 17): over the live step or Home, bottom right, readable from the back of the room. */
+.tv-join-banner { position: absolute; right: var(--cwl-tv-gutter); bottom: var(--space-10); z-index: 3; display: flex; align-items: center; gap: var(--space-8); max-width: calc(100% - 2 * var(--cwl-tv-gutter)); padding: var(--space-6) var(--space-10) var(--space-6) var(--space-6); border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); opacity: 0; transform: translateY(24px); pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
+.tv-join-banner.is-active { opacity: 1; transform: none; }
+.tv-join-banner .tv-qr { flex: none; width: 200px; height: 200px; padding: 12px; border-radius: 12px; }
+.tv-join-banner p { margin: 0; }
+.tv-join-banner-eyebrow { font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); color: var(--cwl-text-on-card); opacity: .8; }
+.tv-join-banner-link { font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-bold); line-height: 1.1; overflow-wrap: anywhere; }
+.tv-join-banner-link span { font-weight: var(--fw-medium); }
+[data-motion="reduced"] .tv-join-banner { transform: none; }
 .tv-live { transition: background-color var(--cwl-dur-settle-color) var(--cwl-ease-signature), color var(--cwl-dur-settle-color) var(--cwl-ease-signature), box-shadow var(--cwl-dur-settle-color) var(--cwl-ease-signature); }
 .tv-stage:has(.tv-board[data-newest="on"]) .tv-live:not(.is-down) { background: transparent; color: var(--cwl-live); box-shadow: inset 0 0 0 3px var(--cwl-live); }
 .tv-scrim { position: absolute; inset: 0; z-index: 3; background: var(--cwl-scrim); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-spotlight-off) var(--cwl-ease-calm); }
@@ -552,7 +561,7 @@ span.ctl-resp-text { cursor: default; }
 .ctl-take:hover:not(:disabled) { box-shadow: var(--shadow-md); }
 .ctl-take:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
 .ctl-take:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); cursor: not-allowed; }
-.ctl-screen-bar { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); padding-left: var(--space-4); border-left: 1px solid var(--cwl-app-border-strong); }
+.ctl-screen-bar { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); padding-left: var(--space-4); border-left: 1px solid var(--cwl-app-border-strong); }
 .ctl-screen-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-width: 0; min-height: 48px; padding: var(--space-1) var(--space-2); white-space: nowrap; border: 1px solid var(--cwl-app-border-strong); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-weight: var(--fw-semibold); cursor: pointer; }
 .ctl-screen-btn svg { flex: none; }
 .ctl-screen-btn:first-child { border-radius: var(--cwl-radius-button) 0 0 var(--cwl-radius-button); }
@@ -564,6 +573,8 @@ span.ctl-resp-text { cursor: default; }
 .ctl-screen-btn[aria-pressed="true"] { background: var(--cwl-app-primary); border-color: var(--cwl-app-primary); color: var(--cwl-app-on-primary); cursor: default; }
 .ctl-screen-btn.is-blackout[aria-pressed="true"] { background: var(--cwl-app-text); border-color: var(--cwl-app-text); color: var(--cwl-app-card); }
 .ctl-screen-btn:disabled:not([aria-pressed="true"]) { color: var(--cwl-app-text-subtle); cursor: not-allowed; }
+/* The join banner is a toggle over what is live, not a screen: filled while on, and still pressable to take it off. */
+.ctl-screen-btn.is-banner[aria-pressed="true"] { background: var(--cwl-live); border-color: var(--cwl-live); color: var(--cwl-on-live); cursor: pointer; }
 .ctl-kbd { display: inline-block; min-width: 1.5em; padding: 0 var(--space-1); border: 1px solid currentColor; border-radius: var(--cwl-radius-marker); font: inherit; font-size: var(--cwl-fs-app-micro); line-height: 1.5; text-align: center; opacity: 0.6; }
 @media (hover: none) { .ctl-kbd { display: none; } }
 /* 4. Step controls: fixed slots, so burst, phones, spotlight, hide, Stop answers and mark a decision are always in the same place. */
