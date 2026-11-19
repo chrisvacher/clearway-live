@@ -249,8 +249,10 @@ async function main() {
       const golive=await page.evaluate(()=>{const probe=document.createElement("i");probe.style.color=getComputedStyle(document.querySelector(".ctl-take")!).getPropertyValue("--cwl-action-live");document.body.appendChild(probe);const want=getComputedStyle(probe).color;probe.remove();
         const all=[...document.querySelectorAll<HTMLButtonElement>(".is-golive")];
         return {want,count:all.length,labels:all.map(b=>({size:parseFloat(getComputedStyle(b).fontSize),weight:Number(getComputedStyle(b).fontWeight),bg:getComputedStyle(b).backgroundColor,disabled:b.disabled})),
-          others:[...document.querySelectorAll("body *")].filter(e=>!e.closest(".is-golive")&&[getComputedStyle(e).backgroundColor,getComputedStyle(e).borderTopColor,getComputedStyle(e).color].includes(want)).map(e=>e.className).slice(0,5)};});
-      assert.ok(golive.want&&golive.count>=2,"the transport bar and the run of show both have Go live");
+          others:[...document.querySelectorAll("body *")].filter(e=>!e.closest(".is-golive, .ctl-run-actions .is-go")&&[getComputedStyle(e).backgroundColor,getComputedStyle(e).borderTopColor,getComputedStyle(e).color].includes(want)).map(e=>e.className).slice(0,5)};});
+      assert.ok(golive.want&&golive.count>=1,"the transport bar has the filled Go live");
+      const outlines=await page.locator(".ctl-run-actions .is-go:not(:disabled)").evaluateAll(els=>els.map(e=>getComputedStyle(e).borderTopColor));
+      assert.ok(outlines.length>0&&outlines.every(c=>c===golive.want),"each run of show step's Go live is outlined in Orange");
       for(const l of golive.labels){assert.ok(l.size>=19&&l.weight>=700,`every Go live label is bold at 19px or more (${l.size}px, ${l.weight})`);if(!l.disabled)assert.equal(l.bg,golive.want,"an enabled Go live is Orange");}
       assert.deepEqual(golive.others,[],"nothing but Go live is Orange");
       assert.ok(bar.y+bar.height<=982+1,"the transport bar is in view without scrolling");

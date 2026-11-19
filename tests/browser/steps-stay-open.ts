@@ -135,7 +135,7 @@ async function main() {
       });
 
       await step(`${skin}: End the workshop: phones say it ended, the TV window says Workshop ended with no code`, async () => {
-        await settled(); await control.locator(`li[data-session="${steps[0]}"] button.is-golive`).click(); await until(async () => (await live()) === steps[0], "a step is live", 10000);
+        await settled(); await control.locator(`li[data-session="${steps[0]}"] button.is-go`).click(); await until(async () => (await live()) === steps[0], "a step is live", 10000);
         await answer(phones[0], "Again", 0); await until(async () => (await answered(steps[0])) === 1, "answered", 10000);
         await moveTo("next", steps[1]);
         await settled(); await control.getByTestId("stop-answers").click(); await until(async () => (await state(steps[1])) === "closed", "stopped before the end", 10000);

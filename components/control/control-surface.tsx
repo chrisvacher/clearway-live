@@ -164,7 +164,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
                 <StateIcon state={isLive && frame?.session?.id === s.id ? frame.session.state : s.state} answers={(context.kinds?.find(k => k.kind === s.interaction) ?? kindOf(s))?.input ? status?.step_answers?.[s.id] ?? 0 : null} />
                 <span className="ctl-run-actions">
                   <button className="show-button is-small" aria-pressed={inPreview} onClick={() => setChosen(s.id)} aria-label={`Preview ${s.title}`}>Preview</button>
-                  <button className={`show-button is-small${isLive ? " is-on-air" : " is-golive"}`} disabled={busy || isLive || s.state === "draft" || context.closed} onClick={() => goLive(s)} aria-label={isLive ? `${s.title} is live` : `Go live with ${s.title}`}>{isLive ? <><Radio size={14} aria-hidden="true" />Live</> : <><Play size={18} aria-hidden="true" />Go live</>}</button>
+                  <button className={`show-button is-small${isLive ? " is-on-air" : " is-go"}`} disabled={busy || isLive || s.state === "draft" || context.closed} onClick={() => goLive(s)} aria-label={isLive ? `${s.title} is live` : `Go live with ${s.title}`}>{isLive ? <><Radio size={14} aria-hidden="true" />Live</> : <><Play size={14} aria-hidden="true" />Go live</>}</button>
                 </span>
               </li>;
             })}</ol>}
