@@ -82,9 +82,6 @@ jobs:
         run: npx playwright install --with-deps chromium || npx playwright install chromium
       - name: Test shared facilitator components and keyboard controls
         run: npm run test:ui-kit
-      - name: Test the signed-in admin pages (one frame, one button family, one field standard, at desktop and 390px) in a real browser, areas a to d
-        if: ${{ !cancelled() }}
-        run: npm run test:admin
       - name: Make the screenshot folder for the kits
         run: mkdir -p "${{ runner.temp }}/kit-shots"
       - name: Test file backup recovery and private client error monitoring
@@ -99,6 +96,9 @@ jobs:
           path: ${{ runner.temp }}/kit-shots/operations-*.png
           if-no-files-found: ignore
           retention-days: 14
+      - name: Test the signed-in admin pages (one frame, one button family, one field standard, at desktop and 390px) in a real browser, areas a to d
+        if: ${{ !cancelled() }}
+        run: npm run test:admin
       - name: Test the two addresses (live.clearway.co and live.novetera.co) from one deployment
         run: npm run test:two-addresses
       - name: Test the live room before Pickering (steps stay open, the TV from the live room, Start fresh, End and Reopen) in both skins

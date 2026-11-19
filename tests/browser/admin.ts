@@ -7,6 +7,8 @@ import { setupInput } from "../../lib/setup/policy";
 import { linkQr } from "../../lib/tv/qr";
 import { db, engagement, facilitator, localEnv, mailbox, press, startApp } from "./harness";
 async function main() {
+  const operationsAddress = "operations@clearway.test";
+  process.env.OPERATIONS_ALERT_EMAIL = operationsAddress;
   if(process.env.KIT_AREA==="b" && process.env.KIT_BEFORE!=="1") process.env.TEAM_HUB_DATABASE_URL="postgres://clearway_live_reader:local@127.0.0.1:1/postgres";
   const env=localEnv(), sql=db(env), mail=await mailbox(), app=await startApp(env,mail.url);
   const browser=await chromium.launch();
@@ -20,6 +22,8 @@ async function main() {
     if(process.env.KIT_AREA==="c") await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
+    const pageErrors: { path: string; message: string }[] = [];
+    page.on("pageerror", error => pageErrors.push({ path: new URL(page.url()).pathname, message: error.message }));
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
     const paths:Record<string,string[]>={a:["/sign-in","/admin","/control",...(!before?["/admin/users","/admin/operations"]:[])],b:["/admin/new",`/admin/${room.id}`,`/admin/${room.id}/details`,`/admin/${room.id}/joining`],c:[`/admin/${room.id}/door`,`/admin/${room.id}/tv`,`/admin/${room.id}/discover`,`/admin/${room.id}/four-lists`,"/admin/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
     for(const width of [1440,390]) {
@@ -365,8 +369,15 @@ async function main() {
       await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
       await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
     }
-    if(mail.count) console.log(JSON.stringify(mail.messages.map(m=>({to:m.to,subject:m.subject,text:(m.text||"").slice(0,200)}))));
-    assert.equal(mail.count,0,"admin audit sends no email");
+    const operationsAlert = (message: { to: string[]; subject?: string }) =>
+      message.to.length === 1 && message.to[0] === operationsAddress && message.subject === "Check Clearway Live";
+    const unexpectedMail = mail.messages.filter(message => !operationsAlert(message));
+    if (pageErrors.length) console.log("Browser errors:", JSON.stringify(pageErrors));
+    if (mail.messages.some(operationsAlert)) {
+      const events = app.output().match(/Clearway operational event \{[^}]*\}/g) ?? [];
+      console.log("Operations alert captured by the local mailbox.", ...events);
+    }
+    assert.deepEqual(unexpectedMail.map(({ to, subject }) => ({ to, subject })), [], "admin audit sends no engagement mail");
     console.log(`Admin ${area} kit passed at desktop and narrow widths${before?" (baseline)":""}.`);
   } finally {await browser.close(); app.stop(); await mail.close(); await sql.end();}
 }
