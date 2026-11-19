@@ -64,7 +64,14 @@ export async function POST(request:NextRequest){
         if(existing.data)return answer({ok:false,message:"This engagement is already in Live. Open it from your engagements.",existing_id:existing.data.id},409);
         const hub=teamHubReader();const [c,e]=await Promise.all([hub.client(body.hub_client),hub.engagement(body.hub_engagement,body.hub_client)]);if(!c||!e)return answer({ok:false},400);linkedClient=c.id;linkedEngagement=e.id;
       }else{const existing=await scoped();id=existing.id;linkedClient=existing.team_hub_client_id;linkedEngagement=existing.team_hub_engagement_id;}
-      const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});
+      const linkName=action==="create" ? body.link_name : null;
+      if(linkName!=null && (typeof linkName!=="string" || !/^[a-z0-9]{3,24}$/.test(linkName) || input.engagement.type!=="team_workshop")) return answer({ok:false,message:"Use 3 to 24 lowercase letters or digits for the link name."},400);
+      if(linkName){
+        const check=await client.rpc("engagement_link_name_status",{p_name:linkName,p_engagement:null});
+        if(check.error) return answer({ok:false,message:"Link names aren't available during creation yet. Clear the name to use the room code."},503);
+        if(check.data!=="available") return answer({ok:false,message:check.data==="taken_name"?"That link name is taken. Choose another.":"Choose an available link name."},check.data==="taken_name"?409:400);
+      }
+      const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:{...input.engagement,...(linkName?{link_name:linkName}:{})},p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});
     }
     // End the workshop: the Details form as it stands with the status set to closed, saved through the same function Details uses.
     // Closing signs out every phone and closes answers, in the database, whichever page asks.

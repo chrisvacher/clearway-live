@@ -33,7 +33,7 @@ async function main() {
     const pages: [string, string, ((p: Page) => Promise<void>)?][] = [
       ["01-engagements", "/admin"],
       ["02-create", "/admin/new"],
-      ["03-create-picked", "/admin/new", async p => { await p.getByRole("button", { name: "Find churches" }).click(); await p.getByRole("button", { name: /^Riverside Church/ }).click(); await p.getByRole("button", { name: /^Spring workshop/ }).click(); }],
+      ["03-create-picked", "/admin/new", async p => { await p.getByRole("combobox", { name: "Church", exact: true }).fill("Riverside"); await p.getByRole("option", { name: /^Riverside Church/ }).click(); await p.getByRole("radio", { name: /^Spring workshop/ }).check(); }],
       ["04-overview", `/admin/${room.id}`],
       ["05-details-wayfinding", `/admin/${room.id}/details`],
       ["06-details-workshop", `/admin/${workshop.id}/details`],

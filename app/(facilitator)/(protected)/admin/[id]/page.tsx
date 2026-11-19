@@ -1,65 +1,92 @@
-import { EventLink } from "@/components/control/event-link";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CircleAlert, CircleCheck, Radio } from "lucide-react";
+import { ChevronRight, CircleCheck, CircleDashed } from "lucide-react";
 import { requireFacilitator } from "@/lib/server/facilitator";
 import { uuid } from "@/lib/room/policy";
 import { roomQr } from "@/lib/tv/qr";
 import { brandFor, skinOf } from "@/lib/brand";
-import { eventDate, statusName, typeName, type ListedEngagement } from "@/lib/setup/listing";
-import { inviteText, joiningLine, runLine, type ReadyState } from "@/lib/setup/overview";
-import { InviteCard } from "@/components/facilitator/invite-card";
+import { eventDate, place, typeName, type ListedEngagement } from "@/lib/setup/listing";
+import { eventDayOffset, inviteText, joiningLine, overviewReadiness, roomTime, runLine } from "@/lib/setup/overview";
+import { readEngagementCreationCapability, readOverviewFacts, teamHubPlaces } from "@/lib/setup/overview-server";
+import { stageFor } from "@/lib/setup/stage";
+import { InviteCard, OnTheDay } from "@/components/facilitator/invite-card";
+import { OverviewHeader } from "@/components/facilitator/overview-header";
+import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Overview" };
 export const dynamic = "force-dynamic";
 
-function Row({ state, title, text, href, action }: { state: ReadyState; title: string; text: string; href: string; action: string }) {
-  return <li className="ready-row">
-    <span className={`ready-chip is-${state}`}>{state === "ready" ? <><CircleCheck size={14} aria-hidden="true" />Ready</> : state === "todo" ? <><CircleAlert size={14} aria-hidden="true" />To do</> : "Optional"}</span>
-    <div><strong>{title}</strong><p>{text}</p></div>
-    <Link className="admin-button" href={href}>{action}<span className="sr-only">: {title}</span></Link>
-  </li>;
-}
-
-// Where an engagement opens: is this event ready, and how do people get in.
 export default async function OverviewPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params; if (!uuid(id)) notFound();
-  const { client } = await requireFacilitator();
-  const { data: e } = await client.from("engagements").select("id,title,type,status,room_code,link_name,skin,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)").eq("id", id).eq("deleted", false).maybeSingle();
-  if (!e) notFound();
-  const church = e.church as unknown as { name: string; timezone: string } | null;
-  const [sessions, attendees, presence, lead, tv] = await Promise.all([
-    client.from("sessions").select("part,planned_minutes,state").eq("engagement_id", id).eq("deleted", false).limit(1000),
-    client.from("attendees").select("id", { count: "exact", head: true }).eq("engagement_id", id).eq("deleted", false),
-    client.rpc("room_presence", { p_engagement: id }),
-    client.from("engagement_facilitators").select("role,user:clearway_users(name)").eq("engagement_id", id).eq("deleted", false),
-    client.rpc("tv_manage", { p_engagement: id, p_action: "list", p: {} }),
+  const { id } = await params;
+  if (!uuid(id)) notFound();
+  const { client, profile } = await requireFacilitator();
+  const { data: engagement } = await client.from("engagements")
+    .select("id,title,type,status,room_code,link_name,skin,settings,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)")
+    .eq("id", id).eq("deleted", false).maybeSingle();
+  if (!engagement) notFound();
+
+  const settings = (engagement.settings ?? {}) as { open_join?: boolean; ai_enabled?: boolean };
+  const openJoin = engagement.type === "team_workshop" && settings.open_join === true;
+  const joinedCount = openJoin
+    ? client.from("attendees").select("id", { count: "exact", head: true }).eq("engagement_id", id)
+      .eq("deleted", false).like("email", "%@guest.clearway.invalid").not("verified_at", "is", null).then(result => result.count ?? 0)
+    : client.rpc("room_presence", { p_engagement: id }).then(result => Array.isArray(result.data) ? result.data.length : 0);
+  const [facts, signedIn, lead, locations, canDuplicate] = await Promise.all([
+    readOverviewFacts(client, id), joinedCount,
+    client.from("engagement_facilitators").select("user:clearway_users(name)").eq("engagement_id", id).eq("role", "lead").eq("deleted", false).maybeSingle(),
+    teamHubPlaces([engagement.team_hub_client_id]), profile.is_admin && engagement.type !== "practice" ? readEngagementCreationCapability(client) : false,
   ]);
-  const rows = sessions.data ?? [];
-  const run = runLine({ count: rows.length, minutes: rows.reduce((n, s) => n + s.planned_minutes, 0), notReady: rows.filter(s => s.state === "draft").length, sections: new Set(rows.map(s => s.part)).size });
-  const settings = (e.settings ?? {}) as { open_join?: boolean; ai_enabled?: boolean };
-  const open = e.type === "team_workshop" && settings.open_join === true;
-  const joining = joiningLine(open, attendees.count ?? 0, ((presence.data ?? []) as unknown[]).length);
-  const screens = ((tv.data as { screens?: unknown[] } | null)?.screens ?? []).length;
-  const when = eventDate(e as unknown as ListedEngagement, church?.timezone);
-  const leadName = ((lead.data ?? []) as unknown as { role: string; user: { name: string } | null }[]).find(f => f.role === "lead")?.user?.name;
-  const brand = brandFor(skinOf(e.skin)), shown = e.link_name ?? e.room_code, link = `${brand.host}/${shown}`, href = `${brand.origin}/${shown}`, churchName = church?.name ?? "Church not named";
-  const ready = run.state === "ready" && joining.state === "ready";
-  return <main id="main" className="admin-page">
-    <header className="admin-heading"><div><div className="admin-kicker">{churchName} · {e.title}</div><h1>Overview</h1></div>
-      <div className="admin-actions"><span className={`ready-chip is-${ready ? "ready" : "optional"}`}>{e.status === "setup" && ready ? "Ready to share" : statusName(e.status)}</span><Link className="admin-button is-primary" href={`/control/${id}`}><Radio size={16} aria-hidden="true" />Open the live room</Link></div></header>
-    <div className="overview-columns">
-      <section className="admin-panel" aria-labelledby="ready-title"><h2 id="ready-title">Getting ready</h2>
-        <p>{[typeName(e.type), when ?? "No date yet", leadName].filter(Boolean).join(" · ")}</p>
-        <ul className="ready-list">
-          <Row state={when ? "ready" : "todo"} title="Details" text={when ? `${typeName(e.type)}, ${when}${settings.ai_enabled ? ", AI on in live sessions" : ""}` : "No date yet. Add the date so it sorts with your upcoming engagements"} href={`/admin/${id}/details`} action="Edit details" />
-          <Row state={run.state} title="Run of show" text={run.text} href={rows.length ? `/admin/${id}/run-of-show` : `/admin/templates?engagement=${id}`} action={rows.length ? "Open run of show" : "Use a template"} />
-          <Row state={joining.state} title="People and joining" text={joining.text} href={`/admin/${id}/joining`} action="Change" />
-          <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/admin/${id}/tv`} action="Pair a TV" />
-        </ul>
+  const church = engagement.church as unknown as { name: string; timezone: string } | null;
+  const timezone = church?.timezone ?? "America/Toronto";
+  const churchName = church?.name ?? "Church not named";
+  const date = eventDate(engagement as unknown as ListedEngagement, timezone);
+  const readiness = overviewReadiness({ ...facts, hasDate: !!date, openJoin });
+  const stage = stageFor(engagement, readiness, { live_session_id: facts.liveSessionId });
+  const ready = readiness.filter(item => item.state === "ready").length;
+  const location = engagement.team_hub_client_id ? place(locations.get(engagement.team_hub_client_id)) : null;
+  const leadName = (lead.data?.user as unknown as { name: string } | null)?.name;
+  const startDay = (engagement.type !== "team_workshop" && engagement.retreat_start_date) || engagement.start_date;
+  const delta = eventDayOffset(startDay, timezone, new Date());
+  const starts = facts.firstPlanned ? roomTime(facts.firstPlanned, timezone) : null;
+  const ends = facts.lastPlanned ? roomTime(facts.lastPlanned, timezone) : null;
+  const when = [date, starts && (ends ? `${starts} to ${ends}` : starts)].filter(Boolean).join(" · ") || null;
+  const countdown = stage === "done" || stage === "closed" ? null : stage === "live" ? "Live now"
+    : delta === 0 ? `Today${starts ? `, ${starts}` : ""}`
+    : delta === 1 ? "Starts tomorrow" : delta !== null && delta > 1 ? `Starts in ${delta} days` : null;
+  const brand = brandFor(skinOf(engagement.skin));
+  const slug = engagement.link_name ?? engagement.room_code, link = `${brand.host}/${slug}`, href = `${brand.origin}/${slug}`;
+  const cards = {
+    details: { title: "Details", text: date ? `${typeName(engagement.type)}, ${date}${settings.ai_enabled ? ", AI on in live sessions" : ""}` : "Add the date so the event appears under Upcoming.", path: "details", action: "Edit" },
+    run: { title: "Run of show", text: runLine(facts.stepCount, facts.draftCount, facts.minutes), path: "run-of-show", action: "Open" },
+    people: { title: "People", text: joiningLine(openJoin, facts.attendeeCount, signedIn), path: "joining", action: "Change" },
+    screens: { title: "Screens", text: facts.screenCount ? `${facts.screenCount} ${facts.screenCount === 1 ? "TV" : "TVs"} paired.` : "Pair a TV on the day, or check it ahead of time.", path: "tv", action: "Set up" },
+  };
+  const closed = engagement.status === "closed";
+
+  return <main id="main" className="admin-page eng-overview">
+    <OverviewHeader id={id} church={churchName} title={engagement.title} type={engagement.type} stage={stage}
+      when={when} place={location} lead={leadName} countdown={countdown} canDuplicate={canDuplicate} />
+    <div className="eng-overview-grid">
+      <section className="admin-panel eng-ready" aria-labelledby="eng-ready-title">
+        <header><h2 id="eng-ready-title">Getting ready</h2><span>{ready} of {readiness.length} ready</span></header>
+        <progress value={ready} max={readiness.length} aria-label="Getting ready" />
+        <ul>{readiness.map(({ key, state }) => {
+          const { title, text, path, action } = cards[key];
+          const Icon = state === "ready" ? CircleCheck : CircleDashed;
+          return <li key={key}>
+            <Icon className={`eng-ready-status is-${state}`} aria-label={state === "ready" ? "Ready" : "To do"} />
+            <div><strong>{title}</strong><p>{text}</p></div>
+            <Button variant="quiet" size="small" href={`/admin/${id}/${path}`} aria-label={`${action} ${title}`}>
+              {action}<ChevronRight aria-hidden="true" />
+            </Button>
+          </li>;
+        })}</ul>
       </section>
-      <InviteCard id={id} code={e.room_code} link={link} href={href} host={brand.host} qr={roomQr(e.room_code, brand.skin, e.link_name)} invite={inviteText(churchName, e.title, when, href, e.room_code, brand.host)} closed={e.status === "closed"} />
-      <EventLink engagement={id} />
+      <div className="eng-overview-aside">
+        <InviteCard code={engagement.room_code} link={link} href={href} host={brand.host}
+          qr={roomQr(engagement.room_code, brand.skin, engagement.link_name)}
+          invite={inviteText(churchName, engagement.title, when, href, engagement.room_code, brand.host)} closed={closed} />
+        <OnTheDay id={id} closed={closed} remoteUrl={`${brandFor("clearway").origin}/remote/${id}`} />
+      </div>
     </div>
   </main>;
 }

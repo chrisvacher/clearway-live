@@ -328,6 +328,8 @@
   --cwl-app-info-ink: #1E40AF; /* Info chip text (design pass 10, November 19). */
   --cwl-app-selected-ink: #1E40AF; /* Done and Closed stage text (design pass 10, November 19). */
   --cwl-app-stage-info-ink: #1E3A8A; /* Discover, Pre-call and Follow-up stage text (design pass 10, November 19). */
+  --cwl-app-row-soon: #FAFCFF; /* Engagements happening today or tomorrow (design pass 10, November 19). */
+  --cwl-app-calendar-month: #B91C1C; /* Month in the engagement date block (design pass 10, November 19). */
   --cwl-action-live-hover: #D8441E; /* App surfaces only: Go live hover (Off-White 4.3:1). */
   --cwl-action-live-pressed: #B03514; /* App surfaces only: Go live pressed, and the glyph in its key hint (6.1:1 on Off-White). */
   --cwl-on-action-live: #FCFCFD; /* App surfaces only: the Go live icon on its Orange tile. */
