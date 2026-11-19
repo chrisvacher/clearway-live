@@ -423,8 +423,6 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .ctl-run-list li { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: var(--space-1) var(--space-2); align-items: start; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--cwl-app-border); }
 .ctl-run-actions { grid-column: 2 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
 .ctl-run-actions .show-button { justify-content: center; }
-.ctl-run-actions .is-go:not(:disabled) { border-color: var(--cwl-live); box-shadow: inset 0 0 0 1px var(--cwl-live); }
-.ctl-run-actions .is-go:not(:disabled):hover { background: var(--cwl-app-card); border-color: var(--cwl-live); box-shadow: inset 0 0 0 2px var(--cwl-live); }
 .ctl-run-actions .is-on-air:disabled { background: var(--cwl-app-selected); color: var(--cwl-app-text); border-color: var(--cwl-app-primary); opacity: 1; }
 .ctl-run-actions [aria-pressed="true"] { border-color: var(--cwl-app-primary); box-shadow: inset 0 0 0 1px var(--cwl-app-primary); }
 .ctl-state-icon { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--radius-pill); color: var(--cwl-app-text-muted); }
@@ -674,6 +672,18 @@ span.ctl-resp-text { cursor: default; }
 .ctl-r-btn.is-primary { background: var(--cwl-app-primary); color: var(--cwl-app-on-primary); border-color: var(--cwl-app-primary); }
 .ctl-r-btn.is-wide { width: 100%; min-height: 64px; font-size: var(--cwl-fs-phone-input); }
 .ctl-r-btn:disabled { background: var(--cwl-app-sunken); color: var(--cwl-app-text-muted); border-color: var(--cwl-app-border); cursor: not-allowed; }
+/* Go live (Chris, November 19, replacing the Lime outline of November 15): solid Clearway Orange with an Off-White label, on every
+   Go live control on the admin screens (the transport bar, each run of show step, the phone remote and its preview sheet) and
+   nowhere else. Lime stays the "is live" state. The label is bold at 20px, since Off-White on Orange passes only as large text.
+   Focus is the Royal ring off the button, never Orange on Orange; disabled is the plain muted fill, never a pale Orange. */
+[data-surface] .is-golive:is(.ctl-take, .show-button, .ctl-r-btn) { background: var(--cwl-action-live); border: 1px solid var(--cwl-action-live); color: var(--cwl-on-action-live); font-size: var(--cwl-fs-action-live); font-weight: var(--fw-bold); line-height: 1.2; box-shadow: none; opacity: 1; }
+[data-surface] .is-golive:is(.ctl-take, .show-button, .ctl-r-btn):hover:not(:disabled) { background: var(--cwl-action-live-hover); border-color: var(--cwl-action-live-hover); color: var(--cwl-on-action-live); box-shadow: var(--shadow-md); }
+[data-surface] .is-golive:is(.ctl-take, .show-button, .ctl-r-btn):active:not(:disabled) { background: var(--cwl-action-live-pressed); border-color: var(--cwl-action-live-pressed); box-shadow: none; transform: translateY(1px); }
+[data-surface] .is-golive:is(.ctl-take, .show-button, .ctl-r-btn):focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 3px; }
+[data-surface] .is-golive:is(.ctl-take, .show-button, .ctl-r-btn):disabled { background: var(--cwl-app-sunken); border-color: var(--cwl-app-border); color: var(--cwl-app-text-muted); box-shadow: none; transform: none; cursor: not-allowed; }
+[data-surface] .is-golive .ctl-kbd { opacity: 1; border-color: var(--cwl-on-action-live); background: var(--cwl-on-action-live); color: var(--cwl-action-live-pressed); font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); }
+[data-surface] .is-golive:disabled .ctl-kbd { background: transparent; border-color: currentColor; color: inherit; }
+@media (prefers-reduced-motion: reduce) { [data-surface] .is-golive:active:not(:disabled) { transform: none; } }
 .ctl-r-btn[aria-checked="true"] { background: var(--cwl-app-selected); border-color: var(--cwl-app-primary); }
 .ctl-controls.is-remote .ctl-seg button { min-height: 56px; }
 .ctl-sheet-scrim { position: fixed; inset: 0; z-index: 30; background: var(--cwl-app-scrim); display: flex; align-items: flex-end; justify-content: center; }

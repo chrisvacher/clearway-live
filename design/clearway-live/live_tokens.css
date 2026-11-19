@@ -316,6 +316,11 @@
   --cwl-app-on-primary: var(--cw-white, #FFFFFF); /* App surfaces: label on primary buttons. */
   --cwl-app-link: var(--cwl-royal-deep); /* App surfaces: links and ghost buttons (Royal at text size fails on white; Deeper Royal passes). */
   --cwl-app-focus: var(--cw-royal-blue, #3F72DE); /* App surfaces: focus ring, 2px solid, 2px offset (3:1 on white and Off-White). */
+  --cwl-action-live: #F15025; /* App surfaces only: Go live, and nothing else (Chris, November 19). Clearway Orange. Never on another button, badge or banner, never beside Warning or Error, never on the TV or phones. */
+  --cwl-action-live-hover: #D8441E; /* App surfaces only: Go live hover (Off-White 4.3:1). */
+  --cwl-action-live-pressed: #B03514; /* App surfaces only: Go live pressed, and the glyph in its key hint (6.1:1 on Off-White). */
+  --cwl-on-action-live: #FCFCFD; /* App surfaces only: the Go live label. 3.5:1 on Orange, so large text only: bold at cwl-fs-action-live. */
+  --cwl-fs-action-live: 20px; /* App surfaces only: every Go live label, bold. Never under 19px, so Off-White on Orange passes as large text. */
   --cwl-app-hover: var(--cw-gray-100, #F3F4F6); /* App surfaces: row, nav and ghost-button hover. */
   --cwl-app-selected: var(--cwl-sky-pale); /* App surfaces: selected rows, active nav item. */
   --cwl-app-avatar: var(--cwl-sky-light); /* App surfaces: initials avatars (Navy text). */
@@ -355,7 +360,7 @@
   --cwl-sunrise: initial; --cwl-callout: initial; --cwl-bar-leader: initial; --cwl-word-leader: initial; --cwl-flag: initial;
 }
 /* Warning and Error live only on app surfaces: they do not exist on the TV or phones */
-[data-surface="tv"], [data-surface="phone"] { --cwl-app-warning: initial; --cwl-app-warning-bg: initial; --cwl-app-error: initial; --cwl-app-error-bg: initial; }
+[data-surface="tv"], [data-surface="phone"] { --cwl-action-live: initial; --cwl-action-live-hover: initial; --cwl-action-live-pressed: initial; --cwl-on-action-live: initial; --cwl-app-warning: initial; --cwl-app-warning-bg: initial; --cwl-app-error: initial; --cwl-app-error-bg: initial; }
 
 /* Approved pass 2 TV ramp is bound here so room-size changes recalculate it. */
 [data-surface="tv"] {

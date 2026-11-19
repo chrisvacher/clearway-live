@@ -29,7 +29,7 @@ export function Transport({ room, context, previewing, onGoLive }: { room: Room;
   return <div className="ctl-transport" role="group" aria-label="Transport">
     <div className="ctl-steps">
       <button className="show-button ctl-tp-back" disabled={busy || !steps.back} onClick={() => void press("back")} title={steps.back?.title} aria-keyshortcuts="ArrowLeft"><ChevronLeft size={20} aria-hidden="true" />Back<Key k="←" /></button>
-      <button type="button" className="ctl-take" disabled={blocked} onClick={() => previewing && onGoLive(previewing)} aria-keyshortcuts="Enter"
+      <button type="button" className="ctl-take is-golive" disabled={blocked} onClick={() => previewing && onGoLive(previewing)} aria-keyshortcuts="Enter"
         aria-label={!previewing ? "Nothing in preview" : isLive ? `${previewing.title} is live` : `Go live: ${previewing.title}`}
         title={previewing?.state === "draft" ? "Mark this step ready in setup before it goes live" : undefined}>
         <Send size={20} aria-hidden="true" />{isLive ? "Live now" : "Go live"}<Key k="↵" /></button>

@@ -92,7 +92,7 @@ export function PreviewCard({ session, context, room, onClose }: { session: Show
     </dl>
     <div className="ctl-private"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Presenter notes</span></div><p className="ctl-notes">{session.notes || "No presenter notes."}</p></div>
     <div className="ctl-row">
-      <button className="show-button is-primary" disabled={Boolean(room.pending) || live || session.state === "draft" || context.closed} onClick={() => void room.press("go_live", { session: session.id }).then(r => { if (r.status === "ok") onClose(); })}><Play size={18} aria-hidden="true" />Go live from preview</button>
+      <button className="show-button is-golive" disabled={Boolean(room.pending) || live || session.state === "draft" || context.closed} onClick={() => void room.press("go_live", { session: session.id }).then(r => { if (r.status === "ok") onClose(); })}><Play size={18} aria-hidden="true" />Go live from preview</button>
       <button className="show-button" onClick={onClose}><X size={18} aria-hidden="true" />Close preview</button>
     </div>
     {session.state === "draft" && <p className="show-help">Mark this session ready in the run of show before it goes live.</p>}
@@ -112,7 +112,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
   const spotlit = frame?.state.spotlight_key, tvOnPhones = Boolean(frame?.state.show_tv_on_phones);
   const up = room.upNext;
   const btn = variant === "remote" ? "ctl-r-btn" : "show-button";
-  const primary = <button className={`${btn} ${burst ? "is-primary" : "is-live"} is-wide`} disabled={busy || !up} onClick={() => up && void press("go_live", { session: up.id })}><Play size={20} aria-hidden="true" />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
+  const primary = <button className={`${btn} is-golive is-wide`} disabled={busy || !up} onClick={() => up && void press("go_live", { session: up.id })}><Play size={20} aria-hidden="true" />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
   return <div className={`ctl-controls is-${variant}`}>
     {burst && <div className="ctl-countdown" role="timer" aria-label={`Burst, ${burst.label} left`}><Timer size={20} aria-hidden="true" /><b>{burst.label}</b><progress className="ctl-progress" max={100} value={Math.min(100, burst.ms / ((current?.settings.burst_minutes ?? 4) * 600))} aria-hidden="true" />
       <button className={btn} disabled={busy} onClick={() => void press("extend_burst")}><Plus size={18} aria-hidden="true" />Extend 1 min</button></div>}
