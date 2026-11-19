@@ -130,13 +130,22 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
     }).finally(() => { inFlight.current = false; });
   }
 
+  async function saveImmediate<K extends keyof Immediate>(key: K, value: Immediate[K], previous: Immediate[K]) {
+    setImmediate(current => ({ ...current, [key]: value }));
+    try {
+      await post("/api/setup/details", { id, action: key, value });
+    } catch (cause) {
+      setImmediate(current => ({ ...current, [key]: previous }));
+      throw cause;
+    }
+  }
+
   function updateNow<K extends keyof Immediate>(key: K, value: Immediate[K]) {
     const previous = immediate[key];
     if (previous === value) return;
     void perform(async () => {
-      await post("/api/setup/details", { id, action: key, value });
+      await saveImmediate(key, value, previous);
       const version = ++commitVersions.current[key];
-      setImmediate(current => ({ ...current, [key]: value }));
       const message = key === "brand" ? `Brand changed to ${value === "novetera" ? "Novetera" : "Clearway"}`
         : value ? "AI is on in live sessions" : "AI is off in live sessions";
       router.refresh();
@@ -145,9 +154,8 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
           if (commitVersions.current[key] !== version) return;
           let undone = false;
           await perform(async () => {
-            await post("/api/setup/details", { id, action: key, value: previous });
+            await saveImmediate(key, previous, value);
             commitVersions.current[key]++;
-            setImmediate(current => ({ ...current, [key]: previous }));
             router.refresh();
             undone = true;
           });

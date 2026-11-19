@@ -146,7 +146,21 @@ async function main() {
       const titleBefore=await title.inputValue();
       await title.fill("Workshop draft");
       await page.getByText("1 unsaved change: Event title",{exact:true}).waitFor();
-      await page.getByRole("radio",{name:"Novetera",exact:true}).check();
+      const noveteraRadio=page.getByRole("radio",{name:"Novetera",exact:true});
+      let releaseFailure!: () => void;
+      const waitForFailure=new Promise<void>(resolve=>{ releaseFailure=resolve; });
+      await page.route("**/api/setup/details",async route=>{
+        await waitForFailure;
+        await route.fulfill({status:503,json:{ok:false,message:"Brand save failed in this fixture."}});
+      },{times:1});
+      try {
+        await noveteraRadio.check();
+        assert.equal(await noveteraRadio.isChecked(),true,"the pending radio selection shows immediately");
+      } finally { releaseFailure(); }
+      await page.getByRole("alert").filter({hasText:"Brand save failed in this fixture."}).waitFor();
+      assert.equal(await page.getByRole("radio",{name:"Clearway",exact:true}).isChecked(),true,"a failed write rolls the selection back");
+      assert.equal(await title.inputValue(),"Workshop draft","rollback preserves pending typed fields");
+      await noveteraRadio.check();
       const changedBrand=page.getByRole("status").filter({hasText:"Brand changed to Novetera"});
       await changedBrand.getByRole("button",{name:"Undo",exact:true}).click();
       await changedBrand.waitFor({state:"hidden"});
