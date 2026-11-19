@@ -47,7 +47,7 @@ async function main() {
 
       await step(`${skin}: Add images as slides uploads three images, keeps their order, and adds one Image step each to the chosen section`, async () => {
         await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
-        await editor.getByRole("button", { name: "Add images as slides" }).click();
+        await editor.getByRole("button", { name: "Add slides from images", exact: true }).click();
         const dialog = editor.getByRole("dialog", { name: "Add images as slides" });
         await dialog.locator("#add-images-file").setInputFiles(slides.map((buffer, i) => ({ name: `Slide${i + 1}.png`, mimeType: "image/png", buffer })));
         await until(async () => await dialog.locator(".add-images-item.is-done, .add-images-item:not(.is-uploading):not(.is-failed)").count() === 3, "three uploads done", 30000);
