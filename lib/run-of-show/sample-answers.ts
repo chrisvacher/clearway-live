@@ -52,8 +52,8 @@ export function sampleAnswers(session: Pick<ShowSession, "id" | "interaction"> &
       }) };
   } else if (interaction === "grid") {
     const grid = gridOf(options);
-    const options = grid.items.length ? grid.items.slice(0, 3) : examples.map((text, i) => ({ key: `sample-${i}`, text }));
-    results.items = options.map((item, i) => ({ ...item, num: i + 1, count: 1, x: [0.25, 0.5, 0.8][i], y: [0.75, 0.38, 0.65][i] }));
+    const gridItems = grid.items.length ? grid.items.slice(0, 3) : examples.map((text, i) => ({ key: `sample-${i}`, text }));
+    results.items = gridItems.map((item, i) => ({ ...item, num: i + 1, count: 1, x: [0.25, 0.5, 0.8][i], y: [0.75, 0.38, 0.65][i] }));
   } else if (interaction === "qa") {
     results.questions = answers.map(({ id, text }, index): QaQuestion => ({
       id, text, ids: [id], askers: 1, votes: 2 - index, people: 3 - index, score: 3 - index, rank: index + 1,
