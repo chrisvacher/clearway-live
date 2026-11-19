@@ -99,9 +99,8 @@ async function main() {
     });
     await step("On Details an admin switches the Brand to Novetera and the room's links move to the Novetera address", async () => {
       await setup.goto(`${CW}/admin/${room.id}/details`);
-      await setup.getByRole("combobox", { name: /^Brand/ }).selectOption("novetera");
-      await setup.getByRole("button", { name: "Save engagement", exact: true }).click();
-      await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 });
+      await setup.getByRole("radio", { name: "Novetera", exact: true }).check();
+      await setup.getByRole("status").filter({ hasText: "Brand changed to Novetera" }).waitFor({ timeout: 15000 });
       await until(async () => await skinNow() === "novetera", "the skin is saved", 10000);
       await setup.goto(`${CW}/admin/${room.id}`);
       assert.equal(await setup.getByRole("region", { name: "Invite the room", exact: true }).getByRole("link", { name: `${new URL(NV).host}/${code}`, exact: true }).getAttribute("href"), `${NV}/${code}`, "the invite card's link is at the Novetera address");
@@ -343,8 +342,8 @@ async function main() {
       await send(phones[0].page, "grateful"); await until(async () => (await tvText()).includes("grateful"), "the word on the Novetera TV", 10000);
       await novetera(); await shot(tv, "14-before-switch-tv"); await shot(phones[0].page, "14-before-switch-phone");
       await setup.goto(`${CW}/admin/${room.id}/details`);
-      await setup.getByRole("combobox", { name: /^Brand/ }).selectOption("clearway"); await setup.getByRole("button", { name: "Save engagement", exact: true }).click();
-      await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 }); await until(async () => await skinNow() === "clearway", "back to Clearway", 10000);
+      await setup.getByRole("radio", { name: "Clearway", exact: true }).check();
+      await setup.getByRole("status").filter({ hasText: "Brand changed to Clearway" }).waitFor({ timeout: 15000 }); await until(async () => await skinNow() === "clearway", "back to Clearway", 10000);
       // The TV and the phones follow without being touched. A reload is the fallback a person would use, so the kit says which one it needed.
       const follows = async (page: Page, selector: string, label: string) => {
         try { await until(async () => await page.locator(selector).first().getAttribute("data-skin") === "clearway", `${label} takes the Clearway look`, 20000); return "live"; }

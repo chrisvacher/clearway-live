@@ -15,3 +15,43 @@ export function zoneOptions(stored: string, supported: string[] = []): ZoneGroup
   if (rest.length) groups.push({ label: "All time zones", zones: rest });
   return groups;
 }
+
+const commonDetailsZones = [
+  ["America/St_Johns", "Newfoundland Time"],
+  ["America/Halifax", "Atlantic Time"],
+  ["America/Toronto", "Eastern Time"],
+  ["America/New_York", "Eastern Time"],
+  ["America/Winnipeg", "Central Time"],
+  ["America/Chicago", "Central Time"],
+  ["America/Regina", "Central Time"],
+  ["America/Edmonton", "Mountain Time"],
+  ["America/Denver", "Mountain Time"],
+  ["America/Phoenix", "Mountain Time"],
+  ["America/Vancouver", "Pacific Time"],
+  ["America/Los_Angeles", "Pacific Time"],
+] as const;
+
+export function detailsTimeZones(stored: string, at: string) {
+  const common = commonDetailsZones.map(([value, region]) => ({ value, label: `${region} · ${city(value)}`, group: "Common" }));
+  const listed = new Set<string>(common.map(option => option.value));
+  const all = [...new Set([...supportedZones(), stored])].filter(value => value && !listed.has(value)).sort();
+  const options = [...common, ...all.map(value => ({
+    value, label: value.split("/").map(piece => piece.replaceAll("_", " ")).join(" · "), group: "All zones",
+  }))];
+  const now = new Date(at);
+  return options.flatMap(option => {
+    try {
+      const format = new Intl.DateTimeFormat("en-CA", { timeZone: option.value, timeZoneName: "shortOffset", hour: "numeric", minute: "2-digit", hour12: true });
+      const parts = format.formatToParts(now);
+      const zone = parts.find(part => part.type === "timeZoneName")?.value ?? "GMT";
+      const time = parts.filter(part => part.type !== "timeZoneName").map(part => part.value).join("").trim();
+      return [{ ...option, keywords: option.value, detail: `${zone.replace("GMT", "UTC").replace("-", "−")} · ${time}` }];
+    } catch {
+      return [];
+    }
+  });
+}
+
+function city(zone: string) {
+  return zone.split("/").at(-1)?.replaceAll("_", " ") ?? zone;
+}

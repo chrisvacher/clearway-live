@@ -125,32 +125,99 @@ async function main() {
     }
     if(!before && area==="b") {
       await page.goto(`${app.origin}/admin/${room.id}/details`);
-      assert.equal(await page.getByLabel("Workshop date",{exact:true}).count(),1);
+      assert.equal(await page.getByLabel("Date",{exact:true}).count(),1);
+      assert.equal(await page.getByText("Set when created",{exact:true}).count(),1,"the kind is read only");
       assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),0);
       assert.equal(await page.getByLabel("Governance body’s name",{exact:true}).count(),0);
       assert.equal(await page.getByLabel("Scripture translation",{exact:true}).count(),0);
-      assert.equal(await page.getByText("Add a Clearway user",{exact:true}).count(),0);
-      assert.equal(await page.getByRole("checkbox",{name:/^Open joining:/}).count(),0,"joining lives on its own page");
       assert.equal(await page.getByLabel("TV theme",{exact:true}).count(),0,"the screen's settings live on Screens");
-      await page.getByRole("combobox",{name:/^Kind of event/}).selectOption("wayfinding");
-      assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),1);
-      await page.getByRole("combobox",{name:/^Kind of event/}).selectOption("team_workshop");
-      await page.getByRole("button",{name:"Save engagement",exact:true}).click();
-      await page.getByRole("status").filter({hasText:"Saved."}).waitFor();
-      // Logo upload: a small PNG shows a preview, saves, survives a reload and can be removed; a text file renamed .png is refused in plain words.
-      const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==","base64");
+      await sql.query("update public.engagements set type='wayfinding' where id=$1",[room.id]);
+      await page.reload();
+      assert.equal(await page.getByLabel("Lens 1",{exact:true}).count(),1,"Wayfinding keeps its settings");
+      await sql.query("update public.engagements set type='team_workshop',status='setup' where id=$1",[room.id]);
+      await page.reload();
+      await facilitator(env,sql,room.id);
+      const linkSetup=await fac.client.rpc("event_link",{p_engagement:room.id,p_action:"create"});
+      assert.equal(linkSetup.data?.status,"ok");
+      const coFacilitators=async()=>(await sql.query(
+        "select u.kind from public.engagement_facilitators f join public.clearway_users u on u.id=f.clearway_user_id where f.engagement_id=$1 and f.role='co_facilitator' and not f.deleted order by u.kind",[room.id])).rows.map(row=>row.kind);
+      assert.deepEqual(await coFacilitators(),["link_guest","person"]);
+      const title=page.getByRole("textbox",{name:"Event title",exact:true});
+      const titleBefore=await title.inputValue();
+      await title.fill("Workshop draft");
+      await page.getByText("1 unsaved change: Event title",{exact:true}).waitFor();
+      await page.getByRole("radio",{name:"Novetera",exact:true}).check();
+      const changedBrand=page.getByRole("status").filter({hasText:"Brand changed to Novetera"});
+      await changedBrand.getByRole("button",{name:"Undo",exact:true}).click();
+      await changedBrand.waitFor({state:"hidden"});
+      assert.equal(await page.getByRole("radio",{name:"Clearway",exact:true}).isChecked(),true,"Undo restores brand");
+      assert.equal(await title.inputValue(),"Workshop draft","immediate save and Undo preserve another field's typed draft");
+      const aiSwitch=page.getByRole("switch",{name:"Use AI in live sessions",exact:true});
+      const aiBefore=await aiSwitch.getAttribute("aria-checked");
+      await aiSwitch.click();
+      const aiToast=page.getByRole("status").filter({hasText:aiBefore === "true" ? "AI is off in live sessions" : "AI is on in live sessions"});
+      await aiToast.getByRole("button",{name:"Undo",exact:true}).click();
+      await aiToast.waitFor({state:"hidden"});
+      assert.equal(await aiSwitch.getAttribute("aria-checked"),aiBefore);
+      assert.deepEqual(await coFacilitators(),["link_guest","person"],"immediate changes and Undo preserve both assignments");
+      assert.equal((await sql.query("select title from public.engagements where id=$1",[room.id])).rows[0].title,titleBefore,"an immediate setting never saves the draft");
+      const overviewHref=page.getByRole("link",{name:"Overview",exact:true});
+      const menu=page.getByRole("button",{name:"Menu",exact:true});
+      if(!(await overviewHref.isVisible())) await menu.click();
+      await overviewHref.click();
+      const leave=page.getByRole("dialog",{name:"Leave without saving?",exact:true});
+      await leave.getByRole("button",{name:"Keep editing",exact:true}).click();
+      const closeNavigation=page.getByRole("button",{name:"Close navigation",exact:true});
+      if(await closeNavigation.isVisible()) await closeNavigation.click();
+      else if(await menu.isVisible() && await menu.getAttribute("aria-expanded")==="true") await menu.click();
+      await page.getByRole("button",{name:"Discard",exact:true}).click();
+      assert.equal(await title.inputValue(),titleBefore);
+      await title.fill("Workshop keyboard save");
+      await page.keyboard.press("Control+s");
+      await page.getByRole("status").filter({hasText:/^Saved$/}).waitFor();
+      assert.equal((await sql.query("select title from public.engagements where id=$1",[room.id])).rows[0].title,"Workshop keyboard save");
+      await title.fill(titleBefore);
+      await page.getByRole("button",{name:"Save changes",exact:true}).click();
+      await page.getByRole("button",{name:"Save changes",exact:true}).waitFor({state:"hidden"});
+      // Logo upload and removal use the same Save bar; content validation still happens on upload.
+      const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lK0AAAAASUVORK5CYII=","base64");
       assert.equal(await page.getByText("No logo",{exact:true}).count(),1,"a church without a logo shows the empty box");
       await page.locator('input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:png});
       await page.getByRole("img",{name:"Church logo preview"}).waitFor();
       await page.getByRole("status").filter({hasText:"Logo ready. Save to keep it."}).waitFor();
-      await page.getByRole("button",{name:"Save church",exact:true}).click(); await page.getByRole("status").filter({hasText:"Saved."}).waitFor();
+      await page.getByRole("button",{name:"Save changes",exact:true}).click();
+      await page.getByRole("button",{name:"Save changes",exact:true}).waitFor({state:"hidden"});
       await page.reload(); await page.getByRole("img",{name:"Church logo preview"}).waitFor();
       assert.ok(await page.getByRole("img",{name:"Church logo preview"}).evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0),"the saved logo loads after a reload");
       await page.locator('input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:Buffer.from("this is only text")});
-      await page.getByRole("status").filter({hasText:"Use a PNG, JPEG or WebP image."}).waitFor();
-      await page.getByRole("button",{name:"Remove logo",exact:true}).click(); await page.getByRole("button",{name:"Save church",exact:true}).click(); await page.getByRole("status").filter({hasText:"Saved."}).waitFor();
+      await page.getByRole("alert").filter({hasText:"Use a PNG, JPEG or WebP image."}).waitFor();
+      await page.getByRole("button",{name:"Remove",exact:true}).click();
+      await page.getByRole("button",{name:"Save changes",exact:true}).click();
+      await page.getByRole("button",{name:"Save changes",exact:true}).waitFor({state:"hidden"});
       await page.reload(); await page.getByText("No logo",{exact:true}).waitFor();
-      assert.equal(await page.getByRole("combobox",{name:/^Time zone/}).inputValue(),"America/Toronto","the time zone is a picker that holds the stored zone");
+      const timeZone=page.getByRole("combobox",{name:"Time zone",exact:true});
+      assert.equal(await timeZone.inputValue(),"Eastern Time · Toronto","the picker shows the friendly name");
+      await timeZone.fill("Vancouver");
+      await page.getByRole("option",{name:/Pacific Time · Vancouver/}).click();
+      assert.equal(await timeZone.inputValue(),"Pacific Time · Vancouver");
+      await page.getByRole("button",{name:"Discard",exact:true}).click();
+      await page.getByRole("button",{name:"Close engagement",exact:true}).click();
+      const close=page.getByRole("dialog",{name:"Close this engagement?",exact:true});
+      await close.getByText("Ends every device sign-in. Reopening asks people to sign in again.",{exact:true}).waitFor();
+      await close.getByRole("button",{name:"Cancel",exact:true}).click();
+      assert.equal((await sql.query("select status from public.engagements where id=$1",[room.id])).rows[0].status,"setup");
+      await page.getByRole("button",{name:"Close engagement",exact:true}).click();
+      await close.getByRole("button",{name:"Close engagement",exact:true}).click();
+      await page.getByRole("status").filter({hasText:"Workshop ended"}).waitFor();
+      const reopen=await context.request.post(app.origin+"/api/setup",{headers:{origin:app.origin},data:{id:room.id,action:"reopen_workshop"}});
+      assert.equal(reopen.ok(),true,"the workshop can reopen");
+      assert.deepEqual(await coFacilitators(),["link_guest","person"],"Details saves, closing and reopening retain both assignments");
+      await page.reload();
+      const archiveButton=page.getByRole("button",{name:"Archive",exact:true});
+      if(await archiveButton.count()){
+        await archiveButton.click();
+        await page.getByRole("dialog",{name:"Archive this engagement?",exact:true}).getByRole("button",{name:"Cancel",exact:true}).click();
+      }
       await sql.query("update public.churches set team_hub_client_id=id where id=(select church_id from public.engagements where id=$1)",[room.id]);
       const ids=(await sql.query("update public.engagements set team_hub_client_id=church_id,team_hub_engagement_id=gen_random_uuid() where id=$1 returning team_hub_client_id,team_hub_engagement_id",[room.id])).rows[0];
       const payload={action:"create",hub_client:ids.team_hub_client_id,hub_engagement:ids.team_hub_engagement_id,church:{name:"Riverside",timezone:"America/Toronto"},engagement:{title:"Planning",type:"team_workshop",status:"setup",start_date:"2027-02-20",end_date:"",retreat_start_date:"",retreat_end_date:"",base_year:"",lens_names:[],how_the_room_decides:"The team agrees together.",settings:{}}};
@@ -204,6 +271,8 @@ async function main() {
       const brandGroup=page.getByRole("group",{name:"Brand",exact:true});
       if(await brandGroup.getByRole("radio",{name:"Novetera",exact:true}).count()) {
         assert.equal(await brandGroup.getByRole("radio",{name:"Clearway",exact:true}).isChecked(),true,"Clearway is selected to start");
+        assert.equal(await brandGroup.getByRole("radio",{name:"Novetera",exact:true}).isEnabled(),true,"an admin can choose the brand");
+        assert.equal(await page.getByText("Sets what the room sees and the room's address.",{exact:true}).count(),1,"Create and Details share the brand field");
         await brandGroup.getByRole("radio",{name:"Novetera",exact:true}).check();
       } else {
         const createBrand=page.getByRole("combobox",{name:/^Brand/});
@@ -257,20 +326,18 @@ async function main() {
       // The skin: an admin switches the engagement to Novetera on Details, the room link on the Overview moves to Novetera's address, and switching back restores it.
       await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
       await page.goto(`${app.origin}/admin/${room.id}/details`);
-      assert.equal(await page.getByRole("combobox",{name:/^Brand/}).inputValue(),"clearway","a new engagement is a Clearway engagement");
-      assert.equal(await page.getByText("Sets what the room sees: the screens, phones, emails and summary, and the room’s address.",{exact:true}).count(),1,"the picker says what it changes");
-      assert.deepEqual(await page.getByRole("combobox",{name:/^Brand/}).locator("option").allInnerTexts(),["Clearway","Novetera"]);
-      await page.getByRole("combobox",{name:/^Brand/}).selectOption("novetera"); await page.getByRole("button",{name:"Save engagement",exact:true}).click();
-      await page.getByText(`Saved. The room link is now ${noveteraHost}/${linkName}.`,{exact:true}).waitFor();
+      assert.equal(await page.getByRole("radio",{name:"Clearway",exact:true}).isChecked(),true,"the initial brand is Clearway");
+      await page.getByRole("radio",{name:"Novetera",exact:true}).check();
+      await page.getByRole("status").filter({hasText:"Brand changed to Novetera"}).waitFor();
       assert.equal((await sql.query("select skin from public.engagements where id=$1",[room.id])).rows[0].skin,"novetera","the skin is stored");
-      await page.goto(`${app.origin}/admin/${room.id}`); const invite=await page.getByRole("region",{name:"Invite the room",exact:true}).innerText();
+      await page.goto(`${app.origin}/admin/${room.id}`); const inviteCard=page.getByRole("region",{name:"Invite the room",exact:true}); const invite=await inviteCard.innerText();
       assert.ok(invite.includes(`${noveteraHost}/${linkName}`)&&invite.includes(`typed at ${noveteraHost}`),"the Overview invite card shows Novetera's address"); assert.ok(!invite.includes(`${clearwayHost}/`),"and no longer Clearway's");
-      assert.equal(await page.getByRole("region",{name:"Invite the room",exact:true}).getByRole("link",{name:`${noveteraHost}/${linkName}`,exact:true}).getAttribute("href"),`${app.noveteraOrigin}/${linkName}`,"the link opens at Novetera's address");
-      await page.goto(`${app.origin}/admin/${room.id}/details`); await page.getByRole("combobox",{name:/^Brand/}).selectOption("clearway"); await page.getByRole("button",{name:"Save engagement",exact:true}).click();
-      await page.getByText(`Saved. The room link is now ${clearwayHost}/${linkName}.`,{exact:true}).waitFor();
-      await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await page.getByRole("region",{name:"Invite the room",exact:true}).innerText()).includes(`${clearwayHost}/${linkName}`),"switching back restores Clearway's address");
+      assert.equal(await inviteCard.getByRole("link",{name:`${noveteraHost}/${linkName}`,exact:true}).getAttribute("href"),`${app.noveteraOrigin}/${linkName}`,"the link opens at Novetera's address");
+      await page.goto(`${app.origin}/admin/${room.id}/details`); await page.getByRole("radio",{name:"Clearway",exact:true}).check();
+      await page.getByRole("status").filter({hasText:"Brand changed to Clearway"}).waitFor();
+      await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await inviteCard.innerText()).includes(`${clearwayHost}/${linkName}`),"switching back restores Clearway's address");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
-      await page.goto(`${app.origin}/admin/${room.id}/details`); assert.equal(await page.getByRole("combobox",{name:/^Brand/}).isDisabled(),true,"only an admin changes the brand");
+      await page.goto(`${app.origin}/admin/${room.id}/details`); assert.equal(await page.getByRole("radio",{name:"Novetera",exact:true}).isDisabled(),true,"only an admin changes the brand");
     }
     if(!before && area==="a") {
       const pickering = await engagement(sql, ["Jane"]);
@@ -487,9 +554,28 @@ async function main() {
       assert.equal(await row.getByTestId("brand-label").innerText(),"Novetera","the list names the engagement's brand");
       if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/list-1512.png`}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/list-756.png`}); await page.setViewportSize({width:1512,height:982}); }
       await page.goto(`${app.origin}/admin/${room.id}/tv`); assert.equal(await page.locator("#tv-texture").count(),0,"a Novetera engagement has no texture setting");
+      const theme=page.getByRole("group",{name:"TV theme",exact:true});
+      assert.deepEqual(await theme.locator("label").allTextContents(),["Charcoal","Chalk"]);
+      await theme.getByRole("radio",{name:"Chalk",exact:true}).check();
+      const themeToast=page.getByRole("status").filter({hasText:"TV theme changed"});
+      await themeToast.getByRole("button",{name:"Undo",exact:true}).click();
+      await themeToast.waitFor({state:"hidden"});
+      assert.equal(await theme.getByRole("radio",{name:"Charcoal",exact:true}).isChecked(),true);
       await sql.query("update public.engagements set skin='clearway' where id=$1",[room.id]);
       await page.goto(`${app.origin}/admin`); assert.equal(await page.locator(`.eng-row:has(a[href*="${room.id}"])`).getByTestId("brand-label").innerText(),"Clearway");
       await page.goto(`${app.origin}/admin/${room.id}/tv`); assert.equal(await page.locator("#tv-texture").count(),1,"a Clearway engagement keeps it");
+      assert.deepEqual(await theme.locator("label").allTextContents(),["Navy","Off-White"]);
+      const sizes=page.getByRole("radiogroup",{name:"Type size on the TV",exact:true});
+      assert.deepEqual(await sizes.getByRole("radio").allTextContents(),["Smallest","Smaller","Medium","Larger","Largest"]);
+      await sizes.getByRole("radio",{name:"Larger",exact:true}).click();
+      const sizeToast=page.getByRole("status").filter({hasText:"Type size on the TV changed"});
+      await sizeToast.waitFor();
+      assert.equal(await sizes.getByRole("radio",{name:"Larger",exact:true}).getAttribute("aria-checked"),"true");
+      assert.equal((await sql.query("select settings->>'room_size' as size from public.engagements where id=$1",[room.id])).rows[0].size,"small","larger type is the small room scale");
+      await sizeToast.getByRole("button",{name:"Undo",exact:true}).click();
+      await sizeToast.waitFor({state:"hidden"});
+      assert.equal(await sizes.getByRole("radio",{name:"Largest",exact:true}).getAttribute("aria-checked"),"true");
+      assert.equal(await page.getByRole("button",{name:"Save display settings",exact:true}).count(),0);
       // 5. The remote: a panel with the link, a copy button and a code, and a way to open it here.
       await page.goto(control); await page.waitForLoadState("networkidle");
       await page.getByRole("button",{name:"Open the remote",exact:true}).click(); const panel=page.getByRole("dialog",{name:"Open the remote on a phone"});

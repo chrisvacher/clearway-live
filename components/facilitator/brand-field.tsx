@@ -1,9 +1,21 @@
+import { Check } from "lucide-react";
 import { brandFor, skins } from "@/lib/brand";
-import { Select } from "@/components/ui/select";
 
-// The Brand choice, on Details and on Create: what the room sees and the room's address. Only an admin can change it; anyone else sees it fixed.
-export function BrandField({ value, onChange, admin, id = "brand" }: { value: string; onChange: (value: string) => void; admin: boolean; id?: string }) {
-  return <div className="cwl-field"><label htmlFor={id}>Brand</label>
-    <Select id={id} value={value} disabled={!admin} aria-describedby={`${id}-help`} onChange={e => onChange(e.target.value)}>{skins.map(s => <option key={s} value={s}>{brandFor(s).label}</option>)}</Select>
-    <p id={`${id}-help`} className="cwl-help">Sets what the room sees: the screens, phones, emails and summary, and the room’s address.{!admin && " Only an admin can change it."}</p></div>;
+export function BrandField({ value, onChange, admin, disabled, id = "brand" }: {
+  value: string;
+  onChange: (value: string) => void;
+  admin: boolean;
+  disabled?: boolean;
+  id?: string;
+}) {
+  return <fieldset className="cwl-c-choice-group" disabled={!admin || disabled} aria-describedby={`${id}-help`}>
+    <legend>Brand</legend>
+    <div className="cwl-c-radio-pair">
+      {skins.map(skin => <label className="cwl-c-radio-card" key={skin}>
+        <input type="radio" name={id} value={skin} checked={value === skin} onChange={() => onChange(skin)} />
+        {brandFor(skin).label}<Check size={16} aria-hidden="true" />
+      </label>)}
+    </div>
+    <p className="cwl-ui-field-help" id={`${id}-help`}>Sets what the room sees and the room&apos;s address.{!admin && " Only an admin can change it."}</p>
+  </fieldset>;
 }
