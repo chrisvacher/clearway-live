@@ -123,11 +123,18 @@ export function TvManager({ id, initial, home, tvAddress }: { id: string; initia
 
   function setDisplay<K extends DisplayField>(key: K, value: DisplaySettings[K]) {
     void perform("display", async () => {
-      const current = await readScreens(endpoint);
-      const before = current.display[key];
-      if (before === value) { setData(current); return; }
-      const next = await updateDisplay(current, key, value);
-      setData(next);
+      let current = data;
+      setData({ ...current, display: { ...current.display, [key]: value } });
+      let before: DisplaySettings[K];
+      try {
+        current = await readScreens(endpoint);
+        before = current.display[key];
+        if (before === value) { setData(current); return; }
+        setData(await updateDisplay(current, key, value));
+      } catch (cause) {
+        setData(current);
+        throw cause;
+      }
       toast(`${displayFields[key]} changed`, {
         action: { label: "Undo", onClick: async () => {
           const undone = await perform("display", async () => {
