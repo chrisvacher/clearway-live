@@ -1,5 +1,4 @@
-import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
-import { useId } from "react";
+import { cloneElement, isValidElement, useId, type ReactNode } from "react";
 
 export function SettingsCard({ children }: { children: ReactNode }) {
   return <div className="cwl-ui-settings-card">{children}</div>;
@@ -22,13 +21,14 @@ export function Field({ label, help, dirty, wide, children }: {
   wide?: boolean;
   children: ReactNode;
 }) {
-  const id = useId();
+  const generatedId = useId();
+  const control = isValidElement<{ id?: string; "aria-describedby"?: string }>(children) ? children : null;
+  const id = control?.props.id ?? generatedId;
   const helpId = help ? `${id}-help` : undefined;
+  const describedBy = [control?.props["aria-describedby"], helpId].filter(Boolean).join(" ") || undefined;
   return <div className={`cwl-ui-field${wide ? " is-wide" : ""}`} data-dirty={dirty || undefined}>
     <label htmlFor={id}>{label}</label>
-    {isValidElement(children)
-      ? cloneElement(children as ReactElement<{ id?: string; "aria-describedby"?: string }>, { id, "aria-describedby": helpId })
-      : <div>{children}</div>}
+    {control ? cloneElement(control, { id, "aria-describedby": describedBy }) : <div>{children}</div>}
     {help && <div id={helpId} className="cwl-ui-field-help">{help}</div>}
   </div>;
 }
