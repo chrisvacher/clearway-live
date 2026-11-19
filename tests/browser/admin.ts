@@ -242,19 +242,49 @@ async function main() {
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await columns(),3,"Room admin opens as a third column");
       assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, screens and Room admin run left to right");
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); await page.locator(".ctl-side").waitFor({state:"hidden",timeout:2000}); assert.equal(await columns(),2,"and hides again, after it slides away");
-      // The centre column's bands (November 15): Go live is the one big button, in a transport bar pinned in view. Since November 19
-      // it is solid Clearway Orange (the action-live token) with a bold label of 19px or more, and nothing else on the page is Orange.
+      // The transport leads with the Navy Go live button and its orange icon tile.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
       assert.ok(take.height>=63&&take.width>=199,`Go live is at least 64 by 200: ${take.width}x${take.height}`);
-      const golive=await page.evaluate(()=>{const probe=document.createElement("i");probe.style.color=getComputedStyle(document.querySelector(".ctl-take")!).getPropertyValue("--cwl-action-live");document.body.appendChild(probe);const want=getComputedStyle(probe).color;probe.remove();
-        const all=[...document.querySelectorAll<HTMLButtonElement>(".is-golive")];
-        return {want,count:all.length,labels:all.map(b=>({size:parseFloat(getComputedStyle(b).fontSize),weight:Number(getComputedStyle(b).fontWeight),bg:getComputedStyle(b).backgroundColor,disabled:b.disabled})),
-          others:[...document.querySelectorAll("body *")].filter(e=>!e.closest(".is-golive, .ctl-run-actions .is-go")&&[getComputedStyle(e).backgroundColor,getComputedStyle(e).borderTopColor,getComputedStyle(e).color].includes(want)).map(e=>e.className).slice(0,5)};});
-      assert.ok(golive.want&&golive.count>=1,"the transport bar has the filled Go live");
-      const outlines=await page.locator(".ctl-run-actions .is-go:not(:disabled)").evaluateAll(els=>els.map(e=>getComputedStyle(e).borderTopColor));
-      assert.ok(outlines.length>0&&outlines.every(c=>c===golive.want),"each run of show step's Go live is outlined in Orange");
-      for(const l of golive.labels){assert.ok(l.size>=19&&l.weight>=700,`every Go live label is bold at 19px or more (${l.size}px, ${l.weight})`);if(!l.disabled)assert.equal(l.bg,golive.want,"an enabled Go live is Orange");}
-      assert.deepEqual(golive.others,[],"nothing but Go live is Orange");
+      const golive = await page.evaluate(() => {
+        const transport = document.querySelector<HTMLButtonElement>(".ctl-take")!;
+        const color = (token: string) => {
+          const probe = document.createElement("span");
+          probe.style.color = `var(${token})`;
+          transport.append(probe);
+          const value = getComputedStyle(probe).color;
+          probe.remove();
+          return value;
+        };
+        const orange = color("--cwl-action-live"), navy = color("--cwl-action-live-surface");
+        const buttons = [...document.querySelectorAll<HTMLButtonElement>(".is-golive")];
+        return {
+          orange, navy,
+          labels: buttons.map(button => {
+            const style = getComputedStyle(button);
+            const tile = button.querySelector(".ctl-golive-tile, svg");
+            return {
+              size: parseFloat(style.fontSize), weight: Number(style.fontWeight),
+              background: style.backgroundColor, tile: tile && getComputedStyle(tile).backgroundColor, disabled: button.disabled,
+            };
+          }),
+          others: [...document.querySelectorAll("body *")].filter(element => {
+            if (element.closest(".is-golive, .ctl-run-actions .is-go")) return false;
+            const style = getComputedStyle(element);
+            return [style.backgroundColor, style.borderTopColor, style.color].includes(orange);
+          }).map(element => element.className).slice(0,5),
+        };
+      });
+      assert.ok(golive.labels.length >= 1, "the transport bar has Go live");
+      const outlines = await page.locator(".ctl-run-actions .is-go:not(:disabled)").evaluateAll(elements => elements.map(element => getComputedStyle(element).borderTopColor));
+      assert.ok(outlines.length > 0 && outlines.every(color => color === golive.navy), "run list Go live buttons have Navy outlines");
+      for (const label of golive.labels) {
+        assert.ok(label.size >= 19 && label.weight >= 700, "large Go live labels stay bold and readable");
+        if (!label.disabled) {
+          assert.equal(label.background, golive.navy, "Go live has a Navy fill");
+          assert.equal(label.tile, golive.orange, "Go live has an orange icon tile");
+        }
+      }
+      assert.deepEqual(golive.others, [], "Go live owns the Orange accent");
       assert.ok(bar.y+bar.height<=982+1,"the transport bar is in view without scrolling");
       assert.equal(await page.locator(".ctl-screen.is-preview .ctl-take").count(),0,"no Go live on the preview screen itself");
       const wide=async(sel:string)=>(await page.locator(sel).boundingBox())!.width;

@@ -80,6 +80,11 @@ jobs:
         # The system packages come from Ubuntu's archive. When it can't be reached, the runner image's own
         # libraries are enough for Chromium, so install the browser alone rather than fail before any test runs.
         run: npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Test shared facilitator components and keyboard controls
+        run: npm run test:ui-kit
+      - name: Test the signed-in admin pages (one frame, one button family, one field standard, at desktop and 390px) in a real browser, areas a to d
+        if: ${{ !cancelled() }}
+        run: npm run test:admin
       - name: Make the screenshot folder for the kits
         run: mkdir -p "${{ runner.temp }}/kit-shots"
       - name: Test file backup recovery and private client error monitoring
@@ -502,9 +507,6 @@ jobs:
           path: acceptance-m5-shots/
           if-no-files-found: ignore
           retention-days: 14
-      - name: Test the signed-in admin pages (one frame, one button family, one field standard, at desktop and 390px) in a real browser, areas a to d
-        if: ${{ !cancelled() }}
-        run: npm run test:admin
       - name: Stop local database
         if: always()
         run: supabase stop --no-backup
