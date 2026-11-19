@@ -38,7 +38,11 @@ async function main() {
           assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} fits ${width}px`);
           if((area==="c" || area==="d") && path!=="/admin/templates") {
             assert.equal(await page.getByRole("navigation",{name:"Engagement",exact:true}).count(),1);
-            assert.ok(await page.locator(".shell-who").textContent().then(text=>(text ?? "").includes("Riverside Church")));
+            const navigation = page.getByRole("navigation", {name:"Engagement", exact:true});
+            if (width < 900) await navigation.getByRole("button", {name:"Menu", exact:true}).click();
+            await navigation.getByRole("button", {name:/Switch engagement/}).waitFor();
+            assert.match(await navigation.getByRole("button", {name:/Switch engagement/}).innerText(), /Riverside Church/);
+            if (width < 900) await navigation.getByRole("button", {name:"Close navigation", exact:true}).click();
           }
           if(area==="c" && path.endsWith("/door")) {
             assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
@@ -193,6 +197,75 @@ async function main() {
       await page.goto(`${app.origin}/admin/${room.id}/details`); assert.equal(await page.getByRole("combobox",{name:/^Brand/}).isDisabled(),true,"only an admin changes the brand");
     }
     if(!before && area==="a") {
+      const pickering = await engagement(sql, ["Jane"]);
+      const upcomingDate = new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
+      await sql.query("update public.engagements set title='Pickering AI workshop', type='team_workshop', start_date=$2, end_date=$2 where id=$1", [pickering.id, upcomingDate]);
+      await sql.query("update public.engagements set start_date=$2, end_date=$2 where id=$1", [room.id, upcomingDate]);
+      await page.setViewportSize({width:1440,height:1000});
+      await page.goto(app.origin+"/admin");
+      const workspaceNav = page.getByRole("navigation", {name:"Clearway Live",exact:true});
+      const workspaceLabels = ["Engagements","Templates and blocks","Practice room","Clearway users","Operations"];
+      for (const label of workspaceLabels) await workspaceNav.getByRole("link",{name:label,exact:true}).waitFor();
+      assert.match((await workspaceNav.getByRole("link",{name:"Engagements",exact:true}).getAttribute("aria-description")) ?? "", /^\d+ upcoming$/);
+      await workspaceNav.getByRole("button",{name:"Collapse the sidebar"}).click();
+      await workspaceNav.getByRole("button",{name:"Expand the sidebar"}).waitFor();
+      assert.equal((await workspaceNav.boundingBox())?.width,64);
+      for (const label of workspaceLabels) assert.equal(await workspaceNav.getByRole("link",{name:label,exact:true}).getAttribute("title"),label);
+      await page.reload();
+      await workspaceNav.getByRole("button",{name:"Expand the sidebar"}).waitFor();
+      await page.keyboard.press("Control+Backslash");
+      await workspaceNav.getByRole("button",{name:"Collapse the sidebar"}).waitFor();
+      assert.equal((await workspaceNav.boundingBox())?.width,248);
+      await workspaceNav.getByRole("button",{name:/^Account menu/}).click();
+      await workspaceNav.getByRole("menuitem",{name:"Sign out",exact:true}).waitFor();
+      await page.keyboard.press("Escape");
+
+      await page.goto(`${app.origin}/admin/${room.id}`);
+      const engagementNav = page.getByRole("navigation",{name:"Engagement",exact:true});
+      const workshopLabels = ["Overview","Details","People","Run of show","Screens","Live room","Results","All engagements"];
+      for (const label of workshopLabels) await engagementNav.getByRole("link", {name:label,exact:true}).waitFor();
+      for (const label of ["Door list","People and joining","Discover","Four Helpful Lists","Overnight review","After the retreat","Report","Visibility plan","Read-only copy","Check-ins"]) {
+        assert.equal(await engagementNav.getByRole("link",{name:label,exact:true}).count(),0);
+      }
+      const switcher = engagementNav.getByRole("button",{name:/^Switch engagement/});
+      await switcher.click();
+      const search = engagementNav.getByRole("searchbox",{name:"Search upcoming engagements"});
+      await search.fill("pickering");
+      const next = engagementNav.getByRole("link",{name:/Pickering AI workshop/});
+      assert.equal(await next.getAttribute("href"),`/admin/${pickering.id}`);
+      await next.click();
+      await page.waitForURL(`**/admin/${pickering.id}`);
+      await page.keyboard.press("Control+k");
+      const command = page.getByRole("combobox",{name:"Jump to an event, page or action"});
+      await command.fill("pick live");
+      await page.getByRole("option",{name:/Live room · Pickering AI workshop/}).waitFor();
+      await command.press("Enter");
+      await page.waitForURL(`**/control/${pickering.id}`);
+      await page.keyboard.press("Control+k");
+      const recent = page.getByRole("group",{name:"Recent"});
+      await recent.getByRole("option",{name:/Live room · Pickering AI workshop/}).waitFor();
+      await page.keyboard.press("Escape");
+
+      await page.goto(`${app.origin}/admin/${room.id}`);
+      await page.evaluate(() => localStorage.removeItem("clearway-live.navigation-sidebar.v1"));
+      await page.goto(`${app.origin}/admin/${room.id}/run-of-show`);
+      await engagementNav.getByRole("button",{name:"Expand the sidebar"}).waitFor();
+      assert.equal((await engagementNav.boundingBox())?.width,64);
+      await page.setViewportSize({width:390,height:850});
+      await engagementNav.getByRole("button",{name:"Menu",exact:true}).click();
+      await page.getByRole("dialog",{name:"Navigation"}).getByRole("link",{name:"People",exact:true}).waitFor();
+      await page.keyboard.press("Escape");
+      await page.getByRole("dialog",{name:"Navigation"}).waitFor({state:"hidden"});
+
+      await sql.query("update public.engagements set type='wayfinding' where id=$1",[pickering.id]);
+      await pickering.session("Four Helpful Lists","four_lists","Collect ideas",1);
+      await page.setViewportSize({width:1440,height:1000});
+      await page.goto(`${app.origin}/admin/${pickering.id}`);
+      for (const label of [...workshopLabels,"Discover","Four Helpful Lists","Overnight review","After the retreat","Report","Visibility plan","Read-only copy","Check-ins"]) {
+        await engagementNav.getByRole("link",{name:label,exact:true}).waitFor();
+      }
+      assert.equal(await engagementNav.getByRole("group",{name:"Run",exact:true}).getByRole("link",{name:"Four Helpful Lists",exact:true}).count(),1);
+
       // Without a Team Hub connection the card says so in one line and draws no controls that can't work.
       await page.goto(app.origin+"/admin/users"); await page.getByText("The Team Hub connection is unavailable. Please try again later.",{exact:true}).waitFor();
       for(const name of ["Load Clearway team","Add Clearway user","Try again"]) assert.equal(await page.getByRole("button",{name}).count(),0,`no ${name} button without Team Hub`); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).count(),0);
@@ -200,7 +273,14 @@ async function main() {
       await page.goto(app.origin+"/admin/operations"); await page.getByText("No protected copies yet.",{exact:true}).waitFor(); assert.equal(await page.getByRole("heading",{name:"Recent protected copies"}).count(),1); await page.unroute("**/api/operations");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
       const denied=await page.goto(app.origin+"/admin/users"); assert.equal(denied?.status(),404,"only admins reach user administration");
-      await page.goto(app.origin+"/admin"); assert.equal(await page.getByRole("link",{name:"Manage Clearway users"}).count(),0);
+      await page.goto(app.origin+"/admin");
+      assert.equal(await workspaceNav.getByRole("link",{name:"Clearway users",exact:true}).count(),0);
+      assert.equal(await workspaceNav.getByRole("link",{name:"Operations",exact:true}).count(),0);
+      await workspaceNav.getByRole("button",{name:"Jump to",exact:true}).click();
+      await command.fill("pick live");
+      await page.getByText("No matches",{exact:true}).waitFor();
+      assert.equal(await page.getByRole("option",{name:/Pickering/}).count(),0,"the unassigned facilitator can't find the event");
+      await page.keyboard.press("Escape");
       const outsider=await browser.newPage(); await outsider.goto(app.origin+"/admin"); assert.equal(new URL(outsider.url()).pathname,"/sign-in"); await outsider.close();
     }
     if(!before && (area==="c" || area==="all")) {
