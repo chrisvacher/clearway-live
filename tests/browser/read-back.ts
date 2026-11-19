@@ -523,11 +523,12 @@ async function main() {
         laptop.on("dialog", d => { dialogs.push(d.message()); void d.dismiss(); }); // what some browsers and tools do to a native confirm
         const started = new Date(Date.now() - 1000).toISOString();
         await laptop.goto(`${app.origin}/admin/${room}/run-of-show`);
+        await laptop.getByRole("button", {name: "Add step", exact: true}).click();
         await laptop.locator(".rb-tile", { hasText: "Read-back" }).click();
-        await laptop.locator(".rb-row.is-open #session-title").waitFor();
+        await laptop.locator(".rb-settings #session-title").waitFor();
         const added = await until(async () => (await sql.query("select id from public.sessions where engagement_id=$1 and interaction='read_back' and title='Read-back' and not deleted and created_at>$2", [room, started])).rows[0]?.id as string, "the palette step is saved", 8000);
         const stateOf = async () => (await sql.query("select state,deleted from public.sessions where id=$1", [added])).rows[0] as { state: string; deleted: boolean };
-        await laptop.locator(".rb-row.is-open").getByRole("button", { name: "Done" }).click();
+        await laptop.locator(".rb-settings").getByRole("button", { name: "Mark ready" }).click();
         await until(async () => (await stateOf()).state === "ready", "marked ready", 8000);
         const row = laptop.locator(`[data-row="${added}"]`);
         // On air: Remove is not offered, and the panel says why.
@@ -535,20 +536,22 @@ async function main() {
         await until(async () => (await sql.query("select live_session_id from public.room_states where engagement_id=$1", [room])).rows[0].live_session_id === added, "live", 8000);
         await laptop.reload();
         await row.getByRole("button", { name: /Open options/ }).click();
-        await row.locator("[data-remove-note]").waitFor({ timeout: 8000 });
-        assert.equal(await row.getByRole("button", { name: "Remove", exact: true }).count(), 0, "no Remove button while the step is on air");
-        assert.match(await row.locator("[data-remove-note]").innerText(), /Choose Home/);
-        // After the reset it is Ready again, and Remove works.
+        const more = laptop.getByRole("button", {name: "More step actions"});
+        await more.click();
+        assert.equal(await laptop.getByRole("menuitem", {name: "Delete", exact: true}).isDisabled(), true, "Delete is disabled while the step is on air");
+        // After reset the step is Ready again and can be deleted.
         const reset = await fac.client.rpc("reset_practice_room"); assert.equal(reset.error, null); assert.equal(reset.data, true);
         await laptop.reload();
         await row.getByRole("button", { name: /Open options/ }).click();
-        await row.getByRole("button", { name: "Remove", exact: true }).click();
-        await row.locator("[data-remove-confirm]").waitFor({ timeout: 8000 });
-        assert.match(await row.locator("[data-remove-confirm]").innerText(), /Remove Read-back from the run of show\?/);
-        await row.getByRole("button", { name: "Keep it" }).click();
-        assert.equal((await stateOf()).deleted, false, "Keep it leaves the step");
-        await row.getByRole("button", { name: "Remove", exact: true }).click();
-        await row.getByRole("button", { name: "Remove session" }).click();
+        const dialog = laptop.getByRole("dialog", {name: "Delete this step?"});
+        await more.click();
+        await laptop.getByRole("menuitem", {name: "Delete", exact: true}).click();
+        assert.match(await dialog.innerText(), /Read-back will leave the run of show/);
+        await dialog.getByRole("button", {name: "Cancel"}).click();
+        assert.equal((await stateOf()).deleted, false, "Cancel keeps the step");
+        await more.click();
+        await laptop.getByRole("menuitem", {name: "Delete", exact: true}).click();
+        await dialog.getByRole("button", {name: "Delete step"}).click();
         await until(async () => (await stateOf()).deleted, "removed in the database", 8000);
         await until(async () => (await laptop.locator(`[data-row="${added}"]`).count()) === 0, "gone from the run of show", 8000);
         await laptop.getByText("Session removed.").waitFor({ timeout: 8000 });

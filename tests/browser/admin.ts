@@ -406,7 +406,7 @@ async function main() {
       await press(fac,sql,room.id,"nothing_live");
       // The pages around it lead on.
       await page.goto(`${app.origin}/admin/${room.id}/door`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the Door list leads to the live room");
-      await page.goto(`${app.origin}/admin/${room.id}/run-of-show`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the run of show leads to the live room");
+      await page.goto(`${app.origin}/admin/${room.id}/run-of-show`); assert.equal(await page.getByRole("link",{name:"Open the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the run of show leads to the live room");
       await page.goto(`${app.origin}/admin`); const row=page.locator(`.admin-row:has(a[href*="${room.id}"])`);
       assert.equal(await row.getByTestId("brand-label").innerText(),"Novetera","the list names the engagement's brand");
       if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/list-1512.png`}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/list-756.png`}); await page.setViewportSize({width:1512,height:982}); }

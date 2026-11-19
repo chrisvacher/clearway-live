@@ -20,6 +20,7 @@ import { ReadBackOptions } from "@/components/interactions/read-back/read-back-o
 // session.options; the database's options_<kind> normalizes and checks it on Save.
 export type OptionsEditorProps = { session: ShowSession; value: Record<string, unknown>; context: ShowContext; fresh: boolean; locked: boolean;
   onChange: (options: Record<string, unknown>) => void;
+  reorderOptions?: boolean;
   // Lets a kind's preset set the step's prompt too (the Pre-mortem's own question).
   setPrompt?: (prompt: string) => void };
 export const optionEditors: Partial<Record<InteractionKind, ComponentType<OptionsEditorProps>>> = {

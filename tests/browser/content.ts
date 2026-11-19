@@ -64,10 +64,10 @@ async function main() {
       const png = await page.locator("div").first().screenshot({ type: "png" }); await page.close();
       await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
       await editor.locator(".rb-row", { hasText: "Survey page" }).getByRole("button", { name: /Open options/ }).click();
-      await editor.locator(".rb-row.is-open #content-file").setInputFiles({ name: "page-3.png", mimeType: "image/png", buffer: png });
-      await editor.getByText("Image added. Press Done to put it in the run of show.").waitFor({ timeout: 20000 });
+      await editor.locator(".rb-settings").getByRole("button", {name: "Add an image"}).click();
+      await editor.locator(".rb-settings #content-file").setInputFiles({ name: "page-3.png", mimeType: "image/png", buffer: png });
+      await editor.getByText("Image added.").waitFor({ timeout: 20000 });
       await shot(editor, "set-07-image-options");
-      await editor.locator(".rb-row.is-open").getByRole("button", { name: "Done", exact: true }).click();
       await until(async () => (await sql.query("select options#>>'{image,id}' as m from public.sessions where id=$1", [image])).rows[0].m, "image saved on the session", 10000);
     });
 
