@@ -317,11 +317,12 @@ async function main() {
       await until(async () => await recap.locator(".recap-card").count() === 4, "four cards (every session that took answers)", 10000);
       const card = recap.getByTestId("workshop-summary");
       await card.getByRole("button", { name: "Draft a summary", exact: true }).click();
-      await card.getByText("AI drafted this from the room’s answers. Read it before you share it.").waitFor({ timeout: 20000 });
+      await card.getByText("Drafted by AI from the answers, then edited by you").waitFor({ timeout: 20000 });
       assert.match(await card.locator(".ws-body").innerText(), /The room began with/);
       const runs = await sql.query("select status,prompt_version from private.ai_runs where engagement_id=$1 and job='draft_workshop_summary'", [room.id]);
       assert.deepEqual(runs.rows.map(r => r.status), ["ok"], "one run, from the fake model");
-      const [download] = await Promise.all([recap.waitForEvent("download"), card.getByRole("link", { name: "Download as Word", exact: true }).click()]);
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Summary as Word", exact: true }).click()]);
       assert.match(download.suggestedFilename(), /summary\.docx$/); assert.ok(!clearway.test(download.suggestedFilename()), "the file's name");
       const zip = await JSZip.loadAsync(readFileSync((await download.path())!));
       const parts = Object.keys(zip.files).filter(n => /\.(xml|rels)$/i.test(n)); assert.ok(parts.includes("docProps/core.xml") && parts.includes("word/document.xml"));

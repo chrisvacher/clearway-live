@@ -8,6 +8,8 @@ import type { ThemesState } from "@/lib/discover/themes";
 import type { HeardState } from "@/lib/discover/heard";
 import { Discover } from "@/components/discover/discover";
 
+export const metadata = { title: "Discover" };
+
 // Discover for one engagement: the survey report's findings, interview and input-conversation notes, and themes.
 // Facilitators of the engagement only. If the database does not have the Discover functions yet, the page says so
 // and the rest of setup is unchanged.

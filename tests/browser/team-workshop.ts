@@ -474,15 +474,16 @@ async function main() {
         else assert.ok(!people.some(n => text.includes(`,${n},`)), `${title}: anonymous`);
         assert.match(download.suggestedFilename(), /^riverside-church-.+\.csv$/);
       }
-      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("link", { name: "Every answer as CSV" }).click()]);
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Every answer as CSV", exact: true }).click()]);
       const every = readFileSync((await download.path())!, "utf8").replace(/^﻿/, "").trim().split("\r\n");
       assert.equal(every.length - 1, Object.values(expected).reduce((n, e) => n + e.rows, 0), "Download all has every row");
     });
-    await step("After the workshop: AI drafts a short summary from the room's answers, the facilitator edits it and downloads it as Word", async () => {
-      assert.equal(await recap.getByRole("heading", { name: "After the workshop", exact: true }).count(), 1);
+    await step("Results: AI drafts a short summary from the room's answers, the facilitator edits it and downloads it as Word", async () => {
+      assert.equal(await recap.getByRole("heading", { name: "Results", exact: true }).count(), 1);
       const card = recap.getByTestId("workshop-summary");
       await card.getByRole("button", { name: "Draft a summary", exact: true }).click();
-      await card.getByText("AI drafted this from the room\u2019s answers. Read it before you share it.").waitFor({ timeout: 20000 });
+      await card.getByText("Drafted by AI from the answers, then edited by you").waitFor({ timeout: 20000 });
       const drafted = await card.locator(".ws-body").innerText();
       assert.match(drafted, /The room began with/); assert.ok(!/[\u2014\u2013]/.test(drafted), "no dashes in the summary");
       const runs = await sql.query("select status,model,prompt_version,session_id from private.ai_runs where engagement_id=$1 and job='draft_workshop_summary'", [room.id]);
@@ -491,8 +492,9 @@ async function main() {
       await card.getByLabel("Summary", { exact: true }).fill("The team began unsure.\n\nIt ended with a commitment.");
       await card.getByRole("button", { name: "Save summary", exact: true }).click();
       await until(async () => await card.locator(".ws-body p").count() === 2, "the edit is shown as two paragraphs", 10000);
-      assert.equal(await card.getByText(/AI drafted this/).count(), 0, "an edited summary is the facilitator's");
-      const [download] = await Promise.all([recap.waitForEvent("download"), card.getByRole("link", { name: "Download as Word", exact: true }).click()]);
+      assert.equal(await card.getByText("Drafted by AI from the answers, then edited by you").count(), 1, "the summary keeps its AI provenance");
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Summary as Word", exact: true }).click()]);
       assert.match(download.suggestedFilename(), /summary\.docx$/);
       const bytes = readFileSync(await download.path());
       assert.equal(bytes.subarray(0, 2).toString(), "PK", "the Word file is a real document");
@@ -510,7 +512,7 @@ async function main() {
     });
     await step("Print the recap to PDF", async () => {
       await recap.emulateMedia({ media: "print" });
-      assert.equal(await recap.locator(".recap-actions").isVisible(), false, "print leaves the buttons off");
+      assert.equal(await recap.locator(".cwl-ui-page-actions").isVisible(), false, "print leaves the buttons off");
       const pdf = await recap.pdf({ format: "Letter" });
       assert.ok(pdf.byteLength > 10000, "prints to PDF");
       if (shots) writeFileSync(`${shots}/team-recap.pdf`, pdf);

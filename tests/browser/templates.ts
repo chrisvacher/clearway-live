@@ -70,13 +70,38 @@ async function main() {
       await editor.goto(`${app.origin}/admin/templates?engagement=${room.id}`);
       const card = editor.locator(".tpl-card", { hasText: "Team workshop" });
       await card.waitFor();
-      assert.match(await card.innerText(), /90 minutes · 11 sessions/);
-      assert.match(await card.innerText(), /Clearway/); assert.match(await card.innerText(), /Ships with the app/);
+      assert.match(await card.innerText(), /90 minutes · 11 steps/);
+      assert.match(await card.innerText(), /Workshop/); assert.match(await card.innerText(), /Ships with the app/);
       await card.getByRole("button", { name: "Preview" }).click();
       const panel = editor.locator(".tpl-panel");
       assert.deepEqual((await panel.locator(".rb-name strong").allInnerTexts()).slice(0, 4), ["Screen check", "Welcome", "Opening prayer", "Check-in"]);
       assert.ok((await panel.innerText()).includes("1:25"), "times from the durations");
       await shot(editor, "set-08-library");
+    });
+    await step("The library separates blocks and protects shipped templates while allowing a copy", async () => {
+      const card = editor.locator(".tpl-card", { hasText: "Team workshop" });
+      const actions = card.getByRole("button", { name: "Actions for Team workshop", exact: true });
+      if (await actions.count()) {
+        await actions.click();
+        assert.equal(await editor.getByRole("menuitem", { name: "Rename", exact: true }).count(), 0);
+        assert.equal(await editor.getByRole("menuitem", { name: "Delete", exact: true }).count(), 0);
+        await editor.getByRole("menuitem", { name: "Duplicate", exact: true }).click();
+        const copy = editor.locator(".tpl-card").filter({ hasText: "Team workshop (copy)" });
+        await copy.waitFor();
+        await copy.getByRole("button", { name: "Actions for Team workshop (copy)", exact: true }).click();
+        await editor.getByRole("menuitem", { name: "Rename", exact: true }).click();
+        const rename = editor.getByRole("dialog", { name: "Rename template", exact: true });
+        await rename.getByRole("textbox", { name: "Name", exact: true }).fill("Workshop test copy");
+        await rename.getByRole("button", { name: "Save name", exact: true }).click();
+        await editor.getByRole("button", { name: "Actions for Workshop test copy", exact: true }).click();
+        await editor.getByRole("menuitem", { name: "Delete", exact: true }).click();
+        await editor.getByRole("dialog", { name: "Delete Workshop test copy?", exact: true }).getByRole("button", { name: "Delete", exact: true }).click();
+        await editor.getByRole("button", { name: "Actions for Workshop test copy", exact: true }).waitFor({ state: "detached" });
+      }
+      await editor.getByRole("tab", { name: /^Blocks/ }).click();
+      assert.equal(await editor.getByRole("tabpanel", { name: /^Blocks/ }).isVisible(), true);
+      await editor.getByRole("tab", { name: /^Templates/ }).click();
+      await card.getByRole("button", { name: "Preview", exact: true }).click();
     });
     await step("SET-08: Use a template from the team workshop copies its sessions, prompts, settings, timings and notes", async () => {
       await editor.locator(".tpl-panel").getByRole("button", { name: "Use this template" }).click();
