@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { CircleAlert } from "lucide-react";
-import { JoinHome } from "./join-home";
 import { LivePhone } from "./live-phone";
 import { ScribeRoom } from "@/components/scribe/scribe-room";
 import { AiSignInNote } from "@/components/interactions/ai/ai-disclosure";
@@ -98,12 +97,12 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
     {messages[state.status] && <p role="status">{messages[state.status]}</p>}
   </section>;
   if(state.status==="loading")return <p role="status" aria-live="polite">Reconnecting</p>;
-  if(practice)return <section className="form-stack"><JoinHome engagement={engagement} /><p>Join with your name to try the practice room. You won’t need an email or a sign-in code.</p>
+  if(practice)return <section className="form-stack"><p>Join with your name to try the practice room. You won’t need an email or a sign-in code.</p>
     <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="practice-name">Your name</label><input id="practice-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the practice room</button></form>
     {ai&&<AiSignInNote />}
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
   </section>;
-  if(openJoin&&!useEmail&&!["pending","declined"].includes(state.status))return <section className="form-stack"><JoinHome engagement={engagement} /><p>Join with your name. You won’t need an email or a sign-in code.</p>
+  if(openJoin&&!useEmail&&!["pending","declined"].includes(state.status))return <section className="form-stack"><p>Join with your name. You won’t need an email or a sign-in code.</p>
     <form className="form-stack" onSubmit={event=>submit(event,"practice")}><label htmlFor="open-name">Your name</label><input id="open-name" autoComplete="name" maxLength={200} value={name} onChange={e=>setName(e.target.value)} required /><button className="button-link" disabled={busy||state.status==="loading"}>Join the room</button></form>
     {ai&&<AiSignInNote />}
     {messages[state.status]&&<p role="status">{messages[state.status]}</p>}
@@ -117,7 +116,6 @@ export function RoomAccess({ engagement, church, email: initialEmail = "", confi
     {deviceCode && <aside className="notice"><h2>Need a hand signing in?</h2><p>Show this device code to your facilitator.</p><p className="device-code">{deviceCode.slice(0,4)} {deviceCode.slice(4)}</p></aside>}
   </section>;
   return <section className="form-stack">
-    <JoinHome engagement={engagement} />
     {needsFacilitator ? <div className="room-alert" role="alert" id="room-access-message">
       <CircleAlert aria-hidden="true" focusable="false" />
       <div><h2>{state.status === "not_listed" ? "Not on the list yet" : "Check with your facilitator"}</h2><p>{messages[state.status]}</p></div>

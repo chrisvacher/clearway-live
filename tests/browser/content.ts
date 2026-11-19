@@ -103,14 +103,17 @@ async function main() {
       await until(async () => (await ben.locator(".ph-body").innerText()).includes("Phones away"), "Phones away");
       await shot(tv, "content-prayer-tv"); await shot(ben, "content-prayer-phone");
     });
-    await step("Image step: the page fills the TV at its own shape, letterboxed on the TV ground, and phones zoom it", async () => {
+    await step("Image step: the page fills the TV at its own shape, letterboxed on the TV ground, and phones show no image", async () => {
       await live(image);
       const img = tv.locator(".tv-imgstage.is-active .tv-img-layer:not(.is-leaving) img");
       await until(async () => await img.evaluate(el => (el as HTMLImageElement).complete && (el as HTMLImageElement).naturalWidth > 0).catch(() => false), "image loads on the TV", 10000);
       const natural = await img.evaluate(el => ({ w: (el as HTMLImageElement).naturalWidth, h: (el as HTMLImageElement).naturalHeight }));
       assert.ok(Math.abs(natural.w / natural.h - 850 / 1100) < 0.02, "the whole image, never stretched or cropped");
       assert.equal(await img.evaluate(el => getComputedStyle(el).objectFit), "contain", "shown whole, letterboxed");
-      await until(async () => await ruth.locator(".ph-zoom img").evaluate(el => (el as HTMLImageElement).naturalWidth > 0).catch(() => false), "image loads on the phone", 10000);
+      // Slide images are for the TV only (November 19): the phone shows the step's title, never the image.
+      await until(async () => (await ruth.locator(".ph-body .ph-headline").innerText().catch(() => "")) === "Survey page", "the Image step's title on the phone", 10000);
+      assert.doesNotMatch(await ruth.locator(".ph-body").innerText(), /Pinch to zoom/i);
+      assert.equal(await ruth.locator(".ph-body img").count(), 0, "no image on the phone");
       await shot(tv, "content-image-tv"); await shot(ruth, "content-image-phone");
     });
     await step("Screen check from the run of show: the full-bleed check on the TV, fixes on phones", async () => {

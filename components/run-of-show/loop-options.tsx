@@ -84,7 +84,7 @@ export function LoopOptions({ session, value, context, fresh, locked, onChange }
       <span className="show-help">With reduced motion on, slide and cross-fade become a cut.</span></div>
     <div className="is-full loop-home">
       <div><b><Home size={16} aria-hidden="true" />Use as the Home screen</b>
-        <span className="show-help" role="status">{homeNote || (fresh ? "Press Done to add the loop first, then turn this on." : "The Home control under the Live screen shows this loop, and phones show it while Home is live.")}</span></div>
+        <span className="show-help" role="status">{homeNote || (fresh ? "Press Done to add the loop first, then turn this on." : "The Home control under the Live screen shows this loop on the TV. Phones show the waiting message.")}</span></div>
       <button type="button" className={`loop-switch${home ? " is-on" : ""}`} role="switch" aria-checked={home} aria-label="Use as the Home screen" disabled={fresh || homeBusy || context.closed} onClick={() => void toggleHome()} />
     </div>
   </>;

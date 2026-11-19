@@ -858,8 +858,6 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ph-section summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; list-style: none; font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); }
 .ph-section summary::-webkit-details-marker { display: none; }
 .ph-section[open] summary svg { transform: rotate(180deg); }
-.ph-zoom { overflow: auto; touch-action: pinch-zoom pan-x pan-y; border-radius: 8px; }
-.ph-zoom img { width: 100%; height: auto; display: block; }
 .ph-note { display: inline-flex; align-items: center; gap: 6px; font-size: var(--cwl-fs-phone-micro); color: var(--cwl-text-muted); }
 .show-media { display: grid; gap: var(--space-2); justify-items: start; }
 .show-media-preview { width: 320px; height: auto; border-radius: 6px; border: 1px solid var(--cwl-app-border, currentColor); object-fit: contain; }

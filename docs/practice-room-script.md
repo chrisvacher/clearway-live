@@ -28,7 +28,7 @@ Section 11 carries the milestone 2 real-device checks forward. They still apply 
 | Go live on Headline with depth | The TV shows the headline very large, and the number in Sunrise if you set one. Phones show the detail, quotes and Read more sections | No phone is empty, and the TV never flashes white |
 | Go live on Scripture | The TV shows three pieces: the passage, the reference and the translation. A bold phrase is bold. Phones show the same passage to read | The translation is the engagement's when you left it blank |
 | Go live on Prayer and silence | A dark, still TV, or a single line. Phones say Phones away | Nothing moves on the TV |
-| Go live on Image or document page | The page at its own shape, never stretched, with the room link small in a corner. Phones show it to zoom | You can pinch to zoom on a phone |
+| Go live on Image or document page | The page at its own shape, never stretched, with the room link small in a corner. Phones show the step's title and phone words, with no image | No phone shows the image |
 | Go live on Screen check | The edge lines, the circle and the type ladder fill the TV. Phones show fixes for overscan and aspect | Every Lime corner is visible and the circle is round |
 | Go live on Holding | The church's name, the event and the texture, and the day's outline if you wrote one. Phones say you're in | A long outline sits in two columns and stays on the screen |
 
@@ -597,8 +597,8 @@ Ships before Pickering Pentecostal (November 20). About two and a half hours. Th
 | Open a headline step, choose Use an image already added, and choose In place | The image sits right of the headline on the Preview | The headline still reads |
 | Open a question step (word cloud or open text) and add an image | Only In place is offered | Fill is greyed out for a question |
 | (Both skins) Go live on each Image step in turn, then on the 4:3 one | Each image fills the TV, with no church badge, counts or live mark over it. The 4:3 one sits whole on the skin's TV ground | Nothing is cropped, nothing flashes and the screen is never blank between images |
-| (Real device) Look at a phone on an Image step and pinch | The image with Pinch to zoom, and it zooms | It zooms on an iPhone and an Android phone |
-| Go live on the question with an image In place | The image is small beside the question and the answers arrive below it as usual | The live answers keep the screen |
+| (Real device) Look at a phone on an Image step | The step's title as a headline, and its phone words if it has any. No image and no Pinch to zoom | The same on an iPhone and an Android phone |
+| Go live on the question with an image In place | The image is small beside the question and the answers arrive below it as usual. Phones show the question with no image | The live answers keep the screen |
 
 ## 51. The image loop and Home (25 minutes)
 
@@ -607,8 +607,8 @@ Ships before Pickering Pentecostal (November 20). About two and a half hours. Th
 | Drag an Image loop into the run of show. Add the three photos, set 5 seconds, choose Slide, and turn on Use as the Home screen | The row shows Home screen and 3 images · 5s | It saves |
 | (Both skins) Press Home under the Live screen | The TV shows the loop, moving every 5 seconds, sliding from the right, with no join code over it | Nothing flashes and there's no blank moment |
 | Watch the Live screen | It says Home: (the loop's title), Image 2 of 3, next in 3s, counting | It matches the TV |
-| (Real device) Look at a signed-in phone | The same image as the TV, with the waiting message | Phone and TV change together |
-| (Real device) On a phone that hasn't joined, open the room link | The image is above the join form | Joining still works |
+| (Real device) Look at a signed-in phone | The waiting message, with no loop image | The TV changes image; the phone stays still |
+| (Real device) On a phone that hasn't joined, open the room link | The join form on its own, with no image | Joining still works |
 | Change the transition to Cross-fade, then Cut. Turn on Reduce motion on the TV in Screens | Cross-fade fades over 1.2 seconds, Cut changes in one frame, and Reduce motion makes every change a cut | Each looks as described |
 | On the Screens page, choose The holding screen under Home screen | Home goes back to the holding screen at once | The TV changes without a refresh |
 | Go live on the loop as a step | It runs as it did on Home, and the Preview draws it the same way | Preview and TV match |

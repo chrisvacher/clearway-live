@@ -1,9 +1,11 @@
 // Batch 1: images (TC-2 deck images to slides, TC-3 one image per step) in real browsers against the production build and the
 // local stack with Storage. The facilitator adds three exported slides at once through Add images as slides (one of them 4:3),
 // orders them, picks the section, and gets one Image step each, titled "Image 1" and on, greyed until a title is typed. Each goes
-// live on a paired TV (Fill, letterboxed on the skin's TV ground, the header covered, nothing jumping between steps) and on a
-// phone (the image with pinch to zoom). An image In place sits beside a headline and beside an interaction's question, and the
-// phone shows it under the step. The control surface's Preview draws it as the TV does. The same steps run in the Novetera skin.
+// live on a paired TV (Fill, letterboxed on the skin's TV ground, the header covered, nothing jumping between steps). Slide images
+// are for the TV only (November 19): a phone at 390 wide shows an Image step's title and phone words, never the image, and never
+// asks for one. An image In place sits beside a headline and beside an interaction's question on the TV, and the phone shows only
+// the step's own content. The TV view on phones still mirrors the TV, image and all. The control surface's Preview draws it as
+// the TV does. The same steps run in the Novetera skin.
 // KIT_SHOTS=<folder> saves a screenshot of each screen. Local only.
 import assert from "node:assert/strict";
 import { setTimeout as delay } from "node:timers/promises";
@@ -92,6 +94,9 @@ async function main() {
       await pairTv(fac, room.id, app.secret, code);
       await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
       const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      // Every image or signed Storage address a phone asks for. Its own screens ask for none.
+      const asked: string[] = [];
+      phoneContext.on("request", r => { if (/\/api\/(images|media)\/|\/storage\/v1\/object\//.test(r.url())) asked.push(r.url()); });
       const phone = await phoneContext.newPage(); await phone.goto(`${app.origin}/room/${room.id}`);
       const before = mail.count; await phone.fill("#room-email", room.attendees[0].email); await phone.getByRole("button", { name: "Send me a sign-in code" }).click();
       await phone.fill("#room-code", await mail.code(room.attendees[0].email, before)); await phone.getByRole("button", { name: "Sign in" }).click();
@@ -113,13 +118,19 @@ async function main() {
         const ground = await tv.locator(".tv-imgstage").evaluate(el => getComputedStyle(el).backgroundColor);
         const surface = await tv.locator(".tv-stage").evaluate(el => getComputedStyle(el).backgroundColor);
         assert.equal(ground, surface, "the letterbox ground is the skin's TV ground");
-        await until(async () => (await phone.locator(".ph-zoom img").count()) === 1 && await phone.locator(".ph-zoom img").evaluate(el => (el as HTMLImageElement).naturalWidth > 0), "the phone shows it to zoom", 10000);
+        await until(async () => (await phone.locator(".ph-body .ph-headline").innerText().catch(() => "")) === "Where we have been", "the phone shows the title as a headline", 10000);
+        assert.equal(await phone.locator(".ph-body img").count(), 0, "no image on the phone");
+        assert.doesNotMatch(await phone.locator(".ph-body").innerText(), /Pinch to zoom/i);
         await shot(tv, `${skin}-image-fill-tv`); await shot(phone, `${skin}-image-fill-phone`);
         // A 4:3 slide: shown whole, never cropped.
         await live("Image 3");
         await loaded(stageImg());
         assert.equal(await stageImg().evaluate(el => getComputedStyle(el).objectFit), "contain");
-        await shot(tv, `${skin}-image-letterbox-tv`);
+        // Untitled, with no phone words: the phone says to watch the screen, never the greyed "Image 3".
+        await until(async () => (await phone.locator(".ph-body").innerText()).includes("Watch the screen."), "untitled on the phone", 10000);
+        assert.doesNotMatch(await phone.locator(".ph-body").innerText(), /Image 3/);
+        assert.equal(await phone.locator(".ph-body img").count(), 0, "no image on the phone");
+        await shot(tv, `${skin}-image-letterbox-tv`); await shot(phone, `${skin}-image-untitled-phone`);
       });
 
       await step(`${skin}: from one image to the next, the old one holds under the cross-fade, so the screen is never blank`, async () => {
@@ -131,17 +142,33 @@ async function main() {
         assert.ok(seen.cover > 0.98, `an image always covers the stage (lowest ${seen.cover})`);
       });
 
-      await step(`${skin}: In place sits beside the headline, and beside a question with the live bars below; phones show it under the step`, async () => {
+      await step(`${skin}: In place sits beside the headline, and beside a question with the live bars below; phones show only the step`, async () => {
         await live("Why we are here");
         await loaded(tv.locator(".tv-layer:not(.is-leaving) .tv-inplace-img img"));
+        await until(async () => (await phone.locator(".ph-body .ph-headline").innerText().catch(() => "")).includes("Three things we will build together"), "the headline on the phone", 10000);
+        assert.equal(await phone.locator(".ph-body img").count(), 0, "no image under the headline on the phone");
+        await shot(phone, `${skin}-inplace-content-phone`);
         assert.equal(await tv.locator(".tv-imgstage").getAttribute("data-image-stage"), "off", "the stage stays down: In place is in the layout");
         await shot(tv, `${skin}-inplace-content-tv`);
         await live("Which next step first?");
         await loaded(tv.locator(".tv-layer:not(.is-leaving) .tv-inplace-thumb img"));
         const thumb = await tv.locator(".tv-layer:not(.is-leaving) .tv-inplace-thumb").boundingBox();
         assert.ok(thumb && Math.round(thumb.width) === 480 && Math.round(thumb.height) === 270, "480 by 270 beside the question");
-        await until(async () => await phone.locator(".ph-step-image img").evaluate(el => (el as HTMLImageElement).naturalWidth > 0).catch(() => false), "under the step on the phone", 10000);
+        await until(async () => (await phone.locator(".ph-prompt").innerText().catch(() => "")) === "Which next step could we try first?", "the question on the phone", 10000);
+        assert.equal(await phone.locator(".ph-body img").count(), 0, "no image under the question on the phone");
+        assert.doesNotMatch(await phone.locator(".ph-body").innerText(), /Pinch to zoom/i);
         await shot(tv, `${skin}-inplace-question-tv`); await shot(phone, `${skin}-inplace-question-phone`);
+        assert.deepEqual(asked, [], "the phone asked for no image and no signed address");
+      });
+
+      await step(`${skin}: the TV view on phones still mirrors the TV, image and all`, async () => {
+        await live("Where we have been");
+        await press(fac, sql, room.id, "tv_on_phones", { on: true });
+        await loaded(phone.locator(".ph-body [data-surface='tv'] .tv-imgstage.is-active .tv-img-layer:not(.is-leaving) img"));
+        await shot(phone, `${skin}-image-tv-view-phone`);
+        await press(fac, sql, room.id, "tv_on_phones", { on: false });
+        await until(async () => await phone.locator(".ph-body [data-surface='tv']").count() === 0, "the TV view goes", 10000);
+        assert.equal(await phone.locator(".ph-body img").count(), 0, "and the phone's own screen has no image");
       });
 
       await step(`${skin}: the Preview draws an Image step exactly as the TV will`, async () => {

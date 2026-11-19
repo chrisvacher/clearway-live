@@ -1,11 +1,10 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { handleRoom } from "@/lib/room/server";
-import { joinHome } from "@/lib/images/server";
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string; action: string }> }) {
   const { id, action } = await params;
-  if (action === "home") return joinHome(id);
+  // No "home" here any more: phones that haven't joined see the join form on its own, with no Home image (November 19).
   return action === "status" ? handleRoom(request, id, action) : new NextResponse(null, { status: 405 });
 }
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string; action: string }> }) {

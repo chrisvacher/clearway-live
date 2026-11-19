@@ -1,8 +1,9 @@
 // Batch 1: the image loop (LP-1) and a loop as Home, in real browsers against the production build and the local stack with
 // Storage. The facilitator builds a Walk-in loop in the run of show (three images, 3 seconds each, a slide), turns on Use as the
 // Home screen, and the paired TV shows it on Home with the header covered, moving to the next image on time with no blank moment.
-// A signed-in phone shows the same image in step with the TV, a phone that hasn't joined shows it above the join form, and the
-// Live room says which image is up and when the next comes. Cut and reduced motion cut. The loop also runs as a live step, the
+// Slide images are for the TV only (November 19): a signed-in phone at 390 wide shows the waiting message without the loop, a
+// phone that hasn't joined sees the join form on its own, and neither asks for an image. The Live room says which image is up
+// and when the next comes. Cut and reduced motion cut. The loop also runs as a live step, the
 // Preview draws it as the TV does, and the Screens page puts Home back to the holding screen. The same steps run in Novetera.
 // KIT_SHOTS=<folder> saves a screenshot of each screen. Local only.
 import assert from "node:assert/strict";
@@ -86,10 +87,15 @@ async function main() {
       });
 
       const phoneContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      // Every image or signed Storage address a phone asks for, and every Home poll. Phones ask for none.
+      const asked: string[] = [];
+      phoneContext.on("request", r => { if (/\/api\/(images|media)\/|\/storage\/v1\/object\/|\/api\/room\/[^/]+\/home/.test(r.url())) asked.push(r.url()); });
       const joining = await phoneContext.newPage(); await joining.goto(`${app.origin}/room/${room.id}`);
-      await step(`${skin}: a phone that hasn't joined shows the Home image above the join form`, async () => {
-        await loaded(joining.locator(".join-home .ph-loop img").last());
-        assert.ok(await joining.locator(".join-home + p, .join-home ~ form, .join-home ~ *").count() > 0, "the join form is under it");
+      await step(`${skin}: a phone that hasn't joined sees the join form on its own, with no Home image`, async () => {
+        await joining.locator("#room-email").waitFor({ timeout: 15000 });
+        await delay(1500);
+        assert.equal(await joining.locator("img").count(), 0, "no image above the join form");
+        assert.equal(await joining.locator(".join-home, .ph-loop").count(), 0);
         await shot(joining, `${skin}-loop-home-joining`);
       });
 
@@ -98,11 +104,12 @@ async function main() {
       await phone.fill("#room-code", await mail.code(room.attendees[0].email, before)); await phone.getByRole("button", { name: "Sign in" }).click();
       await phone.locator(".ph-app").waitFor({ timeout: 15000 });
 
-      await step(`${skin}: a signed-in phone shows the same image as the TV, with the waiting message`, async () => {
-        await loaded(phone.locator(".ph-loop img").last());
-        assert.match(await phone.locator(".ph-waiting").innerText(), /You’re in, Ruth/);
-        // Sampled together, away from a change: the phone and the TV agree.
-        await until(async () => { const t = await tvIndex(), p = Number(await phone.locator(".ph-loop").getAttribute("data-phone-loop")); return t === p; }, "phone and TV on the same image", 4000);
+      await step(`${skin}: a signed-in phone shows the waiting message without the loop image`, async () => {
+        await until(async () => /You’re in, Ruth/.test(await phone.locator(".ph-waiting").innerText().catch(() => "")), "the waiting message", 10000);
+        // Through a change of image on the TV, the phone draws none.
+        const first = await tvIndex();
+        await until(async () => (await tvIndex()) !== first, "the TV moves on", 5000);
+        assert.equal(await phone.locator(".ph-body img, .ph-loop").count(), 0, "no loop image on the phone");
         await shot(phone, `${skin}-loop-home-phone`);
       });
 
@@ -134,9 +141,14 @@ async function main() {
         await press(fac, sql, room.id, "go_live", { session: walkIn });
         await loaded(stageImg());
         assert.equal(await tv.locator(".tv-imgstage").getAttribute("data-image-stage"), "on");
-        await loaded(phone.locator(".ph-loop img").last());
-        const home = await (await fetch(`${app.origin}/api/room/${room.id}/home`)).json() as { home: unknown };
-        assert.equal(home.home, null, "no Home for joining phones while a step is live");
+        await until(async () => (await phone.locator(".ph-body").innerText()).includes("Watch the screen. Your phone will wake when we start."), "the loop step's waiting line on the phone", 10000);
+        assert.equal(await phone.locator(".ph-body img, .ph-loop").count(), 0, "no loop image on the phone");
+        await shot(phone, `${skin}-loop-step-phone`);
+        // The Home address for joining phones is gone, and the image route no longer serves joining phones.
+        assert.equal((await fetch(`${app.origin}/api/room/${room.id}/home`)).status, 405, "no Home address for joining phones");
+        const first = (await sql.query("select options->'images'->>0 as id from public.sessions where id=$1", [walkIn])).rows[0].id as string;
+        assert.equal((await fetch(`${app.origin}/api/images/${room.id}/${first}?surface=join`, { redirect: "manual" })).status, 404, "no image for a joining phone");
+        assert.deepEqual(asked, [], "no phone asked for an image, a signed address or Home");
         const ids = (await sql.query("select id from public.sessions where engagement_id=$1 and title='Why we are here'", [room.id])).rows[0].id;
         await press(fac, sql, room.id, "go_live", { session: ids });
         await until(async () => await tv.locator(".tv-imgstage").getAttribute("data-image-stage") === "off", "a headline takes the screen back", 8000);
