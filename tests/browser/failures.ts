@@ -69,7 +69,7 @@ try {
   // The laptop and the remote.
   const facContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await facContext.addCookies(fac.cookies(app.origin));
-  const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
+  const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${room.id}`);
   await control.locator(".ctl-app").waitFor({ timeout: 15000 });
   const remoteContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await remoteContext.addCookies(fac.cookies(app.origin));

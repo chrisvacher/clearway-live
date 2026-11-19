@@ -61,7 +61,7 @@ export function TimerCard({ room, engagement, compact = false }: { room: Room; e
         <button type="button" className={btn} disabled={busy} onClick={() => void press("add", { seconds: 60 })}>+1 min</button>
         <button type="button" className={btn} disabled={busy} onClick={() => void press("add", { seconds: 300 })}>+5 min</button>
         <button type="button" className={btn} disabled={busy} onClick={() => void press("add", { seconds: -60 })}>−1 min</button>
-        {timer.kind !== "to" && <button type="button" className={btn} disabled={busy} onClick={() => void press("reset")}><RotateCcw size={16} aria-hidden="true" />Reset</button>}
+        {timer.kind !== "to" && <button type="button" className={btn} disabled={busy} aria-label="Reset" title="Reset" onClick={() => void press("reset")}><RotateCcw size={16} aria-hidden="true" />{compact && "Reset"}</button>}
         <button type="button" className={btn} disabled={busy} onClick={() => void press("stop")}><Square size={16} aria-hidden="true" />Stop</button>
       </div>
     </div> : <p className="show-help">No timer is running. The burst countdown is separate and stays as it is.</p>}

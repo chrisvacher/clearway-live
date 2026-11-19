@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, House, Play, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, House, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { screensDown, stateLabels } from "@/lib/control/policy";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
@@ -11,6 +11,7 @@ import { MarkDecision } from "./mark-decision";
 import { AnswersToggle } from "./answers-toggle";
 import { TvNoteLine, useOpenTv } from "./open-tv-window";
 import { ResponsesList } from "./responses";
+import { GoLiveTile } from "./press-flash";
 
 export type Room = ReturnType<typeof useControlRoom>;
 export const roomSizes: [RoomSize, string][] = [["very_small", "Very small screen"], ["small", "Small screen"], ["medium", "Medium screen"], ["large", "Large screen"], ["very_large", "Very large screen"]];
@@ -80,7 +81,9 @@ export function Toasts({ room }: { room: Room }) {
   return <div className="ctl-toasts" aria-live="polite">{room.toasts.map(t => <div key={t.id} className="ctl-toast" role="status"><Info size={18} aria-hidden="true" /><div><strong>{t.text}</strong><span>From another remote · just now</span></div></div>)}</div>;
 }
 
-export function PreviewCard({ session, context, room, onClose }: { session: ShowSession; context: ShowContext; room: Room; onClose: () => void }) {
+export function PreviewCard({ session, context, room, onClose, flashing, onGoLive }: {
+  session: ShowSession; context: ShowContext; room: Room; onClose: () => void; flashing: boolean; onGoLive: (id: string, after?: () => void) => void;
+}) {
   const live = room.frame?.state.live_session_id === session.id;
   return <section className="ctl-preview" aria-labelledby="ctl-preview-title">
     <div className="ctl-row is-between"><span className="ctl-eyebrow">Preview · not on the TV</span><span className={`show-state is-${session.state}`}>{stateLabels[session.state] ?? session.state}</span></div>
@@ -92,7 +95,7 @@ export function PreviewCard({ session, context, room, onClose }: { session: Show
     </dl>
     <div className="ctl-private"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Presenter notes</span></div><p className="ctl-notes">{session.notes || "No presenter notes."}</p></div>
     <div className="ctl-row">
-      <button className="show-button is-golive" disabled={Boolean(room.pending) || live || session.state === "draft" || context.closed} onClick={() => void room.press("go_live", { session: session.id }).then(r => { if (r.status === "ok") onClose(); })}><Play size={18} aria-hidden="true" />Go live from preview</button>
+      <button className={`ctl-r-btn is-golive${flashing ? " is-flashing" : ""}`} disabled={Boolean(room.pending) || live || session.state === "draft" || context.closed} onClick={() => onGoLive(session.id, onClose)}><GoLiveTile />Go live from preview</button>
       <button className="show-button" onClick={onClose}><X size={18} aria-hidden="true" />Close preview</button>
     </div>
     {session.state === "draft" && <p className="show-help">Mark this session ready in the run of show before it goes live.</p>}
@@ -100,7 +103,10 @@ export function PreviewCard({ session, context, room, onClose }: { session: Show
 }
 
 // The live controls on the remote. The laptop sends the same presses from its transport bar and step controls (step-controls.tsx).
-export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Room; variant: "laptop" | "remote"; onItems: () => void; onRoomSize?: () => void }) {
+export function LiveControls({ room, variant, onItems, onRoomSize, flashing, onGoLive, workshop }: {
+  room: Room; variant: "laptop" | "remote"; onItems: () => void; onRoomSize?: () => void;
+  flashing: boolean; onGoLive: (id: string) => void; workshop: boolean;
+}) {
   const { frame, current, steps, pending, press } = room;
   const confirm = useSecondTap();
   const [minutes, setMinutes] = useState<3 | 4 | 5>(4);
@@ -112,7 +118,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
   const spotlit = frame?.state.spotlight_key, tvOnPhones = Boolean(frame?.state.show_tv_on_phones);
   const up = room.upNext;
   const btn = variant === "remote" ? "ctl-r-btn" : "show-button";
-  const primary = <button className={`${btn} is-golive is-wide`} disabled={busy || !up} onClick={() => up && void press("go_live", { session: up.id })}><Play size={20} aria-hidden="true" />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
+  const primary = <button className={`${btn} is-golive is-wide${flashing ? " is-flashing" : ""}`} disabled={busy || !up || room.show.context.closed} onClick={() => { if (up) onGoLive(up.id); }}><GoLiveTile />{up ? `Go live: ${up.title}` : "No session ready"}</button>;
   return <div className={`ctl-controls is-${variant}`}>
     {burst && <div className="ctl-countdown" role="timer" aria-label={`Burst, ${burst.label} left`}><Timer size={20} aria-hidden="true" /><b>{burst.label}</b><progress className="ctl-progress" max={100} value={Math.min(100, burst.ms / ((current?.settings.burst_minutes ?? 4) * 600))} aria-hidden="true" />
       <button className={btn} disabled={busy} onClick={() => void press("extend_burst")}><Plus size={18} aria-hidden="true" />Extend 1 min</button></div>}
@@ -147,7 +153,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize }: { room: Roo
       <button className={btn} disabled={busy} aria-pressed={tvOnPhones} onClick={() => void press("tv_on_phones", { on: !tvOnPhones })}>{tvOnPhones ? <Eye size={18} aria-hidden="true" /> : <MonitorSmartphone size={18} aria-hidden="true" />}{tvOnPhones ? "Stop the TV view on phones" : "TV view on phones"}</button>
       <button className={btn} disabled={busy} onClick={() => confirm.tap("refresh", () => void press("refresh_phones"))}><RefreshCw size={18} aria-hidden="true" />{confirm.armed === "refresh" ? "Tap again to refresh phones" : "Refresh phones"}</button>
     </div>
-    <MarkDecision room={room} variant={variant} />
+    {!workshop && <MarkDecision room={room} variant={variant} />}
     {variant === "remote" && onRoomSize && <button className={btn} disabled={busy} onClick={onRoomSize}>Room size</button>}
   </div>;
 }

@@ -4,6 +4,8 @@ import { Eye, EyeOff, Sun, SunDim, X } from "lucide-react";
 import type { Room } from "./live-controls";
 import type { ControlItem } from "@/lib/control/types";
 import { responsesView } from "@/lib/control/responses";
+import { useToast } from "@/components/ui/toast";
+import { formatPlannedTime } from "./planned-time";
 
 // Hide a response (MD-1): the live step's free-text responses, with All and Hidden. Tap a response, then Hide from the TV or
 // Cancel; Spotlight stays beside them. A hidden response is struck through with who hid it and when, and Show again puts it
@@ -13,8 +15,20 @@ export function ResponsesList({ room, onClose, title = "Responses" }: { room: Ro
   const kind = room.frame?.session?.interaction, zone = room.show.context.timezone;
   const [filter, setFilter] = useState<"all" | "hidden">("all"), [picked, setPicked] = useState<string | null>(null);
   const { shown, hidden: hiddenCount, list } = responsesView(items, filter);
-  const at = (iso?: string) => iso ? new Intl.DateTimeFormat("en-CA", { hour: "numeric", minute: "2-digit", timeZone: zone }).format(new Date(iso)) : "";
-  const press = async (action: "hide" | "unhide" | "spotlight", item: ControlItem) => { const r = await room.press(action, { item: item.key }); if (r.status === "ok") setPicked(null); return r; };
+  const toast = useToast();
+  const press = async (action: "hide" | "unhide" | "spotlight", item: ControlItem) => {
+    const result = await room.press(action, { item: item.key });
+    if (result.status === "ok") {
+      setPicked(null);
+      if (action === "hide") toast("Response hidden", {
+        icon: <EyeOff size={16} aria-hidden="true" />,
+        action: { label: "Show again", icon: <Eye size={14} aria-hidden="true" />, onClick: async () => {
+          await room.press("unhide", { item: item.key });
+        } },
+      });
+    }
+    return result;
+  };
   return <section className="ctl-items ctl-responses" aria-labelledby="ctl-responses-title" data-responses>
     <div className="ctl-row is-between"><h2 id="ctl-responses-title">{title}</h2>
       <span className="show-help">{shown} shown{hiddenCount ? ` · ${hiddenCount} hidden` : ""}</span>
@@ -31,7 +45,7 @@ export function ResponsesList({ room, onClose, title = "Responses" }: { room: Ro
           : <button type="button" className="ctl-resp-text" aria-expanded={isPicked} onClick={() => setPicked(isPicked ? null : item.key)}>{item.text}{kind === "word_cloud" && item.count > 1 && <small> · {item.count}</small>}</button>}
         {item.hidden && <span className="ctl-resp-tag"><EyeOff size={13} aria-hidden="true" />Hidden</span>}
         {isSpot && !item.hidden && <span className="ctl-resp-tag is-spot"><Sun size={13} aria-hidden="true" />Spotlit</span>}
-        {item.hidden && <span className="ctl-resp-who">{item.hidden_by ? `Hidden by ${item.hidden_by}` : "Hidden"}{item.hidden_at ? ` at ${at(item.hidden_at)}` : ""}</span>}
+        {item.hidden && <span className="ctl-resp-who">{item.hidden_by ? `Hidden by ${item.hidden_by}` : "Hidden"}{item.hidden_at ? ` at ${formatPlannedTime(item.hidden_at, zone)}` : ""}</span>}
         {item.hidden && <div className="ctl-resp-act"><button type="button" className="show-button is-small" disabled={busy} onClick={() => void press("unhide", item)}><Eye size={16} aria-hidden="true" />Show again</button></div>}
         {isPicked && <div className="ctl-resp-act">
           <button type="button" className="show-button is-small is-primary" disabled={busy} onClick={() => void press("hide", item)}><EyeOff size={16} aria-hidden="true" />Hide from the TV</button>

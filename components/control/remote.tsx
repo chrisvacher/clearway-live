@@ -13,14 +13,21 @@ import { AiRemote } from "@/components/interactions/ai/ai-panel";
 import { SignalList } from "@/components/interactions/signal/signal-panel";
 import { OvernightCard } from "@/components/overnight/overnight-card";
 import { QuoteOnTv } from "./quote-on-tv";
+import { usePressFlash } from "./press-flash";
 import { ReadBackRemote } from "@/components/interactions/read-back/read-back-panel";
 
 // FAC-03: the live controls in the facilitator's hand. It holds its own
 // connection and needs nothing from the laptop.
-export function Remote({ initial }: { initial: RunOfShow }) {
+export function Remote({ initial, workshop = false, handover = false }: { initial: RunOfShow; workshop?: boolean; handover?: boolean }) {
   const room = useControlRoom(initial.context.id, initial);
+  const pressFlash = usePressFlash();
+  const goLive = (id: string, after?: () => void) => void room.press("go_live", { session: id }).then(result => {
+    if (result.status === "ok") pressFlash.flash(after);
+  });
   const [sheet, setSheet] = useState<"items" | "size" | "preview" | null>(null);
   const { frame, show, upNext } = room;
+  const [previewId, setPreviewId] = useState<string | null>(null);
+  const preview = show.sessions.find(step => step.id === previewId);
   const confirmed = room.mirror;
   const shown = confirmed?.session;
   const pill = !shown ? null : shown.state === "closed" ? <span className="ctl-chip">Closed · read-only</span>
@@ -29,28 +36,28 @@ export function Remote({ initial }: { initial: RunOfShow }) {
     <header className="ctl-remote-head"><span className="ctl-label">{show.context.church}</span><SyncChip room={room} /></header>
     <div className="ctl-remote-body">
       <ReloadNotice room={room} />
-      <TvMirror frame={confirmed} />
+      <div className={`ctl-live-monitor${pressFlash.flashing ? " is-flashing" : ""}`}><TvMirror frame={confirmed} /></div>
       <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On the TV now</p><p className="ctl-label">{shown?.title ?? (confirmed?.state.tv_content === "join" ? "Join screen" : "Holding screen")}{confirmed?.session && confirmed.session.interaction !== "content" ? ` · ${confirmed.state.results.total} ${confirmed.state.results.total === 1 ? "answer" : "answers"}` : ""}</p></div>{pill}</div>
       <Banners room={room} compact />
       {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
       <section className="ctl-private" aria-label="Up next, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Up next</span></div>
         <div className="ctl-private-body">{upNext ? <><p className="ctl-label">{upNext.title}</p><p className="ctl-notes">{upNext.notes || "No presenter notes."}</p>
-          <button className="show-button is-small" onClick={() => setSheet("preview")}>Preview</button></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
+          <button className="show-button is-small" onClick={() => { setPreviewId(upNext.id); setSheet("preview"); }}>Preview</button></> : <p className="ctl-notes">Nothing else is ready.</p>}</div></section>
       <QuoteOnTv room={room} />
-      <LiveControls room={room} variant="remote" onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
+      <LiveControls room={room} variant="remote" flashing={pressFlash.flashing} onGoLive={goLive} workshop={workshop} onItems={() => setSheet("items")} onRoomSize={() => setSheet("size")} />
       <section className="ctl-private" aria-label="Timer, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Timer</span></div>
         <div className="ctl-private-body"><TimerCard room={room} engagement={initial.context.id} compact /></div></section>
       <AiRemote room={room} />
-      <SignalList room={room} />
-      <ReadBackRemote room={room} />
-      <section className="ctl-private" aria-label="Overnight review, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Overnight review</span></div>
-        <div className="ctl-private-body"><OvernightCard engagement={initial.context.id} tick={room.overnightTick} link={false} /></div></section>
-      <HandoverPanel room={room} />
+      {!workshop && <SignalList room={room} />}
+      {!workshop && <ReadBackRemote room={room} />}
+      {!workshop && <section className="ctl-private" aria-label="Overnight review, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Overnight review</span></div>
+        <div className="ctl-private-body"><OvernightCard engagement={initial.context.id} tick={room.overnightTick} link={false} /></div></section>}
+      {handover && <HandoverPanel room={room} />}
     </div>
     {sheet && <div className="ctl-sheet-scrim" onClick={() => setSheet(null)}>
       <div className="ctl-sheet" role="dialog" aria-modal="true" aria-label={sheet === "items" ? "Items on the TV" : sheet === "size" ? "Room size" : "Preview"} onClick={e => e.stopPropagation()}>
         {sheet === "items" && <><ItemList room={room} onClose={() => setSheet(null)} /><QaAnyTime room={room} /></>}
-        {sheet === "preview" && upNext && <PreviewCard session={upNext} context={show.context} room={room} onClose={() => setSheet(null)} />}
+        {sheet === "preview" && preview && <PreviewCard session={preview} context={show.context} room={room} onClose={() => setSheet(null)} onGoLive={goLive} flashing={pressFlash.flashing} />}
         {sheet === "size" && <section>
           <div className="ctl-row is-between"><h2>Room size</h2><button className="show-button is-icon" aria-label="Close room size" onClick={() => setSheet(null)}><X size={20} aria-hidden="true" /></button></div>
           <div className="ctl-size-list" role="radiogroup" aria-label="Room size">{roomSizes.map(([value, label]) => <button key={value} role="radio" aria-checked={frame?.display?.room_size === value} className="ctl-r-btn" disabled={Boolean(room.pending)}

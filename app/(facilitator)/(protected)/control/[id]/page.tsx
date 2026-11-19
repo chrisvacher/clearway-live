@@ -4,6 +4,8 @@ import { uuid } from "@/lib/room/identity";
 import { readShow } from "@/lib/run-of-show/server";
 import { readAll } from "@/lib/server/read-all";
 import { readShellEngagement } from "@/lib/server/shell";
+import type { Stage } from "@/lib/setup/stage";
+import { formatPlannedTime } from "@/components/control/planned-time";
 import { ControlSurface } from "@/components/control/control-surface";
 import { brandFor, skinOf } from "@/lib/brand";
 import { DoorList } from "@/components/facilitator/door-list";
@@ -21,5 +23,8 @@ export default async function ControlRoomPage({ params }: { params: Promise<{ id
   ]);
   // The room's own address and brand; the control surface itself stays Clearway Live.
   const brand = room ? brandFor(skinOf(room.skin)) : null, identity = room && brand ? { host: brand.host, origin: brand.origin, name: room.link_name ?? room.room_code, code: room.room_code, brand: brand.label } : undefined;
-  return <ControlSurface initial={show} identity={identity} workshop={engagement?.type === "team_workshop"} door={<DoorList engagement={id} requests={requests || []} attendees={attendees.sort((a, b) => a.name.localeCompare(b.name))} />} />;
+  const initialTimes = Object.fromEntries(show.sessions.filter(step => step.mode === "live").map(step => [step.id, { starts: step.planned_start, label: formatPlannedTime(step.planned_start, show.context.timezone) }]));
+  // Shell and the Overview derive readiness; live polling overrides that stage while a step is on the TV.
+  const stage = engagement && "stage" in engagement ? engagement.stage as Stage : undefined;
+  return <ControlSurface initial={show} initialTimes={initialTimes} initialStage={stage} identity={identity} handover={engagement?.type === "wayfinding" || engagement?.type === "day_and_a_half"} workshop={engagement?.type === "team_workshop"} door={<DoorList engagement={id} requests={requests || []} attendees={attendees.sort((a, b) => a.name.localeCompare(b.name))} />} />;
 }

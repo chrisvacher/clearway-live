@@ -8,6 +8,8 @@ import { answerCount, canClearTests, clearedParts, freshMessage, joinParts, rehe
 import { practiceId } from "@/lib/room/practice";
 import { SeedCounts } from "@/components/interactions/lens/lens-panel";
 import { pressId } from "@/lib/control/own-presses";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import "./self-paced.css";
 
 type Room = ReturnType<typeof useControlRoom>;
@@ -48,11 +50,11 @@ export function ExportAnswers({ room }: { room: Room }) {
 export function StartFresh({ room }: { room: Room }) {
   const engagement = room.show.context.id, closed = room.show.context.closed;
   const [busy, setBusy] = useState(false), [note, setNote] = useState<{ text: string; error: boolean } | null>(null);
-  const confirm = useSecondTap();
+  const [asking, setAsking] = useState(false);
   if (engagement === practiceId) return null;
   const live = Boolean(room.frame?.state.live_session_id), total = room.status?.answers_total ?? null;
   async function fresh() {
-    setBusy(true); setNote(null);
+    setBusy(true); setNote(null); setAsking(false);
     try {
       const response = await fetch(`/api/control/${engagement}/rehearsal`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: pressId(), action: "fresh" }) });
       const result = await response.json() as RehearsalResult;
@@ -61,12 +63,14 @@ export function StartFresh({ room }: { room: Room }) {
     finally { setBusy(false); room.refresh(); }
   }
   return <div className="sp-fresh" data-testid="start-fresh-panel">
-    <p className="ctl-notes">Start fresh deletes every answer{total !== null ? ` (${answerCount(total)})` : ""}, puts every step back to Ready and clears the timer. The TV and phones stay connected.</p>
-    <div className="ctl-row">
-      <a className="show-button is-small" href={`/api/control/${engagement}/export?session=all`} download data-testid="fresh-export"><Download size={16} aria-hidden="true" />Export answers</a>
-      <button className="show-button is-small sp-clear" disabled={busy || closed || live} aria-describedby={live ? "sp-fresh-why" : undefined} data-testid="start-fresh"
-        onClick={() => confirm.tap("fresh", () => void fresh())}><RotateCcw size={16} aria-hidden="true" />{busy ? "Starting fresh..." : confirm.armed === "fresh" ? "Tap again to delete every answer" : "Start fresh"}</button>
+    <div className="ctl-danger-action">
+      <div><strong>Start fresh</strong><p className="show-help">Deletes all answers and resets the steps.</p></div>
+      <Button variant="danger" size="small" disabled={busy || closed || live} aria-describedby={live ? "sp-fresh-why" : undefined}
+        data-testid="start-fresh" onClick={() => setAsking(true)}><RotateCcw size={16} aria-hidden="true" />{busy ? "Starting fresh" : "Start fresh"}</Button>
     </div>
+    <a className="show-button is-small" href={`/api/control/${engagement}/export?session=all`} download data-testid="fresh-export"><Download size={16} aria-hidden="true" />Export answers</a>
+    <ConfirmDialog open={asking} title="Start fresh?" confirmLabel="Start fresh" onCancel={() => setAsking(false)} onConfirm={() => void fresh()}
+      description={<>This deletes every answer{total !== null ? ` (${answerCount(total)})` : ""}, puts the steps back to Ready, and clears the timer. The TV and phones stay connected. You can export the answers before starting fresh.</>} />
     {live && <p id="sp-fresh-why" className="show-help">Choose Home under the live screen first. The room can’t start fresh while a step is live.</p>}
     {note && <p className={`show-help${note.error ? " is-error" : ""}`} role={note.error ? "alert" : "status"}>{note.text}</p>}
   </div>;

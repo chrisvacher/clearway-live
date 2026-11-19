@@ -47,7 +47,7 @@ async function main() {
     const [priya, ben, ruth] = [await phone(room.attendees[0]), await phone(room.attendees[1]), await phone(room.attendees[2])];
     const facContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await facContext.addCookies(fac.cookies(app.origin));
-    const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
+    const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${room.id}`);
     await control.locator(".ctl-app").waitFor({ timeout: 15000 });
     const state = async () => (await sql.query("select live_session_id,remote_holder_id,team_led_block_id,spotlight_key from public.room_states where engagement_id=$1", [room.id])).rows[0];
     const rpc = async (name: string, args: Record<string, unknown>) => { const { data, error } = await fac.client.rpc(name, { p_engagement: room.id, ...args }); assert.equal(error, null); return data as { status: string }; };
@@ -137,6 +137,7 @@ async function main() {
     });
 
     await step("D2-11 Hand over: the team facilitator is named, the team remote shows only the block", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       const gave = await rpc("handover_control", { p_id: randomUUID(), p_action: "give", p: { from: intent, attendee: room.attendees[0].id } });
       assert.equal(gave.status, "ok");
       assert.equal((await state()).remote_holder_id, room.attendees[0].id);
