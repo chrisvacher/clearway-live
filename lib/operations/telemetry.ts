@@ -1,5 +1,5 @@
 export type ErrorKind = "error" | "rejection" | "boundary" | "server" | "test";
-export type SafeEvent = { kind: ErrorKind; name: string; route: string; frames: string[]; digest?: string };
+export type SafeEvent = { kind: ErrorKind; name: string; route: string; frames: string[]; digest?: string; issue?: "react_418" };
 const kinds = new Set(["error", "rejection", "boundary", "server", "test"]);
 const names = new Set(["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError", "URIError", "EvalError", "AggregateError"]);
 const segments = new Set(["admin", "setup", "operations", "new", "users", "templates", "door", "tv", "discover", "four-lists", "run-of-show", "print", "control", "after", "check-ins", "recap", "share", "report", "plan", "map", "review", "latency", "scribe", "room", "confirm", "remote", "followup", "practice", "sign-in", "how-we-use-ai"]);
@@ -17,15 +17,16 @@ export function safeEvent(raw: unknown): SafeEvent | null {
   const frames = Array.isArray(r.frames) ? r.frames.filter((s): s is string => typeof s === "string" &&
     /^\/_next\/static\/[a-zA-Z0-9_./%()[\]-]+\.js:\d{1,8}:\d{1,8}$/.test(s) && s.length <= 240 && !s.includes("..")).slice(0, 4) : [];
   return { kind: r.kind as ErrorKind, name: typeof r.name === "string" && names.has(r.name) ? r.name : "Error",
-    route: errorRoute(r.route), frames, ...(typeof r.digest === "string" && /^\d{1,20}$/.test(r.digest) ? { digest: r.digest } : {}) };
+    route: errorRoute(r.route), frames, ...(r.issue === "react_418" ? { issue: "react_418" } : {}), ...(typeof r.digest === "string" && /^\d{1,20}$/.test(r.digest) ? { digest: r.digest } : {}) };
 }
 export function eventFromError(error: unknown, kind: ErrorKind, path: string, origin: string): SafeEvent {
-  const value = error && typeof error === "object" ? error as { name?: unknown; stack?: unknown; digest?: unknown } : {};
+  const value = error && typeof error === "object" ? error as { name?: unknown; stack?: unknown; digest?: unknown; message?: unknown } : {};
   const frames: string[] = [];
   if (typeof value.stack === "string") {
     for (const match of value.stack.slice(0, 16000).matchAll(/https?:\/\/[^\s)]+\.js:\d+:\d+/g)) {
       if (match[0].startsWith(origin + "/_next/static/")) frames.push(match[0].slice(origin.length));
     }
   }
-  return safeEvent({ kind, name: value.name, route: path, frames, digest: value.digest })!;
+  const issue = typeof value.message === "string" && /^Minified React error #418(?:;|\b)/.test(value.message) ? "react_418" : undefined;
+  return safeEvent({ kind, name: value.name, route: path, frames, digest: value.digest, issue })!;
 }

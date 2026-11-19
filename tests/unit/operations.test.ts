@@ -49,3 +49,10 @@ test("browser reporting omits cookies and referrers and fails without disrupting
     if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument); else Reflect.deleteProperty(globalThis, "document");
   }
 });
+
+test("Operations recognizes React hydration errors without storing the message", () => {
+  const event = eventFromError(new Error("Minified React error #418; example private context"), "error", "/admin/templates", "https://live.clearway.co");
+  assert.equal(event.issue, "react_418");
+  assert.doesNotMatch(JSON.stringify(event), /private context|Minified/);
+  assert.equal(safeEvent({ kind: "error", route: "/admin", issue: "secret error string" })?.issue, undefined);
+});

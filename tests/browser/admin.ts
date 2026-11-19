@@ -19,11 +19,22 @@ async function main() {
     await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
     const afterArea=process.env.KIT_AREA==="d";
     await sql.query("update public.engagements set title=$2,type=$3::public.engagement_type,start_date='2027-02-20',end_date='2027-02-20' where id=$1",[room.id,afterArea?"Riverside Wayfinding retreat":"Staff planning workshop",afterArea?"wayfinding":"team_workshop"]);
-    if(process.env.KIT_AREA==="c") await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
-    const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
+    if(process.env.KIT_AREA==="c") {
+      await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
+      await sql.query(`insert into private.templates(name,created_by,sessions,created_at)
+        select 'Hydration date fixture',u.id,t.sessions,'2026-11-03 05:00:00+00'
+        from private.templates t cross join public.clearway_users u
+        where t.id='c1ea0000-0000-4000-8000-000000000001' and u.email=$1`, [fac.session.user.email]);
+    }
+    const context=await browser.newContext({timezoneId:"America/Los_Angeles"}); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
     const pageErrors: { path: string; message: string }[] = [];
     page.on("pageerror", error => pageErrors.push({ path: new URL(page.url()).pathname, message: error.message }));
+    page.on("console", message => {
+      if (message.type() === "error" && !message.text().startsWith("Failed to load resource:")) {
+        pageErrors.push({ path: new URL(page.url()).pathname, message: message.text() });
+      }
+    });
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
     const paths:Record<string,string[]>={a:["/sign-in","/admin","/control",...(!before?["/admin/users","/admin/operations"]:[])],b:["/admin/new",`/admin/${room.id}`,`/admin/${room.id}/details`,`/admin/${room.id}/joining`],c:[`/admin/${room.id}/door`,`/admin/${room.id}/tv`,`/admin/${room.id}/discover`,`/admin/${room.id}/four-lists`,"/admin/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
     for(const width of [1440,390]) {
@@ -36,6 +47,11 @@ async function main() {
           assert.ok(await page.locator("h1").count(),`${path} has a heading`);
           const titleSize=await page.locator("h1").first().evaluate(el=>parseFloat(getComputedStyle(el).fontSize)); assert.ok(titleSize<=28,`${path} first h1 is page-title size or smaller (admin stylesheet loaded): ${titleSize}px`);
           assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${path} fits ${width}px`);
+          if(path==="/admin/templates") {
+            assert.match(await page.title(),/^Templates and blocks \| Clearway Live$/);
+            const hydrationCard=page.locator(".tpl-card").filter({hasText:"Hydration date fixture"});
+            assert.match(await hydrationCard.innerText(),/Saved by you · Nov 3/);
+          }
           if((area==="c" || area==="d") && path!=="/admin/templates") {
             assert.equal(await page.getByRole("navigation",{name:"Engagement",exact:true}).count(),1);
             const navigation = page.getByRole("navigation", {name:"Engagement", exact:true});
@@ -112,13 +128,15 @@ async function main() {
         await page.goto(`${app.origin}/control/${room.id}/${path}`);
         assert.equal(await page.getByRole("heading",{level:1}).count(),1,`${path} has one h1`);
         assert.equal(await page.getByRole("heading",{level:1,name:title,exact:true}).count(),1,`${path} is titled ${title}`);
-        assert.equal(await page.locator("main .admin-heading .admin-kicker").count(),1,`${path} has a kicker in the standard frame`);
+        assert.equal(await page.locator("main :is(.admin-kicker, .cwl-ui-page-kicker)").count(),1,`${path} has a kicker in the standard frame`);
         assert.equal(await page.getByText("Only you see this",{exact:true}).count(),1,`${path} has only the shell's band`);
       }
       await page.goto(`${app.origin}/control/${room.id}/recap`);
-      assert.equal(await page.getByRole("heading",{name:"Downloads",exact:true}).count(),1);
-      assert.equal(await page.getByRole("link",{name:"Every answer as CSV",exact:true}).getAttribute("href"),`/api/control/${room.id}/export?session=all`);
-      assert.equal(await page.getByRole("link",{name:"Download everything",exact:true}).getAttribute("href"),`/api/control/${room.id}/export?format=json`);
+      await page.getByRole("button",{name:"Download",exact:true}).click();
+      await page.getByRole("menuitem",{name:"Every answer as CSV",exact:true}).waitFor();
+      await page.getByRole("menuitem",{name:"Everything, for our records",exact:true}).waitFor();
+      await page.keyboard.press("Escape");
+      assert.equal(await page.getByRole("heading",{name:"Downloads",exact:true}).count(),0);
       await page.goto(`${app.origin}/control/${room.id}/after`);
       for(const id of ["after-results","after-report","after-visibility","after-share","after-checkins"]) assert.equal(await page.getByTestId(id).count(),1,id);
       assert.equal(await page.getByTestId("after-share").getByText("Read-only copy",{exact:true}).count(),1,"the Share tile is called Read-only copy");
@@ -333,17 +351,32 @@ async function main() {
       const newInvite=page.getByRole("region",{name:"Invite the room",exact:true}); await newInvite.waitFor();
       assert.ok((await newInvite.innerText()).includes(noveteraHost),`the Overview's invite card shows the Novetera address (${noveteraHost})`); assert.equal((await newInvite.innerText()).includes(clearwayHost),false,"and not the Clearway one");
       await page.unroute("**/api/setup");
-      // Clearway users: the team fills the picker when the page opens, with no button pressed, and a failure offers Try again.
-      let teamFails=true; const member={id:"7e1a0000-0000-4000-8000-000000000001",name:"Mara Quinn",email:"mara.quinn@clearway.co"};
-      await page.route("**/api/setup",async route=>{ const data=route.request().postDataJSON(); if(data.action!=="hub_members") return route.continue(); return teamFails?route.fulfill({status:503,json:{ok:false,message:"The Team Hub connection is unavailable. Please try again later."}}):route.fulfill({json:{ok:true,members:[member]}}); });
-      await page.goto(app.origin+"/admin/users"); await page.getByRole("button",{name:"Try again",exact:true}).waitFor();
-      assert.equal(await page.getByRole("alert").filter({hasText:"The Team Hub connection is unavailable."}).count(),1,"a failed load says so"); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).isDisabled(),true);
-      teamFails=false; await page.getByRole("button",{name:"Try again",exact:true}).click();
-      await page.getByRole("combobox",{name:/^Team member/}).locator("option",{hasText:"Mara Quinn"}).waitFor({state:"attached"});
-      assert.equal(await page.getByRole("button",{name:"Load Clearway team"}).count(),0,"no button loads the team"); assert.equal(await page.getByRole("button",{name:"Try again",exact:true}).count(),0);
-      assert.equal(await page.getByRole("button",{name:"Add Clearway user",exact:true}).isDisabled(),true,"adding waits for a member");
-      await page.getByRole("combobox",{name:/^Team member/}).selectOption(member.id); assert.equal(await page.getByRole("button",{name:"Add Clearway user",exact:true}).isEnabled(),true);
-      await page.goto(app.origin+"/admin/users"); await page.getByRole("combobox",{name:/^Team member/}).locator("option",{hasText:"Mara Quinn"}).waitFor({state:"attached"}); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).isEnabled(),true,"the picker fills on open, with nothing pressed");
+      // The members request starts when the picker opens. A failed load can be retried.
+      let teamFails=true, memberRequests=0;
+      const member={id:"7e1a0000-0000-4000-8000-000000000001",name:"Mara Quinn",email:"mara.quinn@clearway.co"};
+      await page.route("**/api/setup",async route=>{
+        if(route.request().postDataJSON().action!=="hub_members") return route.continue();
+        memberRequests++;
+        return teamFails ? route.fulfill({status:503,json:{ok:false,message:"The Team Hub connection is unavailable. Please try again later."}})
+          : route.fulfill({json:{ok:true,members:[member]}});
+      });
+      await page.goto(app.origin+"/admin/users");
+      await page.waitForLoadState("networkidle");
+      assert.equal(memberRequests,0,"Team Hub is loaded on demand");
+      await page.getByRole("button",{name:"Add a Clearway user",exact:true}).click();
+      const panel=page.getByRole("dialog",{name:"Add a Clearway user",exact:true});
+      const retry=panel.getByRole("button",{name:"Try again",exact:true});
+      await retry.waitFor();
+      assert.equal(await panel.getByRole("alert").filter({hasText:"The Team Hub connection is unavailable."}).count(),1);
+      teamFails=false;
+      await retry.click();
+      const picker=panel.getByRole("combobox",{name:"Team member",exact:true});
+      const add=panel.getByRole("button",{name:"Add Clearway user",exact:true});
+      assert.equal(await add.isDisabled(),true,"adding waits for a member");
+      await picker.fill("Mara");
+      await panel.getByRole("option",{name:/Mara Quinn/}).click();
+      assert.equal(await add.isEnabled(),true);
+      await panel.getByRole("button",{name:"Close user picker",exact:true}).click();
       await page.unroute("**/api/setup");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
       await page.goto(`${app.origin}/admin/${room.id}/joining`); assert.equal(await page.getByRole("radio",{name:/^Anyone who has the link or code/}).isDisabled(),true,"only an admin changes open joining");
@@ -445,8 +478,30 @@ async function main() {
       assert.equal(await engagementNav.getByRole("group",{name:"Run",exact:true}).getByRole("link",{name:"Four Helpful Lists",exact:true}).count(),1);
 
       // Without a Team Hub connection the card says so in one line and draws no controls that can't work.
-      await page.goto(app.origin+"/admin/users"); await page.getByText("The Team Hub connection is unavailable. Please try again later.",{exact:true}).waitFor();
+      await page.goto(app.origin+"/admin/users");
+      await page.getByRole("button",{name:"Add a Clearway user",exact:true}).click();
+      await page.getByText("The Team Hub connection is unavailable. Please try again later.",{exact:true}).waitFor();
       for(const name of ["Load Clearway team","Add Clearway user","Try again"]) assert.equal(await page.getByRole("button",{name}).count(),0,`no ${name} button without Team Hub`); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).count(),0);
+      await page.getByRole("button",{name:"Close user picker",exact:true}).click();
+      if(await page.getByRole("columnheader",{name:"Last sign-in",exact:true}).count()) {
+        const subjectId=randomUUID();
+        const subjectName="Casey Access Test";
+        const subjectEmail=`casey-${room.id}@clearway.co`;
+        await sql.query("insert into public.clearway_users(id,name,email,team_hub_team_member_id) values($1,$2,$3,$4)",[subjectId,subjectName,subjectEmail,randomUUID()]);
+        await page.reload();
+        const row=page.getByRole("row").filter({hasText:subjectEmail});
+        const roles=row.getByRole("button",{name:`Actions for ${subjectName}`,exact:true});
+        await roles.click();
+        await page.getByRole("menuitem",{name:"Make admin",exact:true}).click();
+        await row.getByRole("cell",{name:"Admin",exact:true}).waitFor();
+        await roles.click();
+        await page.getByRole("menuitem",{name:"Make facilitator",exact:true}).click();
+        await row.getByRole("cell",{name:"Facilitator",exact:true}).waitFor();
+        await roles.click();
+        await page.getByRole("menuitem",{name:"Remove access",exact:true}).click();
+        await page.getByRole("dialog",{name:`Remove access for ${subjectName}?`,exact:true}).getByRole("button",{name:"Remove access",exact:true}).click();
+        await row.waitFor({state:"detached"});
+      }
       await page.route("**/api/operations",route=>route.request().method()==="GET"?route.fulfill({json:{status:"ok",eligible_files:0,protected_files:0,protected_bytes:0,pending:0,last_run:null,last_recovery_check:null,last_alert:null,errors:[],backups:[]}}):route.continue());
       await page.goto(app.origin+"/admin/operations"); await page.getByText("No protected copies yet.",{exact:true}).waitFor(); assert.equal(await page.getByRole("heading",{name:"Recent protected copies"}).count(),1); await page.unroute("**/api/operations");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
@@ -637,11 +692,10 @@ async function main() {
       await page.getByTestId("reopen-workshop").click(); await page.getByTestId("workshop-ended").waitFor({state:"detached"});
       assert.equal(await status(),"setup","Reopen puts the workshop back to setup");
       await page.goto(`${app.origin}/control/${room.id}/recap`); await page.waitForLoadState("networkidle");
-      assert.equal(await page.getByRole("link",{name:"Back to the engagement",exact:true}).last().getAttribute("href"),`/admin/${room.id}`,"Results leads back to the engagement");
-      assert.equal(await page.locator("main").getByRole("link",{name:"All engagements",exact:true}).getAttribute("href"),"/admin");
+      assert.equal(await page.getByRole("heading",{name:"Results",level:1,exact:true}).count(),1);
+      assert.equal(await page.locator("main").getByRole("link",{name:/^(Back to the engagement|All engagements)$/}).count(),0);
+      assert.equal(await page.getByTestId("end-workshop").count(),0,"Results keeps the room controls out");
       if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/results-1512.png`,fullPage:true}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/results-756.png`,fullPage:true}); await page.setViewportSize({width:1512,height:982}); }
-      await page.locator(".recap-end").getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click(); await page.getByTestId("workshop-ended").waitFor();
-      assert.equal(await status(),"closed","Results ends the workshop too");
       await sql.query("update public.engagements set status='setup',type='wayfinding' where id=$1",[room.id]);
       await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
       await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
@@ -649,7 +703,10 @@ async function main() {
     const operationsAlert = (message: { to: string[]; subject?: string }) =>
       message.to.length === 1 && message.to[0] === operationsAddress && message.subject === "Check Clearway Live";
     const unexpectedMail = mail.messages.filter(message => !operationsAlert(message));
-    if (pageErrors.length) console.log("Browser errors:", JSON.stringify(pageErrors));
+    // E removes this route-specific allowance when the Live room's clock is deterministic.
+    const unexpectedErrors = pageErrors.filter(({path,message}) =>
+      !(/^\/control\/[0-9a-f-]{36}$/i.test(path) && /Minified React error #418\b/.test(message)));
+    assert.deepEqual(unexpectedErrors, [], "signed-in pages produce no client-side errors");
     if (mail.messages.some(operationsAlert)) {
       const events = app.output().match(/Clearway operational event \{[^}]*\}/g) ?? [];
       console.log("Operations alert captured by the local mailbox.", ...events);

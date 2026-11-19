@@ -24,3 +24,9 @@ test("a missing person or an unreadable date is left out, not printed", () => {
 test("a template that ships with the app says so", () => {
   assert.equal(templateByline({ kind: "shipped", mine: false, by: null, created_at: "2026-11-03T15:00:00Z" }, "UTC"), "Ships with the app");
 });
+
+test("template dates use the app zone even when displayed near midnight in another zone", () => {
+  const nearMidnight = { ...saved, created_at: "2026-11-03T05:00:00Z" };
+  assert.equal(templateByline(nearMidnight), "Saved by Dana Reyes · Nov 3");
+  assert.equal(templateByline(nearMidnight, "America/Los_Angeles"), "Saved by Dana Reyes · Nov 2");
+});

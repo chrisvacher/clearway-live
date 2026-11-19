@@ -52,13 +52,31 @@ async function main() {
     await until(async () => (await sql.query("select count(*)::int as n from private.client_errors where event->>'name'='RangeError'")).rows[0].n > 0, "Second error received");
     await page.getByRole("button", { name: "Refresh status", exact: true }).click();
     assert.equal(mail.count, count, "One alert per hour");
+    await admin.request.post(app.origin + "/api/operations/errors", {
+      headers: { Origin: app.origin },
+      data: { kind: "error", name: "Error", route: "/admin/templates", issue: "react_418", frames: ["/_next/static/chunks/fixture.js:1:2"] },
+    });
+    await admin.request.post(app.origin + "/api/operations/errors", {
+      headers: { Origin: app.origin },
+      data: { kind: "error", name: "Error", route: "/admin/templates", issue: "react_418", frames: ["/_next/static/chunks/fixture-next.js:1:2"] },
+    });
     const other = await facilitator(env, sql, room.id), context = await browser.newContext();
     await context.addCookies(other.cookies(app.origin));
     assert.equal((await context.request.get(app.origin + "/api/operations")).status(), 403);
     assert.equal((await context.request.get(app.origin + "/api/operations/backups/" + protectedRow.id)).status(), 403);
     for (const width of [1440, 390]) {
       await page.setViewportSize({ width, height: 1000 }); await page.reload();
-      await page.getByRole("heading", { name: "TypeError", exact: true }).waitFor();
+      await page.getByRole("heading", { name: /^TypeError · / }).first().waitFor();
+      const hydration = page.locator(".cwl-g-problem-list li").filter({ hasText: "Hydration mismatch · /admin/templates" });
+      assert.equal(await hydration.count(), 1, "the same issue and page group across releases");
+      assert.match(await hydration.innerText(), /2 times/);
+      await hydration.getByRole("button", { name: "Show details", exact: true }).click();
+      assert.match(await hydration.locator("pre").innerText(), /fixture-next\.js/);
+      const problem = page.locator(".cwl-g-problem-list li").filter({ hasText: "TypeError" }).first();
+      const details = problem.getByRole("button", { name: "Show details", exact: true });
+      await details.click();
+      assert.equal(await problem.getByRole("button", { name: "Hide details", exact: true }).count(), 1);
+      await problem.getByRole("button", { name: "Hide details", exact: true }).click();
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, "No horizontal overflow");
       if (process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS, { recursive: true }); await page.screenshot({ path: process.env.KIT_SHOTS + "/operations-" + width + ".png", fullPage: true }); }
     }

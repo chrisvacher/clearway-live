@@ -7,8 +7,9 @@ export type TemplateSession = { title: string; part: Part; interaction: Interact
 export type Template = {
   // A saved block: some of a run's sessions, added to a run rather than starting one (design pass 8, step 5).
   block?: boolean;
+  engagement_type?: string | null;
   id: string; name: string; description: string; kind: "shipped" | "saved"; shared: boolean; mine: boolean; can_remove: boolean;
   by: string | null; created_at: string; count: number; minutes: number; sessions: TemplateSession[];
 };
 export type TemplateEngagement = { id: string; title: string; church: string; timezone: string; type: string; sessions: number };
-export type TemplateLibrary = { templates: Template[]; engagements: TemplateEngagement[] };
+export type TemplateLibrary = { templates: Template[]; engagements: TemplateEngagement[]; can_manage?: boolean };
