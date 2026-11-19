@@ -29,7 +29,7 @@ async function main() {
     assert.equal((await anonymous.request.get(app.origin + "/api/cron/operations")).status(), 401);
     assert.equal((await anonymous.request.post(app.origin + "/api/operations/errors", { headers: { Origin: "https://evil.invalid" }, data: { kind: "error", route: "/" } })).status(), 403);
     const admin = await browser.newContext(); await admin.addCookies(fac.cookies(app.origin));
-    const page = await admin.newPage(); await page.goto(app.origin + "/setup/operations");
+    const page = await admin.newPage(); await page.goto(app.origin + "/admin/operations");
     await page.getByRole("button", { name: "Back up files", exact: true }).click();
     await page.getByText("The file backup check finished.", { exact: true }).waitFor();
     const protectedRow = (await sql.query("select id,sha256 from private.file_backups where file_id=$1 and completed_at is not null", [id])).rows[0];

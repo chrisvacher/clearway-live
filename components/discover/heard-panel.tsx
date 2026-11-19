@@ -55,7 +55,7 @@ function SourceRow({ engagement, source: s, send, closed }: { engagement: string
       {live ? <span className="dsc-chip">On the TV now</span> : null}</header>
     {s.draft ? <DraftRow key={`${s.draft.id}:${s.draft.quotes.map(q => q.text).join("|")}`} source={s} draft={s.draft} send={send} closed={closed} running={Boolean(live)} />
       : <div className="dsc-wwh-empty">
-        <p data-note={note.kind}>{note.kind === "no_step" ? <>No step in the run of show uses the source &ldquo;{s.name}&rdquo;. Add a What We Heard headline step with that source, in <Link href={`/setup/${engagement}/run-of-show`}>the run of show</Link>.</>
+        <p data-note={note.kind}>{note.kind === "no_step" ? <>No step in the run of show uses the source &ldquo;{s.name}&rdquo;. Add a What We Heard headline step with that source, in <Link href={`/admin/${engagement}/run-of-show`}>the run of show</Link>.</>
           : note.kind === "nothing" ? `Nothing accepted yet for ${heardFor[s.key]}. Accept themes above, or type this headline by hand.`
           : `${note.themes} accepted ${note.themes === 1 ? "theme" : "themes"}${note.thin ? `, ${note.thin} thin` : ""}. Draft What We Heard to get a headline, or type one by hand.`}</p>
         {s.step && !closed ? <HandForm source={s} send={send} running={Boolean(live)} /> : null}

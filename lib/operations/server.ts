@@ -27,7 +27,7 @@ export async function sendOperationsAlert() {
   // Snapshot and id stay identical across a retry, including one after Resend accepted the first request.
   await sendEmail({ to, id: "clearway-operations-" + data.hour, subject: "Check Clearway Live",
     text: "Clearway Live recorded operational issues.\n\nClient or server events: " + data.snapshot.errors +
-      "\nFailed file backup runs: " + data.snapshot.backup_failures + "\n\nOpen the private operations page:\n" + origin + "/setup/operations\n\nNo answers, error messages or participant details are included in this alert." });
+      "\nFailed file backup runs: " + data.snapshot.backup_failures + "\n\nOpen the private operations page:\n" + origin + "/admin/operations\n\nNo answers, error messages or participant details are included in this alert." });
   const marked = await db.rpc("ops_alert_claim", { p_sent: data.hour });
   if (marked.error) throw new Error("Alert receipt unavailable");
   return true;

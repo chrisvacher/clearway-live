@@ -215,7 +215,7 @@ async function main() {
 
     await step("SET-05: the review shows every card by list with agreement and folds, read only, and the CSV names no one", async () => {
       const page = await facContext.newPage();
-      await page.goto(`${app.origin}/setup/${room.id}/four-lists`);
+      await page.goto(`${app.origin}/admin/${room.id}/four-lists`);
       await page.locator("[data-fl-review]").waitFor({ timeout: 15000 });
       const text = await page.locator("[data-fl-review]").innerText();
       for (const want of Object.values(names)) assert.ok(text.includes(want), `the review has ${want}`);
@@ -272,7 +272,7 @@ async function main() {
     {
       const elsewhere = await engagement(sql, []), stranger = await facilitator(env, sql, elsewhere.id);
       const other = await browser.newContext(); await other.addCookies(stranger.cookies(app.origin));
-      assert.equal((await other.request.get(`${app.origin}/setup/${room.id}/four-lists`)).status(), 404, "another engagement's facilitator gets the same 404 as the other setup pages");
+      assert.equal((await other.request.get(`${app.origin}/admin/${room.id}/four-lists`)).status(), 404, "another engagement's facilitator gets the same 404 as the other setup pages");
       await other.close();
     }
 

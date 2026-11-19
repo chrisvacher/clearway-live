@@ -62,7 +62,7 @@ async function main() {
         <p style="font-size:16px;letter-spacing:.08em">RIVERSIDE CHURCH · SURVEY RESULTS · PAGE 3</p><h1>What would help you take a next step?</h1><p style="font-weight:400">87 answers. People could choose up to three.</p>
         ${[["Small group access", 54], ["Clear next steps", 41], ["More midweek options", 33], ["Serving with friends", 28]].map(([t, n]) => `<p>${t} <span style="display:inline-block;height:22px;width:${Number(n) * 6}px;background:#3F72DE"></span> ${n}%</p>`).join("")}</div></body>`);
       const png = await page.locator("div").first().screenshot({ type: "png" }); await page.close();
-      await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+      await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
       await editor.locator(".rb-row", { hasText: "Survey page" }).getByRole("button", { name: /Open options/ }).click();
       await editor.locator(".rb-row.is-open #content-file").setInputFiles({ name: "page-3.png", mimeType: "image/png", buffer: png });
       await editor.getByText("Image added. Press Done to put it in the run of show.").waitFor({ timeout: 20000 });

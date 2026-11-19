@@ -215,7 +215,7 @@ async function main() {
     const facContext: BrowserContext = await browser.newContext({ viewport: { width: 1280, height: 1500 } });
     await facContext.addCookies(lead.cookies(app.origin));
     const page = await facContext.newPage();
-    const discover = `${app.origin}/setup/${room}/discover`;
+    const discover = `${app.origin}/admin/${room}/discover`;
     const theme = (label: string, source = "") => page.locator(".dsc-theme", { hasText: label }).filter({ hasText: source }).first();
     const themeRows = async (where = "") => (await sql.query(`select label,source,status,rests_on,out_of,ai_run is not null as ai from private.discover_themes where engagement_id=$1 and not deleted ${where} order by seq`, [room])).rows;
     const accepted = async () => (await sql.query("select label,source from private.discover_accepted_themes($1) order by label,source", [room])).rows as { label: string; source: string }[];

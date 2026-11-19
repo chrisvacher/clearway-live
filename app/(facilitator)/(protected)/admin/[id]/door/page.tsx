@@ -23,7 +23,7 @@ export default async function DoorPage({params}:{params:Promise<{id:string}>}) {
   return <><main id="main" className="admin-page"><DoorKeepUp /><header className="admin-heading"><div><div className="admin-kicker">{church} · {engagement.title}</div><h1>Door list</h1><p>See who’s here and help people join the room.</p></div>
     <div className="admin-actions"><Link className="admin-button" href={`/control/${id}`}>Go to the live room</Link></div></header>
     <div className="admin-columns"><div className="admin-panel"><h2>{open?"In the room":"On the list"}</h2>
-      {!attendees.length&&(open?<p>No one has joined yet. People appear here as they join.</p>:<p>No one is on the list yet. Add people on <Link href={`/setup/${id}/joining`}>People and joining</Link>.</p>)}
+      {!attendees.length&&(open?<p>No one has joined yet. People appear here as they join.</p>:<p>No one is on the list yet. Add people on <Link href={`/admin/${id}/joining`}>People and joining</Link>.</p>)}
       {open&&attendees.length>0&&<p className="admin-lead">Everyone who has joined, in alphabetical order.</p>}
       <ul className="plain-list">{attendees.map(a=><li key={a.id}><strong>{a.name}</strong><p>{guest(a.email) ? "Joined by name" : a.room_role === "scribe" ? "Scribe" : "Participant"}{!guest(a.email)&&<> · {signedIn.has(a.id) ? "Signed in" : "Not signed in"}</>}{signedIn.get(a.id)?.present ? " · Here now" : ""}</p></li>)}</ul></div>
     <div className="admin-panel"><DoorList engagement={id} requests={requests||[]} attendees={attendees} listed={!open||listed} /></div></div>

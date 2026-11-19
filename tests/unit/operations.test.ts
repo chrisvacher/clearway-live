@@ -12,7 +12,7 @@ test("telemetry strips identities, bearer links, messages, foreign stacks and qu
   assert.doesNotMatch(JSON.stringify(event), /Jane|jane|SECRET|evil|secret-id|answer/);
   assert.equal(errorRoute("/v/private-bearer"), "/v/:id");
   assert.equal(errorRoute("/c/private-bearer"), "/c/:id");
-  assert.equal(errorRoute("/setup/90000000-0000-4000-8000-000000000011/door"), "/setup/:id/door");
+  assert.equal(errorRoute("/admin/90000000-0000-4000-8000-000000000011/door"), "/admin/:id/door");
 });
 test("server-side telemetry validation drops unknown fields and unsafe frames", () => {
   const event = safeEvent({ kind: "rejection", name: "Jane Secret", route: "/control/secret/recap", message: "sensitive", user: "private", frames: [

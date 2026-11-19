@@ -153,7 +153,7 @@ async function main() {
         assert.equal(await p.getByTestId("ro-report").count(), 0, "no report before sign-off");
         assert.match(await p.getByTestId("ro-no-report").innerText(), /once Clearway has signed it off/i);
         assert.equal(await p.locator("input, textarea, select, form, [contenteditable]").count(), 0, "no inputs");
-        assert.equal(await p.locator('a[href*="/control"], a[href*="/setup"], a[href*="/sign-in"]').count(), 0, "no edit links");
+        assert.equal(await p.locator('a[href*="/control"], a[href*="/admin"], a[href*="/sign-in"]').count(), 0, "no edit links");
         assert.deepEqual(await p.locator("button").allInnerTexts(), ["Print or save as PDF"], "the only button prints");
         assert.ok(!body.includes(SCRIBE_ONLY), "no scribe card text");
         assert.ok(!/[–—]/.test(body), "no dashes");

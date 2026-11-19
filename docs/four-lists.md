@@ -11,7 +11,7 @@ INT-11 on the TV and phones, SET-05 for the facilitator's review. Migration: `su
 - Cards with the same words fold at once beneath a survivor, with no AI mark. The AI job `fold_four_lists` (prompt `fold-four-lists@2`) folds cards that say the same thing, inside one list only, at least two per fold, never cards that merely share an adjective (the database refuses a member that shares no meaningful word with its survivor, as `unrelated`: stop words and generic praise or judgement words such as strong, good, clear, real, our, church and people are dropped, and plurals and -ing fold), never different numbers or quotes, at most four per fold, and in each run at least 60% of the groups that stood when the run began stay standing (the run's later folds are refused once they would pass that). A survivor it creates carries the AI mark and the count. With AI off, AI folds are not shown anywhere: those cards stand alone on the TV and in the panel, and come back if AI is turned on.
 - The AI is never in the path from a phone to the TV. Cards and agrees reach the TV on their own; folds arrive later.
 - The facilitator can turn AI off or on, undo the last AI change, undo one fold, and pin, unpin, hide or unhide a card. Hidden cards leave the TV and stay in SET-05.
-- SET-05 (`/setup/<id>/four-lists`) is a read-only review with a CSV. It names no one.
+- SET-05 (`/admin/<id>/four-lists`) is a read-only review with a CSV. It names no one.
 
 ## Defaults chosen
 

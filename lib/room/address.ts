@@ -22,7 +22,7 @@ const under = (path: string, base: string) => path === base || path.startsWith(b
 // Facilitator-only pages and APIs. /api/operations/errors is the exception: every page reports client errors there, at its own
 // address. The Wayfinding token links (/v, /c, /f and their APIs) are left alone on purpose: they stay public, outside the
 // middleware (tests/unit/check-ins.test.ts), nothing links to them at Novetera's address, and their APIs accept APP_ORIGIN only.
-const clearwayPaths = ["/sign-in", "/auth", "/setup", "/control", "/remote", "/api/facilitator", "/api/control", "/api/run-of-show",
+const clearwayPaths = ["/sign-in", "/auth", "/admin", "/control", "/remote", "/api/facilitator", "/api/control", "/api/run-of-show",
   "/api/setup", "/api/templates", "/api/operations", "/api/discover", "/api/overnight", "/api/scribe", "/api/tv/control"];
 // A link name can't be one of these (the database reserves them), and none of them is a room.
 const reserved = new Set(["practice", "setup", "control", "remote", "room", "tv", "api", "auth", "signin", "signout", "admin", "join", "live", "clearway", "help", "about", "privacy", "terms", "howweuseai", "static", "public", "favicon", "robots", "sitemap", "next"]);

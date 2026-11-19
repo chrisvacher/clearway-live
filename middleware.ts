@@ -9,7 +9,7 @@ import { uuid } from "@/lib/room/identity";
 // Which session each path refreshes: the room's phone session, the TV's, or the facilitator's. Anything else only gets
 // the address check below.
 const under = (path: string, base: string) => path === base || path.startsWith(base + "/");
-const facilitatorPaths = ["/api/tv/control", "/api/control", "/remote", "/setup", "/control", "/api/facilitator", "/api/run-of-show"];
+const facilitatorPaths = ["/api/tv/control", "/api/control", "/remote", "/admin", "/control", "/api/facilitator", "/api/run-of-show"];
 const refreshKind = (path: string) => path === "/room" || path.startsWith("/room/") ? "room" : path === "/tv" ? "tv" : path === "/sign-in" || facilitatorPaths.some(base => under(path, base)) ? "facilitator" : null;
 
 export async function middleware(request: NextRequest) {
@@ -42,6 +42,6 @@ export async function middleware(request: NextRequest) {
 
 // The address check covers every facilitator path (so Novetera's address can send them to Clearway's), every place a
 // room code, link name or room link can appear, and the paths that refresh a session.
-export const config = { runtime: "nodejs", matcher: ["/tv", "/api/tv/control/:path*", "/api/control/:path*", "/remote/:path*", "/sign-in", "/setup/:path*", "/control/:path*", "/api/facilitator/:path*", "/api/run-of-show/:path*", "/room/:path*",
+export const config = { runtime: "nodejs", matcher: ["/tv", "/api/tv/control/:path*", "/api/control/:path*", "/remote/:path*", "/sign-in", "/admin/:path*", "/control/:path*", "/api/facilitator/:path*", "/api/run-of-show/:path*", "/room/:path*",
   "/auth/:path*", "/api/setup/:path*", "/api/templates", "/api/operations/:path*", "/api/discover/:path*", "/api/overnight/:path*", "/api/scribe/:path*",
   "/r/:code", "/join", "/practice", "/:code([A-Za-z0-9%\\-]+)"] };

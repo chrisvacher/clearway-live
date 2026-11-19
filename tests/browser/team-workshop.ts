@@ -63,7 +63,7 @@ async function main() {
     await facContext.addCookies(fac.cookies(app.origin));
     const setup = await facContext.newPage();
     await step("Use a template from the team workshop template", async () => {
-      await setup.goto(`${app.origin}/setup/templates?engagement=${room.id}`);
+      await setup.goto(`${app.origin}/admin/templates?engagement=${room.id}`);
       const card = setup.locator(".tpl-card", { hasText: "Team workshop" }).filter({ hasText: "Ships with the app" });
       await card.waitFor({ timeout: 15000 });
       await card.getByRole("button", { name: "Preview" }).click();
@@ -73,7 +73,7 @@ async function main() {
       const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
       await dialog.locator("#start-time").fill(`${tomorrow}T19:00`);
       await dialog.getByRole("button", { name: "Apply template" }).click();
-      await setup.waitForURL(`**/setup/${room.id}/run-of-show**`, { timeout: 15000 });
+      await setup.waitForURL(`**/admin/${room.id}/run-of-show**`, { timeout: 15000 });
       await setup.getByText("Started from the template: 11 sessions added.").waitFor();
       const copied = await sessions();
       const template = (await sql.query("select sessions from private.templates where id=$1", [teamWorkshop])).rows[0].sessions as { title: string; interaction: string }[];
@@ -88,7 +88,7 @@ async function main() {
     await step("Pair the TV from setup with the code on the screen", async () => {
       await tv.goto(app.origin + "/tv");
       const code = await until(async () => { const c = (await tv.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
-      await setup.goto(`${app.origin}/setup/${room.id}/tv`);
+      await setup.goto(`${app.origin}/admin/${room.id}/tv`);
       await setup.locator("#tv-pair-code").fill(code); await setup.locator("#tv-label").fill("Workshop TV");
       await setup.getByRole("button", { name: "Pair this TV" }).click();
       await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
@@ -478,7 +478,7 @@ async function main() {
     await step("A workshop has no Wayfinding pages: their links go to the results, and the live room leaves their panels out", async () => {
       const page = await facContext.newPage();
       for (const path of ["after", "report", "plan", "share", "check-ins", "review", "map"]) { await page.goto(`${app.origin}/control/${room.id}/${path}`); assert.equal(new URL(page.url()).pathname, `/control/${room.id}/recap`, path); }
-      await page.goto(`${app.origin}/setup/${room.id}/discover`); assert.equal(new URL(page.url()).pathname, `/setup/${room.id}`);
+      await page.goto(`${app.origin}/admin/${room.id}/discover`); assert.equal(new URL(page.url()).pathname, `/admin/${room.id}`);
       await page.goto(`${app.origin}/control/${room.id}`); await page.getByRole("heading", { name: "Live room", exact: true }).waitFor();
       for (const title of ["Scribe", "Overnight review"]) assert.equal(await page.getByLabel(`${title}, only you see this`, { exact: true }).count(), 0, title);
       assert.equal(await page.getByLabel("Room, only you see this", { exact: true }).count(), 1);

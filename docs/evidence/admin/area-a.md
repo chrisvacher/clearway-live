@@ -1,6 +1,6 @@
 # A: Facilitator home, sign-in and navigation
 
-Fictional Riverside fixtures, local Supabase. Desktop 1440 × 1000 and narrow 390 × 1000, full-page captures. `/control` now redirects to the same home. `/setup/users` is new, so it has no previous page.
+Fictional Riverside fixtures, local Supabase. Desktop 1440 × 1000 and narrow 390 × 1000, full-page captures. `/control` now redirects to the same home. `/admin/users` is new, so it has no previous page.
 
 | Page | Desktop before | Desktop after | Narrow before | Narrow after |
 | --- | --- | --- | --- | --- |

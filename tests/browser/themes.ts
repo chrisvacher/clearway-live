@@ -53,7 +53,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1280, height: 1100 } });
     await context.addCookies(fac.cookies(app.origin));
     const page = await context.newPage();
-    const url = `${app.origin}/setup/${room.id}/discover`;
+    const url = `${app.origin}/admin/${room.id}/discover`;
     const theme = (label: string) => page.locator(".dsc-theme", { hasText: label }).first();
     const rows = async (where = "") => (await sql.query(`select label,source,status,rests_on,out_of,merged_into,ai_run is not null as ai from private.discover_themes where engagement_id=$1 and not deleted ${where} order by seq`, [room.id])).rows;
 

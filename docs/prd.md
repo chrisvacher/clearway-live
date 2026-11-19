@@ -417,7 +417,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 ## Engagements, templates and the run of show
 
-**Facilitator home and administration** (Decided November 9): `/setup` is the single facilitator home. `/control` redirects there. The home lists assigned engagements with church, event title, type, date and available place, upcoming first, and actions for setup, run of show, live room, door list and After. Clearway account administration lives at the admin-only `/setup/users`, linked from the home.
+**Facilitator home and administration** (Decided November 9): `/admin` is the single facilitator home. `/control` redirects there. The home lists assigned engagements with church, event title, type, date and available place, upcoming first, and actions for setup, run of show, live room, door list and After. Clearway account administration lives at the admin-only `/admin/users`, linked from the home.
 
 **Engagement types.** Wayfinding is the first release. The other types are where the same tools serve Clearway's Mentimeter uses (Default list, which Chris can change).
 
@@ -435,7 +435,7 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 **Setup forms** (Decided November 9): create and edit show fields by engagement type. A team workshop uses its workshop date and optional end date. Pre-call time, retreat dates, base year, Five Lenses, governance body and Scripture translation are shown for Wayfinding. Hidden values are retained when the type changes. Linked Team Hub engagements are marked Already in Live with a link to their existing setup. Duplicate creation returns a clear conflict rather than a connection failure. Open joining remains admin-only and team-workshop-only.
 
-**Details and the Door list** (design pass 8): Details (`/setup/[id]/details`) is four cards: The event, The church, AI in the room and, for a Wayfinding kind, Wayfinding settings. Each card has its own Save, and every Save sends the whole form. The church's time zone is a picker of IANA zones, and its logo is uploaded as a PNG, JPEG or WebP file of 1 MB or less, or pasted as an address. The Door list keeps up on its own while its tab is open, with no Refresh button, and for a workshop with open joining it lists everyone who has joined, in alphabetical order.
+**Details and the Door list** (design pass 8): Details (`/admin/[id]/details`) is four cards: The event, The church, AI in the room and, for a Wayfinding kind, Wayfinding settings. Each card has its own Save, and every Save sends the whole form. The church's time zone is a picker of IANA zones, and its logo is uploaded as a PNG, JPEG or WebP file of 1 MB or less, or pasted as an address. The Door list keeps up on its own while its tab is open, with no Refresh button, and for a workshop with open joining it lists everyone who has joined, in alphabetical order.
 
 **Templates** (SET-08): a template is a saved run of show. Starting an engagement from a template copies its sessions, prompts, interaction settings, timings and presenter notes, all editable. The Wayfinding and day-and-a-half templates ship with the app (see "Wayfinding sessions"). Facilitators can save any run of show as a new template.
 

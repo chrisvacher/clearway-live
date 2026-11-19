@@ -51,10 +51,10 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
       <section className="admin-panel" aria-labelledby="ready-title"><h2 id="ready-title">Getting ready</h2>
         <p>{[typeName(e.type), when ?? "No date yet", leadName].filter(Boolean).join(" · ")}</p>
         <ul className="ready-list">
-          <Row state={when ? "ready" : "todo"} title="Details" text={when ? `${typeName(e.type)}, ${when}${settings.ai_enabled ? ", AI on in live sessions" : ""}` : "No date yet. Add the date so it sorts with your upcoming engagements"} href={`/setup/${id}/details`} action="Edit details" />
-          <Row state={run.state} title="Run of show" text={run.text} href={rows.length ? `/setup/${id}/run-of-show` : `/setup/templates?engagement=${id}`} action={rows.length ? "Open run of show" : "Use a template"} />
-          <Row state={joining.state} title="People and joining" text={joining.text} href={`/setup/${id}/joining`} action="Change" />
-          <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/setup/${id}/tv`} action="Pair a TV" />
+          <Row state={when ? "ready" : "todo"} title="Details" text={when ? `${typeName(e.type)}, ${when}${settings.ai_enabled ? ", AI on in live sessions" : ""}` : "No date yet. Add the date so it sorts with your upcoming engagements"} href={`/admin/${id}/details`} action="Edit details" />
+          <Row state={run.state} title="Run of show" text={run.text} href={rows.length ? `/admin/${id}/run-of-show` : `/admin/templates?engagement=${id}`} action={rows.length ? "Open run of show" : "Use a template"} />
+          <Row state={joining.state} title="People and joining" text={joining.text} href={`/admin/${id}/joining`} action="Change" />
+          <Row state={screens ? "ready" : "todo"} title="Screens" text={screens ? `${screens} ${screens === 1 ? "TV" : "TVs"} paired` : "No TV paired yet. Pair it on the day, or check the screen ahead of time"} href={`/admin/${id}/tv`} action="Pair a TV" />
         </ul>
       </section>
       <InviteCard id={id} code={e.room_code} link={link} href={href} host={brand.host} qr={roomQr(e.room_code, brand.skin, e.link_name)} invite={inviteText(churchName, e.title, when, href, e.room_code, brand.host)} closed={e.status === "closed"} />

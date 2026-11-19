@@ -32,6 +32,6 @@ export function InviteCard({ id, code, link, href, host, qr, invite, closed }: {
       <button className="admin-button" type="button" onClick={download}><Download size={16} aria-hidden="true" />Download QR code</button>
     </div>
     <p className="invite-said" role="status" aria-live="polite">{said}</p>
-    <div className="invite-day"><span>On the day</span><Link className="admin-button" href={`/setup/${id}/tv`}><Monitor size={16} aria-hidden="true" />Show the join screen on the TV</Link>{!closed && <OpenTvWindow id={id} />}</div>
+    <div className="invite-day"><span>On the day</span><Link className="admin-button" href={`/admin/${id}/tv`}><Monitor size={16} aria-hidden="true" />Show the join screen on the TV</Link>{!closed && <OpenTvWindow id={id} />}</div>
   </section>;
 }

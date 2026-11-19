@@ -33,7 +33,7 @@ async function main() {
       const editor = await facContext.newPage();
 
       await step(`${skin}: the run of show adds a 1:10 countdown that runs through the next step, on the TV and phones, and marks the span`, async () => {
-        await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+        await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
         await editor.locator(".rb-row", { hasText: "Talk at your tables" }).getByRole("button", { name: /Open options/ }).click();
         const open = editor.locator(".rb-row.is-open");
         await open.locator("#timer-on").check();

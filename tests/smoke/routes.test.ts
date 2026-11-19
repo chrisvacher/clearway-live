@@ -381,7 +381,7 @@ function applyCookies(jar: Map<string, string>, response: Response) {
   }
 }
 function cookieHeader(jar: Map<string, string>) { return [...jar].map(([k,v]) => `${k}=${v}`).join("; "); }
-async function startLogin(next = "/setup") {
+async function startLogin(next = "/admin") {
   const jar = new Map<string,string>();
   const response = await fetch(origin + "/auth/google?next=" + encodeURIComponent(next), {
     method: "POST", headers: { origin }, redirect: "manual",
@@ -402,7 +402,7 @@ async function startLogin(next = "/setup") {
   assert.match(response.headers.get("set-cookie")!, /HttpOnly/i);
   return { jar, callback: new URL(target.searchParams.get("redirect_to")!) };
 }
-async function finishLogin(mode: string, next = "/setup") {
+async function finishLogin(mode: string, next = "/admin") {
   const { jar, callback } = await startLogin(next);
   callback.searchParams.set("code", mode);
   const response = await fetch(callback, { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
@@ -411,7 +411,7 @@ async function finishLogin(mode: string, next = "/setup") {
 }
 
 test("signed-out requests and forged middleware headers cannot load private routes", async () => {
-  for (const route of ["/setup", "/control", "/setup?_rsc=spoof"]) {
+  for (const route of ["/admin", "/control", "/admin?_rsc=spoof"]) {
     const response = await fetch(origin + route, { redirect: "manual", headers: { "x-middleware-subrequest": "middleware:middleware:middleware:middleware:middleware" } });
     assert.equal(response.status, 307);
     assert.ok(response.headers.get("location")!.endsWith("/sign-in"));
@@ -420,10 +420,18 @@ test("signed-out requests and forged middleware headers cannot load private rout
   }
 });
 
-test("OAuth uses PKCE, then a verified allowlist claim opens setup and control", async () => {
+test("old /setup links redirect to /admin, keeping the rest of the address", async () => {
+  for (const [from, to] of [["/setup", "/admin"], ["/setup/90000000-0000-4000-8000-000000000010/run-of-show", "/admin/90000000-0000-4000-8000-000000000010/run-of-show"], ["/setup/templates?engagement=x", "/admin/templates?engagement=x"]]) {
+    const response = await fetch(origin + from, { redirect: "manual" });
+    assert.equal(response.status, 307, from);
+    assert.equal(new URL(response.headers.get("location")!, origin).pathname + new URL(response.headers.get("location")!, origin).search, to);
+  }
+});
+
+test("OAuth uses PKCE, then a verified allowlist claim opens admin and control", async () => {
   const { jar, response } = await finishLogin("allowed");
   assert.equal(response.status, 303);
-  assert.equal(response.headers.get("location"), origin + "/setup");
+  assert.equal(response.headers.get("location"), origin + "/admin");
   assert.match(response.headers.get("cache-control")!, /no-store/);
   assert.equal(response.headers.get("referrer-policy"), "no-referrer");
   assert.ok(![...jar.keys()].some(k => k.includes("code-verifier")));
@@ -432,9 +440,9 @@ test("OAuth uses PKCE, then a verified allowlist claim opens setup and control",
   const sessionJson = Buffer.from(appCookie.slice(7), "base64url").toString();
   assert.doesNotMatch(sessionJson, /provider_token|provider_refresh_token|unused-google/);
   assert.ok(![...jar.keys()].some(k => /^cw-facilitator\.\d+$/.test(k)), "Old provider-token chunks are removed");
-  for (const [path, text] of [["/setup", "Assigned engagement"], ["/control", "Engagements"]]) {
+  for (const [path, text] of [["/admin", "Assigned engagement"], ["/control", "Engagements"]]) {
     const page = await fetch(origin + path, { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
-    if (path === "/control") { assert.equal(page.status, 307); assert.equal(page.headers.get("location"), "/setup"); continue; }
+    if (path === "/control") { assert.equal(page.status, 307); assert.equal(page.headers.get("location"), "/admin"); continue; }
     assert.equal(page.status, 200);
     assert.match(page.headers.get("cache-control")!, /no-store/);
     const html = await page.text();
@@ -452,7 +460,7 @@ test("unlisted Google, external-domain and participant sessions cannot enter", a
     // Also exercise a directly supplied, valid Auth cookie without the callback.
     const session = { access_token: token(mode), refresh_token: "refresh-"+mode, expires_at: Math.floor(Date.now()/1000)+3600, user: user(mode) };
     const cookie = "cw-facilitator=" + "base64-" + Buffer.from(JSON.stringify(session)).toString("base64url");
-    for (const path of ["/setup", "/control"]) {
+    for (const path of ["/admin", "/control"]) {
       const denied = await fetch(origin + path, { headers: { cookie }, redirect: "manual" });
       assert.equal(denied.status, 307, mode + path);
       assert.doesNotMatch(await denied.text(), /Assigned engagement|Test facilitator/);
@@ -471,7 +479,7 @@ test("callback fails closed for missing, wrong or cancelled PKCE, and clamps ret
   const failed = await finishLogin("invalid");
   assert.equal(failed.jar.size, 0);
   const { response } = await finishLogin("allowed", "https://evil.example/steal");
-  assert.equal(response.headers.get("location"), origin + "/setup");
+  assert.equal(response.headers.get("location"), origin + "/admin");
   const control = await finishLogin("allowed", "/control");
   assert.equal(control.response.headers.get("location"), origin + "/control");
 });
@@ -490,7 +498,7 @@ test("session refresh persists cookies and sign-out revokes only this session", 
   const { jar } = await finishLogin("allowed");
   const stale = { access_token: token("allowed"), refresh_token: "refresh-allowed", expires_at: Math.floor(Date.now()/1000)-100, user: user("allowed") };
   jar.set("cw-facilitator", "base64-" + Buffer.from(JSON.stringify(stale)).toString("base64url"));
-  const refreshed = await fetch(origin + "/setup", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
+  const refreshed = await fetch(origin + "/admin", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
   assert.equal(refreshed.status, 200);
   assert.match(refreshed.headers.get("set-cookie")!, /cw-facilitator=/);
   applyCookies(jar, refreshed);
@@ -499,14 +507,14 @@ test("session refresh persists cookies and sign-out revokes only this session", 
   applyCookies(jar, signedOut);
   assert.equal(jar.size, 0);
   assert.equal(logouts.at(-1), "local");
-  const denied = await fetch(origin + "/setup", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
+  const denied = await fetch(origin + "/admin", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
   assert.equal(denied.status, 307);
   assert.ok(calls.includes("/rest/v1/rpc/claim_clearway_access"));
 });
 
 test("a revoked session is rejected even when its cookie has not expired", async () => {
   const session = { access_token: token("revoked"), refresh_token: "refresh-revoked", expires_at: Math.floor(Date.now()/1000)+3600, user: user("revoked") };
-  const response = await fetch(origin + "/setup", { redirect: "manual", headers: { cookie: "cw-facilitator=base64-" + Buffer.from(JSON.stringify(session)).toString("base64url") } });
+  const response = await fetch(origin + "/admin", { redirect: "manual", headers: { cookie: "cw-facilitator=base64-" + Buffer.from(JSON.stringify(session)).toString("base64url") } });
   assert.equal(response.status, 307);
 });
 
@@ -517,7 +525,7 @@ test("unsolicited callback errors do not sign out an existing facilitator", asyn
   const response = await fetch(origin + "/auth/callback?error=access_denied", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
   applyCookies(jar, response);
   assert.equal(logouts.length, before);
-  const page = await fetch(origin + "/setup", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
+  const page = await fetch(origin + "/admin", { headers: { cookie: cookieHeader(jar) }, redirect: "manual" });
   assert.equal(page.status, 200);
 });
 
@@ -545,7 +553,7 @@ test("six-digit code works on a second device and issues only its own room cooki
   assert.ok([...jar.keys()].some(k=>k.startsWith("cw-room-")));assert.ok(![...jar.keys()].some(k=>k.startsWith("cw-facilitator")));
   assert.match(result.response.headers.get("set-cookie")!,/HttpOnly/);assert.ok(!JSON.stringify(result.data).includes("access_token"));
   const status=await fetch(`${origin}/api/room/${roomId}/status`,{headers:{cookie:cookieHeader(jar)}});const own=await status.json();assert.equal(own.name,"Ann Lee");
-  const privatePage=await fetch(origin+"/setup",{headers:{cookie:cookieHeader(jar)},redirect:"manual"});assert.equal(privatePage.status,307);
+  const privatePage=await fetch(origin+"/admin",{headers:{cookie:cookieHeader(jar)},redirect:"manual"});assert.equal(privatePage.status,307);
   const denied=await fetch(`${origin}/api/facilitator/${roomId}/door`,{method:"POST",headers:{origin,cookie:cookieHeader(jar),"Content-Type":"application/json"},body:JSON.stringify({action:"manual",attendee:roomAttendee,code:"AAAAAAAA"})});assert.equal(denied.status,401);
   const authBefore=roomAuthCalls,readsBefore=calls.length;
   const restored=await fetch(`${origin}/room/${roomId}`,{headers:{cookie:cookieHeader(jar)}});
@@ -606,7 +614,7 @@ test("setup API enforces facilitator identity, CSRF and admin-only Team Hub disc
  assert.equal((await setupPost(new Map(),{action:"hub_clients"})).response.status,401);
  const {jar}=await finishLogin("allowed");assert.equal((await setupPost(jar,{action:"hub_clients"})).response.status,403);
  const cross=await fetch(origin+"/api/setup",{method:"POST",headers:{origin:"https://evil.example",cookie:cookieHeader(jar)},body:"{}"});assert.equal(cross.status,403);
- const page=await fetch(origin+`/setup/${roomId}/joining`,{headers:{cookie:cookieHeader(jar)}});assert.equal(page.status,200);assert.match(await page.text(),/Review import|How the room decides/);
+ const page=await fetch(origin+`/admin/${roomId}/joining`,{headers:{cookie:cookieHeader(jar)}});assert.equal(page.status,200);assert.match(await page.text(),/Review import|How the room decides/);
 });
 test("attendee import previews normalize duplicates, then save only reviewed source",async()=>{
  const {jar}=await finishLogin("allowed");const body={id:roomId,source:"paste",text:"Ann Lee <ANN@example.org>\nOther <ann@example.org>"};
@@ -630,7 +638,7 @@ test("one add-and-invite request saves recipients and safely retries a failed de
  const blocked=await setupPost(jar,{...body,batch:randomUUID(),person:{name:"Fictional",email:"person@riverside.example"}});assert.equal(blocked.response.status,400);assert.equal(combinedImports,before+1);
  const sentBefore=sentBatches.length;
  const saved=await setupPost(jar,{action:"import",id:roomId,source:"person",person:{name:"Ann Lee",email:"ann@example.org"}});assert.equal(saved.data.count,1);assert.equal(sentBatches.length,sentBefore);
- const page=await fetch(origin+`/setup/${roomId}/joining`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
+ const page=await fetch(origin+`/admin/${roomId}/joining`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
  assert.match(html,/Add and invite/);assert.match(html,/Add without inviting/);assert.match(html,/Send invite/);assert.doesNotMatch(html,/Review import|Save people/);
 });
 
@@ -703,13 +711,13 @@ test("live submissions require their participant cookie, origin and valid immuta
 
 
 test("run of show and printable notes require a facilitator session and stay private",async()=>{
-  for(const path of [`/setup/${roomId}/run-of-show`,`/setup/${roomId}/run-of-show/print`]) {
+  for(const path of [`/admin/${roomId}/run-of-show`,`/admin/${roomId}/run-of-show/print`]) {
     const unsigned=await fetch(origin+path,{redirect:"manual"});assert.equal(unsigned.status,307);assert.doesNotMatch(await unsigned.text(),/PRIVATE-PRINT-NOTES/);
   }
   assert.equal((await fetch(origin+`/api/run-of-show/${roomId}`)).status,401);
   const {jar}=await finishLogin("allowed"),headers={cookie:cookieHeader(jar)};
-  const page=await fetch(origin+`/setup/${roomId}/run-of-show`,{headers});assert.equal(page.status,200);assert.match(await page.text(),/Add session|Print run of show/);
-  const print=await fetch(origin+`/setup/${roomId}/run-of-show/print`,{headers});const html=await print.text();assert.equal(print.status,200);assert.match(html,/PRIVATE-PRINT-NOTES/);assert.match(html,/It is 2036/);assert.match(html,/Phone-only planning depth/);assert.match(print.headers.get("cache-control")!,/no-store/);
+  const page=await fetch(origin+`/admin/${roomId}/run-of-show`,{headers});assert.equal(page.status,200);assert.match(await page.text(),/Add session|Print run of show/);
+  const print=await fetch(origin+`/admin/${roomId}/run-of-show/print`,{headers});const html=await print.text();assert.equal(print.status,200);assert.match(html,/PRIVATE-PRINT-NOTES/);assert.match(html,/It is 2036/);assert.match(html,/Phone-only planning depth/);assert.match(print.headers.get("cache-control")!,/no-store/);
   assert.equal((await fetch(origin+`/api/run-of-show/${practiceRoom}`,{headers})).status,403);
 });
 test("run of show writes validate origin and input and never use a service key",async()=>{
@@ -774,7 +782,7 @@ test("TV code approval, own persistent cookies, multi-screen preparation and unp
  assert.equal((await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(jar)}})).status,403);
  assert.equal((await control({action:"screen",content:"join"})).status,200);
  const frame=await (await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(tvJar)}})).json();assert.equal(frame.role,"tv");assert.equal(frame.state.tv_content,"join");assert.equal(frame.phone_depth,null);assert.equal(frame.presence.names[0].name,"Ann");
- const manager=await fetch(origin+`/setup/${roomId}/tv`,{headers:{cookie:cookieHeader(jar)}});assert.equal(manager.status,200);assert.match(await manager.text(),/Show screen check|Paired screens/);
+ const manager=await fetch(origin+`/admin/${roomId}/tv`,{headers:{cookie:cookieHeader(jar)}});assert.equal(manager.status,200);assert.match(await manager.text(),/Show screen check|Paired screens/);
  const proof=JSON.parse(decodeURIComponent(tvJar.get("cw-tv-device")!));assert.equal((await control({action:"unpair",device:proof.id})).status,200);assert.equal((await sync()).data.status,"pair");
  assert.equal((await fetch(origin+`/api/live/${roomId}?surface=tv`,{headers:{cookie:cookieHeader(tvJar)}})).status,403);
 });

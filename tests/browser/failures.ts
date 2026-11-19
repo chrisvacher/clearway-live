@@ -179,7 +179,7 @@ try {
   });
 
   await step("FAIL-10 The tech fails completely: the run of show and prompts print from the control surface", async () => {
-    const print = await facContext.newPage(); await print.goto(`${app.origin}/setup/${room.id}/run-of-show/print`);
+    const print = await facContext.newPage(); await print.goto(`${app.origin}/admin/${room.id}/run-of-show/print`);
     const text = await print.locator("main").innerText();
     for (const want of ["Run of show", "One word for what God is doing at Riverside", "What is God doing that is worth celebrating?", "If the tech fails"]) assert.ok(text.includes(want), want);
   });

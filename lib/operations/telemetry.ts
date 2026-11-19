@@ -2,7 +2,7 @@ export type ErrorKind = "error" | "rejection" | "boundary" | "server" | "test";
 export type SafeEvent = { kind: ErrorKind; name: string; route: string; frames: string[]; digest?: string };
 const kinds = new Set(["error", "rejection", "boundary", "server", "test"]);
 const names = new Set(["Error", "TypeError", "RangeError", "ReferenceError", "SyntaxError", "URIError", "EvalError", "AggregateError"]);
-const segments = new Set(["setup", "operations", "new", "users", "templates", "door", "tv", "discover", "four-lists", "run-of-show", "print", "control", "after", "check-ins", "recap", "share", "report", "plan", "map", "review", "latency", "scribe", "room", "confirm", "remote", "followup", "practice", "sign-in", "how-we-use-ai"]);
+const segments = new Set(["admin", "setup", "operations", "new", "users", "templates", "door", "tv", "discover", "four-lists", "run-of-show", "print", "control", "after", "check-ins", "recap", "share", "report", "plan", "map", "review", "latency", "scribe", "room", "confirm", "remote", "followup", "practice", "sign-in", "how-we-use-ai"]);
 
 // Dynamic ids, bearer links, query strings, fragment and messages never enter telemetry.
 export function errorRoute(path: string): string {

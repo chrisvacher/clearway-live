@@ -160,7 +160,7 @@ export function CheckInResults({ engagement, church, title, initial }: { engagem
                 {r.send_result === "failed" && <Bell size={18} aria-label="Needs attention" />}</div>)}</section>
             {round.day === 90 && round.status === "sent" && <section className="cir-card"><div><p className="ctl-eyebrow">The last check-in</p><h3>Close the engagement?</h3></div>
               <p>This was the last check-in. {stepsDone} of {steps.length} first steps are done. When you are ready, close the engagement from its setup page. That turns off device sign-ins and ends the check-in links.</p>
-              <div className="cir-actions"><Link className="show-button" href={`/setup/${engagement}`}>Open setup</Link></div></section>}
+              <div className="cir-actions"><Link className="show-button" href={`/admin/${engagement}`}>Open setup</Link></div></section>}
           </aside>
         </div>}
         {round.recipients.length === 0 && round.status !== "scheduled" && round.status !== "off" && !round.superseded && <p className="cir-muted">Nobody owns a first step or a goal with an email, so nobody was emailed.</p>}

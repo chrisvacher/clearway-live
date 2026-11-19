@@ -64,7 +64,7 @@ async function main() {
 
     // ---------- SET-08: the library and Use a template ----------
     await step("SET-08: the library lists the team workshop template, ninety minutes, with its sessions", async () => {
-      await editor.goto(`${app.origin}/setup/templates?engagement=${room.id}`);
+      await editor.goto(`${app.origin}/admin/templates?engagement=${room.id}`);
       const card = editor.locator(".tpl-card", { hasText: "Team workshop" });
       await card.waitFor();
       assert.match(await card.innerText(), /90 minutes · 11 sessions/);
@@ -84,7 +84,7 @@ async function main() {
       assert.match(await dialog.innerText(), /Copies 11 sessions/);
       await shot(editor, "set-08-start-engagement");
       await dialog.getByRole("button", { name: "Apply template" }).click();
-      await editor.waitForURL(`**/setup/${room.id}/run-of-show**`, { timeout: 15000 });
+      await editor.waitForURL(`**/admin/${room.id}/run-of-show**`, { timeout: 15000 });
       await editor.getByText("Started from the template: 11 sessions added.").waitFor();
       const copied = await run();
       assert.equal(copied.length, 11);
@@ -243,7 +243,7 @@ async function main() {
       const saved = (await sql.query("select sessions from private.templates where name=$1 and not deleted", [tplName])).rows[0].sessions as { title: string; notes: string }[];
       assert.equal(saved.length, 14); assert.equal((saved as { title: string; mode?: string }[]).find(s => s.title === "Before we meet")!.mode, "self_paced"); assert.equal(saved.find(s => s.title === "Which do we start with?")!.notes, "Ask for one pick each.");
       await dialog.getByRole("button", { name: "Close" }).last().click();
-      await editor.goto(`${app.origin}/setup/templates`);
+      await editor.goto(`${app.origin}/admin/templates`);
       const card = editor.locator(".tpl-card", { hasText: tplName });
       assert.match(await card.innerText(), /Saved by you/);
     });
@@ -251,7 +251,7 @@ async function main() {
       const title = (await sql.query("select title from public.engagements where id=$1", [room.id])).rows[0].title as string;
       for (const mode of ["click", "type"] as const) {
         const typed = `Typed ${mode} ${room.id.slice(0, 4)}`;
-        await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+        await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
         await editor.getByRole("button", { name: "Save as template" }).click();
         const dialog = editor.getByRole("dialog", { name: "Save as template" }), field = dialog.locator("#template-name");
         assert.equal(await field.inputValue(), title, "the name starts as the engagement title");
@@ -271,13 +271,13 @@ async function main() {
       await sql.query("insert into public.engagement_facilitators(engagement_id,clearway_user_id,role) select $1,clearway_user_id,'lead' from public.engagement_facilitators where engagement_id=$2 and not deleted limit 1", [second.id, room.id]);
       const source = (await sql.query("select title,mode,planned_start,opens_at,closes_at from public.sessions where engagement_id=$1 and not deleted", [room.id])).rows;
       const firstLive = Math.min(...source.filter(r => r.mode === "live" && r.planned_start).map(r => r.planned_start.getTime()));
-      await editor.goto(`${app.origin}/setup/templates?engagement=${second.id}`);
+      await editor.goto(`${app.origin}/admin/templates?engagement=${second.id}`);
       await editor.locator(".tpl-card", { hasText: tplName }).getByRole("button", { name: `Use ${tplName}` }).click();
       const dialog = editor.getByRole("dialog", { name: "Use a template" });
       assert.equal(await dialog.locator("#start-engagement").inputValue(), second.id);
       await dialog.locator("#start-time").fill("2026-12-03T19:00");
       await dialog.getByRole("button", { name: "Apply template" }).click();
-      await editor.waitForURL(`**/setup/${second.id}/run-of-show**`, { timeout: 15000 });
+      await editor.waitForURL(`**/admin/${second.id}/run-of-show**`, { timeout: 15000 });
       const copied = (await sql.query("select title,mode,state,planned_start,opens_at,closes_at from public.sessions where engagement_id=$1 and not deleted", [second.id])).rows;
       assert.equal(copied.length, 14);
       const shift = Date.parse("2026-12-04T00:00:00Z") - firstLive;
@@ -381,7 +381,7 @@ async function main() {
       await shot(tv, "template-choice-tv"); await shot(ruth, "template-choice-phone");
     });
     await step("Sections: a session's Section names a group, the header renames it, and a drop between two sections joins the one the pointer is in", async () => {
-      await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+      await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
       await editor.locator(".rb-row").first().waitFor();
       assert.equal(await editor.locator(".rb-sec").count(), 0, "a run with no named section shows no section headers");
       const sectionOf = async (title: string) => (await sql.query("select section from public.sessions where engagement_id=$1 and title=$2 and not deleted", [room.id, title])).rows[0]?.section as string;
@@ -458,7 +458,7 @@ async function main() {
       await editor.getByText(`${blockName} removed.`).waitFor();
       assert.equal(await editor.getByTestId("saved-blocks").locator(".rb-block", { hasText: blockName }).count(), 0);
       assert.equal((await titles()).length, count + size, "removing a block leaves the run alone");
-      await editor.goto(`${app.origin}/setup/${room.id}/run-of-show/print`);
+      await editor.goto(`${app.origin}/admin/${room.id}/run-of-show/print`);
       assert.equal(await editor.locator(".show-print-sec", { hasText: "Send-off" }).count(), 1, "the printed run of show names the section");
     });
     console.log(`Templates and builder kit: ${passed.length} checks passed. Local checks on loopback.`);

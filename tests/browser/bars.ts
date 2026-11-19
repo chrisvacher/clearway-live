@@ -130,7 +130,7 @@ async function main() {
 
     await step("The run of show edits each kind's options and saves them through the database's check", async () => {
       const editor = await facContext.newPage();
-      await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+      await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
       // SET-07: a tile from the palette adds the session at the end and opens its options in place.
       const open = editor.locator(".rb-row.is-open");
       await editor.locator(".rb-tile", { hasText: "Multiple choice" }).click();

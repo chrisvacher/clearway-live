@@ -122,7 +122,7 @@ async function main() {
 
     // ---------- Run of show ----------
     await step("SET-07: the grid's settings in the run of show, ten items at most, and the pre-mortem preset", async () => {
-      const editor = await facContext.newPage(); await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+      const editor = await facContext.newPage(); await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
       await editor.locator(".rb-row", { hasText: "Place each idea" }).getByRole("button", { name: /Open options/ }).click();
       await editor.locator(".rb-row.is-open #grid-preset").waitFor();
       assert.equal(await editor.locator(".gfs-lines li").count(), 5, "the five items");

@@ -22,7 +22,7 @@ The historical [milestone 1 acceptance](milestone-1-acceptance.md) remains recor
 | Deployment | Vercel production deployment `dpl_6iwEYxxKTrMBjzG9xBZUtf4oonkM` is Ready, serves `live.clearway.co`, uses Node 22.x and matches `aecc735` | Passed |
 | Database | Live project `uxfypmohciupjyzbonlq` is active and healthy, Postgres 17.11 | Passed |
 | Migrations | All 69 local migration versions and names match production, through `20261110121926_practice_reset_archive.sql` | Passed |
-| Access and security headers | Signed-out `/setup` and `/control` redirect to sign-in. Export and both cron routes return 401. Public entry/sign-in/TV pages return 200. Responses have no-store, HSTS, frame denial and noindex headers | Passed |
+| Access and security headers | Signed-out `/admin` and `/control` redirect to sign-in. Export and both cron routes return 401. Public entry/sign-in/TV pages return 200. Responses have no-store, HSTS, frame denial and noindex headers | Passed |
 | RLS and Storage | All 111 tables in `public` and `private` have RLS enabled. The `scribe` bucket is private | Passed. Role behavior is additionally tested in isolated CI |
 | Google Auth | Google is the only enabled external provider. Email is enabled for participant Auth, anonymous sign-ins and manual identity linking are off, email confirmation is on. Site URL is `https://live.clearway.co` | Passed configuration check |
 | OAuth initiation | A fresh app POST returns 303 to Live Supabase, which returns 302 to Google's chooser with `prompt=select_account`, the Clearway domain hint and the correct `/auth/callback?next=%2Fsetup` destination | Passed initiation. Existing real facilitator session also loaded protected setup. A new consent/login was not completed in this audit |

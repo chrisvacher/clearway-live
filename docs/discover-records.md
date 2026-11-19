@@ -1,6 +1,6 @@
 # Discover records, survey findings and SET-06 notes (milestone 6, step 1)
 
-Migration: `supabase/migrations/20261106010000_discover_records.sql`. Page: `/setup/<engagement>/discover`, linked from the setup overview and the run of show sidebar. Kit: `npm run test:discover`. Role tests: `supabase/tests/database/discover_records.test.sql`.
+Migration: `supabase/migrations/20261106010000_discover_records.sql`. Page: `/admin/<engagement>/discover`, linked from the setup overview and the run of show sidebar. Kit: `npm run test:discover`. Role tests: `supabase/tests/database/discover_records.test.sql`.
 
 ## What it does
 

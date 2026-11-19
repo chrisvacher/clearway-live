@@ -92,18 +92,18 @@ async function main() {
     const setup = await facContext.newPage();
     await step("A workshop engagement with open joining, an attendee list and AI on has Clearway as its Brand until an admin changes it", async () => {
       assert.equal(await skinNow(), "clearway");
-      await setup.goto(`${CW}/setup/${room.id}/joining`);
+      await setup.goto(`${CW}/admin/${room.id}/joining`);
       await setup.getByRole("radio", { name: /Anyone who has the link or code/ }).waitFor();
       assert.equal(await setup.getByRole("radio", { name: /Anyone who has the link or code/ }).isChecked(), true, "open joining");
       await setup.getByRole("heading", { name: "3 people" }).waitFor();
     });
     await step("On Details an admin switches the Brand to Novetera and the room's links move to the Novetera address", async () => {
-      await setup.goto(`${CW}/setup/${room.id}/details`);
+      await setup.goto(`${CW}/admin/${room.id}/details`);
       await setup.getByRole("combobox", { name: /^Brand/ }).selectOption("novetera");
       await setup.getByRole("button", { name: "Save engagement", exact: true }).click();
       await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 });
       await until(async () => await skinNow() === "novetera", "the skin is saved", 10000);
-      await setup.goto(`${CW}/setup/${room.id}`);
+      await setup.goto(`${CW}/admin/${room.id}`);
       assert.equal(await setup.locator(".invite-card a.text-link").getAttribute("href"), `${NV}/${code}`, "the invite card's link is at the Novetera address");
     });
     // The run of show: a content screen, a scale, a word cloud, an open wall with AI grouping and Q&A. All from existing elements.
@@ -128,7 +128,7 @@ async function main() {
       assert.equal(await tv.locator("main").getAttribute("data-skin"), "novetera");
       await audit(tv, "TV pairing screen"); await shot(tv, "01-tv-pairing");
       const pairingCode = await until(async () => { const c = (await tv.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
-      await setup.goto(`${CW}/setup/${room.id}/tv`);
+      await setup.goto(`${CW}/admin/${room.id}/tv`);
       await setup.locator("#tv-pair-code").fill(pairingCode); await setup.locator("#tv-label").fill("Workshop TV");
       await setup.getByRole("button", { name: "Pair this TV" }).click();
       await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
@@ -202,7 +202,7 @@ async function main() {
       assert.equal(phones.length, 4);
     });
     await step("The invite email goes to the attendee list from Novetera, with Novetera links, its AI paragraph and its sign-off", async () => {
-      await setup.goto(`${CW}/setup/${room.id}/joining`);
+      await setup.goto(`${CW}/admin/${room.id}/joining`);
       await setup.getByRole("heading", { name: "6 people" }).waitFor();   // the three on the list and the three who joined by name, who have no email to invite
       const before = mail.count;
       await setup.getByRole("button", { name: "Select all for invites" }).click();
@@ -342,7 +342,7 @@ async function main() {
       await live(ids.last, "One word for how you leave today");
       await send(phones[0].page, "grateful"); await until(async () => (await tvText()).includes("grateful"), "the word on the Novetera TV", 10000);
       await novetera(); await shot(tv, "14-before-switch-tv"); await shot(phones[0].page, "14-before-switch-phone");
-      await setup.goto(`${CW}/setup/${room.id}/details`);
+      await setup.goto(`${CW}/admin/${room.id}/details`);
       await setup.getByRole("combobox", { name: /^Brand/ }).selectOption("clearway"); await setup.getByRole("button", { name: "Save engagement", exact: true }).click();
       await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 }); await until(async () => await skinNow() === "clearway", "back to Clearway", 10000);
       // The TV and the phones follow without being touched. A reload is the fallback a person would use, so the kit says which one it needed.

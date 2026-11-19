@@ -23,7 +23,7 @@ const setupWords = "the engagement's setup";
 function NoticeText({ text, engagement }: { text: string; engagement: string }) {
   const at = text.indexOf(setupWords);
   if (at < 0) return <>{text}</>;
-  return <>{text.slice(0, at)}<a href={`/setup/${engagement}/details#details-ai`} target="_blank" rel="noreferrer">{setupWords}</a>{text.slice(at + setupWords.length)}</>;
+  return <>{text.slice(0, at)}<a href={`/admin/${engagement}/details#details-ai`} target="_blank" rel="noreferrer">{setupWords}</a>{text.slice(at + setupWords.length)}</>;
 }
 // FAIL-09 and the AI controls for the step on the TV (laptop): what AI is doing, its switch,
 // Undo last AI change, Show summary, and what AI has cost this engagement. Only you see this.

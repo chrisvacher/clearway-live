@@ -34,16 +34,16 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
   print view carry no sidebar.
 - The button row (`EngagementNavigation`), the back buttons and the per-page privacy markers are removed.
 - Under 900px the sidebar folds behind a Menu button.
-- Step 1 keeps today's routes: "Setup" is `/setup/[id]` and "Screens" is `/setup/[id]/tv` until steps 2 and 3 split them.
+- Step 1 keeps today's routes: "Setup" is `/admin/[id]` and "Screens" is `/admin/[id]/tv` until steps 2 and 3 split them.
 
 ## Step 2 notes
 
-- `/setup/[id]` is now the Overview: a readiness list (details, run of show, people and joining, screens) and the
+- `/admin/[id]` is now the Overview: a readiness list (details, run of show, people and joining, screens) and the
   Invite the room card with the link, the room code, a QR code, Copy link, Copy invite text and Download QR code.
-- The long editor moved, unchanged, to `/setup/[id]/details`. Step 3 splits it.
-- `/setup` groups engagements as Upcoming, No date yet, Past and Practice. Each row shows its room link with a copy
+- The long editor moved, unchanged, to `/admin/[id]/details`. Step 3 splits it.
+- `/admin` groups engagements as Upcoming, No date yet, Past and Practice. Each row shows its room link with a copy
   button and leads with one action that follows its status; the rest are under More.
-- `/setup/new` asks four things: the Team Hub church and engagement, the kind of event with the template to start
+- `/admin/new` asks four things: the Team Hub church and engagement, the kind of event with the template to start
   from, the date and first session time, and for a workshop how people join. It creates the engagement, applies the
   template and opens the Overview.
 - The type reads "Workshop", not "Team workshop". The database value is still `team_workshop`.
@@ -52,7 +52,7 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
 
 ## Step 3 notes
 
-- **People and joining** (`/setup/[id]/joining`) holds the link, who can join, the ways in, How the room decides and
+- **People and joining** (`/admin/[id]/joining`) holds the link, who can join, the ways in, How the room decides and
   the attendee list with invites. Each card saves on its own through `joining_save`.
 - **The link** is a name the facilitator chooses (3 to 24 letters or digits, lower case) or the generated room code.
   The room code always keeps working beside a chosen name: the TV shows it, its QR code uses it and people type it at
@@ -63,8 +63,8 @@ Claude Doc "Clearway Live admin: UX, UI and flow review" (https://claude.ai/arti
   only an admin changes (`20261109080000_open_join`): Wayfinding keeps the list so check-ins reach each person.
 - **Ways in** lists the link, the QR code and the typed room code. All three are always on. Turning one off would
   change the TV's join screen, which belongs to the TV layout work, so it is not a setting yet.
-- **Details** (`/setup/[id]/details`) keeps the event, the church, AI and the Wayfinding fields. The TV theme and
-  size are only on Screens (`/setup/[id]/tv`) now.
+- **Details** (`/admin/[id]/details`) keeps the event, the church, AI and the Wayfinding fields. The TV theme and
+  size are only on Screens (`/admin/[id]/tv`) now.
 - Migration `20261111200000_join_link.sql`: `engagements.link_name` with a format check and a unique index,
   `tv_room_link` resolving a name as well as a code, `joining_save` and `room_code_renew`. Tests:
   `supabase/tests/database/join_link.test.sql`. The engagement JSON archive does not list `link_name` yet.

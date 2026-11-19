@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function FourListsReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
-  await wayfindingOnly(client, id, `/setup/${id}`);
+  await wayfindingOnly(client, id, `/admin/${id}`);
   const { data, error } = await client.rpc("four_lists_review", { p_engagement: id });
   const lead = "Read only. Names never show. Pin, hide and undo a fold on the live control surface.";
   if (fourListsMissing(error)) return <><main id="main" className="admin-page"><header className="admin-heading"><div><h1>Four Helpful Lists</h1><p>{lead}</p></div><div className="admin-actions"><RefreshPage label="Refresh lists" /></div></header><p className="show-empty">Four Helpful Lists isn’t available yet. Please try again later.</p></main></>;

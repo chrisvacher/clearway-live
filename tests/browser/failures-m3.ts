@@ -338,7 +338,7 @@ export async function milestone3Failures({ env, sql, mail, app, browser, step, s
 
   // ---------- FAIL-10 with the new kinds ----------
   await step("FAIL-10 The run of show prints with every new kind's name, its prompt and the self-paced session's window", async () => {
-    const print = await facContext.newPage(); await print.goto(`${app.origin}/setup/${room.id}/run-of-show/print`);
+    const print = await facContext.newPage(); await print.goto(`${app.origin}/admin/${room.id}/run-of-show/print`);
     const text = await print.locator("main").innerText();
     for (const want of ["Multiple choice · Live", "Ranking · Live", "100 points · Live", "2x2 grid · Live", "Sign together · Live", "Q&A · Live", "Word cloud · Live", "Open text · Live",
       "Statements · Self-paced", "Where should our next season go?", "Sign our shared commitment", "How true is each of these for us today?", "Before we meet", "If the tech fails"]) assert.ok(text.includes(want), `the print has: ${want}`);

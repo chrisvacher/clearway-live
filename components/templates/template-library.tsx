@@ -88,7 +88,7 @@ export function TemplateLibrary({ initial, admin, engagement, template }: { init
         </aside>}
       </div>}
     </div>
-    {starting && library && <StartEngagement library={library} template={starting} engagement={engagement} admin={admin} onClose={() => setStarting(null)} onStarted={(id, count) => { setStarting(null); router.push(`/setup/${id}/run-of-show?from=template&count=${count}`); }} />}
+    {starting && library && <StartEngagement library={library} template={starting} engagement={engagement} admin={admin} onClose={() => setStarting(null)} onStarted={(id, count) => { setStarting(null); router.push(`/admin/${id}/run-of-show?from=template&count=${count}`); }} />}
   </main>;
 }
 
@@ -122,11 +122,11 @@ function StartEngagement({ library, template, engagement, admin, onClose, onStar
         {library.engagements.length ? <>
           <label htmlFor="start-engagement">Engagement<Select ref={first} id="start-engagement" value={eng} onChange={e => { setEng(e.target.value); const next = library.engagements.find(x => x.id === e.target.value); if (next) setStart(tomorrowAtNine(next.timezone)); }}>
             {library.engagements.map(e => <option key={e.id} value={e.id}>{e.church} · {e.title}{e.sessions ? ` (${e.sessions} ${e.sessions === 1 ? "session" : "sessions"})` : ""}</option>)}</Select>
-            <span className="show-help">{admin ? <>A new church? <Link className="text-link" href="/setup/new">Create the engagement</Link> first, then start it here.</> : "Engagements you facilitate. An admin creates new ones."}</span></label>
+            <span className="show-help">{admin ? <>A new church? <Link className="text-link" href="/admin/new">Create the engagement</Link> first, then start it here.</> : "Engagements you facilitate. An admin creates new ones."}</span></label>
           <label htmlFor="start-template">Template<Select id="start-template" value={tpl} onChange={e => setTpl(e.target.value)}>{library.templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</Select></label>
           <label htmlFor="start-time">{preCall ? "Pre-call starts" : "First session starts"}<input id="start-time" type="datetime-local" required value={start} onChange={e => setStart(e.target.value)} /><span className="show-help">{preCall ? `In ${zone}. Discover is set before it, and Day 1 and Day 2 after it.` : `In ${zone}. Each session starts when the one before it ends.`}</span></label>
           <p className="show-muted">Copies {chosen?.count ?? 0} {chosen?.count === 1 ? "session" : "sessions"} with their prompts, settings, timings and presenter notes. You can change anything after.{already ? ` They go after the ${already} ${already === 1 ? "session" : "sessions"} already in this run of show.` : ""}</p>
-        </> : <p>{admin ? <>Create the engagement in <Link className="text-link" href="/setup/new">setup</Link> first, then start it from a template here.</> : "You don’t have an open engagement yet. An admin creates it, then you can start it from a template."}</p>}
+        </> : <p>{admin ? <>Create the engagement in <Link className="text-link" href="/admin/new">setup</Link> first, then start it from a template here.</> : "You don’t have an open engagement yet. An admin creates it, then you can start it from a template."}</p>}
         {message && <p className="show-message is-error" role="alert">{message}</p>}
       </div>
       <div className="rb-modal-foot"><button type="button" className="show-button" disabled={busy} onClick={onClose}>Cancel</button>

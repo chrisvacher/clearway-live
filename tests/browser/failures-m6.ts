@@ -136,7 +136,7 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
   const theme = (label: string) => discover.locator(".dsc-theme", { hasText: label }).first();
   await step("FAIL-09 on Discover themes: a slow draft says so and a failed one says so with a retry, and the facilitator adds a theme by hand either way", async () => {
     for (const [kind, person, title, body] of notes) await rpc("discover_note_add", { p_engagement: room.id, p_id: randomUUID(), p_kind: kind, p_person: person, p_title: title, p_body: body, p_source: "paste" });
-    await discover.goto(`${app.origin}/setup/${room.id}/discover`);
+    await discover.goto(`${app.origin}/admin/${room.id}/discover`);
     await discover.getByRole("heading", { name: "Themes", level: 2 }).waitFor({ timeout: 15000 });
     fake({ delayMs: 9000 });
     await discover.getByRole("button", { name: "Draft themes" }).click();
@@ -170,7 +170,7 @@ export async function milestone6Failures({ env, sql, mail, app, browser, step, s
   const source = (key: string) => discover.locator(`[data-source="${key}"]`);
   const stepRow = async (key: string) => (await sql.query("select state,prompt,options from public.sessions where id=$1", [heard[key]])).rows[0];
   await step("FAIL-09 on What We Heard: a slow draft says so, a failed one says so with a retry, and the facilitator types a headline and applies it by hand either way", async () => {
-    await discover.goto(`${app.origin}/setup/${room.id}/discover`);
+    await discover.goto(`${app.origin}/admin/${room.id}/discover`);
     await discover.getByRole("heading", { name: "What We Heard", level: 2 }).waitFor({ timeout: 15000 });
     fake({ delayMs: 9000 });
     await discover.getByRole("button", { name: "Draft What We Heard" }).click();

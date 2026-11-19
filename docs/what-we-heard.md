@@ -2,7 +2,7 @@
 
 PRE-08. On the Discover setup page the facilitator presses Draft What We Heard. AI reads only the accepted themes and survey findings and drafts one headline with depth for each What We Heard content step in the engagement's run of show. The facilitator edits each draft and presses Apply, which writes the step. Nothing reaches the TV or phones until the step goes live as usual.
 
-Migration: `supabase/migrations/20261106040000_what_we_heard.sql`. Prompt: `heard-draft@2` in `lib/ai/prompts.ts`. Page: Discover, `/setup/[id]/discover`, the What We Heard part (below Themes).
+Migration: `supabase/migrations/20261106040000_what_we_heard.sql`. Prompt: `heard-draft@2` in `lib/ai/prompts.ts`. Page: Discover, `/admin/[id]/discover`, the What We Heard part (below Themes).
 
 ## What the facilitator sees
 

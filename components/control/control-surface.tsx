@@ -125,7 +125,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
   return <div className="ctl-app" data-room-version={frame?.version}>
     <header className="ctl-head">
       <div>
-        <div className="ctl-crumb"><Link className="show-button is-small" href={`/setup/${engagement}`} data-testid="back-to-engagement"><ArrowLeft size={16} aria-hidden="true" />Back to the engagement</Link><p className="ctl-eyebrow">{context.church} · {context.title}</p></div>
+        <div className="ctl-crumb"><Link className="show-button is-small" href={`/admin/${engagement}`} data-testid="back-to-engagement"><ArrowLeft size={16} aria-hidden="true" />Back to the engagement</Link><p className="ctl-eyebrow">{context.church} · {context.title}</p></div>
         <h1>Live room</h1>
         {identity && <p className="ctl-identity" data-testid="room-identity"><a href={`${identity.origin}/${identity.name}`} target="_blank" rel="noreferrer">{identity.host}/{identity.name}</a><span>Room code {identity.code}</span><span>{identity.brand}</span><a href="#ctl-door" onClick={openDoor}>{counts ? `${counts.signed_in} in the room` : "In the room"}</a></p>}
       </div>
@@ -133,7 +133,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
         {status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}
         {!context.closed && <OpenTvWindow id={engagement} variant="small" />}
         <RemoteLink engagement={engagement} />
-        {!wide && <Link className="show-button" href={`/setup/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={18} aria-hidden="true" />Print run of show</Link>}
+        {!wide && <Link className="show-button" href={`/admin/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={18} aria-hidden="true" />Print run of show</Link>}
         <Link className="show-button" href={`/control/${engagement}/recap`}><LayoutGrid size={18} aria-hidden="true" />{workshop ? "See results" : "See results recap"}</Link>
         {workshop && !wide && <EndWorkshop engagement={engagement} closed={context.closed} />}
         {!workshop && <Link className="show-button" href={`/control/${engagement}/map`}><MapIcon size={18} aria-hidden="true" />Draft Clearway Map</Link>}

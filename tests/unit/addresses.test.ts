@@ -40,7 +40,7 @@ test("cookies stay host-only and keep their Secure setting", () => {
 
 const params = (path: string) => { const url = new URL(path, CW); return classify(url.pathname, url.searchParams); };
 test("each path kind is a rule", () => {
-  for (const path of ["/sign-in", "/auth/google", "/auth/callback?code=1", "/setup", "/setup/new", `/setup/${id}/tv`, "/control", `/control/${id}/plan`, `/remote/${id}`, "/api/facilitator/x/door", "/api/control/x/ai", "/api/run-of-show/x",
+  for (const path of ["/sign-in", "/auth/google", "/auth/callback?code=1", "/admin", "/admin/new", `/admin/${id}/tv`, "/control", `/control/${id}/plan`, `/remote/${id}`, "/api/facilitator/x/door", "/api/control/x/ai", "/api/run-of-show/x",
     "/api/setup", "/api/setup/logo", "/api/templates", "/api/operations", "/api/operations/backups/x", "/api/discover/x/file", "/api/overnight/x", "/api/scribe/x/files/y", "/api/tv/control/x"])
     assert.deepEqual(params(path), { kind: "clearway" }, path);
   assert.deepEqual(params("/ABCD1234"), { kind: "code", code: "ABCD1234" });
@@ -72,11 +72,11 @@ const world = { codes: { ABCD1234: { id, skin: "novetera" as Skin }, HOPEOAKVILL
 const to = (location: string) => ({ action: "redirect", location });
 
 test("a facilitator page or API at the Novetera address goes to the Clearway address, and a change is refused", async () => {
-  for (const path of ["/sign-in", "/setup", `/setup/${id}/details?tab=a`, "/control", `/remote/${id}`, "/api/tv/control/x", "/auth/callback?code=1&state=2"])
+  for (const path of ["/sign-in", "/admin", `/admin/${id}/details?tab=a`, "/control", `/remote/${id}`, "/api/tv/control/x", "/auth/callback?code=1&state=2"])
     assert.deepEqual(await decide({ host: "live.novetera.co", path }, world), to(CW + path), path);
-  assert.deepEqual(await decide({ host: "live.novetera.co", path: "/setup", method: "HEAD" }, world), to(CW + "/setup"));
+  assert.deepEqual(await decide({ host: "live.novetera.co", path: "/admin", method: "HEAD" }, world), to(CW + "/admin"));
   for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) for (const path of ["/auth/google", "/api/control/x/ai", "/api/setup", "/api/tv/control/x"]) assert.deepEqual(await decide({ host: "live.novetera.co", path, method }, world), { action: "refuse" }, `${method} ${path}`);
-  assert.deepEqual(await decide({ host: "live.clearway.co", path: "/setup" }, world), { action: "pass" });
+  assert.deepEqual(await decide({ host: "live.clearway.co", path: "/admin" }, world), { action: "pass" });
   assert.deepEqual(await decide({ host: "live.clearway.co", path: "/api/setup", method: "POST" }, world), { action: "pass" });
 });
 test("a room code, link name or room link at the wrong address goes to its engagement's address, path and query kept", async () => {
@@ -94,7 +94,7 @@ test("an unknown code, a lookup that fails and a host that is neither address st
   const failing = await addressDecision({ method: "GET", host: "live.clearway.co", pathname: "/ABCD1234", search: "", cookies: { getAll: () => [] }, env, resolve: async () => { throw new Error("down"); } });
   assert.deepEqual(failing, { action: "pass" }, "fail open");
   const calls: Rule[] = [];
-  assert.deepEqual(await decide({ host: "preview-abc.vercel.app", path: "/ABCD1234" }, world, calls), { action: "pass" }); assert.deepEqual(await decide({ host: "preview-abc.vercel.app", path: "/setup" }, world, calls), { action: "pass" }); assert.equal(calls.length, 0);
+  assert.deepEqual(await decide({ host: "preview-abc.vercel.app", path: "/ABCD1234" }, world, calls), { action: "pass" }); assert.deepEqual(await decide({ host: "preview-abc.vercel.app", path: "/admin" }, world, calls), { action: "pass" }); assert.equal(calls.length, 0);
 });
 test("a person already in the engagement at this address is not moved", async () => {
   const room = `cw-room-${id}`, device = `cw-device-${id}`;
@@ -105,7 +105,7 @@ test("a person already in the engagement at this address is not moved", async ()
   assert.deepEqual(await decide({ host: "live.clearway.co", path: "/ABCD1234", cookies: ["cw-facilitator", "cw-tv"] }, world), to(NV + "/ABCD1234"), "nor does a facilitator or TV session");
   const calls: Rule[] = []; await decide({ host: "live.clearway.co", path: `/room/${id}`, cookies: [room] }, world, calls); assert.equal(calls.length, 0, "a room page with a session costs no lookup");
   // The exception is for a room only. A facilitator page is still moved.
-  assert.deepEqual(await decide({ host: "live.novetera.co", path: "/setup", cookies: [room] }, world), to(CW + "/setup"));
+  assert.deepEqual(await decide({ host: "live.novetera.co", path: "/admin", cookies: [room] }, world), to(CW + "/admin"));
 });
 test("switching an engagement's skin moves its old links", async () => {
   const live = { codes: { ABCD1234: { id, skin: "clearway" as Skin } }, skin: { [id]: "clearway" as Skin } };

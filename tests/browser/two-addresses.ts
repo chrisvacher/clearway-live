@@ -68,8 +68,8 @@ async function main() {
       await sql.query("update public.engagements set skin=$2 where id=$1", [practiceId, practiceSkin]);
     });
     await step("a facilitator page at the Novetera address lands at the Clearway one; a change there is refused", async () => {
-      for (const path of ["/sign-in", "/setup?tab=a", `/setup/${noveteraRoom.id}/details`, "/control", `/remote/${noveteraRoom.id}`, "/auth/callback?code=x"]) await moves(NV, path, CW, "facilitator page");
-      const lands = await browser!.newContext(); const page = await lands.newPage(); await page.goto(`${NV}/setup`);
+      for (const path of ["/sign-in", "/admin?tab=a", `/admin/${noveteraRoom.id}/details`, "/control", `/remote/${noveteraRoom.id}`, "/auth/callback?code=x"]) await moves(NV, path, CW, "facilitator page");
+      const lands = await browser!.newContext(); const page = await lands.newPage(); await page.goto(`${NV}/admin`);
       assert.equal(new URL(page.url()).origin, CW, "the browser ends at the Clearway address"); assert.equal(new URL(page.url()).pathname, "/sign-in", "and its sign-in page"); await lands.close();
       for (const path of ["/auth/google", "/api/setup", `/api/control/${noveteraRoom.id}`, `/api/tv/control/${noveteraRoom.id}`, "/api/templates"]) {
         assert.equal((await post(NV + path)).status(), 403, `POST ${path} at Novetera is refused`); assert.equal((await post(NV + path, NV)).status(), 403); assert.equal((await post(NV + path, CW)).status(), 403);

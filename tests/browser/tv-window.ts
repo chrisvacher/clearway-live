@@ -19,7 +19,7 @@ async function main() {
       const shown = await fac.client.rpc("tv_manage", { p_engagement: room.id, p_action: "screen", p: { content: "join" } }); assert.equal(shown.data.status, "ok");
       const ctx: BrowserContext = await browser!.newContext({ viewport: { width: 1440, height: 900 } }); await ctx.addCookies(fac.cookies(app.origin));
       const opened: string[] = []; ctx.on("request", r => { if (/\/tv\?pair=/.test(r.url())) opened.push(r.url()); });
-      const screens = await ctx.newPage(); await screens.goto(`${app.origin}/setup/${room.id}/tv`);
+      const screens = await ctx.newPage(); await screens.goto(`${app.origin}/admin/${room.id}/tv`);
       let tv!: Page;
       await step(`${skin}: the button is the first action on Screens, above the code fields`, async () => {
         const button = screens.getByRole("button", { name: "Open the TV in a new window" }); assert.equal(await button.count(), 1); await button.waitFor({ state: "visible" });
@@ -38,7 +38,7 @@ async function main() {
         assert.equal(new URL(tv.url()).pathname, "/tv");
       });
       await step(`${skin}: Screens lists the window as This laptop`, async () => {
-        await screens.goto(`${app.origin}/setup/${room.id}/tv`);
+        await screens.goto(`${app.origin}/admin/${room.id}/tv`);
         await screens.locator(".tv-screen-list strong", { hasText: "This laptop" }).waitFor();
         const list = await sql.query("select label, engagement_id from private.tv_devices where engagement_id=$1 and not deleted", [room.id]);
         assert.deepEqual(list.rows.map(r => r.label), ["This laptop"]);
@@ -84,7 +84,7 @@ async function main() {
     await step("a second click on a paired laptop pairs a new window as This laptop again", async () => {
       const room = await engagement(sql, ["Ben"]), fac = await facilitator(env, sql, room.id);
       const ctx = await browser!.newContext(); await ctx.addCookies(fac.cookies(app.origin));
-      const screens = await ctx.newPage(); await screens.goto(`${app.origin}/setup/${room.id}`);
+      const screens = await ctx.newPage(); await screens.goto(`${app.origin}/admin/${room.id}`);
       const popup = ctx.waitForEvent("page"); await screens.getByRole("button", { name: "Open the TV in a new window" }).click(); const tv = await popup;
       await until(async () => (await tv.locator("main[data-surface=tv]").getAttribute("data-screen")) !== null && (await sql.query("select 1 from private.live_tv_sessions where engagement_id=$1 and revoked_at is null", [room.id])).rowCount === 1, "paired from Overview", 20000);
       await ctx.close();

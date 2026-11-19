@@ -25,14 +25,14 @@ export default async function SetupPage() {
   const where = await places(engagements);
   return <main id="main" className="admin-page">
     <header className="admin-heading"><div><h1>Engagements</h1><p>Prepare your next engagement, open the room or follow up with the team.</p></div>
-    <div className="admin-actions">{profile.is_admin && <Link className="admin-button is-primary" href="/setup/new">Create an engagement</Link>}</div></header>
-    {error ? <section className="admin-panel" role="status"><h2>Engagements unavailable</h2><p>We couldn’t load your engagements. Please try again.</p><Link className="admin-button" href="/setup">Try again</Link></section> : engagements.length
+    <div className="admin-actions">{profile.is_admin && <Link className="admin-button is-primary" href="/admin/new">Create an engagement</Link>}</div></header>
+    {error ? <section className="admin-panel" role="status"><h2>Engagements unavailable</h2><p>We couldn’t load your engagements. Please try again.</p><Link className="admin-button" href="/admin">Try again</Link></section> : engagements.length
       ? (["upcoming", "undated", "past", "practice"] as ListGroup[]).map(group => {
           const rows = engagements.filter(e => listGroup(e) === group);
           return rows.length ? <section key={group} aria-labelledby={`group-${group}`}><h2 className="admin-section-name" id={`group-${group}`}>{groupNames[group]}</h2>
             <ul className="admin-list">{rows.map(e => {
               const when = eventDate(e, e.church?.timezone), at = place(e.team_hub_client_id ? where.get(e.team_hub_client_id) : null), main = mainAction(e, group), name = e.link_name ?? e.room_code, brand = brandFor(skinOf(e.skin)), link = `${brand.host}/${name}`;
-              const more = [[`/setup/${e.id}`, "Overview"], [`/setup/${e.id}/details`, "Details"], [`/setup/${e.id}/joining`, "People and joining"], [`/setup/${e.id}/run-of-show`, "Run of show"], [`/control/${e.id}`, "Live room"], [`/setup/${e.id}/door`, "Door list"], [`/control/${e.id}/recap`, "Results"]].filter(([href]) => href !== main.href);
+              const more = [[`/admin/${e.id}`, "Overview"], [`/admin/${e.id}/details`, "Details"], [`/admin/${e.id}/joining`, "People and joining"], [`/admin/${e.id}/run-of-show`, "Run of show"], [`/control/${e.id}`, "Live room"], [`/admin/${e.id}/door`, "Door list"], [`/control/${e.id}/recap`, "Results"]].filter(([href]) => href !== main.href);
               return <li key={e.id} className="admin-card admin-row"><div className="who"><div className="admin-kicker">{e.church?.name ?? "Church not named"}<span className="admin-chip" data-testid="brand-label">{brand.label}</span></div><h3>{e.title}</h3><p className="admin-meta">{[typeName(e.type), when ?? "No date yet", at].filter(Boolean).join(" · ")}</p></div>
                 <span className="admin-status">{statusName(e.status)}</span>
                 <span className="room-link">{brand.host}/<strong>{name}</strong><CopyLink link={link} href={`${brand.origin}/${name}`} label={`Copy the room link for ${e.title}`} /></span>

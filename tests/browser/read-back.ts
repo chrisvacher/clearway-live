@@ -522,7 +522,7 @@ async function main() {
         const dialogs: string[] = [];
         laptop.on("dialog", d => { dialogs.push(d.message()); void d.dismiss(); }); // what some browsers and tools do to a native confirm
         const started = new Date(Date.now() - 1000).toISOString();
-        await laptop.goto(`${app.origin}/setup/${room}/run-of-show`);
+        await laptop.goto(`${app.origin}/admin/${room}/run-of-show`);
         await laptop.locator(".rb-tile", { hasText: "Read-back" }).click();
         await laptop.locator(".rb-row.is-open #session-title").waitFor();
         const added = await until(async () => (await sql.query("select id from public.sessions where engagement_id=$1 and interaction='read_back' and title='Read-back' and not deleted and created_at>$2", [room, started])).rows[0]?.id as string, "the palette step is saved", 8000);

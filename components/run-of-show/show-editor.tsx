@@ -113,7 +113,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const nextOpen = useRef<string | null>(null), closeTimer = useRef(0), dragRef = useRef(drag), ghost = useRef<HTMLDivElement>(null), runRef = useRef<HTMLDivElement>(null);
   const pointer = useRef<{ x: number; y: number } | null>(null), settleUntil = useRef(0);
   dragRef.current = drag;
-  const ctx = show.context, base = `/setup/${ctx.id}`, endpoint = `/api/run-of-show/${ctx.id}`;
+  const ctx = show.context, base = `/admin/${ctx.id}`, endpoint = `/api/run-of-show/${ctx.id}`;
   // Which loop is Home (LP-1). The loop's own switch announces a change, so every row's chip follows at once.
   const [home, setHome] = useState(ctx.home_session ?? null);
   useEffect(() => { const on = (e: Event) => setHome((e as CustomEvent<string | null>).detail); window.addEventListener("cwl:home", on); return () => window.removeEventListener("cwl:home", on); }, []);
@@ -435,7 +435,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
         {!empty && <span className="show-muted" aria-live="polite">{count} {count === 1 ? "session" : "sessions"} · {clock(total)}</span>}
         <button className="show-button" type="button" disabled={locked || !tiles.screens.some(e => e.screen === "image")} onClick={() => setAddingImages(true)}><Images size={16} aria-hidden="true" />Add images as slides</button>
         <button className="show-button" type="button" disabled={empty || locked || pending.length > 0} onClick={() => setSaveTemplate(true)}><Copy size={16} aria-hidden="true" />Save as template</button>
-        <Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={16} aria-hidden="true" />Use a template</Link>
+        <Link className="show-button" href={`/admin/templates?engagement=${ctx.id}`}><LayoutTemplate size={16} aria-hidden="true" />Use a template</Link>
         <Link className="show-button" href={`${base}/run-of-show/print`} target="_blank" rel="noreferrer"><Printer size={16} aria-hidden="true" />Print run of show</Link>
         <Link className="show-button" href={`/control/${ctx.id}`}><Radio size={16} aria-hidden="true" />Go to the live room</Link>
       </div></header>
@@ -494,7 +494,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
               <ol className={`rb-list${target ? " is-target" : ""}${!group.length && !target && pending === null ? " is-empty" : ""}`} aria-label={part}>
                 {rows}
                 {!group.length && !target && pending === null && (empty && part === "Day 1"
-                  ? <li className="rb-empty is-start" data-glide={`e:${part}`}><MousePointerClick aria-hidden="true" /><b>Start the run</b><span>Drag an interaction or content screen here from the right, or click one to add it at the end.</span><Link className="show-button" href={`/setup/templates?engagement=${ctx.id}`}><LayoutTemplate size={18} aria-hidden="true" />Start from a template</Link></li>
+                  ? <li className="rb-empty is-start" data-glide={`e:${part}`}><MousePointerClick aria-hidden="true" /><b>Start the run</b><span>Drag an interaction or content screen here from the right, or click one to add it at the end.</span><Link className="show-button" href={`/admin/templates?engagement=${ctx.id}`}><LayoutTemplate size={18} aria-hidden="true" />Start from a template</Link></li>
                   : <li className="rb-empty" data-glide={`e:${part}`}>Drop a session here to add it to {part}.</li>)}
               </ol>
               {!locked && (adding?.part === part
@@ -520,7 +520,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                     <span className="ic"><Layers size={18} aria-hidden="true" /></span><span className="tx"><b>{t.name}</b><span>{blockBusy === t.id ? "Adding" : `${t.count} ${t.count === 1 ? "session" : "sessions"} · ${clock(t.minutes)}`}</span></span></button>
                   {t.can_remove && <button type="button" className="rb-block-remove" aria-label={`Remove ${t.name}`} disabled={blockBusy !== null} onClick={() => void removeBlock(t)}>Remove</button>}</div>)}
             </div>
-            <p className="rb-help">A block lands at the end of the part it was saved from, with its section names. For a whole run, <Link className="text-link" href={`/setup/templates?engagement=${ctx.id}`}>use a template</Link>.</p>
+            <p className="rb-help">A block lands at the end of the part it was saved from, with its section names. For a whole run, <Link className="text-link" href={`/admin/templates?engagement=${ctx.id}`}>use a template</Link>.</p>
           </div> : <div className="rb-palette-body">
             {([["Interactions", tiles.interactions], ["Content screens", tiles.screens]] as const).map(([title, list]) => list.length > 0 && <div className="rb-group" key={title} role="group" aria-label={title}>
               <h3>{title}{title === "Content screens" && dropMode === "self_paced" ? ": in the room only" : ""}</h3>

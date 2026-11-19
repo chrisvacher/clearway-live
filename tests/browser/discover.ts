@@ -25,10 +25,10 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
     await context.addCookies(fac.cookies(app.origin));
     const page = await context.newPage();
-    const url = `${app.origin}/setup/${room.id}/discover`;
+    const url = `${app.origin}/admin/${room.id}/discover`;
 
     await step("The setup page links to Discover, and Discover starts empty and private", async () => {
-      await page.goto(`${app.origin}/setup/${room.id}`);
+      await page.goto(`${app.origin}/admin/${room.id}`);
       await page.getByRole("link", { name: "Discover", exact: true }).waitFor({ timeout: 15000 });
       await page.getByRole("link", { name: "Discover", exact: true }).click();
       await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
@@ -40,12 +40,12 @@ async function main() {
       assert.ok(text.includes("Notes stay with Clearway"), "the privacy line");
       assert.ok(!/[–—]/.test(text), "no dashes in the copy");
       await shot(page, "discover-empty");
-      await page.goto(`${app.origin}/setup/${room.id}/four-lists`);
+      await page.goto(`${app.origin}/admin/${room.id}/four-lists`);
       await page.getByRole("heading", { name: "Four Helpful Lists", level: 1 }).waitFor({ timeout: 15000 });
       assert.equal(await page.getByRole("link", { name: "Download CSV" }).count(), 0, "no CSV without a Four Helpful Lists step");
       assert.equal(await page.getByRole("button", { name: "Refresh lists", exact: true }).count(), 1);
       assert.equal(await page.getByRole("navigation", { name: "Engagement", exact: true }).getByRole("link", { name: "Four Helpful Lists", exact: true }).count(), 0, "the sidebar leaves out Four Helpful Lists without the step");
-      await page.goto(`${app.origin}/setup/${room.id}/discover`); await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
+      await page.goto(`${app.origin}/admin/${room.id}/discover`); await page.getByRole("heading", { name: "Discover", level: 1 }).waitFor({ timeout: 15000 });
     });
 
     await step("The total and the findings save, and each finding becomes an accepted theme", async () => {
@@ -191,7 +191,7 @@ async function main() {
       await sql.query("alter function public.discover_state(uuid) rename to discover_state_off"); await reload();
       try {
         await seen("Discover isn’t available yet. Please try again later.", "text");
-        await page.goto(`${app.origin}/setup/${room.id}`);
+        await page.goto(`${app.origin}/admin/${room.id}`);
         await page.getByRole("link", { name: "Run of show", exact: true }).waitFor({ timeout: 15000 });
       } finally { await sql.query("alter function public.discover_state_off(uuid) rename to discover_state"); await reload(); }
       await seen("Survey findings", "heading");

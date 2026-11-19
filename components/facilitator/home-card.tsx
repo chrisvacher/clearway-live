@@ -34,7 +34,7 @@ export function HomeCard({ id, initial, closed }: { id: string; initial: HomeLis
           <figure className="step-image-thumb">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             {loop.images[0] ? <img src={imageUrl(id, loop.images[0], "control")} alt="The loop’s first image" /> : null}</figure>
-          <div className="tv-screens-help">{loopTransitionLabels[loop.transition as LoopTransition] ?? "Cross-fade"}<br />Phones show only the room’s waiting message.<br /><Link href={`/setup/${id}/run-of-show`}>Edit the loop in the run of show</Link></div>
+          <div className="tv-screens-help">{loopTransitionLabels[loop.transition as LoopTransition] ?? "Cross-fade"}<br />Phones show only the room’s waiting message.<br /><Link href={`/admin/${id}/run-of-show`}>Edit the loop in the run of show</Link></div>
         </div>}
       </div> : <p className="tv-screens-help">Add an Image loop step in the run of show to use it as Home.</p>}
     </div>

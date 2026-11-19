@@ -74,8 +74,8 @@ and the PR 1 practice-room checks.
 
 ## Foundation workflows
 
-`/setup` is the facilitator home, with upcoming events and engagement actions.
-`/control` redirects there. Admins manage Clearway accounts at `/setup/users`.
+`/admin` is the facilitator home, with upcoming events and engagement actions.
+`/control` redirects there. Admins manage Clearway accounts at `/admin/users`.
 Facilitators manage church details, dates, settings, attendee imports,
 invitation review and the door list. Team workshops can optionally allow
 name-only joining, enabled by an admin. See

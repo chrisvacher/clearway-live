@@ -42,7 +42,7 @@ async function main() {
       const editor = await facContext.newPage();
 
       await step(`${skin}: the run of show builds a loop: three images in order, seconds per image, a transition, and Use as the Home screen`, async () => {
-        await editor.goto(`${app.origin}/setup/${room.id}/run-of-show`);
+        await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
         await editor.locator(".rb-row", { hasText: "Walk-in loop" }).getByRole("button", { name: /Open options/ }).click();
         const open = editor.locator(".rb-row.is-open");
         await open.locator("#loop-file").setInputFiles(pictures.map((buffer, i) => ({ name: `Loop${i + 1}.png`, mimeType: "image/png", buffer })));
@@ -157,7 +157,7 @@ async function main() {
       await step(`${skin}: the Screens page puts Home back to the holding screen`, async () => {
         await press(fac, sql, room.id, "nothing_live");
         await until(async () => await tv.locator(".tv-imgstage").getAttribute("data-image-stage") === "on", "Home is the loop again", 8000);
-        const screens = await facContext.newPage(); await screens.goto(`${app.origin}/setup/${room.id}/tv`);
+        const screens = await facContext.newPage(); await screens.goto(`${app.origin}/admin/${room.id}/tv`);
         const card = screens.locator("[data-home-card]");
         await card.waitFor({ timeout: 10000 });
         assert.equal(await card.getByRole("radio", { name: "An image loop" }).isChecked(), true);

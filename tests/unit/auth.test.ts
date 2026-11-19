@@ -8,7 +8,7 @@ test("facilitator domain matching rejects lookalike domains and malformed addres
 });
 test("post-login destinations are a fixed set of internal routes", () => {
   assert.equal(destination("/control"), "/control");
-  for (const value of [undefined, null, "//evil.example", "https://evil.example", "/control?next=evil", "/\\evil.example"]) assert.equal(destination(value), "/setup");
+  for (const value of [undefined, null, "//evil.example", "https://evil.example", "/control?next=evil", "/\\evil.example"]) assert.equal(destination(value), "/admin");
 });
 test("auth configuration fails closed and rejects privileged keys and unsafe URLs", () => {
   const env = { SUPABASE_URL: "https://example.supabase.co", SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture", APP_ORIGIN: "https://live.clearway.co" };

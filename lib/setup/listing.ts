@@ -1,4 +1,4 @@
-// The engagement list on /setup (Chris, November 9): name the organization, the event, its date
+// The engagement list on /admin (Chris, November 9): name the organization, the event, its date
 // and its location when Team Hub has one, so two "Staff AI Workshop" rows can be told apart.
 export type ListedEngagement = {
   id: string; title: string; type: string; status: string;
@@ -69,5 +69,5 @@ export const groupNames: Record<ListGroup, string> = { upcoming: "Upcoming", und
 export function mainAction(e: Pick<ListedEngagement, "id" | "status">, group: ListGroup): { href: string; label: string } {
   if (group === "past") return { href: `/control/${e.id}/recap`, label: "Open results" };
   if (e.status === "retreat") return { href: `/control/${e.id}`, label: "Open the live room" };
-  return { href: `/setup/${e.id}`, label: e.status === "setup" ? "Continue setup" : "Open overview" };
+  return { href: `/admin/${e.id}`, label: e.status === "setup" ? "Continue setup" : "Open overview" };
 }

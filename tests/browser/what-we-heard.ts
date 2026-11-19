@@ -75,7 +75,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1280, height: 1400 } });
     await context.addCookies(fac.cookies(app.origin));
     const page = await context.newPage();
-    const url = `${app.origin}/setup/${room.id}/discover`;
+    const url = `${app.origin}/admin/${room.id}/discover`;
     const source = (key: string) => page.locator(`[data-source="${key}"]`);
     const drafts = async () => (await sql.query("select source_key,number,line,detail,thin,ai_run is not null as ai,applied_at from private.heard_drafts where engagement_id=$1 and not deleted order by source_key", [room.id])).rows;
     const stepRow = async (key: string) => (await sql.query("select state,prompt,phone_depth,options,revision from public.sessions where id=$1", [steps[key]])).rows[0];

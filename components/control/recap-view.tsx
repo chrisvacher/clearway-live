@@ -61,8 +61,8 @@ export function RecapView({ engagement, context, initial, workshop = false }: { 
     <header className="admin-heading"><div><div className="admin-kicker">{context.church} · {context.title}</div><h1>{workshop ? "After the workshop" : "Results"}</h1>
       <p>{workshop ? "A short summary, then every session that took answers, as it appeared on the TV. It keeps up as answers arrive." : "Every session that took answers, with its results as they appeared on the TV. It keeps up as answers arrive."}</p></div>
       <div className="admin-actions recap-actions">
-        <Link className="admin-button" href={`/setup/${engagement}`}><ArrowLeft size={18} aria-hidden="true" />Back to the engagement</Link>
-        <Link className="admin-button" href="/setup"><LayoutGrid size={18} aria-hidden="true" />All engagements</Link>
+        <Link className="admin-button" href={`/admin/${engagement}`}><ArrowLeft size={18} aria-hidden="true" />Back to the engagement</Link>
+        <Link className="admin-button" href="/admin"><LayoutGrid size={18} aria-hidden="true" />All engagements</Link>
         <button className="admin-button" type="button" onClick={() => window.print()}><Printer size={18} aria-hidden="true" />Print or save as PDF</button></div></header>
     {workshop && <WorkshopSummary engagement={engagement} answers={cards.length > 0} />}
     {workshop && cards.length > 0 && <h2 className="recap-results-title">Results, session by session</h2>}

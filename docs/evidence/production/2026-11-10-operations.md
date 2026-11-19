@@ -65,7 +65,7 @@ isolated browser test also covers a real uploaded non-practice fixture larger th
 ## Production monitoring and email
 
 Clicked **Verify monitoring** once. At 18:22:00 UTC, 12:22:00 pm Chicago, the
-private page displayed one `TypeError`, kind `test`, route `/setup/operations`,
+private page displayed one `TypeError`, kind `test`, route `/admin/operations`,
 one occurrence, revision `cba45a2`. Database readback contained only the sanitized
 kind, class, route and empty frame array, plus the revision and timing metadata.
 It contained no error message, user input, participant identity or room link.

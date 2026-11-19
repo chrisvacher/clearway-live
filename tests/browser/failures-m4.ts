@@ -210,7 +210,7 @@ export async function milestone4Failures({ env, sql, mail, app, browser, step, s
       const { data, error } = await f.client.rpc("template_write", { p_action: "apply", p_input: { template, engagement: made.id, start: "2026-11-02T14:00:00Z" } });
       assert.equal(error, null); assert.equal(data.status, "ok", JSON.stringify(data));
       const printContext = await browser.newContext({ viewport: { width: 1440, height: 1400 } }); await printContext.addCookies(f.cookies(app.origin));
-      const print = await printContext.newPage(); await print.goto(`${app.origin}/setup/${made.id}/run-of-show/print`);
+      const print = await printContext.newPage(); await print.goto(`${app.origin}/admin/${made.id}/run-of-show/print`);
       await print.locator("main").waitFor({ timeout: 15000 });
       const text = await print.locator("main").innerText();
       for (const want of ["Run of show", "Pre-call", "Day 1", "Day 2", "Five Lenses: Congregation", "Self-paced", "If the tech fails", ...extra]) assert.ok(text.includes(want), `${name} print has: ${want}`);

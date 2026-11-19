@@ -71,7 +71,7 @@ async function main() {
         await answer(priya, "Hope", 0); await until(async () => (await answered(steps[0])) === 1, "the first answer lands", 10000);
         const seconds = (Date.now() - started) / 1000; console.log(`  ${skin}: ${seconds.toFixed(1)} s from opening the live room to the first phone answer`);
         assert.ok(seconds < 60, `under a minute (${seconds.toFixed(1)} s)`);
-        assert.ok(!visited.some(p => p.startsWith("/setup")), `no Setup page on the way (${visited.join(", ")})`);
+        assert.ok(!visited.some(p => p.startsWith("/admin")), `no Setup page on the way (${visited.join(", ")})`);
         await answer(ben, "Courage", 0); await until(async () => (await answered(steps[0])) === 2, "the second phone answers", 10000);
       });
 

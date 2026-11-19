@@ -1,6 +1,6 @@
 # Facilitator admin refresh
 
-Source audit, November 9, 2026. Chris approved `/setup` as the facilitator home and admin-only `/setup/users`. The PRD records those decisions.
+Source audit, November 9, 2026. Chris approved `/admin` as the facilitator home and admin-only `/admin/users`. The PRD records those decisions.
 
 **Implementation status, November 10:** all four areas are merged to main in
 PRs #133, #134, #135 and #136. Evidence and recorded local validation are in

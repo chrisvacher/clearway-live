@@ -28,7 +28,7 @@ worker RPC. Source changes produce another version.
 
 Copies and chunks force RLS. Browser roles cannot write them or enumerate sources.
 Verified Clearway admins can inspect status and download completed copies through
-`/setup/operations`. Ordinary facilitators, participants, TV sessions and anonymous
+`/admin/operations`. Ordinary facilitators, participants, TV sessions and anonymous
 visitors cannot use those routes or RPCs. Operational records and protected bytes
 are excluded from engagement JSON exports.
 

@@ -13,7 +13,7 @@ type Group = { name: string | null; items: Item[] };
 
 // A workshop gets only the pages a workshop uses. Wayfinding types add Discover, the overnight review and the After pages.
 export function engagementGroups(e: ShellEngagement, fourLists = true): Group[] {
-  const setup = `/setup/${e.id}`, control = `/control/${e.id}`, wayfinding = e.type !== "team_workshop";
+  const setup = `/admin/${e.id}`, control = `/control/${e.id}`, wayfinding = e.type !== "team_workshop";
   const s = 18;
   return [
     { name: "Prepare", items: [
@@ -64,13 +64,13 @@ export function clearwayGroups(admin: boolean): Group[] {
   const s = 18;
   return [
     { name: null, items: [
-      { href: "/setup", label: "Engagements", icon: <LayoutDashboard aria-hidden="true" size={s} /> },
-      { href: "/setup/templates", label: "Templates", icon: <LayoutTemplate aria-hidden="true" size={s} /> },
-      { href: `/setup/${practiceId}`, label: "Practice room", icon: <FlaskConical aria-hidden="true" size={s} /> },
+      { href: "/admin", label: "Engagements", icon: <LayoutDashboard aria-hidden="true" size={s} /> },
+      { href: "/admin/templates", label: "Templates", icon: <LayoutTemplate aria-hidden="true" size={s} /> },
+      { href: `/admin/${practiceId}`, label: "Practice room", icon: <FlaskConical aria-hidden="true" size={s} /> },
     ] },
     ...(admin ? [{ name: "Admin", items: [
-      { href: "/setup/users", label: "Clearway users", icon: <Users aria-hidden="true" size={s} /> },
-      { href: "/setup/operations", label: "Operations", icon: <Activity aria-hidden="true" size={s} /> },
+      { href: "/admin/users", label: "Clearway users", icon: <Users aria-hidden="true" size={s} /> },
+      { href: "/admin/operations", label: "Operations", icon: <Activity aria-hidden="true" size={s} /> },
     ] }] : []),
   ];
 }
@@ -82,10 +82,10 @@ export function ShellNav({ engagement, admin = false, fourLists = true }: { enga
   const [openAt, setOpenAt] = useState<string | null>(null);
   const open = openAt === pathname;
   const groups = engagement ? engagementGroups(engagement, fourLists) : clearwayGroups(admin);
-  const current = (item: Item) => pathname === item.href || (item.under === true && pathname.startsWith(`${item.href}/`)) || (item.href === "/setup" && pathname === "/setup/new");
+  const current = (item: Item) => pathname === item.href || (item.under === true && pathname.startsWith(`${item.href}/`)) || (item.href === "/admin" && pathname === "/admin/new");
   return <nav className="show-sidebar shell-nav" aria-label={engagement ? "Engagement" : "Clearway Live"} data-open={open}>
     <div className="shell-top">
-      <Link className="shell-mark" href="/setup" aria-label="Clearway Live, all engagements"><LiveWordmark label={null} /></Link>
+      <Link className="shell-mark" href="/admin" aria-label="Clearway Live, all engagements"><LiveWordmark label={null} /></Link>
       <button className="show-button shell-toggle" type="button" aria-expanded={open} aria-controls="shell-links" onClick={() => setOpenAt(open ? null : pathname)}><Menu aria-hidden="true" size={18} />Menu</button>
     </div>
     <div className="shell-links" id="shell-links">
@@ -94,7 +94,7 @@ export function ShellNav({ engagement, admin = false, fourLists = true }: { enga
         {group.name && <p className="shell-group-name" aria-hidden="true">{group.name}</p>}
         {group.items.map(item => <Link key={item.href} href={item.href} aria-current={current(item) ? "page" : undefined}>{item.icon}{item.label}</Link>)}
       </div>)}
-      {engagement && <Link className="shell-back" href="/setup"><LayoutDashboard aria-hidden="true" size={18} />All engagements</Link>}
+      {engagement && <Link className="shell-back" href="/admin"><LayoutDashboard aria-hidden="true" size={18} />All engagements</Link>}
       {who && <ShellProfile who={who} />}
     </div>
   </nav>;

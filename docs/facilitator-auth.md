@@ -38,7 +38,7 @@ Missing or malformed configuration disables sign-in and denies protected pages.
 `APP_ORIGIN` defaults to `https://live.clearway.co`. Set it explicitly for local
 or isolated preview environments. OAuth redirects and mutation Origin checks
 use this configured origin, never an untrusted Host or forwarded header. Only
-`/setup` and `/control` are accepted as return paths.
+`/admin` and `/control` are accepted as return paths.
 
 In the Live Supabase Auth settings:
 

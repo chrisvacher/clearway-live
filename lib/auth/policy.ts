@@ -2,8 +2,8 @@ import { roomOrigin, skinForHost } from "../brand";
 
 export const facilitatorCookie = "cw-facilitator";
 
-export function destination(value: string | null | undefined): "/setup" | "/control" {
-  return value === "/control" ? "/control" : "/setup";
+export function destination(value: string | null | undefined): "/admin" | "/control" {
+  return value === "/control" ? "/control" : "/admin";
 }
 
 export function clearwayEmail(email: string | undefined): boolean {

@@ -52,9 +52,9 @@ export function CreateEngagement({ lead, templates, hubConfigured, admin = true 
       if (template && start) {
         const response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "apply", input: { template, engagement: result.id, start } }) });
         const applied = await response.json().catch(() => ({}));
-        if (!response.ok || applied.status !== "ok") { router.push(`/setup/${result.id}`); return; }
+        if (!response.ok || applied.status !== "ok") { router.push(`/admin/${result.id}`); return; }
       }
-      router.push(`/setup/${result.id}`);
+      router.push(`/admin/${result.id}`);
     });
   };
   return <div className="admin-editor create-flow">
@@ -64,7 +64,7 @@ export function CreateEngagement({ lead, templates, hubConfigured, admin = true 
       {clients && !client && (clients.length ? <ul className="create-options" aria-label="Churches">{clients.map(c => <li key={c.id}><button type="button" className="create-option" disabled={busy} onClick={() => void choose(c)}><strong>{c.name}</strong><span>{[c.city, c.state_province].filter(Boolean).join(", ") || "Team Hub church"}</span></button></li>)}</ul> : <p>No church in Team Hub matches that.</p>)}
       {client && <><p className="create-picked"><strong>{client.name}</strong> <button type="button" className="text-link" onClick={() => { setClient(null); setEngagements([]); setHub(""); }}>Choose another church</button></p>
         {engagements.length ? <ul className="create-options" aria-label="Team Hub engagements">{engagements.map(e => <li key={e.id}>{e.live_id
-          ? <div className="create-option is-linked"><strong>{e.title}</strong><span>Already in Live. <Link className="text-link" href={`/setup/${e.live_id}`}>Open {e.title}</Link></span></div>
+          ? <div className="create-option is-linked"><strong>{e.title}</strong><span>Already in Live. <Link className="text-link" href={`/admin/${e.live_id}`}>Open {e.title}</Link></span></div>
           : <button type="button" className={`create-option${hub === e.id ? " is-on" : ""}`} aria-pressed={hub === e.id} onClick={() => pick(e)}><strong>{e.title}</strong><span>{e.start_date ? e.start_date.slice(0, 10) : "No date in Team Hub"}</span></button>}</li>)}</ul>
           : <p>This church has no engagement in Team Hub yet. Add one there first.</p>}</>}
     </section>
@@ -85,8 +85,8 @@ export function CreateEngagement({ lead, templates, hubConfigured, admin = true 
           <label className={`create-option${open ? " is-on" : ""}`}><input type="radio" name="join" checked={open} onChange={() => setOpen(true)} /><span><strong>Open workshop</strong><span>Anyone with the link, QR code or room code joins with their name.</span></span></label>
           <label className={`create-option${!open ? " is-on" : ""}`}><input type="radio" name="join" checked={!open} onChange={() => setOpen(false)} /><span><strong>Invited team</strong><span>Only people on your list get in, with a sign-in code sent to their email.</span></span></label></div>
       </fieldset>}
-      <div className="admin-actions"><button className="admin-button is-primary" type="submit" disabled={busy || !hub}>{busy ? "Creating…" : "Create engagement"}</button><Link className="admin-button" href="/setup">Cancel</Link><span className="admin-meta">Everything else has a default you can change afterwards.</span></div>
+      <div className="admin-actions"><button className="admin-button is-primary" type="submit" disabled={busy || !hub}>{busy ? "Creating…" : "Create engagement"}</button><Link className="admin-button" href="/admin">Cancel</Link><span className="admin-meta">Everything else has a default you can change afterwards.</span></div>
     </form>
-    <p className="admin-feedback" role="status" aria-live="polite">{message}{existing && <> <Link className="text-link" href={`/setup/${existing}`}>Open the existing engagement</Link></>}</p>
+    <p className="admin-feedback" role="status" aria-live="polite">{message}{existing && <> <Link className="text-link" href={`/admin/${existing}`}>Open the existing engagement</Link></>}</p>
   </div>;
 }

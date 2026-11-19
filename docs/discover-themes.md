@@ -2,7 +2,7 @@
 
 SET-06's themes. AI drafts themes from the conversation notes and the Four Helpful Lists cards when the facilitator presses Draft themes. The facilitator accepts, renames, merges or rejects each one, or writes one by hand. Only accepted themes count anywhere.
 
-Migration: `supabase/migrations/20261106030000_discover_themes.sql`. Prompt: `themes-draft@2` in `lib/ai/prompts.ts`. Page: Discover, `/setup/[id]/discover`, the Themes part.
+Migration: `supabase/migrations/20261106030000_discover_themes.sql`. Prompt: `themes-draft@2` in `lib/ai/prompts.ts`. Page: Discover, `/admin/[id]/discover`, the Themes part.
 
 ## What the facilitator sees
 

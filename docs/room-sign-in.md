@@ -25,7 +25,7 @@ engagements, never a word the app uses for a page and never shaped like a genera
 Phones open `/room/<engagement UUID>`. A public projection returns only the church
 name, engagement title/type, whether it is closed, consensus copy and a neutral
 join-message flag. It never returns the roster, settings object or integration ids.
-Facilitators open `/setup/<engagement UUID>/door` with their current Google session.
+Facilitators open `/admin/<engagement UUID>/door` with their current Google session.
 
 A phone initializes an opaque device id and a separate 256-bit secret in an
 HttpOnly host-only cookie. The printed eight-character device code is safe to show

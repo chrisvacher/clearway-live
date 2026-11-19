@@ -392,7 +392,7 @@ async function main() {
         assert.deepEqual((await p.locator("#report h3").allInnerTexts()).map(apostrophe), headings.map(apostrophe), "the 14 sections, in order");
         assert.ok((await p.locator("#report").innerText()).includes(rows[0].who), "the visibility plan is in the signed report");
         assert.equal(await p.locator("input, textarea, select, form, [contenteditable]").count(), 0, "no inputs");
-        assert.equal(await p.locator('a[href*="/control"], a[href*="/setup"], a[href*="/sign-in"]').count(), 0, "no edit links");
+        assert.equal(await p.locator('a[href*="/control"], a[href*="/admin"], a[href*="/sign-in"]').count(), 0, "no edit links");
         assert.deepEqual(await p.locator("button").allInnerTexts(), ["Print or save as PDF"], "the only button prints");
         assert.ok(!dash.test(text), "no dashes");
         assert.ok(!/@riverside\.example/.test(await p.content()), "no email in the page");

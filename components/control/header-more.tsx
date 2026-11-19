@@ -37,7 +37,7 @@ export function HeaderMore({ engagement, workshop, closed }: { engagement: strin
     <div className="ctl-more" onKeyDown={key}>
       <button ref={button} type="button" className="show-button" aria-haspopup="menu" aria-expanded={open} aria-controls="ctl-more-menu" onClick={() => setOpen(v => !v)} data-testid="header-more"><Ellipsis size={18} aria-hidden="true" />More</button>
       {open && <div ref={panel} id="ctl-more-menu" className="ctl-more-menu" role="menu" aria-label="More actions">
-        <Link role="menuitem" className="ctl-more-item" href={`/setup/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}><Printer size={18} aria-hidden="true" />Print run of show</Link>
+        <Link role="menuitem" className="ctl-more-item" href={`/admin/${engagement}/run-of-show/print`} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}><Printer size={18} aria-hidden="true" />Print run of show</Link>
         {workshop && !closed && <button role="menuitem" type="button" className="ctl-more-item" data-testid="end-workshop" onClick={() => { setOpen(false); setAsking(true); }}><PowerOff size={18} aria-hidden="true" />End the workshop</button>}
       </div>}
     </div>

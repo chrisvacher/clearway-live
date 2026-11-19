@@ -24,7 +24,7 @@ active church uploads, including easel photos and notes, into separate private
 Postgres records. These versioned bytes are included in later database snapshots.
 Copies start after upload confirmation, with an hourly catch-up sweep. They
 survive loss of the original Storage object. Check pending and failed copies on
-the admin [Operations page](https://live.clearway.co/setup/operations). Practice
+the admin [Operations page](https://live.clearway.co/admin/operations). Practice
 files are deliberately excluded. See [implementation and limits](operations.md).
 
 Production had no active church uploads when this was activated. Its two older

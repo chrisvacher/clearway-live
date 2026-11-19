@@ -18,6 +18,13 @@ const nextConfig: NextConfig = {
     "/api/control/*/summary": ["./lib/export/assets/fonts/novetera/**", "./lib/export/assets/novetera-mark.png"],
     "/api/control/*/export": ["./lib/export/assets/fonts/novetera/**"],
   },
+  // The facilitator pages moved from /setup to /admin (November 19). Old links, bookmarks and sent emails still land.
+  async redirects() {
+    return [
+      { source: "/setup", destination: "/admin", permanent: false },
+      { source: "/setup/:path*", destination: "/admin/:path*", permanent: false },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: [
       { key: "X-Content-Type-Options", value: "nosniff" },
