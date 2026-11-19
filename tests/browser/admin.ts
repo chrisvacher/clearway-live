@@ -247,15 +247,15 @@ async function main() {
       assert.ok(take.height>=63&&take.width>=199,`Go live is at least 64 by 200: ${take.width}x${take.height}`);
       const golive = await page.evaluate(() => {
         const transport = document.querySelector<HTMLButtonElement>(".ctl-take")!;
-        const color = (token: string) => {
+        const colors: string[] = [];
+        for (const token of ["--cwl-action-live", "--cwl-action-live-surface"]) {
           const probe = document.createElement("span");
           probe.style.color = `var(${token})`;
           transport.append(probe);
-          const value = getComputedStyle(probe).color;
+          colors.push(getComputedStyle(probe).color);
           probe.remove();
-          return value;
-        };
-        const orange = color("--cwl-action-live"), navy = color("--cwl-action-live-surface");
+        }
+        const [orange, navy] = colors;
         const buttons = [...document.querySelectorAll<HTMLButtonElement>(".is-golive")];
         return {
           orange, navy,
