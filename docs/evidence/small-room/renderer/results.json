@@ -1,0 +1,671 @@
+{
+  "scope": "Direct renderer fixtures only. No paired TV, phones, API, Realtime or AI model.",
+  "results": [
+    {
+      "name": "clearway-very_small-dark-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 197.9
+    },
+    {
+      "name": "clearway-very_small-dark-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 145.4
+    },
+    {
+      "name": "clearway-very_small-dark-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.3
+    },
+    {
+      "name": "clearway-very_small-dark-full-cloud-60",
+      "count": 41,
+      "row": [
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15",
+        "w16",
+        "w17",
+        "w18"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54.05
+    },
+    {
+      "name": "clearway-very_small-dark-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 209.43
+    },
+    {
+      "name": "clearway-very_small-dark-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 145.35
+    },
+    {
+      "name": "clearway-very_small-dark-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.25
+    },
+    {
+      "name": "clearway-very_small-dark-reduced-cloud-60",
+      "count": 46,
+      "row": [
+        "w3",
+        "w4",
+        "w5",
+        "w6",
+        "w7",
+        "w8",
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54
+    },
+    {
+      "name": "clearway-very_small-light-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 209.39
+    },
+    {
+      "name": "clearway-very_small-light-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 145.4
+    },
+    {
+      "name": "clearway-very_small-light-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.3
+    },
+    {
+      "name": "clearway-very_small-light-full-cloud-60",
+      "count": 41,
+      "row": [
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15",
+        "w16",
+        "w17",
+        "w18"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54.03
+    },
+    {
+      "name": "clearway-very_small-light-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 209.43
+    },
+    {
+      "name": "clearway-very_small-light-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 145.35
+    },
+    {
+      "name": "clearway-very_small-light-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.25
+    },
+    {
+      "name": "clearway-very_small-light-reduced-cloud-60",
+      "count": 46,
+      "row": [
+        "w3",
+        "w4",
+        "w5",
+        "w6",
+        "w7",
+        "w8",
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54
+    },
+    {
+      "name": "clearway-medium-dark-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.55
+    },
+    {
+      "name": "clearway-medium-dark-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 144.24
+    },
+    {
+      "name": "clearway-medium-dark-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 92.51
+    },
+    {
+      "name": "clearway-medium-dark-full-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 44.54
+    },
+    {
+      "name": "clearway-medium-dark-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.6
+    },
+    {
+      "name": "clearway-medium-dark-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 144.19
+    },
+    {
+      "name": "clearway-medium-dark-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 92.46
+    },
+    {
+      "name": "clearway-medium-dark-reduced-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 44.49
+    },
+    {
+      "name": "clearway-medium-light-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.55
+    },
+    {
+      "name": "clearway-medium-light-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 144.24
+    },
+    {
+      "name": "clearway-medium-light-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 92.51
+    },
+    {
+      "name": "clearway-medium-light-full-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 44.54
+    },
+    {
+      "name": "clearway-medium-light-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.6
+    },
+    {
+      "name": "clearway-medium-light-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 144.19
+    },
+    {
+      "name": "clearway-medium-light-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 92.46
+    },
+    {
+      "name": "clearway-medium-light-reduced-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 44.49
+    },
+    {
+      "name": "novetera-very_small-dark-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 192.41
+    },
+    {
+      "name": "novetera-very_small-dark-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 147.61
+    },
+    {
+      "name": "novetera-very_small-dark-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 94.77
+    },
+    {
+      "name": "novetera-very_small-dark-full-cloud-60",
+      "count": 42,
+      "row": [
+        "w8",
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15",
+        "w16",
+        "w17"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54.02
+    },
+    {
+      "name": "novetera-very_small-dark-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 193.09
+    },
+    {
+      "name": "novetera-very_small-dark-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 147.56
+    },
+    {
+      "name": "novetera-very_small-dark-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 94.72
+    },
+    {
+      "name": "novetera-very_small-dark-reduced-cloud-60",
+      "count": 48,
+      "row": [
+        "w2",
+        "w3",
+        "w4",
+        "w5",
+        "w6",
+        "w7",
+        "w8",
+        "w9",
+        "w10",
+        "w11"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54
+    },
+    {
+      "name": "novetera-very_small-light-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 193.04
+    },
+    {
+      "name": "novetera-very_small-light-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 147.61
+    },
+    {
+      "name": "novetera-very_small-light-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 94.77
+    },
+    {
+      "name": "novetera-very_small-light-full-cloud-60",
+      "count": 42,
+      "row": [
+        "w8",
+        "w9",
+        "w10",
+        "w11",
+        "w12",
+        "w13",
+        "w14",
+        "w15",
+        "w16",
+        "w17"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54.02
+    },
+    {
+      "name": "novetera-very_small-light-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 193.09
+    },
+    {
+      "name": "novetera-very_small-light-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 147.56
+    },
+    {
+      "name": "novetera-very_small-light-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 94.72
+    },
+    {
+      "name": "novetera-very_small-light-reduced-cloud-60",
+      "count": 48,
+      "row": [
+        "w2",
+        "w3",
+        "w4",
+        "w5",
+        "w6",
+        "w7",
+        "w8",
+        "w9",
+        "w10",
+        "w11"
+      ],
+      "rowHeight": 108,
+      "overlap": [],
+      "clipped": [],
+      "max": 54
+    },
+    {
+      "name": "novetera-medium-dark-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.55
+    },
+    {
+      "name": "novetera-medium-dark-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 146.3
+    },
+    {
+      "name": "novetera-medium-dark-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.88
+    },
+    {
+      "name": "novetera-medium-dark-full-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 45.15
+    },
+    {
+      "name": "novetera-medium-dark-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.6
+    },
+    {
+      "name": "novetera-medium-dark-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 146.25
+    },
+    {
+      "name": "novetera-medium-dark-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.83
+    },
+    {
+      "name": "novetera-medium-dark-reduced-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 45.1
+    },
+    {
+      "name": "novetera-medium-light-full-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.55
+    },
+    {
+      "name": "novetera-medium-light-full-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 146.3
+    },
+    {
+      "name": "novetera-medium-light-full-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.88
+    },
+    {
+      "name": "novetera-medium-light-full-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 45.15
+    },
+    {
+      "name": "novetera-medium-light-reduced-cloud-3",
+      "count": 3,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 201.6
+    },
+    {
+      "name": "novetera-medium-light-reduced-cloud-8",
+      "count": 8,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 146.25
+    },
+    {
+      "name": "novetera-medium-light-reduced-cloud-20",
+      "count": 20,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 93.83
+    },
+    {
+      "name": "novetera-medium-light-reduced-cloud-60",
+      "count": 60,
+      "row": [],
+      "rowHeight": 0,
+      "overlap": [],
+      "clipped": [],
+      "max": 45.1
+    }
+  ]
+}

@@ -36,7 +36,7 @@ jobs:
   database:
     name: PostgreSQL 17 schema and role isolation
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 95
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -188,6 +188,18 @@ jobs:
         run: npm run test:templates
       - name: Test AI, live (combine, groups, summary, folds, FAIL-09) with the fake model and 50 simulated phones in real browsers
         run: npm run test:ai
+      - name: Test small-room word clouds and open text on paired TVs in both skins, themes and motion settings
+        run: npm run test:small-room
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/small-room-shots
+      - name: Upload the small-room screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: small-room-screens
+          path: ${{ runner.temp }}/small-room-shots/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Run a team workshop end to end from the template (rehearse, clear, eight phones, every session, export, recap) in real browsers
         run: mkdir -p team-workshop-shots && npm run test:team-workshop
         env:

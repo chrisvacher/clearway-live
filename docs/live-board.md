@@ -1,5 +1,11 @@
 # Live board: the word cloud and wall on the TV
 
+The November 19 [small-room decision and evidence](small-room.md) supersedes
+the original word-cloud single-mention row and wall placeholder described
+below. Every word now starts in the cloud, and an AI wall uses answer cards
+until there is a group or summary to show. The remaining milestone 2 notes and
+measurements are historical implementation evidence.
+
 Milestone 2, PR 6 implements D1-02 and D1-03: the TV's session screens, with the word cloud (INT-01) and the response wall's answer column (INT-02), built from the approved pass 2 motion (`design/clearway-live/pass-2/docs/motion-spec.md`). It also adds the phone texture carried forward from PR 5.
 
 ## Session layers

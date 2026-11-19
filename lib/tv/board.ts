@@ -3,7 +3,7 @@
 // Durations and easing are read from the Clearway Live tokens on the page.
 import type { LiveAnswer, LiveSnapshot } from "../live/types";
 import type { Shown } from "./flow";
-import { fitScale, planField, springRate, springStep } from "./motion";
+import { cloudOverflow, fitField, springRate, springStep, type FieldPlan } from "./motion";
 import { absorbedInto, type AiWord } from "../interactions/ai";
 import { AiChanges, aiMarkEl, sweepAi } from "@/components/interactions/ai/ai-dom";
 
@@ -28,8 +28,8 @@ function make(tag: string, className: string, text?: string) {
 }
 
 type FieldItem = { key: string; el: HTMLElement; x: number; y: number; vx: number; vy: number; fs: number; vfs: number; o: number; vo: number;
-  tx: number; ty: number; tfs: number; tw: number; th: number; placed: boolean; going: boolean; fresh: boolean; born: number; rest: boolean };
-export type FieldEntry = { key: string; size: number; update: (el: HTMLElement) => void };
+  tx: number; ty: number; tfs: number; tw: number; th: number; placed: boolean; going: boolean; fresh: boolean; born: number; rest: boolean; leavingAt: number; leavingOpacity: number };
+export type FieldEntry = { key: string; size: number; shrinkToWidth?: boolean; update: (el: HTMLElement) => void; measure?: (size: number) => { w: number; h: number } };
 
 // Each item keeps its own place. Larger items are placed first and keep their
 // spot if it is still free; new items take the free spot nearest the middle.
@@ -40,8 +40,9 @@ export class Field {
   private items = new Map<string, FieldItem>();
   private last: FieldEntry[] | null = null;
   private observer?: ResizeObserver;
+  private measurements = new Map<string, { w: number; h: number; size: number }>();
   constructor(private root: HTMLElement, private create: (key: string) => HTMLElement,
-    private opt: { gapX: number; gapY: number; fill: number; floor: () => number; maxWidth: number; onResize?: () => void }) {
+    private opt: { gapX: number; gapY: number; fill: number; floor: () => number; maxWidth: number; grow?: boolean; onResize?: () => void }) {
     let width = 0, height = 0;
     if (typeof ResizeObserver === "function") {
       this.observer = new ResizeObserver(() => {
@@ -69,11 +70,30 @@ export class Field {
     const keep = it.el.style.fontSize; it.el.style.fontSize = `${size}px`;
     const box = { w: it.el.offsetWidth, h: it.el.offsetHeight }; it.el.style.fontSize = keep; return box;
   }
+  // A pure dry run, including unseen entries when they provide a measurement.
+  // Cached measurements for existing entries are read without touching their DOM.
+  plan(list: FieldEntry[]): FieldPlan {
+    const width = this.root.clientWidth, height = this.root.clientHeight;
+    if (width < 40 || height < 40) return { ok: true, scale: 1, placed: [] };
+    if (list.some(entry => !entry.measure && !this.measurements.has(entry.key))) return { ok: false, scale: 1, placed: [] };
+    return fitField(list.map(entry => {
+      const it = this.items.get(entry.key), measured = this.measurements.get(entry.key);
+      return { key: entry.key, size: entry.size, shrinkToWidth: entry.shrinkToWidth,
+        measure: entry.measure ?? ((size: number) => ({ w: measured!.w * size / measured!.size, h: measured!.h * size / measured!.size })),
+        x: it?.placed && !it.going ? it.tx : undefined, y: it?.placed && !it.going ? it.ty : undefined };
+    }), width, height, { ...this.opt, floor: this.opt.floor() });
+  }
   // Returns whether every item found a place of its own (the caller may show fewer).
   set(list: FieldEntry[], instant = false): boolean {
     const root = this.root, width = root.clientWidth, height = root.clientHeight, snap = instant || reducedMotion(root);
     const want = new Set(list.map(entry => entry.key));
-    this.items.forEach((it, key) => { if (!want.has(key)) it.going = true; });
+    this.items.forEach((it, key) => {
+      if (!want.has(key) && !it.going) {
+        it.going = true; it.leavingAt = performance.now(); it.leavingOpacity = it.o; it.el.classList.add("is-going");
+        if (this.opt.grow && !snap) it.el.animate([{ opacity: it.o }, { opacity: 0 }], {
+          duration: tokenMs(root, "cwl-dur-hide"), easing: token(root, "cwl-ease-exit"), fill: "forwards" });
+      }
+    });
     for (const entry of list) {
       let it = this.items.get(entry.key);
       if (it?.going) { it.el.remove(); this.items.delete(entry.key); it = undefined; }
@@ -82,32 +102,20 @@ export class Field {
         Object.assign(el.style, { position: "absolute", left: "0", top: "0", whiteSpace: "nowrap", opacity: "0" });
         root.appendChild(el);
         it = { key: entry.key, el, x: 0, y: 0, vx: 0, vy: 0, fs: entry.size, vfs: 0, o: 0, vo: 0, tx: 0, ty: 0, tfs: entry.size, tw: 0, th: 0,
-          placed: false, going: false, fresh: true, born: 0, rest: false };
+          placed: false, going: false, fresh: true, born: 0, rest: false, leavingAt: 0, leavingOpacity: 0 };
         this.items.set(entry.key, it);
       }
       entry.update(it.el);
+      if (!entry.measure) this.measurements.set(entry.key, { ...this.measure(it, entry.size), size: entry.size });
     }
     this.last = list;
     if (width < 40 || height < 40) return true;
-    const { gapX, gapY, fill, maxWidth } = this.opt, floor = this.opt.floor();
-    let area = 0;
-    for (const entry of list) { const box = this.measure(this.items.get(entry.key)!, entry.size); area += (box.w + gapX) * (box.h + gapY); }
-    let k = fitScale(area, width, height, fill), plan = { ok: true, placed: [] as { x: number; y: number }[] };
-    const live = list.map(entry => this.items.get(entry.key)!);
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const boxes = list.map((entry, i) => {
-        const it = live[i];
-        it.tfs = Math.max(floor, entry.size * k);
-        let box = this.measure(it, it.tfs);
-        // No word wider than the field's limit: it shrinks alone, never below the floor.
-        if (box.w > maxWidth) { it.tfs = Math.max(floor, it.tfs * maxWidth / box.w); box = this.measure(it, it.tfs); }
-        it.tw = box.w; it.th = box.h;
-        return { key: it.key, w: box.w, h: box.h, x: it.placed ? it.tx : undefined, y: it.placed ? it.ty : undefined };
-      });
-      plan = planField(boxes, width, height, gapX, gapY);
-      if (plan.ok || live.every(it => it.tfs <= floor)) break;
-      k *= 0.9;
-    }
+    // Existing group fields retain exact DOM sizing, including fixed-size badges.
+    // The cloud supplies pure canvas measurements for both the dry run and set.
+    const measured = list.map(entry => entry.measure ? entry : { ...entry, measure: (size: number) => this.measure(this.items.get(entry.key)!, size) });
+    const plan = this.plan(measured), live = list.map(entry => this.items.get(entry.key)!);
+    root.dataset.planOk = String(plan.ok); root.dataset.cloudScale = String(plan.scale);
+    plan.placed.forEach((box, i) => { live[i].tfs = box.size; live[i].tw = box.w; live[i].th = box.h; });
     const now = performance.now();
     live.forEach((it, i) => {
       it.tx = plan.placed[i].x; it.ty = plan.placed[i].y; it.placed = true; it.rest = false;
@@ -129,6 +137,10 @@ export class Field {
         [it.y, it.vy] = springStep(it.y, it.vy, it.ty, wSize, dt);
         [it.fs, it.vfs] = springStep(it.fs, it.vfs, it.going ? it.fs : it.tfs, wSize, dt);
         const [o, vo] = springStep(it.o, it.vo, it.going ? 0 : 1, wFade, dt); it.o = Math.max(0, Math.min(1, o)); it.vo = vo;
+        if (it.going && this.opt.grow) {
+          const duration = tokenMs(root, "cwl-dur-hide");
+          it.o = it.leavingOpacity * Math.max(0, 1 - (now - it.leavingAt) / Math.max(1, duration));
+        }
       }
       if (it.going && it.o < 0.02) { it.el.remove(); this.items.delete(key); return; }
       const settled = Math.abs(it.x - it.tx) < 0.2 && Math.abs(it.y - it.ty) < 0.2 && Math.abs(it.fs - it.tfs) < 0.05 && it.o > 0.999 && !it.going;
@@ -303,16 +315,19 @@ export class Board {
   private first = true;
   private absorbed = new Map<string, string>();
   private aiChanges = new AiChanges();
+  private overflow = new Set<string>();
+  private cloudState?: { words: AiWord[]; entries: FieldEntry[]; isNew: Set<string> };
+  private context?: CanvasRenderingContext2D | null;
   constructor(private root: HTMLElement, private kind: BoardKind, private session: string) {
     root.dataset.board = kind;
     if (kind === "word_cloud") {
-      const field = make("div", "tv-field"), row = make("div", "tv-chips");
+      const field = make("div", "tv-field"), row = make("div", "tv-chips"); row.dataset.empty = "true";
       root.append(field, row);
       this.field = new Field(field, key => { const el = make("span", "tv-word"); el.dataset.key = key; return el; },
-        { gapX: 40, gapY: 6, fill: 0.55, maxWidth: 1280, floor: () => this.floor() });
+        { gapX: 40, gapY: 6, fill: 0.55, maxWidth: 1280, grow: true, floor: () => this.floor(), onResize: () => this.layoutCloud() });
       this.chips = new Chips(row);
     } else {
-      root.innerHTML = '<div class="tv-wall"><section class="tv-groups"><p class="tv-groups-empty">Grouping as answers arrive</p></section>'
+      root.innerHTML = '<div class="tv-wall"><section class="tv-groups"></section>'
         + '<section class="tv-feed"><p class="tv-feed-head">Answers · newest first</p><div class="tv-feed-list"></div></section></div>';
       this.feed = new Feed(root.querySelector(".tv-feed-list")!);
     }
@@ -346,16 +361,25 @@ export class Board {
     return new Set(answer?.answers.map(item => item.key) ?? []);
   }
   private cloud(frame: LiveSnapshot, fresh: string | null, instant: boolean) {
-    const words = frame.state.results.words, scale = this.floor() / 36, isNew = this.newKeys(frame, fresh);
-    const repeated = words.filter(word => word.count > 1).sort((a, b) => b.count - a.count);
-    const singles = words.filter(word => word.count === 1).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.key.localeCompare(b.key));
+    const words = frame.state.results.words as AiWord[], scale = this.floor() / 36, isNew = this.newKeys(frame, fresh);
+    // Measure new words without creating or moving any field elements. Canvas
+    // shares the loaded TV font, and includes the light-theme pill and AI mark.
+    this.context ??= document.createElement("canvas").getContext("2d");
+    const style = getComputedStyle(this.root), family = style.fontFamily;
+    const light = this.root.closest('[data-surface="tv"]')?.getAttribute("data-theme") === "light";
+    const entries = words.map(word => ({ key: word.key, size: word.size * scale, shrinkToWidth: word.count > 1, measure: (size: number) => {
+      const context = this.context!; context.font = `${word.count === 1 ? 600 : 700} ${size}px ${family}`;
+      const pill = light && (word.level === "leader" || isNew.has(word.key)) ? size * 0.4 : 0;
+      const aiWidth = word.ai ? size * 0.12 + this.floor() * 1.6 : 0;
+      return { w: Math.ceil(context.measureText(word.text).width + pill + aiWidth), h: Math.ceil(Math.max(size * 1.05, word.ai ? this.floor() * 1.7 : 0)) };
+    }, update: (el: HTMLElement) => {
+      wordContent(el, word);
+      el.className = `tv-word ${word.level === "leader" ? "is-leader" : word.count > 1 ? "is-repeated" : "is-single"}${isNew.has(word.key) && word.level !== "leader" ? " is-new" : ""}`;
+    } }));
+    this.cloudState = { words, entries, isNew };
+    this.layoutCloud(instant);
     // A lone arrival's word shows Lime for a moment; the leader keeps Sunrise.
     const moment = words.some(word => isNew.has(word.key) && word.level !== "leader");
-    this.chips!.set(singles.map(word => ({ key: word.key, text: word.text, isNew: isNew.has(word.key) })), instant);
-    this.field!.set(repeated.map(word => ({ key: word.key, size: word.size * scale, update: el => {
-      wordContent(el, word);
-      el.className = `tv-word ${word.level === "leader" ? "is-leader" : "is-repeated"}${isNew.has(word.key) && word.level !== "leader" ? " is-new" : ""}`;
-    } })), instant);
     // AI combines and their undo animate between where the words were and where they go.
     const absorbed = new Map<string, string>();
     for (const word of words as AiWord[]) for (const key of word.merged ?? []) absorbed.set(key, word.key);
@@ -369,6 +393,16 @@ export class Board {
     const joins = this.aiChanges.next([...absorbed].map(([key, into]) => `${into}\u0001${key}`));
     if (!instant) for (const join of joins) sweepAi(this.field!.element(join.split("\u0001")[0]));
     if (moment) this.moment();
+  }
+  private layoutCloud(instant = false) {
+    if (!this.cloudState) return;
+    const { words, entries, isNew } = this.cloudState, byKey = new Map(entries.map(e => [e.key, e]));
+    const planned = cloudOverflow(words, this.overflow, cloud => this.field!.plan(cloud.map(w => byKey.get(w.key)!)).ok);
+    this.overflow = planned.overflow;
+    this.root.dataset.overflow = JSON.stringify(planned.row.map(w => w.key));
+    this.root.querySelector<HTMLElement>(".tv-chips")!.dataset.empty = String(!planned.row.length);
+    this.chips!.set(planned.row.map(word => ({ key: word.key, text: word.text, isNew: isNew.has(word.key) })), instant);
+    this.field!.set(planned.cloud.map(word => byKey.get(word.key)!), instant);
   }
   private wall(frame: LiveSnapshot, fresh: string | null, instant: boolean) {
     const answers = this.arrivals.order(frame.answers.filter(answer => answer.session_id === this.session));
@@ -386,6 +420,7 @@ export class Board {
   private endMoment() {
     clearTimeout(this.settle);
     this.root.dataset.newest = "off";
+    this.cloudState?.isNew.clear();
     this.root.querySelectorAll(".is-new, .is-newest").forEach(el => { el.classList.add("is-settling"); el.classList.remove("is-new", "is-newest"); });
   }
 }

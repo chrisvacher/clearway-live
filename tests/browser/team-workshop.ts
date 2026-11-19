@@ -216,6 +216,9 @@ async function main() {
       await control.keyboard.press("b");
       await until(async () => await tv.locator(".tv-blackout.is-active").count() === 1 && await liveId() === null, "B blacks out the TV", 8000);
       await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Blackout", "the live screen shows the TV is black", 8000);
+      // Realtime can show Blackout before the press response clears pending.
+      // Keys are intentionally ignored while pending, so wait until transport is ready.
+      await until(async () => await control.locator(".ctl-steps").getByRole("button", { name: "Back", exact: true }).isEnabled(), "the blackout press has finished", 8000);
       await control.keyboard.press("b");
       await until(async () => await liveId() === await idOf("Your questions"), "B again returns to the step", 8000);
       await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Your questions", "and the control surface shows it", 8000);
@@ -304,14 +307,15 @@ async function main() {
     });
     await step("What's working (wall): cards arrive, AI groups them under labels; the summary waits for Show summary", async () => {
       await next("What's working", "wall");
-      await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "on", "the AI layout", 10000);
+      await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "on", "AI is enabled", 10000);
+      assert.equal(await layer().locator(".ai-wall").getAttribute("data-layout"), "cards", "the empty AI wall starts with answer cards");
       assert.equal(await layer().locator(".ai-summary:not(.is-off)").count(), 0, "the rehearsal's Show summary did not survive");
       const cards = ["Three baptisms at Easter", "Teenagers asking to be baptized", "Our Alpha course was full", "Alpha guests stayed for church", "Young families staying after the service",
         "New families at the kids program", "Volunteers who show up early", "Serving teams that cover for each other"];
       await all((p, i) => send(p.page, cards[i]));
       await counts("wall", { total: 8, unit: "answers" });
       await until(async () => ((await results()).groups as unknown[] | undefined)?.length === 4, "four AI groups on the server", 20000);
-      await until(async () => (await layer().locator(".ai-group").count()) >= 1, "groups on the TV", 8000);
+      await until(async () => await layer().locator(".ai-wall").getAttribute("data-layout") === "groups" && (await layer().locator(".ai-group").count()) >= 1, "groups fill the main area once they exist", 8000);
       assert.equal(await layer().locator(".ai-groups-head .cwl-ai-mark").count(), 1, "marked as AI");
       assert.deepEqual(await visibleOnTv(tv, /Rehearsal/), [], "no rehearsal card or summary");
       await shot(tv, "team-06-wall-groups-tv");

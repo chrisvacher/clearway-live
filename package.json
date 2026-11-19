@@ -78,7 +78,8 @@
     "test:operations": "node --import tsx tests/browser/operations.ts",
     "test:tv-window": "node --import tsx tests/browser/tv-window.ts",
     "test:steps-stay-open": "node --import tsx tests/browser/steps-stay-open.ts",
-    "test:two-addresses": "node --import tsx tests/browser/two-addresses.ts"
+    "test:two-addresses": "node --import tsx tests/browser/two-addresses.ts",
+    "test:small-room": "node --import tsx tests/browser/small-room.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.133.0",

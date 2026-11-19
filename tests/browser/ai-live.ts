@@ -26,7 +26,7 @@ Object.assign(process.env, { CLEARWAY_AI_FAKE: "script", CLEARWAY_AI_FAKE_CONTRO
 
 // Samples each AI group label's place on every frame, as a plain script so no bundler helper reaches the page.
 const sampler = `(() => { window.aiSamples = {}; window.aiStop = false;
-  const read = () => { for (const el of document.querySelectorAll('.tv-layer:not(.is-leaving) .ai-wall[data-ai="on"] .ai-group, .tv-layer:not(.is-leaving) .ai-wall[data-ai="off"] .ai-card')) {
+  const read = () => { for (const el of document.querySelectorAll('.tv-layer:not(.is-leaving) .ai-wall[data-layout="groups"] .ai-group, .tv-layer:not(.is-leaving) .ai-wall[data-layout="cards"] .ai-card')) {
     const m = /translate\\((-?[\\d.]+)px,\\s*(-?[\\d.]+)px\\)/.exec(el.style.transform); if (m) (window.aiSamples[el.dataset.key] ??= []).push([Number(m[1]), Number(m[2])]); }
     if (!window.aiStop) requestAnimationFrame(read); };
   requestAnimationFrame(read); })()`;
@@ -148,6 +148,8 @@ async function main() {
       await layer().locator('[data-board="word_cloud"]').waitFor({ timeout: 10000 });
       await send(priya, "youth, hope, joy, grace, family");
       await until(async () => (await words()).includes("youth"), "youth is on the TV straight away", 3000);
+      await until(async () => (await layer().locator(".tv-field .tv-word:not(.is-going)").allTextContents()).map(t => t.trim()).sort().join(",") === ["youth", "hope", "joy", "grace", "family"].sort().join(","), "all five single words appear in the cloud", 3000);
+      assert.equal(await layer().locator(".tv-chips").evaluate(el => el.getBoundingClientRect().height), 0, "no overflow row for five words");
       assert.equal(await tv.locator("[data-ai-foot]").count(), 0, "nothing is marked as AI before AI has combined anything");
       await send(priya, "momentum, welcome, prayer, music, unity");
       await send(priya, "mission, healing, light, peace, youth");
@@ -188,10 +190,12 @@ async function main() {
     await step("INT-02: AI groups drift together under short labels marked as AI; answers keep arriving in the column", async () => {
       await press(fac, sql, room.id, "go_live", { session: wall });
       await layer().locator('[data-board="wall"]').waitFor({ timeout: 10000 });
-      assert.equal(await layer().locator(".ai-wall").getAttribute("data-ai"), "on", "AI is on: groups beside the answers");
+      assert.equal(await layer().locator(".ai-wall").getAttribute("data-ai"), "on", "AI is on");
+      assert.equal(await layer().locator(".ai-wall").getAttribute("data-layout"), "cards", "no groups yet: answer cards fill the wall");
       for (const p of [priya, ben, ruth]) await until(async () => (await p.locator("body").innerText()).includes("worth celebrating"), "each phone is on the wall", 10000);
       await send(priya, "Three baptisms at Easter");
-      await until(async () => (await layer().locator(".tv-feed-row").allTextContents()).includes("Three baptisms at Easter"), "the first answer is in the column at once", 3000);
+      await until(async () => (await layer().locator('.ai-wall[data-layout="cards"] .ai-card').allTextContents()).includes("Three baptisms at Easter"), "the first answer appears as a full-width card at once", 3000);
+      await until(async () => layer().locator(".ai-wall-split").evaluate(el => getComputedStyle(el).opacity === "0"), "the answer column waits until there is a group", 3000);
       await send(ben, "Teenagers asking to be baptized");
       await send(priya, "Our Alpha course was full");
       await send(ben, "Alpha guests stayed for church");
@@ -199,6 +203,7 @@ async function main() {
       await send(ruth, "New families at the kids program");
       await send(ruth, "Volunteers who show up early");
       await until(async () => (await results()).groups.length === 3, "three groups form on the server", 15000);
+      await until(async () => await layer().locator(".ai-wall").getAttribute("data-layout") === "groups", "AI groups bring in the groups layout", 5000);
       await until(async () => { const g = await groupsOnTv(); return g.shown.length + g.more === 3 && g.shown.length >= 1 && g; }, "the TV shows them, whole, with the rest on the control surface", 8000);
       await settle(tv);
       const placed = await groupsOnTv();
@@ -295,6 +300,7 @@ async function main() {
     await step("FAIL-09 and INT-02 AI off: the wall falls back to answer cards in arrival order, oldest first", async () => {
       await panel().getByRole("switch", { name: "AI for this session" }).click();
       await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "off", "the TV switches layout without redrawing", 5000);
+      assert.equal(await layer().locator(".ai-wall").getAttribute("data-layout"), "cards", "AI off uses answer cards");
       const cards = await layer().locator(".ai-card").allTextContents();
       assert.equal(cards[0], "Three baptisms at Easter", "oldest first");
       assert.equal(cards[cards.length - 1], "Prayer team growing", "newest last");
@@ -306,7 +312,7 @@ async function main() {
       }), "the crowded wall settles with every shown card whole", 20000);
       await shot(tv, "int-02-ai-off-tv"); await shot(control, "fail-09-ai-off-control");
       await panel().getByRole("switch", { name: "AI for this session" }).click();
-      await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "on", "back on, the groups return from what is there", 5000);
+      await until(async () => (await layer().locator(".ai-wall").getAttribute("data-ai")) === "on" && await layer().locator(".ai-wall").getAttribute("data-layout") === "groups", "back on, the groups return from what is there", 5000);
     });
     await step("INT-02 reduced motion: the wall puts things in place at once", async () => {
       await tv.evaluate(() => document.querySelector(".tv-viewport")?.setAttribute("data-motion", "reduced"));

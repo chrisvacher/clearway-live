@@ -1,0 +1,33 @@
+{
+  "scope": "Direct Chromium renderer fixtures only. No paired TV, API, Realtime, AI model or latency measurement.",
+  "results": [
+    {
+      "name": "clearway-dark-overflow-merge-undo",
+      "absorbed": "r36",
+      "largest": 48.83504319741395,
+      "frames": 4848,
+      "jumps": 0
+    },
+    {
+      "name": "clearway-light-overflow-merge-undo",
+      "absorbed": "r35",
+      "largest": 49.04018586913874,
+      "frames": 4824,
+      "jumps": 0
+    },
+    {
+      "name": "novetera-dark-overflow-merge-undo",
+      "absorbed": "r38",
+      "largest": 49.49016098850445,
+      "frames": 4223,
+      "jumps": 0
+    },
+    {
+      "name": "novetera-light-overflow-merge-undo",
+      "absorbed": "r35",
+      "largest": 48.093762463449664,
+      "frames": 4824,
+      "jumps": 0
+    }
+  ]
+}

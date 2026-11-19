@@ -104,6 +104,91 @@ export function planField(items: Box[], width: number, height: number, gapX: num
 
 // Sizes step down together when the items would crowd the space, never below
 // the floor. The first scale comes from area; each failed plan steps 10% down.
-export function fitScale(areas: number, width: number, height: number, fill: number) {
-  return Math.min(1, Math.sqrt((width * height * fill) / Math.max(1, areas)));
+export function fitScale(areas: number, width: number, height: number, fill: number, ceiling = 1) {
+  return Math.min(ceiling, Math.sqrt((width * height * fill) / Math.max(1, areas)));
+}
+
+// A cloud can have dozens of words at the floor. Splitting free rectangles
+// bounds an impossible plan's work, rather than searching every spiral point.
+// Existing targets are preferred when they remain in a free rectangle.
+export function planCloudField(items: Box[], width: number, height: number, gapX: number, gapY: number) {
+  type Rect = { x: number; y: number; w: number; h: number };
+  let free: Rect[] = [{ x: -gapX / 2, y: -gapY / 2, w: width + gapX, h: height + gapY }];
+  const placed = new Map<string, Placed>();
+  let ok = true;
+  const ordered = items.map((item, i) => ({ item, i })).sort((a, b) => b.item.w * b.item.h - a.item.w * a.item.h || a.i - b.i);
+  for (const { item } of ordered) {
+    const w = item.w + gapX, h = item.h + gapY, x0 = item.x ?? width / 2, y0 = item.y ?? height / 2;
+    let best: Rect | null = null, distance = Infinity;
+    for (const r of free) {
+      if (r.w < w || r.h < h) continue;
+      const x = Math.max(r.x, Math.min(r.x + r.w - w, x0 - w / 2));
+      const y = Math.max(r.y, Math.min(r.y + r.h - h, y0 - h / 2));
+      const d = (x + w / 2 - x0) ** 2 + (y + h / 2 - y0) ** 2;
+      if (d < distance) { best = { x, y, w, h }; distance = d; }
+    }
+    if (!best) { ok = false; placed.set(item.key, { key: item.key, x: x0, y: y0, w: item.w, h: item.h }); continue; }
+    const box = best;
+    placed.set(item.key, { key: item.key, x: box.x + w / 2, y: box.y + h / 2, w: item.w, h: item.h });
+    const next: Rect[] = [];
+    for (const r of free) {
+      if (box.x >= r.x + r.w || box.x + w <= r.x || box.y >= r.y + r.h || box.y + h <= r.y) { next.push(r); continue; }
+      if (box.x > r.x) next.push({ ...r, w: box.x - r.x });
+      if (box.x + w < r.x + r.w) next.push({ ...r, x: box.x + w, w: r.x + r.w - box.x - w });
+      if (box.y > r.y) next.push({ ...r, h: box.y - r.y });
+      if (box.y + h < r.y + r.h) next.push({ ...r, y: box.y + h, h: r.y + r.h - box.y - h });
+    }
+    free = next.filter((r, i) => !next.some((q, j) => i !== j && q.x <= r.x && q.y <= r.y && q.x + q.w >= r.x + r.w && q.y + q.h >= r.y + r.h
+      && (q.x !== r.x || q.y !== r.y || q.w !== r.w || q.h !== r.h || j < i)));
+  }
+  return { ok, placed: items.map(item => placed.get(item.key)!) };
+}
+
+export type MeasuredEntry = { key: string; size: number; shrinkToWidth?: boolean; measure: (size: number) => { w: number; h: number }; x?: number; y?: number };
+export type FieldPlan = { ok: boolean; scale: number; placed: (Placed & { size: number })[] };
+// Planning reads measurements only. It never changes a live item's target or creates DOM.
+export function fitField(entries: MeasuredEntry[], width: number, height: number,
+  opt: { gapX: number; gapY: number; fill: number; floor: number; maxWidth: number; grow?: boolean }): FieldPlan {
+  const { gapX, gapY, fill, floor, maxWidth } = opt;
+  if (!entries.length) return { ok: true, scale: 1, placed: [] };
+  const max = Math.max(...entries.map(e => e.size));
+  const area = entries.reduce((sum, e) => { const b = e.measure(e.size); return sum + (b.w + gapX) * (b.h + gapY); }, 0);
+  const ceiling = opt.grow ? 168 * (floor / 36) / max : 1;
+  let scale = fitScale(area, width, height, fill, ceiling);
+  for (;;) {
+    const boxes = entries.map(e => {
+      let size = Math.max(floor, e.size * scale), box = e.measure(size);
+      if (box.w > maxWidth) {
+        if (opt.grow) {
+          // Repeated cloud words may cross the room floor only when the
+          // width limit requires it. Crowding still uses the ordinary floor.
+          let low = e.shrinkToWidth ? 0 : floor, high = size;
+          for (let i = 0; i < 16; i++) { const middle = (low + high) / 2; if (e.measure(middle).w <= maxWidth) low = middle; else high = middle; }
+          size = Math.max(e.shrinkToWidth ? 0 : floor, Math.floor(low * 100) / 100); box = e.measure(size);
+        } else { size = Math.max(floor, size * maxWidth / box.w); box = e.measure(size); }
+      }
+      return { key: e.key, ...box, size, x: e.x, y: e.y };
+    });
+    const plan = (opt.grow ? planCloudField : planField)(boxes, width, height, gapX, gapY);
+    if (opt.grow && boxes.some(b => b.w > maxWidth)) plan.ok = false;
+    const sizes = new Map(boxes.map(b => [b.key, b.size]));
+    if (plan.ok || boxes.every(b => b.size <= floor)) return { ok: plan.ok, scale, placed: plan.placed.map(b => ({ ...b, size: sizes.get(b.key)! })) };
+    scale = Math.max(floor / max * 0.999, scale * 0.9);
+  }
+}
+
+// Once a single mention overflows it stays there, including across hide/unhide,
+// until another person repeats it. The caller owns this per-step memory.
+export function cloudOverflow<T extends { key: string; count: number; order?: number }>(words: T[], overflow: ReadonlySet<string>, fits: (cloud: T[]) => boolean) {
+  const sticky = new Set(overflow);
+  for (const word of words) if (word.count > 1) sticky.delete(word.key);
+  const oldest = words.filter(w => w.count === 1).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.key.localeCompare(b.key));
+  let cloud = words.filter(w => w.count > 1 || !sticky.has(w.key));
+  for (const word of oldest) {
+    if (fits(cloud)) break;
+    if (sticky.has(word.key)) continue;
+    sticky.add(word.key);
+    cloud = cloud.filter(w => w.key !== word.key);
+  }
+  return { cloud, row: oldest.filter(w => sticky.has(w.key)), overflow: sticky };
 }

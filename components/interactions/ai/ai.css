@@ -32,12 +32,12 @@
 .tv-word .ai-word { display: inline-flex; align-items: flex-start; gap: 0.12em; }
 .tv-word .cwl-ai-mark { font-size: var(--cwl-fs-tv-floor); width: 1.6em; height: 1.6em; margin-top: 0.1em; }
 
-/* ---------- INT-02: the wall, AI on (groups beside the answers) or off (cards in arrival order) ---------- */
+/* ---------- INT-02: groups beside the answers, or cards while there is no group or summary ---------- */
 .ai-wall { position: relative; flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr); grid-template-columns: minmax(0, 1fr); margin-bottom: calc(var(--cwl-fs-tv-body) * 0.5); }
 /* Nothing sits behind the count in the corner: the cards fade out above the foot, as the answer column does. */
 .ai-cards:not(.is-turns) { -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent); mask-image: linear-gradient(to bottom, black 85%, transparent); }
 .ai-wall > .ai-wall-split, .ai-wall > .ai-cards { grid-area: 1 / 1; min-height: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); }
-.ai-wall[data-ai="on"] > .ai-cards, .ai-wall[data-ai="off"] > .ai-wall-split { opacity: 0; pointer-events: none; }
+.ai-wall[data-layout="groups"] > .ai-cards, .ai-wall[data-layout="cards"] > .ai-wall-split { opacity: 0; pointer-events: none; }
 .ai-wall-split { --ai-feed: calc(600px * var(--cwl-tv-scale)); --ai-feed-summary: calc(440px * var(--cwl-tv-scale));
   position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--ai-feed); grid-template-rows: minmax(0, 1fr); gap: 56px;
   transition: grid-template-columns var(--cwl-dur-make-room) var(--cwl-ease-signature); }
@@ -58,8 +58,6 @@
 .ai-group .n { display: inline-grid; place-items: center; min-width: 1.3em; height: 1.3em; padding: 0 0.3em; border-radius: var(--cwl-radius-marker);
   font-size: max(var(--cwl-fs-tv-floor), 0.5em); background: var(--cwl-surface); color: var(--cwl-text); font-variant-numeric: tabular-nums; }
 .ai-group .pin { width: 0.6em; height: 0.6em; flex: none; }
-.ai-groups-empty { font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-medium); color: var(--cwl-text-muted); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
-.ai-groups-empty.is-off { opacity: 0; position: absolute; pointer-events: none; }
 .ai-more { flex: none; margin: 0; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.15; color: var(--cwl-text-muted); }
 .ai-more:empty { display: none; }
 
@@ -77,7 +75,7 @@
 .ai-summary-text { margin: 0; padding: 14px 32px 18px; font-size: calc(var(--cwl-fs-tv-floor) * var(--ai-summary-fit, 1)); overflow-wrap: break-word; font-weight: var(--fw-medium); line-height: 1.2; color: var(--cwl-text-on-panel); transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
 .ai-summary-text.is-fading { opacity: 0; }
 
-/* AI off: answer cards in arrival order, oldest first, so each card keeps its place. A crowded
+/* Answer cards in arrival order, oldest first, so each card keeps its place. A crowded
    wall steps older cards down to the body size, then the floor, then the oldest take turns. */
 .ai-cards { position: relative; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 24px; overflow: hidden; }
 .ai-card { flex: none; max-width: 820px; padding: var(--cwl-tv-card-pad); border-radius: var(--cwl-radius-tv-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card);

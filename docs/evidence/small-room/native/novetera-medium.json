@@ -1,0 +1,677 @@
+{
+  "recorded": "2026-11-19T22:54:57.866Z",
+  "environment": "local production build, loopback, scripted fake model",
+  "display": "novetera-medium",
+  "configurations": 4,
+  "verdict": {
+    "met": true,
+    "share": 1,
+    "label": "276 of 276 reached the TV in under 1 second (100%). Meets the target of 95 in 100."
+  },
+  "total": {
+    "measured": 276,
+    "under_second": 276
+  },
+  "states": [
+    {
+      "name": "novetera-medium-dark-full",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.9188378077430013,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-dark-full",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8952219513598938,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-dark-full",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.264275014817065,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-dark-full",
+      "state": "cloud-60",
+      "cloud": 29,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability"
+      ],
+      "scale": 0.5509443107705934,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "novetera-medium-dark-full",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 43.15,
+      "width": 1203,
+      "floor": 43.2,
+      "cloud": 26,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity"
+      ]
+    },
+    {
+      "name": "novetera-medium-dark-full",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 33249,
+        "largest": 72.9
+      },
+      "latency": {
+        "to": "2026-11-19T22:52:50.415+00:00",
+        "from": "2026-11-19T22:51:54.638+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 118,
+          "p50": 20,
+          "p95": 42,
+          "p99": 93
+        },
+        "sessions": [
+          {
+            "id": "e5d8ada7-4e29-4ef0-8816-c99f28fd42c5",
+            "p95": 29,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "645bdbb0-f8d8-4526-80a3-072385c4a7aa",
+            "p95": 79,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 19,
+          "p95": 42
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 0,
+          "p95": 3
+        },
+        "under_second": 69,
+        "uncertainty_ms": 84
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    },
+    {
+      "name": "novetera-medium-dark-reduced",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.9188378077430013,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-dark-reduced",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8952219513598938,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-dark-reduced",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.264275014817065,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-dark-reduced",
+      "state": "cloud-60",
+      "cloud": 29,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability"
+      ],
+      "scale": 0.5509443107705934,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "novetera-medium-dark-reduced",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 43.2,
+      "width": 1203,
+      "floor": 43.2,
+      "cloud": 26,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity"
+      ]
+    },
+    {
+      "name": "novetera-medium-dark-reduced",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 25571,
+        "largest": 1165.7
+      },
+      "latency": {
+        "to": "2026-11-19T22:53:24.824+00:00",
+        "from": "2026-11-19T22:52:53.409+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 123,
+          "p50": 19,
+          "p95": 57,
+          "p99": 121
+        },
+        "sessions": [
+          {
+            "id": "79642245-5999-4cb4-baf5-c5eb15f5cd31",
+            "p95": 36,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "888c034b-23f8-40ee-838e-eb1c6b97da95",
+            "p95": 60,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 19,
+          "p95": 48
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 0,
+          "p95": 2
+        },
+        "under_second": 69,
+        "uncertainty_ms": 64
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    },
+    {
+      "name": "novetera-medium-light-full",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.9188378077430013,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-light-full",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8952219513598938,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-light-full",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.264275014817065,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-light-full",
+      "state": "cloud-60",
+      "cloud": 29,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability"
+      ],
+      "scale": 0.5509443107705934,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "novetera-medium-light-full",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 43.15,
+      "width": 1220.25,
+      "floor": 43.2,
+      "cloud": 26,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity"
+      ]
+    },
+    {
+      "name": "novetera-medium-light-full",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 33519,
+        "largest": 59.1
+      },
+      "latency": {
+        "to": "2026-11-19T22:54:23.517+00:00",
+        "from": "2026-11-19T22:53:27.96+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 120,
+          "p50": 21,
+          "p95": 42,
+          "p99": 87
+        },
+        "sessions": [
+          {
+            "id": "f8a7e865-81f2-4409-9438-6ae461760758",
+            "p95": 32,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "1442eb76-b562-4f74-8671-eb9296ed4cb8",
+            "p95": 50,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 21,
+          "p95": 41
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 1,
+          "p95": 2
+        },
+        "under_second": 69,
+        "uncertainty_ms": 54
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    },
+    {
+      "name": "novetera-medium-light-reduced",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.9188378077430013,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-light-reduced",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8952219513598938,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-light-reduced",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.264275014817065,
+      "chipsHeight": 0
+    },
+    {
+      "name": "novetera-medium-light-reduced",
+      "state": "cloud-60",
+      "cloud": 29,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability"
+      ],
+      "scale": 0.5509443107705934,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "novetera-medium-light-reduced",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 43.2,
+      "width": 1220.25,
+      "floor": 43.2,
+      "cloud": 26,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity"
+      ]
+    },
+    {
+      "name": "novetera-medium-light-reduced",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 25324,
+        "largest": 1165.7
+      },
+      "latency": {
+        "to": "2026-11-19T22:54:57.744+00:00",
+        "from": "2026-11-19T22:54:26.462+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 136,
+          "p50": 20,
+          "p95": 45,
+          "p99": 87
+        },
+        "sessions": [
+          {
+            "id": "bc67eaca-a861-42ba-af45-073229a05e74",
+            "p95": 26,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "f4f2f93f-d3f8-43ad-b565-a780a64e2e30",
+            "p95": 46,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 18,
+          "p95": 43
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 1,
+          "p95": 3
+        },
+        "under_second": 69,
+        "uncertainty_ms": 46
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    }
+  ]
+}

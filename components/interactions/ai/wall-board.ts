@@ -1,13 +1,13 @@
 // INT-02 on the TV: the open text wall, evolving in place.
-//  * AI on: AI groups in the main area as short labels sized by how many answers they
+//  * AI on with groups or a summary: AI groups in the main area as short labels sized by how many answers they
 //    hold, under one gradient AI icon, with the answers in a column on the right, newest first
 //    (pass 2's layout). The AI summary opens at the top of the groups column once the
 //    facilitator taps Show summary, and the groups glide down to make room.
-//  * AI off: answer cards in arrival order, oldest first, so each card keeps its place as
+//  * AI off, or waiting for the first group: answer cards in arrival order, oldest first, so each card keeps its place as
 //    new ones join at the end. A crowded wall steps older cards down to the body size and
 //    then the floor, then the oldest take turns, only once nothing new has arrived for
 //    cwl-delay-quiet.
-// Switching AI on or off cross-fades between the two; neither redraws. Every count is the server's.
+// Switching layouts cross-fades between the two; neither redraws. Every count is the server's.
 import { ArrivalOrder, Feed, Field, reducedMotion, tokenMs } from "@/lib/tv/board";
 import type { Shown } from "@/lib/tv/flow";
 import { springRate, springStep, wordSize } from "@/lib/tv/motion";
@@ -24,7 +24,7 @@ const pinSvg = () => {
   svg.appendChild(path); return svg;
 };
 
-// AI off: cards in arrival order. New cards fade in where they land at the end; cards
+// Cards in arrival order. New cards fade in where they land at the end; cards
 // that move (a hide, a step down) glide there on the field spring.
 class Cards {
   private cards = new Map<string, { el: HTMLElement; x: number; y: number; vx: number; vy: number; dx: number; dy: number }>();
@@ -50,7 +50,7 @@ class Cards {
       c.dx += was.left - now.left; c.dy += was.top - now.top;
     });
   }
-  // Cards follow every frame while AI is on, but out of sight they never animate or step down.
+  // Cards follow every frame in the groups layout, but out of sight they never animate or step down.
   visible = true;
   set(answers: { id: string; text: string }[], fresh: string | null, instant: boolean) {
     const want = new Set(answers.map(a => a.id)), reduced = reducedMotion(this.root);
@@ -129,7 +129,6 @@ export class WallBoard {
   private summaryText: HTMLElement;
   private summaryBox: HTMLElement;
   private fieldEl: HTMLElement;
-  private empty: HTMLElement;
   private more: HTMLElement;
   private summaryId: string | null = null;
   private split: HTMLElement;
@@ -137,7 +136,7 @@ export class WallBoard {
   private aiChanges = new AiChanges();
   constructor(private root: HTMLElement, private session: string) {
     root.dataset.board = "wall";
-    this.wall = make("div", "ai-wall"); this.wall.dataset.ai = "off";
+    this.wall = make("div", "ai-wall"); this.wall.dataset.ai = "off"; this.wall.dataset.layout = "cards";
     const split = this.split = make("div", "ai-wall-split"), groups = make("section", "ai-groups"), head = make("p", "ai-groups-head");
     head.append(aiMarkEl(), make("span", "", "Grouped from answers"));
     this.head = head;
@@ -146,9 +145,8 @@ export class WallBoard {
     band.append(aiIconEl(), document.createTextNode("AI summary"));
     this.summaryText = make("p", "ai-summary-text"); box.append(band, this.summaryText); clip.appendChild(box); this.summary.appendChild(clip);
     const fieldEl = this.fieldEl = make("div", "ai-group-field");
-    this.empty = make("p", "ai-groups-empty", "Grouping as answers arrive");
     this.more = make("p", "ai-more");
-    groups.append(head, this.summary, this.empty, fieldEl, this.more);
+    groups.append(head, this.summary, fieldEl, this.more);
     const feed = make("section", "tv-feed"), list = make("div", "tv-feed-list");
     feed.append(make("p", "tv-feed-head", "Answers · newest first"), list);
     split.append(groups, feed);
@@ -184,16 +182,15 @@ export class WallBoard {
     const { ai, groups, summary } = wallOf(frame.state.results);
     this.wall.dataset.ai = ai ? "on" : "off";
     const answers = this.arrivals.order(frame.answers.filter(answer => answer.session_id === this.session)).map(a => ({ id: a.id, text: a.text }));
-    // Both layouts follow every frame, so switching AI on or off only cross-fades.
+    // Both layouts follow every frame, so the first group, Undo and AI switches only cross-fade.
     this.feed.set(answers, instant);
-    this.cards.visible = !ai;
-    this.cards.set([...answers].reverse(), ai ? null : fresh, instant || ai);
-    this.feed.track.querySelectorAll(".is-newest").forEach(row => row.classList.remove("is-newest"));
-    if (fresh && ai) this.feed.element(fresh)?.classList.add("is-newest");
     this.setSummary(ai ? summary : null);
     this.fitSummary();
     this.groups = { list: ai ? groups : [], summary: Boolean(ai && summary) };
     this.fitGroups(instant);
+    this.cards.set([...answers].reverse(), fresh, instant || !this.cards.visible);
+    this.feed.track.querySelectorAll(".is-newest").forEach(row => row.classList.remove("is-newest"));
+    if (fresh) this.feed.element(fresh)?.classList.add("is-newest");
     // AI regrouping the wall sweeps the one AI icon above the groups once, as the groups drift.
     // An answer joining a group, or a new group, is AI acting; Undo, Redo, rename and pin are not.
     // The first frame a board sees is where it starts, so a TV opening on a grouped wall never sweeps.
@@ -207,6 +204,9 @@ export class WallBoard {
   private groups: { list: WallGroup[]; summary: boolean } = { list: [], summary: false };
   private fitGroups(instant = false) {
     const { shown, rest } = shownGroups(this.groups.list, this.groups.summary), summary = this.groups.summary;
+    const grouped = shown.length > 0 || summary;
+    this.wall.dataset.layout = grouped ? "groups" : "cards";
+    this.cards.visible = !grouped;
     const max = shown.reduce((m, g) => Math.max(m, g.count), 2), scale = this.floor() / 36;
     const entries = shown.map(g => ({ key: g.id, size: wordSize(g.count, max, 44, 72) * scale, update: (el: HTMLElement) => {
       const label = el.querySelector(".lbl")!, n = el.querySelector(".n")!;
@@ -215,7 +215,6 @@ export class WallBoard {
       el.setAttribute("aria-label", `${g.label}, ${g.count} answers${g.pinned ? ", pinned" : ""}`);
     } }));
     // The more line is written first, so the field is measured with its space already taken.
-    this.empty.classList.toggle("is-off", shown.length > 0);
     let fit = entries.length;
     for (;;) {
       this.more.textContent = moreGroups(rest + entries.length - fit, summary);

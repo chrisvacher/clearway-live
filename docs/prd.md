@@ -601,8 +601,8 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 - Phone: up to three words and 28 characters per answer (a session can allow one-word answers, or more words). A comma splits one send into separate answers, up to five. Up to three sends per person (Default).
 - Matching without AI (Default, following Synrg): lower-cased, punctuation and emoji stripped, a trailing "s" dropped on words over three letters, and leading little words dropped ("in my finances" counts as "finances").
-- TV: popularity shows in size and color. Repeated answers are anchors in large type sized by the square root of their count, from the TV minimum to headline size, never wider than about two-thirds of the screen. Single mentions are smaller chips that arrive in a gentle stream. Color steps from Sky (one mention) to Off-White (repeated) to Sunrise (the leader, with ties sharing it) on Navy. A new word shows Lime for a moment, then settles.
-- Anchors glide to new positions (about 0.7 s) as sizes change, and new chips pop in (about 0.5 s). The stream keeps a steady rhythm when many arrive at once, and the oldest row of single mentions slides off when space runs out.
+- TV (Decided November 19): every word starts in the cloud, including single mentions. Sizes keep the server's square-root scaling and room scale. A small cloud grows to use the field, up to 168px times the room scale, with no word wider than 1280px. Crowding never lowers the room's type floor. Chris approved one width exception: a repeated answer that cannot fit within 1280px at the floor may shrink below it. Color steps from Sky (one mention) to Off-White (repeated) to Sunrise (the leader, with ties sharing it) on Navy. When every count is one there is no leader. A new word shows Lime for a moment, then settles.
+- Words glide to new positions as sizes change, and new words fade in where they land. When every word cannot fit at the floor, single mentions move to the bottom row one at a time, oldest first. Repeated words stay in the cloud. A single mention stays in the row through hides and returns until another person repeats it. The empty row takes no height and opens with make-room motion. The row keeps its existing sliding arrival. See [small-room behaviour and evidence](small-room.md).
 - AI combines near-duplicates ("youth", "young people") once there are about 30 different answers (Default), with undo from the control surface. The combination animates. Synrg never undoes a combination. The Clearway app allows undo, animated, so it never flickers.
 - Anonymous by default.
 
@@ -610,8 +610,8 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 - Phone: a sentence or two (up to 280 characters, Default), several answers per person.
 - TV: cards fade in where they land and the wall reflows. When there are more cards than fit, older cards shrink to the minimum size, then group or take turns, only while nothing new is arriving. Text never drops below readable size.
-- Optional AI grouping drifts similar cards together under growing labels, with undo, pin and off.
-- Optional AI summary beside the wall, marked as AI. It appears on the TV only after the facilitator taps Show summary, then refreshes as answers arrive (Default: after 8 new answers or 75 seconds, as Synrg does) until the facilitator hides it.
+- Optional AI grouping drifts similar cards together under growing labels, with undo, pin and off. Decided November 19: until there is a group to display, the existing answer cards fill the main area, oldest first, with no answers column or grouping placeholder. The first group cross-fades to the groups and answers layout. Losing the last group cross-fades back. Both layouts stay mounted and receive each frame.
+- Optional AI summary beside the wall, marked as AI. It appears on the TV only after the facilitator taps Show summary, then refreshes as answers arrive (Default: after 8 new answers or 75 seconds, as Synrg does) until the facilitator hides it. Decided November 19: the summary uses the groups layout even without groups, leaving the area beneath the summary empty.
 - Anonymous by default.
 
 **INT-03 Q&A with upvotes and folding**

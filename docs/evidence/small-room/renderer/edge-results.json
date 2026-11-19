@@ -1,0 +1,413 @@
+{
+  "scope": "Direct Chromium renderer fixtures only. No paired TV, API, Realtime, AI model or latency measurement.",
+  "results": [
+    {
+      "name": "clearway-very_small-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.67999267578125,
+          "right": 1599.0393676757812,
+          "top": 600.7237548828125,
+          "bottom": 647.7237548828125,
+          "width": 1278.359375,
+          "size": 44.76
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 54,
+      "overflow": []
+    },
+    {
+      "name": "clearway-very_small-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.66998291015625,
+          "right": 1598.9356079101562,
+          "top": 601.2237548828125,
+          "bottom": 647.5675048828125,
+          "width": 1278.265625,
+          "size": 44.14
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 54,
+      "overflow": []
+    },
+    {
+      "name": "clearway-small-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.71002197265625,
+          "right": 1599.0693969726562,
+          "top": 595.6868896484375,
+          "bottom": 642.6868896484375,
+          "width": 1278.359375,
+          "size": 44.76
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 48.6,
+      "overflow": []
+    },
+    {
+      "name": "clearway-small-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.67999267578125,
+          "right": 1598.9456176757812,
+          "top": 596.1768798828125,
+          "bottom": 642.5206298828125,
+          "width": 1278.265625,
+          "size": 44.14
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 48.6,
+      "overflow": []
+    },
+    {
+      "name": "clearway-medium-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.71002197265625,
+          "right": 1599.0693969726562,
+          "top": 590.6087646484375,
+          "bottom": 637.6087646484375,
+          "width": 1278.359375,
+          "size": 44.76
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 43.2,
+      "overflow": []
+    },
+    {
+      "name": "clearway-medium-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.70001220703125,
+          "right": 1598.9656372070312,
+          "top": 591.1087646484375,
+          "bottom": 637.4525146484375,
+          "width": 1278.265625,
+          "size": 44.14
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 43.2,
+      "overflow": []
+    },
+    {
+      "name": "clearway-large-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.69000244140625,
+          "right": 1599.0493774414062,
+          "top": 587.0675048828125,
+          "bottom": 634.0675048828125,
+          "width": 1278.359375,
+          "size": 44.76
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 39.6,
+      "overflow": []
+    },
+    {
+      "name": "clearway-large-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.66998291015625,
+          "right": 1598.9356079101562,
+          "top": 587.5675048828125,
+          "bottom": 633.9112548828125,
+          "width": 1278.265625,
+          "size": 44.14
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 39.6,
+      "overflow": []
+    },
+    {
+      "name": "clearway-very_large-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.71002197265625,
+          "right": 1599.0693969726562,
+          "top": 583.5306396484375,
+          "bottom": 630.5306396484375,
+          "width": 1278.359375,
+          "size": 44.76
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 36,
+      "overflow": []
+    },
+    {
+      "name": "clearway-very_large-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.67999267578125,
+          "right": 1598.9456176757812,
+          "top": 584.0206298828125,
+          "bottom": 630.3643798828125,
+          "width": 1278.265625,
+          "size": 44.14
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 36,
+      "overflow": []
+    },
+    {
+      "name": "novetera-very_small-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.66998291015625,
+          "right": 1599.1074829101562,
+          "top": 600.2237548828125,
+          "bottom": 648.7237548828125,
+          "width": 1278.4375,
+          "size": 46.2
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 54,
+      "overflow": []
+    },
+    {
+      "name": "novetera-very_small-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.6499938964844,
+          "right": 1599.0093688964844,
+          "top": 600.7237548828125,
+          "bottom": 648.5362548828125,
+          "width": 1278.359375,
+          "size": 45.54
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 54,
+      "overflow": []
+    },
+    {
+      "name": "novetera-small-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.6600036621094,
+          "right": 1599.0975036621094,
+          "top": 595.1768798828125,
+          "bottom": 643.6768798828125,
+          "width": 1278.4375,
+          "size": 46.2
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 48.6,
+      "overflow": []
+    },
+    {
+      "name": "novetera-small-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.69000244140625,
+          "right": 1599.0493774414062,
+          "top": 595.6768798828125,
+          "bottom": 643.4893798828125,
+          "width": 1278.359375,
+          "size": 45.54
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 48.6,
+      "overflow": []
+    },
+    {
+      "name": "novetera-medium-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.6600036621094,
+          "right": 1599.0975036621094,
+          "top": 590.0987548828125,
+          "bottom": 638.5987548828125,
+          "width": 1278.4375,
+          "size": 46.2
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 43.2,
+      "overflow": []
+    },
+    {
+      "name": "novetera-medium-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.67999267578125,
+          "right": 1599.0393676757812,
+          "top": 590.5987548828125,
+          "bottom": 638.4112548828125,
+          "width": 1278.359375,
+          "size": 45.54
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 43.2,
+      "overflow": []
+    },
+    {
+      "name": "novetera-large-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.6600036621094,
+          "right": 1599.0975036621094,
+          "top": 586.5675048828125,
+          "bottom": 635.0675048828125,
+          "width": 1278.4375,
+          "size": 46.2
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 39.6,
+      "overflow": []
+    },
+    {
+      "name": "novetera-large-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.67999267578125,
+          "right": 1599.0393676757812,
+          "top": 587.0675048828125,
+          "bottom": 634.8800048828125,
+          "width": 1278.359375,
+          "size": 45.54
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 39.6,
+      "overflow": []
+    },
+    {
+      "name": "novetera-very_large-dark-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.6600036621094,
+          "right": 1599.0975036621094,
+          "top": 583.0206298828125,
+          "bottom": 631.5206298828125,
+          "width": 1278.4375,
+          "size": 46.2
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 36,
+      "overflow": []
+    },
+    {
+      "name": "novetera-very_large-light-wide-repeated",
+      "boxes": [
+        {
+          "key": "wide",
+          "left": 320.69000244140625,
+          "right": 1599.0493774414062,
+          "top": 583.5206298828125,
+          "bottom": 631.3331298828125,
+          "width": 1278.359375,
+          "size": 45.54
+        }
+      ],
+      "overlap": [],
+      "clipped": [],
+      "floor": 36,
+      "overflow": []
+    },
+    {
+      "name": "clearway-dark-merge-undo",
+      "largest": 71.69973905848543,
+      "frames": 529,
+      "jumps": 0
+    },
+    {
+      "name": "clearway-dark-live-arrival-motion",
+      "largest": 20.718936784494403,
+      "frames": 3282,
+      "jumps": 0
+    },
+    {
+      "name": "clearway-light-merge-undo",
+      "largest": 76.14699960137132,
+      "frames": 519,
+      "jumps": 0
+    },
+    {
+      "name": "clearway-light-live-arrival-motion",
+      "largest": 20.976276572816577,
+      "frames": 3311,
+      "jumps": 0
+    },
+    {
+      "name": "novetera-dark-merge-undo",
+      "largest": 70.47273759990257,
+      "frames": 522,
+      "jumps": 0
+    },
+    {
+      "name": "novetera-dark-live-arrival-motion",
+      "largest": 37.00256517583155,
+      "frames": 3385,
+      "jumps": 0
+    },
+    {
+      "name": "novetera-light-merge-undo",
+      "largest": 71.40703619541378,
+      "frames": 524,
+      "jumps": 0
+    },
+    {
+      "name": "novetera-light-live-arrival-motion",
+      "largest": 36.5247156166897,
+      "frames": 3263,
+      "jumps": 0
+    }
+  ]
+}

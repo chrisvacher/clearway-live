@@ -1,0 +1,691 @@
+{
+  "recorded": "2026-11-19T22:55:36.832Z",
+  "environment": "local production build, loopback, scripted fake model",
+  "display": "clearway-medium",
+  "configurations": 4,
+  "verdict": {
+    "met": true,
+    "share": 1,
+    "label": "276 of 276 reached the TV in under 1 second (100%). Meets the target of 95 in 100."
+  },
+  "total": {
+    "measured": 276,
+    "under_second": 276
+  },
+  "states": [
+    {
+      "name": "clearway-medium-dark-full",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.868548662402545,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-dark-full",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8729269210368493,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-dark-full",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.245507148195501,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-dark-full",
+      "state": "cloud-60",
+      "cloud": 26,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration"
+      ],
+      "scale": 0.579230778956071,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "clearway-medium-dark-full",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 43.15,
+      "width": 1232,
+      "floor": 43.2,
+      "cloud": 26,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity"
+      ]
+    },
+    {
+      "name": "clearway-medium-dark-full",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 33525,
+        "largest": 75.5
+      },
+      "latency": {
+        "to": "2026-11-19T22:53:21.706+00:00",
+        "from": "2026-11-19T22:52:22.12+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 117,
+          "p50": 32,
+          "p95": 49,
+          "p99": 84
+        },
+        "sessions": [
+          {
+            "id": "2034a33e-14c2-4f41-8332-918f2c36a4d1",
+            "p95": 47,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "a2923af2-a645-4c18-a77e-fbad2b965f74",
+            "p95": 46,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 31,
+          "p95": 46
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 1,
+          "p95": 2
+        },
+        "under_second": 69,
+        "uncertainty_ms": 46
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    },
+    {
+      "name": "clearway-medium-dark-reduced",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.868548662402545,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-dark-reduced",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8729269210368493,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-dark-reduced",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.245507148195501,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-dark-reduced",
+      "state": "cloud-60",
+      "cloud": 27,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality"
+      ],
+      "scale": 0.5677182444965754,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "clearway-medium-dark-reduced",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 44.6,
+      "width": 1260,
+      "floor": 43.2,
+      "cloud": 25,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity",
+        "thoughtful availability"
+      ]
+    },
+    {
+      "name": "clearway-medium-dark-reduced",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 26176,
+        "largest": 1127.1
+      },
+      "latency": {
+        "to": "2026-11-19T22:54:00.04+00:00",
+        "from": "2026-11-19T22:53:24.923+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 117,
+          "p50": 24,
+          "p95": 41,
+          "p99": 82
+        },
+        "sessions": [
+          {
+            "id": "9fa3ddc5-97f0-405e-b47f-c89d4db05218",
+            "p95": 39,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "5b079a96-8fa2-45e1-af8a-cc3528b9d645",
+            "p95": 42,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 23,
+          "p95": 40
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 0,
+          "p95": 2
+        },
+        "under_second": 69,
+        "uncertainty_ms": 54
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    },
+    {
+      "name": "clearway-medium-light-full",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.868548662402545,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-light-full",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8729269210368493,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-light-full",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.245507148195501,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-light-full",
+      "state": "cloud-60",
+      "cloud": 26,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration"
+      ],
+      "scale": 0.579230778956071,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "clearway-medium-light-full",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 44.55,
+      "width": 1277.8125,
+      "floor": 43.2,
+      "cloud": 25,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity",
+        "thoughtful availability"
+      ]
+    },
+    {
+      "name": "clearway-medium-light-full",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 32496,
+        "largest": 74.5
+      },
+      "latency": {
+        "to": "2026-11-19T22:55:00.468+00:00",
+        "from": "2026-11-19T22:54:03.439+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 111,
+          "p50": 27,
+          "p95": 42,
+          "p99": 73
+        },
+        "sessions": [
+          {
+            "id": "e391b46e-dce3-4177-b929-4da5c2333575",
+            "p95": 37,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "90a29c53-64b6-433b-9842-60b7fb23dbe1",
+            "p95": 53,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 27,
+          "p95": 42
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": -1,
+          "p95": 1
+        },
+        "under_second": 69,
+        "uncertainty_ms": 59
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    },
+    {
+      "name": "clearway-medium-light-reduced",
+      "state": "cloud-3",
+      "cloud": 3,
+      "overflow": [],
+      "scale": 2.868548662402545,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-light-reduced",
+      "state": "cloud-8",
+      "cloud": 8,
+      "overflow": [],
+      "scale": 1.8729269210368493,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-light-reduced",
+      "state": "cloud-20",
+      "cloud": 20,
+      "overflow": [],
+      "scale": 1.245507148195501,
+      "chipsHeight": 0
+    },
+    {
+      "name": "clearway-medium-light-reduced",
+      "state": "cloud-60",
+      "cloud": 27,
+      "overflow": [
+        "kindnes",
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality"
+      ],
+      "scale": 0.5677182444965754,
+      "chipsHeight": 86.390625
+    },
+    {
+      "name": "clearway-medium-light-reduced",
+      "state": "cloud-wide-repeated",
+      "key": "wwwwwwwwwwwwwwwwwwwwwwwwwwww",
+      "size": 44.6,
+      "width": 1277.8125,
+      "floor": 43.2,
+      "cloud": 24,
+      "overflow": [
+        "courage",
+        "patience",
+        "clarity",
+        "honesty",
+        "delight",
+        "wisdom",
+        "trust",
+        "hope",
+        "peace",
+        "mercy",
+        "joy",
+        "grace",
+        "rest",
+        "strength",
+        "unity",
+        "care",
+        "purpose",
+        "freedom",
+        "wonder",
+        "thoughtful accountability",
+        "thoughtful encouragement",
+        "thoughtful understanding",
+        "thoughtful reconciliation",
+        "thoughtful determination",
+        "thoughtful responsibility",
+        "thoughtful communication",
+        "thoughtful collaboration",
+        "thoughtful thoughtfulnes",
+        "thoughtful resourcefulnes",
+        "thoughtful approachability",
+        "thoughtful dependability",
+        "thoughtful intentionality",
+        "thoughtful consideration",
+        "thoughtful faithfulnes",
+        "thoughtful authenticity",
+        "thoughtful availability",
+        "thoughtful compassion"
+      ]
+    },
+    {
+      "name": "clearway-medium-light-reduced",
+      "state": "wall-and-motion",
+      "motion": {
+        "frames": 25656,
+        "largest": 1127.1
+      },
+      "latency": {
+        "to": "2026-11-19T22:55:36.675+00:00",
+        "from": "2026-11-19T22:55:03.827+00:00",
+        "sent": 69,
+        "queued": 0,
+        "status": "ok",
+        "measured": 69,
+        "phone_tv": {
+          "max": 114,
+          "p50": 24,
+          "p95": 67,
+          "p99": 91
+        },
+        "sessions": [
+          {
+            "id": "0a6865ea-c487-4999-96cd-5a960b4d2988",
+            "p95": 34,
+            "title": "Words in a small room",
+            "measured": 63,
+            "under_second": 63
+          },
+          {
+            "id": "9c72ded1-8a59-47b6-872a-419b98712ef2",
+            "p95": 79,
+            "title": "Answers in a small room",
+            "measured": 6,
+            "under_second": 6
+          }
+        ],
+        "server_tv": {
+          "p50": 24,
+          "p95": 60
+        },
+        "missing_tv": 0,
+        "phone_server": {
+          "p50": 0,
+          "p95": 2
+        },
+        "under_second": 69,
+        "uncertainty_ms": 80
+      },
+      "chipHeights": [
+        0,
+        0,
+        0,
+        86.390625
+      ]
+    }
+  ]
+}

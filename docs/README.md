@@ -39,6 +39,7 @@ limits and the full database/Auth restore procedure awaiting a drill.
 [Room engine](live-room-engine.md), [TV pairing](tv-pairing.md),
 [controls and remote](live-controls.md), [phones](live-phones.md),
 [word cloud and wall](live-board.md), [interaction engine and content screens](interaction-engine.md),
+[small-room word cloud and open text](small-room.md),
 [bar family](bar-family.md), [grid, private form and sign together](grid-form-sign.md),
 [Q&A](qa.md), [live AI](ai-live.md), [self-paced sessions, exports and recap](self-paced.md),
 [run of show](run-of-show.md), [templates](templates.md), [failure states](failure-states.md).
