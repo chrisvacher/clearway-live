@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { EyeOff } from "lucide-react";
 import { ShellNav, type ShellEngagement } from "@/components/layout/shell-nav";
 
-const engagementPath = /^\/(setup|control)\/[0-9a-f]{8}-[0-9a-f-]{27}(\/|$)/i;
+const engagementPath = /^\/(admin|control)\/[0-9a-f]{8}-[0-9a-f-]{27}(\/|$)/i;
 // Pages that fill the window with their own layout. They carry the same sidebar themselves, or none (the live room, the print view).
 const ownLayout = (path: string) => /^\/control\/[^/]+$/.test(path) || /^\/admin\/[^/]+\/run-of-show(\/|$)/.test(path) || path === "/admin/templates";
 
