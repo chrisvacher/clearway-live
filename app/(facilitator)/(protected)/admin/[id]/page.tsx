@@ -1,3 +1,4 @@
+import { EventLink } from "@/components/control/event-link";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CircleAlert, CircleCheck, Radio } from "lucide-react";
@@ -58,6 +59,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
         </ul>
       </section>
       <InviteCard id={id} code={e.room_code} link={link} href={href} host={brand.host} qr={roomQr(e.room_code, brand.skin, e.link_name)} invite={inviteText(churchName, e.title, when, href, e.room_code, brand.host)} closed={e.status === "closed"} />
+      <EventLink engagement={id} />
     </div>
   </main>;
 }

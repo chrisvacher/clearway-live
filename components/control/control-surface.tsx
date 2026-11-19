@@ -15,6 +15,7 @@ import { usePreview } from "./use-preview";
 import { Banners, ItemList, ReloadNotice, SyncChip, Toasts, roomSizes, useSecondTap, type Room } from "./live-controls";
 import { StepControls, Transport, useRoomKeys } from "./step-controls";
 import { TvMirror } from "@/components/tv/tv-mirror";
+import { EventLink } from "@/components/control/event-link";
 import { imageShowFor } from "@/components/tv/image-stage";
 import { TimerCard, TimerChip } from "./timer-panel";
 import { loopIndex, loopNextIn } from "@/lib/images/loop";
@@ -213,6 +214,7 @@ export function ControlSurface({ initial, door, workshop = false, identity }: { 
           <p className="show-help">Use the TV view on phones if the TV drops. Refresh phones reloads every phone in the room.</p>
           <SecondComputer engagement={engagement} closed={context.closed} />
         </Private>
+        <EventLink engagement={engagement} compact wrap={body => <Private title="Admin link">{body}</Private>} />
         <HandoverPanel room={room} />
         {!workshop && <Private title="Scribe"><ScribeFeed engagement={engagement} tick={room.scribeTick} live={room.frame?.state.live_session_id ?? null} promoted={room.frame?.promoted_quote?.text ?? null} /></Private>}
         {!workshop && <Private title="Overnight review"><OvernightCard engagement={engagement} tick={room.overnightTick} link /></Private>}

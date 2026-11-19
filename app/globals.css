@@ -967,3 +967,9 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ctl-more-item { display: flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-3); border: 0; border-radius: var(--cwl-radius-button); background: transparent; color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-semibold); text-align: left; white-space: nowrap; text-decoration: none; cursor: pointer; }
 .ctl-more-item:hover { background: var(--cwl-app-hover); }
 .ctl-more-item:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -2px; }
+/* An event's admin link (November 19): the address with Copy beside it, then Make a new link. */
+.event-link { display: flex; flex-direction: column; gap: var(--space-3); }
+.event-link h2, .event-link h3 { display: flex; align-items: center; gap: var(--space-2); margin: 0; }
+.event-link-row { display: flex; gap: var(--space-2); align-items: stretch; flex-wrap: wrap; }
+.event-link-url { flex: 1 1 220px; min-width: 0; min-height: var(--cwl-phone-touch); padding: var(--space-2) var(--space-3); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); color: var(--cwl-app-text); font: inherit; font-size: var(--cwl-fs-app-table); }
+.event-link-url:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }

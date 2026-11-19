@@ -420,6 +420,16 @@ test("signed-out requests and forged middleware headers cannot load private rout
   }
 });
 
+test("an admin link that can't be a code signs nobody in and says so", async () => {
+  const response = await fetch(origin + "/a/not-a-code", { redirect: "manual" });
+  assert.equal(response.status, 303);
+  assert.equal(new URL(response.headers.get("location")!, origin).pathname, "/a/ended");
+  assert.equal(response.headers.get("set-cookie"), null, "no sign-in cookie");
+  const page = await fetch(origin + "/a/ended?reason=replaced");
+  assert.equal(page.status, 200);
+  assert.match(await page.text(), /This link has been replaced/);
+});
+
 test("old /setup links redirect to /admin, keeping the rest of the address", async () => {
   for (const [from, to] of [["/setup", "/admin"], ["/setup/90000000-0000-4000-8000-000000000010/run-of-show", "/admin/90000000-0000-4000-8000-000000000010/run-of-show"], ["/setup/templates?engagement=x", "/admin/templates?engagement=x"]]) {
     const response = await fetch(origin + from, { redirect: "manual" });

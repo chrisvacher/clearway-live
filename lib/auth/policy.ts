@@ -6,6 +6,11 @@ export function destination(value: string | null | undefined): "/admin" | "/cont
   return value === "/control" ? "/control" : "/admin";
 }
 
+// An event's link guest (November 19): signs in through the event's admin link, never with Google.
+export function linkGuestEmail(email: string | undefined): boolean {
+  return typeof email === "string" && /^link-[0-9a-f]{32}@link\.clearway\.invalid$/.test(email.toLowerCase());
+}
+
 export function clearwayEmail(email: string | undefined): boolean {
   return typeof email === "string" && /^[^@\s]+@clearway\.co$/i.test(email);
 }
