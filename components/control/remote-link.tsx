@@ -2,11 +2,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Copy, ExternalLink, Smartphone, X } from "lucide-react";
 import { linkQr } from "@/lib/tv/qr";
+import { useToast } from "@/components/ui/toast";
 
 // Open the remote: the link to put on a phone, as a code to scan and a link to copy, with who can use it.
 // The remote signs in like any facilitator screen, so the link is on the address this window is signed in at.
-export function RemoteLink({ engagement }: { engagement: string }) {
+export function RemoteLink({ engagement, small = false }: { engagement: string; small?: boolean }) {
   const [open, setOpen] = useState(false), [origin, setOrigin] = useState(""), [copied, setCopied] = useState(false);
+  const toast = useToast();
   const close = useRef<HTMLButtonElement>(null), opener = useRef<HTMLButtonElement>(null);
   useEffect(() => setOrigin(window.location.origin), []);
   useEffect(() => {
@@ -19,7 +21,7 @@ export function RemoteLink({ engagement }: { engagement: string }) {
   const path = `/remote/${engagement}`, link = `${origin}${path}`;
   const qr = useMemo(() => origin ? linkQr(link) : null, [origin, link]);
   return <>
-    <button ref={opener} type="button" className="show-button" aria-haspopup="dialog" onClick={() => setOpen(true)} data-testid="open-remote"><Smartphone size={18} aria-hidden="true" />Open the remote</button>
+    <button ref={opener} type="button" className={small ? "cwl-ui-button cwl-ui-button--secondary is-small" : "show-button"} aria-haspopup="dialog" onClick={() => setOpen(true)} data-testid="open-remote"><Smartphone size={16} aria-hidden="true" />{small ? "Remote" : "Open the remote"}</button>
     {open && <div className="ctl-dialog-scrim" onClick={() => setOpen(false)}>
       <div className="ctl-dialog" role="dialog" aria-modal="true" aria-labelledby="remote-title" onClick={e => e.stopPropagation()}>
         <div className="ctl-row is-between"><h2 id="remote-title">Open the remote on a phone</h2><button ref={close} type="button" className="show-button is-icon" aria-label="Close" onClick={() => { setOpen(false); opener.current?.focus(); }}><X size={20} aria-hidden="true" /></button></div>
@@ -29,7 +31,7 @@ export function RemoteLink({ engagement }: { engagement: string }) {
           <div className="ctl-remote-side">
             <p className="ctl-remote-link" data-testid="remote-link">{link}</p>
             <div className="ctl-row">
-              <button type="button" className="show-button" onClick={async () => { try { await navigator.clipboard.writeText(link); setCopied(true); } catch { setCopied(false); } }}>{copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}{copied ? "Link copied" : "Copy link"}</button>
+              <button type="button" className="show-button" onClick={async () => { try { await navigator.clipboard.writeText(link); setCopied(true); toast(`Link copied: ${link.replace(/^https?:\/\//, "")}`); } catch { setCopied(false); } }}>{copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}{copied ? "Link copied" : "Copy link"}</button>
               <a className="show-button" href={path} data-testid="remote-here"><ExternalLink size={18} aria-hidden="true" />Open it on this computer</a>
             </div>
           </div>

@@ -133,7 +133,7 @@ async function main() {
 
       await step(`${skin}: the Preview draws the loop as the TV will; it runs as a live step too, and joining phones lose it when Home goes`, async () => {
         const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
-        await control.getByRole("button", { name: "Preview Walk-in loop" }).click();
+        await control.getByRole("button", { name: "Choose Walk-in loop" }).click();
         await loaded(control.locator(".ctl-screen.is-preview .tv-imgstage.is-active .tv-img-layer:not(.is-leaving) img"));
         await shot(control, `${skin}-loop-preview-control`);
         await control.close();

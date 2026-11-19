@@ -598,20 +598,64 @@ async function main() {
       await page.setViewportSize({width:1512,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
       // 1. A way out of the live room.
       const back=page.getByRole("link",{name:"Back to the engagement",exact:true}); assert.equal(await back.getAttribute("href"),`/admin/${room.id}`,"the live room links back to the Overview");
-      // 2. At 1512 the run of show and the screens fill the window; Room admin is a drawer, hidden until called.
-      // A facilitator who has never opened Room admin (the kits open it for everyone else).
-      await page.evaluate(()=>localStorage.setItem("clearway-live.room-admin","closed")); await page.goto(control); await page.waitForLoadState("networkidle");
-      const columns=async()=>page.locator(".ctl-cols").evaluate(el=>getComputedStyle(el).gridTemplateColumns.split(" ").length);
-      assert.equal(await columns(),2,"two columns at 1512 with Room admin hidden"); assert.equal(await page.locator(".ctl-side").isVisible(),false,"Room admin starts hidden");
-      assert.equal(await page.locator(".ctl-run-toggle").isVisible(),false,"no fold button at 1512"); assert.equal(await page.locator(".ctl-run-list").first().isVisible(),true,"the run of show shows at 1512");
+      // The overlay keeps the transport full width at the three laptop sizes.
+      await page.evaluate(()=>localStorage.setItem("clearway-live.room-admin","closed"));
+      await page.goto(control); await page.waitForLoadState("networkidle");
+      const drawer = page.getByRole("complementary", { name: "Room admin" });
+      const toggle = page.getByRole("button", { name: "Room admin", exact: true });
+      const transport = page.locator(".ctl-transport");
+      const shots = process.env.PASS10_E_SHOTS;
+      if (shots) await mkdir(shots, { recursive: true });
+      for (const width of [1280, 1440, 1512]) {
+        await page.setViewportSize({ width, height: 982 });
+        assert.equal(await drawer.count(),0,"Room admin starts hidden");
+        const before = (await transport.boundingBox())!;
+        if (shots) await page.screenshot({ path: `${shots}/transport-${width}-closed.png` });
+        await toggle.click();
+        await drawer.waitFor();
+        await page.locator(".ctl-cols.has-side:not(.is-side-off)").waitFor();
+        const after = (await transport.boundingBox())!;
+        assert.ok(Math.abs(before.width-after.width)<1 && Math.abs(before.x-after.x)<1, `the overlay leaves the transport in place at ${width}px`);
+        const buttonBoxes = await transport.locator("button").evaluateAll(buttons => buttons.map(button => {
+          const box = button.getBoundingClientRect();
+          const topmost = document.elementFromPoint((box.left+box.right)/2,(box.top+box.bottom)/2);
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, unobstructed: button.contains(topmost) };
+        }));
+        for (let i=0;i<buttonBoxes.length;i++) {
+          const first=buttonBoxes[i];
+          assert.ok(first.left>=after.x-1 && first.right<=after.x+after.width+1,"the transport contains every button");
+          assert.ok(first.unobstructed,"the drawer leaves every transport button reachable");
+          for (const second of buttonBoxes.slice(i+1)) assert.ok(first.right<=second.left+1 || first.bottom<=second.top+1 || first.top>=second.bottom-1,"transport buttons don't overlap");
+        }
+        if (shots) await page.screenshot({ path: `${shots}/transport-${width}-open.png` });
+        await drawer.getByRole("button", { name: "Close Room admin" }).click();
+        await drawer.waitFor({ state: "hidden" });
+      }
       const colX=async(sel:string)=>(await page.locator(sel).first().boundingBox())!.x;
       assert.ok(await colX(".ctl-screen.is-preview")<await colX(".ctl-screen.is-live"),"preview left, live right");
-      await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await columns(),3,"Room admin opens as a third column");
-      assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, screens and Room admin run left to right");
-      await page.getByRole("button",{name:"Room admin",exact:true}).click(); await page.locator(".ctl-side").waitFor({state:"hidden",timeout:2000}); assert.equal(await columns(),2,"and hides again, after it slides away");
+      assert.equal(await page.locator(".ctl-run-toggle").isVisible(),false,"the run of show does not fold on a laptop");
+      assert.equal(await page.getByRole("button", { name: "End the workshop", exact: true }).count(), 0, "End the workshop is not a header action");
+      assert.equal(await page.locator("#ctl-privacy:visible").count(),1,"one page privacy band");
+      await page.getByRole("button",{name:"No TV. Open the TV",exact:true}).waitFor();
+      assert.match(await page.getByRole("group",{name:"Room status"}).innerText(), /0 phones/);
+      const rows = page.locator(".ctl-run-step");
+      await page.locator("h1").hover();
+      assert.equal(await rows.first().getByRole("button",{name:/^Preview /}).count(),0,"row controls are hidden off the row");
+      await rows.first().hover();
+      await rows.first().getByRole("button",{name:"Preview Welcome",exact:true}).waitFor();
+      const welcomeRow = rows.first().getByRole("button",{name:"Choose Welcome",exact:true});
+      await welcomeRow.focus();
+      await page.keyboard.press("ArrowDown");
+      assert.equal(await page.getByRole("button",{name:"Choose What worries you",exact:true}).evaluate(el=>el===document.activeElement),true,"ArrowDown moves the focused row");
+      await page.keyboard.press("Space"); await page.getByRole("heading",{name:"What worries you",exact:true}).waitFor();
+      await page.keyboard.press("Enter");
+      await page.locator(".ctl-live-monitor.is-flashing").waitFor({timeout:4000});
+      await page.locator("#ctl-live-title", { hasText: /^What worries you$/ }).waitFor();
+      await press(fac,sql,room.id,"nothing_live");
+      await page.locator("#ctl-live-title", { hasText: /^Home screen$/ }).waitFor();
       // The transport leads with the Navy Go live button and its orange icon tile.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
-      assert.ok(take.height>=63&&take.width>=199,`Go live is at least 64 by 200: ${take.width}x${take.height}`);
+      assert.ok(take.height>=63&&take.width>=179,`Go live is at least 64 by 180: ${take.width}x${take.height}`);
       const golive = await page.evaluate(() => {
         const transport = document.querySelector<HTMLButtonElement>(".ctl-take")!;
         const colors: string[] = [];
@@ -656,21 +700,28 @@ async function main() {
       assert.equal(await page.locator(".ctl-screen.is-preview .ctl-take").count(),0,"no Go live on the preview screen itself");
       const wide=async(sel:string)=>(await page.locator(sel).boundingBox())!.width;
       assert.ok(await wide(".ctl-screen.is-live")<await wide(".ctl-screen.is-preview"),"the live monitor is smaller than the preview");
-      await page.getByRole("button",{name:"Room admin",exact:true}).click();
-      assert.equal(await page.locator(".ctl-side").getByRole("button",{name:"TV view on phones",exact:true}).count(),1,"TV view on phones lives in Room admin");
+      await toggle.click();
+      await drawer.getByRole("tab",{name:"Tools",exact:true}).click();
+      assert.equal(await drawer.getByRole("button",{name:"TV view on phones",exact:true}).count(),1,"TV view on phones lives in Room admin Tools");
       assert.equal(await page.locator(".ctl-side").getByRole("button",{name:"Refresh phones",exact:true}).count(),1,"Refresh phones lives in Room admin");
       assert.equal(await page.locator(".ctl-centre").getByRole("button",{name:"Refresh phones",exact:true}).count(),0,"and not in the centre column");
+      assert.equal(await drawer.locator("[data-handover]").count(),0,"workshops have no handover in Tools");
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); await page.locator(".ctl-side").waitFor({state:"hidden",timeout:2000});
       // The page never scrolls past the live room.
       assert.ok(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),"nothing below the live room at 1512");
       // 3. The room's identity, on the engagement's own address.
       const identity=page.getByTestId("room-identity");
-      let line=await identity.innerText(); assert.ok(line.includes(`${clearwayHost}/${linkName}`)&&line.includes(`Room code ${code}`)&&line.includes("Clearway")&&/\d+ in the room/.test(line),`identity line: ${line}`);
-      assert.equal(await identity.getByRole("link",{name:/in the room$/}).getAttribute("href"),"#ctl-door","the count goes to the door list on this page");
-      await identity.getByRole("link",{name:/in the room$/}).click(); assert.equal(await page.locator("#ctl-door").isVisible(),true,"the count opens Room admin at the door list");
+      assert.ok((await identity.innerText()).includes(`${clearwayHost}/${linkName}`));
+      assert.match(await identity.getByRole("link").getAttribute("title") ?? "", new RegExp(`Room code ${code}.*Clearway`));
+      await identity.getByRole("button",{name:"Copy room link"}).click();
+      await page.getByRole("status").getByText(`Link copied: ${clearwayHost}/${linkName}`).waitFor();
+      await page.getByRole("button",{name:/^\d+ in the room$/}).click();
+      await page.locator("#ctl-door").waitFor();
+      await page.getByRole("button",{name:"Close Room admin"}).click();
       await sql.query("update public.engagements set skin='novetera' where id=$1",[room.id]); await page.goto(control); await page.waitForLoadState("networkidle");
-      line=await page.getByTestId("room-identity").innerText(); assert.ok(line.includes(`${noveteraHost}/${linkName}`)&&line.includes("Novetera")&&!line.includes(clearwayHost),`a Novetera engagement shows its own address: ${line}`);
-      assert.equal(await page.getByRole("heading",{name:"Live room",level:1}).count(),1,"the control surface stays Clearway Live");
+      const line=await page.getByTestId("room-identity").innerText();
+      assert.ok(line.includes(`${noveteraHost}/${linkName}`)&&!line.includes(clearwayHost),`a Novetera engagement shows its own address: ${line}`);
+      assert.equal(await page.getByRole("heading",{name:"Staff planning workshop",level:1}).count(),1,"the live room title names the event");
       if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-1512.png`}); }
       // Half a laptop screen: the live screen first, then the preview, the transport bar and the controls, the run of show folded after.
       await page.setViewportSize({width:756,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
@@ -718,7 +769,7 @@ async function main() {
       assert.equal(await page.getByRole("button",{name:"Save display settings",exact:true}).count(),0);
       // 5. The remote: a panel with the link, a copy button and a code, and a way to open it here.
       await page.goto(control); await page.waitForLoadState("networkidle");
-      await page.getByRole("button",{name:"Open the remote",exact:true}).click(); const panel=page.getByRole("dialog",{name:"Open the remote on a phone"});
+      await page.getByRole("button",{name:"Remote",exact:true}).click(); const panel=page.getByRole("dialog",{name:"Open the remote on a phone"});
       const remote=`${app.origin}/remote/${room.id}`; assert.equal((await panel.getByTestId("remote-link").innerText()).trim(),remote,"the panel shows the remote's link");
       assert.equal(await panel.getByTestId("remote-qr").locator("path").getAttribute("d"),linkQr(remote).path,"the code carries the same link");
       assert.ok(/Clearway Google account/.test(await panel.innerText())&&/lead or co-facilitator/.test(await panel.innerText()),"it says who can use it");
@@ -729,14 +780,14 @@ async function main() {
       await page.goto(remote); await page.waitForLoadState("networkidle"); assert.equal(new URL(page.url()).pathname,`/remote/${room.id}`,"the remote still opens on this computer");
       // 4. End the workshop: asks first, says what happens, then sets the same closed status Details sets.
       await page.goto(control); await page.waitForLoadState("networkidle");
-      const more=page.getByTestId("header-more"); assert.equal(await more.getAttribute("aria-expanded"),"false");
+      const more=page.getByRole("button",{name:"More actions",exact:true}); assert.equal(await more.getAttribute("aria-expanded"),"false");
       await more.click(); assert.equal(await more.getAttribute("aria-expanded"),"true"); await page.keyboard.press("Escape"); assert.equal(await more.getAttribute("aria-expanded"),"false","Escape closes More"); assert.ok(await more.evaluate(el=>el===document.activeElement),"focus returns to More");
-      await more.click(); assert.equal(await page.getByRole("menuitem",{name:"Print run of show",exact:true}).getAttribute("href"),`/admin/${room.id}/run-of-show/print`,"Print keeps its link");
-      await page.getByTestId("end-workshop").click(); const ask=page.getByRole("alertdialog",{name:"End the workshop?"});
+      await more.click(); await page.getByRole("menuitem",{name:"Print run of show",exact:true}).waitFor();
+      await page.getByRole("menuitem",{name:"End the workshop",exact:true}).click(); const ask=page.getByRole("alertdialog",{name:"End the workshop?"});
       assert.ok(/Phones are signed out and answers close\. Results stay/.test(await ask.innerText()),"the confirm says what happens");
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/end-workshop-1512.png`});
       await ask.getByRole("button",{name:"Keep the workshop going",exact:true}).click(); assert.equal(await status(),"setup","keeping it going changes nothing");
-      await more.click(); await page.getByTestId("end-workshop").click(); await page.getByTestId("end-workshop-confirm").click();
+      await more.click(); await page.getByRole("menuitem",{name:"End the workshop",exact:true}).click(); await page.getByTestId("end-workshop-confirm").click();
       await page.getByTestId("workshop-ended").waitFor(); assert.equal(await status(),"closed","the same closed status Details sets");
       // Reopen the workshop from the live room: the status goes back to setup and End the workshop returns.
       await page.getByTestId("reopen-workshop").click(); await page.getByTestId("workshop-ended").waitFor({state:"detached"});
@@ -751,7 +802,7 @@ async function main() {
       assert.equal(await page.getByTestId("end-workshop").count(),0,"Results keeps the room controls out");
       if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/results-1512.png`,fullPage:true}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/results-756.png`,fullPage:true}); await page.setViewportSize({width:1512,height:982}); }
       await sql.query("update public.engagements set status='setup',type='wayfinding' where id=$1",[room.id]);
-      await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
+      await page.goto(control,{waitUntil:"domcontentloaded"}); await page.getByRole("button",{name:"More actions",exact:true}).click(); assert.equal(await page.getByRole("menuitem",{name:"End the workshop",exact:true}).count(),0,"Wayfinding has no End the workshop");
       assert.ok((await page.goto(recapUrl,{waitUntil:"domcontentloaded"}))?.ok(),"Wayfinding results load");
       await page.getByRole("heading",{name:"Results",level:1,exact:true}).waitFor();
       assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
@@ -759,10 +810,7 @@ async function main() {
     const operationsAlert = (message: { to: string[]; subject?: string }) =>
       message.to.length === 1 && message.to[0] === operationsAddress && message.subject === "Check Clearway Live";
     const unexpectedMail = mail.messages.filter(message => !operationsAlert(message));
-    // E removes this route-specific allowance when the Live room's clock is deterministic.
-    const unexpectedErrors = pageErrors.filter(({path,message}) =>
-      !(/^\/control\/[0-9a-f-]{36}$/i.test(path) && /Minified React error #418\b/.test(message)));
-    assert.deepEqual(unexpectedErrors, [], "signed-in pages produce no client-side errors");
+    assert.deepEqual(pageErrors, [], "signed-in pages produce no client-side errors");
     if (mail.messages.some(operationsAlert)) {
       const events = app.output().match(/Clearway operational event \{[^}]*\}/g) ?? [];
       console.log("Operations alert captured by the local mailbox.", ...events);

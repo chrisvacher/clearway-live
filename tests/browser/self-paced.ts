@@ -63,7 +63,7 @@ async function main() {
 
     const facContext = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
     await facContext.addCookies(fac.cookies(app.origin));
-    const control = await facContext.newPage();
+    const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
     await control.goto(`${app.origin}/control/${room.id}`);
 
     async function signIn(page: Page, email: string) {
@@ -165,6 +165,7 @@ async function main() {
     });
 
     await step("Rehearsal: answers made while it runs are test answers, shown on phones and the control surface", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsing").isVisible(), "Rehearsing on the control surface", 8000);
       await press(fac, sql, room.id, "go_live", { session: choice });

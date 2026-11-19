@@ -21,7 +21,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const [mode, setMode] = useState("connecting");
   const [status, setStatus] = useState<ControlStatus | null>(null);
   const [show, setShow] = useState(initialShow);
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(0);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [pending, setPending] = useState<ControlAction | null>(null);
   const [awaiting, setAwaiting] = useState<number | null>(null);
@@ -32,7 +32,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const [signalTick, setSignalTick] = useState(0);
   const [lastOk, setLastOk] = useState<number | null>(null);
   const [connection, setConnection] = useState<LiveTransport | null>(null);
-  const started = useRef(Date.now()), history = useRef(new Map<number, LiveSnapshot>()), appliedAt = useRef(new Map<number, number>());
+  const started = useRef(0), history = useRef(new Map<number, LiveSnapshot>()), appliedAt = useRef(new Map<number, number>());
   const acks = useRef(new Map<string, number>()), clock = useRef({ offsetMs: 0 });
   const refreshStatus = useRef<() => void>(() => {}), refreshShow = useRef<() => void>(() => {});
 
@@ -142,7 +142,12 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
     return () => { stopped = true; clearTimeout(timer); };
   }, [burstEnds, engagement]);
 
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 250); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    started.current = Date.now();
+    setNow(started.current);
+    const timer = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(timer);
+  }, []);
 
   const confirmed = useMemo(() => status ? confirmedVersion(status.screens, acks.current) : null,
     // ackTick re-reads the mutable ack map after a notice.
@@ -156,7 +161,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
     return known === undefined ? frame : history.current.get(known)!;
   }, [frame, confirmed]);
   const syncing = Boolean(frame && isSyncing(frame.version, confirmed, appliedAt.current.get(frame.version), now));
-  const reload = lastOk === null ? now - started.current > reloadAfterMs : mode === "offline" && now - lastOk > reloadAfterMs;
+  const reload = now > 0 && (lastOk === null ? now - started.current > reloadAfterMs : mode === "offline" && now - lastOk > reloadAfterMs);
   const waiting = awaiting !== null && confirmed !== null && confirmed < awaiting;
 
   const press = useCallback(async (action: ControlAction, extra: Omit<ControlPress, "id" | "action"> = {}) => {

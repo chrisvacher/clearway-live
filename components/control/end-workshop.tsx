@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Power, PowerOff } from "lucide-react";
+import { Power, PowerOff, TriangleAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // End the workshop: sets the same closed status Details sets, through the same save. It asks first and says what happens.
 export function EndWorkshop({ engagement, closed, className = "show-button", viaMenu }: { engagement: string; closed: boolean; className?: string; viaMenu?: { open: boolean; onClose: () => void } }) {
@@ -48,12 +49,12 @@ export function EndWorkshop({ engagement, closed, className = "show-button", via
     {!viaMenu && <button ref={opener} type="button" className={className} onClick={() => setAsking(true)} data-testid="end-workshop"><PowerOff size={18} aria-hidden="true" />End the workshop</button>}
     {asking && <div className="ctl-dialog-scrim" onClick={() => !busy && setAsking(false)}>
       <div className="ctl-dialog" role="alertdialog" aria-modal="true" aria-labelledby="end-workshop-title" aria-describedby="end-workshop-text" onClick={e => e.stopPropagation()}>
-        <h2 id="end-workshop-title">End the workshop?</h2>
+        <h2 id="end-workshop-title"><TriangleAlert size={20} aria-hidden="true" />End the workshop?</h2>
         <p id="end-workshop-text">Phones are signed out and answers close. Results stay here to read and download. You can reopen it from here: its steps take answers again, people sign in again and Open the TV brings the screen back.</p>
         {error && <p className="show-message is-error" role="alert">{error}</p>}
         <div className="ctl-row">
-          <button type="button" className="show-button is-primary" disabled={busy} onClick={() => void end()} data-testid="end-workshop-confirm">{busy ? "Ending…" : "End the workshop"}</button>
-          <button ref={keep} type="button" className="show-button" disabled={busy} onClick={() => { setAsking(false); opener.current?.focus(); }}>Keep the workshop going</button>
+          <Button ref={keep} disabled={busy} onClick={() => { setAsking(false); opener.current?.focus(); }}>Keep the workshop going</Button>
+          <Button variant="danger-solid" disabled={busy} onClick={() => void end()} data-testid="end-workshop-confirm">{busy ? "Ending…" : "End the workshop"}</Button>
         </div>
       </div>
     </div>}

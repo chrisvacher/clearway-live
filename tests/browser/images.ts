@@ -172,7 +172,7 @@ async function main() {
 
       await step(`${skin}: the Preview draws an Image step exactly as the TV will`, async () => {
         const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
-        await control.getByRole("button", { name: "Preview Image 3" }).click();
+        await control.getByRole("button", { name: "Choose Image 3" }).click();
         await loaded(control.locator(".ctl-screen.is-preview .tv-imgstage.is-active .tv-img-layer:not(.is-leaving) img"));
         await shot(control, `${skin}-image-preview-control`);
         await control.close();

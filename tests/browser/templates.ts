@@ -338,9 +338,10 @@ async function main() {
       assert.equal(Math.min(...copied.filter(r => r.planned_start).map(r => r.planned_start.getTime())), Date.parse("2026-12-04T00:00:00Z"), "the first live session starts when chosen");
       // Step 6a's surfaces on the engagement started from the template.
       await sql.query("update public.sessions set opens_at=now()-interval '1 hour',closes_at=now()+interval '2 days' where engagement_id=$1 and title='Before we meet'", [second.id]);
-      const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${second.id}`);
+      const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${second.id}`);
       await until(async () => (await control.locator(".sp-list li", { hasText: "Before we meet" }).innerText().catch(() => "")).includes("0 answered"), "the self-paced list", 15000);
       assert.match(await control.locator(".sp-list li", { hasText: "Before we meet" }).innerText(), /Open/);
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsal[data-rehearsing='on']").count() === 1, "rehearsing", 10000);
       await press(fac, sql, second.id, "go_live", { session: (await sql.query("select id from public.sessions where engagement_id=$1 and title='Check-in'", [second.id])).rows[0].id });

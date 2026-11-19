@@ -104,7 +104,7 @@ async function main() {
 
     const facContext = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
     await facContext.addCookies(fac.cookies(app.origin));
-    const control = await facContext.newPage();
+    const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
     await control.goto(`${app.origin}/control/${room.id}`);
     const panelItem = (text: string) => control.locator(".qa-ctl-item", { hasText: text }).first();
 
@@ -284,6 +284,7 @@ async function main() {
       await until(async () => (await tv.locator(".qa-waiting").innerText().catch(() => "")).includes("Questions any time: 1 waiting"), "the TV notes it quietly", 5000);
       const stored = (await sql.query("select session_id from public.submissions where text=$1 and engagement_id=$2", ["Will we talk about the building today?", room.id])).rows[0];
       assert.equal(stored.session_id, pool, "the question went to the pool");
+      await control.getByRole("tab", { name: /^Questions/ }).click();
       await control.locator("#qa-any-title").waitFor({ timeout: 10000 });
       await until(async () => (await control.locator(".qa-ctl").innerText()).includes("Will we talk about the building today?"), "the control surface lists it", 10000);
       await shot(tv, "int-03-any-time-tv"); await shot(control, "int-03-control-any-time");
