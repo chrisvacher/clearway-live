@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ShellData, ShellEngagement } from "@/components/layout/shell-nav";
 import { brandFor, skinOf } from "@/lib/brand";
 import { compareEngagements, eventDate, listGroup, type ListedEngagement } from "@/lib/setup/listing";
-import { joiningLine, runLine } from "@/lib/setup/overview";
+import { overviewReadiness } from "@/lib/setup/overview";
 import { stageFor } from "@/lib/setup/stage";
 
 const engagementColumns = "id,title,type,status,skin,room_code,link_name,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,church:churches!engagements_church_id_fkey(name,timezone)";
@@ -88,14 +88,15 @@ async function readWorkshopStage(client: SupabaseClient, row: ShellRow & { setti
     client.rpc("tv_manage", { p_engagement: row.id, p_action: "list", p: {} }),
     client.from("room_states").select("live_session_id").eq("engagement_id", row.id).maybeSingle(),
   ]);
-  const run = runLine({ count: steps.count ?? 0, notReady: drafts.count ?? 0, minutes: 0, sections: 0 });
-  const joining = joiningLine(openJoin, people?.count ?? 0, 0);
-  return stageFor(row, [
-    { state: eventDate(row, row.church?.timezone) ? "ready" : "todo" },
-    { state: drafts.error ? "todo" : run.state },
-    joining,
-    { state: tv.data?.screens?.length ? "ready" : "todo" },
-  ], room.data);
+  const readiness = overviewReadiness({
+    hasDate: Boolean(eventDate(row, row.church?.timezone)),
+    stepCount: steps.count ?? 0,
+    draftCount: drafts.error ? 1 : drafts.count ?? 0,
+    openJoin,
+    attendeeCount: people?.count ?? 0,
+    screenCount: tv.data?.screens?.length ?? 0,
+  });
+  return stageFor(row, readiness, room.data);
 }
 
 // One indexed existence read. If it fails, the sidebar still offers the page.
