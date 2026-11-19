@@ -35,14 +35,14 @@ async function main() {
       await step(`${skin}: the run of show adds a 1:10 countdown that runs through the next step, on the TV and phones, and marks the span`, async () => {
         await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
         await editor.locator(".rb-row", { hasText: "Talk at your tables" }).getByRole("button", { name: /Open options/ }).click();
-        const open = editor.locator(".rb-row.is-open");
+        const open = editor.locator(".rb-settings");
+        await open.getByRole("tab", {name: "Settings"}).click();
         await open.locator("#timer-on").check();
         await open.locator("#timer-mins").fill("1");
         await open.locator("#timer-secs").fill("10");
         await open.locator("#timer-through").selectOption(share);
         await open.locator("#timer-phones").check();
         await shot(editor, `${skin}-timer-run-of-show`);
-        await open.getByRole("button", { name: "Done", exact: true }).click();
         await until(async () => { const t = (await sql.query("select options->'timer' t from public.sessions where id=$1", [talk])).rows[0].t; return t?.seconds === 70 && t.through === share && t.phones === true && t.tv === true && t.start === "live"; }, "timer saved", 10000);
         await editor.locator(`.rb-row[data-row="${talk}"] [data-timer-mark="owner"]`).waitFor({ timeout: 5000 });
         await editor.locator(`.rb-row[data-row="${share}"] [data-timer-mark="end"]`).waitFor({ timeout: 5000 });
