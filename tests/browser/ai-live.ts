@@ -273,6 +273,7 @@ async function main() {
       await until(async () => (await panel().locator("[data-ai-notice='warning']").innerText().catch(() => "")).includes("AI is slow."), "the control surface says AI is slow", 12000);
       const remote = await facContext.newPage(); await remote.setViewportSize({ width: 390, height: 844 });
       await remote.goto(`${app.origin}/remote/${room.id}`);
+      await remote.getByRole("button", { name: "More" }).click();
       await until(async () => (await remote.locator("[data-ai-remote]").innerText().catch(() => "")).includes("AI is slow. The room is fine."), "the remote says so too", 8000);
       const tvText = await tvSays();
       assert.ok(!/slow|isn.t responding|failed|ai is/.test(tvText), "the TV never says anything about AI being slow");

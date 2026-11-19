@@ -195,6 +195,7 @@ async function main() {
     });
 
     await step("The remote shows the quote and takes it down", async () => {
+      await remote.getByRole("button", { name: "More" }).click();
       await remote.locator("[data-testid=quote-on-tv]").waitFor({ timeout: 8000 });
       assert.match(await remote.locator("[data-testid=quote-on-tv]").innerText(), /Our doors are open/);
       await shot(remote, "06-remote");

@@ -7,6 +7,7 @@ import type { TvScreen } from "@/lib/control/types";
 import { MarkDecision } from "./mark-decision";
 import { burstLeft, type Room } from "./live-controls";
 import { AnswersToggle } from "./answers-toggle";
+import { JoinBannerButton, bannerMessage, setJoinBanner } from "./join-banner";
 
 // The live room's centre column, in fixed bands (November 15, "Live room centre column" research): the screens, a pinned
 // transport bar, the step controls in fixed slots, then the step panel. The screens and transport bar never move or
@@ -41,6 +42,7 @@ export function Transport({ room, context, previewing, onGoLive }: { room: Room;
         return <button key={screen} type="button" className={`ctl-screen-btn is-${screen}`} aria-pressed={on} disabled={busy || on} aria-keyshortcuts={key}
           onClick={() => void press("tv_screen", { screen })}><Icon size={16} aria-hidden="true" />{label}<Key k={key} /></button>;
       })}
+      <JoinBannerButton room={room} className="ctl-screen-btn is-banner" keyHint={<Key k="L" />} />
     </div>
   </div>;
 }
@@ -98,6 +100,7 @@ export function useRoomKeys({ room, previewing, onGoLive, minutes }: { room: Roo
       else if (key === "b" && !(!liveId && content === "blackout" && !room.steps.back)) act = () => void (!liveId && content === "blackout" ? room.press("back") : room.press("tv_screen", { screen: "blackout" }));
       else if (key === "j" && (liveId || content !== "join")) act = () => void room.press("tv_screen", { screen: "join" });
       else if (key === "h" && (liveId || content !== "holding")) act = () => void room.press("tv_screen", { screen: "holding" });
+      else if (key === "l") act = () => void setJoinBanner(room.show.context.id, !frame.state.join_banner).then(status => room.setMessage(bannerMessage(status)));
       else if (key === "p" && input) act = () => void room.press(frame.state.phones_down ? "open_phones" : "phones_down");
       else if ((key === "3" || key === "4" || key === "5") && input && !burstLeft(room)) act = () => void room.press("start_burst", { minutes: Number(key) as 3 | 4 | 5 });
       if (!act) return;

@@ -110,6 +110,17 @@ function NeutralQuestion({ frame, text }: { frame: LiveSnapshot | null; text: st
 // `address` is what the pairing screen knows before an engagement does: the skin of the address the TV opened (and its host, for the
 // "open live.<brand>.co/tv" line). Once paired, the engagement's own skin (display.skin) decides.
 export type TvAddress = { skin: Skin; host: string };
+// The join banner (November 17): the room link and its QR code at the bottom of the TV for people who arrive late. It sits
+// over the live step or Home, so nothing leaves the screen, and fades in and out like a scene. The Join screen shows the
+// link itself, and Blackout hides everything, so the banner stays off for both.
+function JoinBanner({ on, display }: { on: boolean; display: NonNullable<LiveSnapshot["display"]> }) {
+  return <aside className={`tv-join-banner${on ? " is-active" : ""}`} aria-hidden={!on} data-testid="tv-join-banner">
+    <Qr code={display.room_code} skin={display.skin} name={display.link_name} />
+    <div><p className="tv-join-banner-eyebrow">Just arrived? Join on your phone</p>
+      <p className="tv-join-banner-link"><span>{brandFor(skinOf(display.skin)).host}</span>/{roomPath(display.room_code, display.link_name)}</p></div>
+  </aside>;
+}
+
 export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameLimit, flow, address }: { status: TvStatus; pair?: { code: string | null; seconds: number }; linkExpired?: boolean; frame: LiveSnapshot | null; reconnecting: boolean; nameLimit: number; flow?: TvFlow | null; address?: TvAddress }) {
   // Only a code the server will still accept is shown. Between one code ending
   // and its replacement arriving, the cards stay in place, empty.
@@ -158,6 +169,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaSpotlight frame={frame} /></span>}
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><PromotedQuoteSpot frame={frame} /></span>}
+    {paired && display && <JoinBanner on={Boolean(frame?.state.join_banner) && (mode === "session" || mode === "holding")} display={display} />}
     <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">{address?.host ?? brandFor(skin).host}/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{mode === "pair" && linkExpired && <span className="tv-upclose" role="status">{expiredLinkLine}</span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
   </>;
