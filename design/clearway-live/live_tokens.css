@@ -338,6 +338,7 @@
   --cwl-app-selected: var(--cwl-sky-pale); /* App surfaces: selected rows, active nav item. */
   --cwl-app-avatar: var(--cwl-sky-light); /* App surfaces: initials avatars (Navy text). */
   --cwl-app-warning: var(--cw-warning, #D97706); /* App surfaces only: Warning icon and disc fill. Never as text. Never on the TV or phones. */
+  --cwl-app-warning-border: #FCD34D; /* Design pass 10: waiting to join on People. */
   --cwl-app-warning-bg: var(--cw-warning-light, #FEF3C7); /* App surfaces only: Warning banners and chips (Navy text). */
   --cwl-app-on-warning: var(--cw-navy, #03294E); /* App surfaces only: glyph on a Warning disc. */
   --cwl-app-error: var(--cw-error, #DC2626); /* App surfaces only: Error text, input edges, icons, destructive buttons. Never on the TV or phones. */
