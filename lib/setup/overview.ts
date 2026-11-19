@@ -1,7 +1,18 @@
 import { brandFor } from "../brand";
-// What the Overview page says about an engagement's readiness, in plain words.
-export type OverviewSessions = { count: number; minutes: number; notReady: number; sections: number };
-export type ReadyState = "ready" | "todo" | "optional";
+
+export type ReadyState = "ready" | "todo";
+type ReadinessKey = "details" | "run" | "people" | "screens";
+
+export function overviewReadiness(input: {
+  hasDate: boolean; stepCount: number; draftCount: number; openJoin: boolean; attendeeCount: number; screenCount: number;
+}): { key: ReadinessKey; state: ReadyState }[] {
+  return [
+    { key: "details", state: input.hasDate ? "ready" : "todo" },
+    { key: "run", state: input.stepCount > 0 && input.draftCount === 0 ? "ready" : "todo" },
+    { key: "people", state: input.openJoin || input.attendeeCount > 0 ? "ready" : "todo" },
+    { key: "screens", state: input.screenCount > 0 ? "ready" : "todo" },
+  ];
+}
 
 export function length(minutes: number): string {
   const h = Math.floor(minutes / 60), m = minutes % 60;
@@ -9,20 +20,30 @@ export function length(minutes: number): string {
   return [hours, mins].filter(Boolean).join(" ") || "0 minutes";
 }
 
-export function runLine(s: OverviewSessions): { state: ReadyState; text: string } {
-  if (!s.count) return { state: "todo", text: "No sessions yet. Start from a template or build your own." };
-  const base = `${s.count} ${s.count === 1 ? "session" : "sessions"}, ${length(s.minutes)}`;
-  return s.notReady
-    ? { state: "todo", text: `${base}. ${s.notReady} not marked Ready yet` }
-    : { state: "ready", text: `${base}, all marked Ready` };
+export function runLine(stepCount: number, draftCount: number, minutes: number): string {
+  if (!stepCount) return "No steps yet. Start from a template or build your own.";
+  const base = `${stepCount} ${stepCount === 1 ? "step" : "steps"}`;
+  return draftCount ? `${base}, ${draftCount} still in draft` : `${base}, ${length(minutes)}, all ready`;
 }
 
-export function joiningLine(open: boolean, listed: number, signedIn: number): { state: ReadyState; text: string } {
-  if (open) return { state: "ready", text: "Open joining. Anyone with the link or room code joins with their name" };
-  if (!listed) return { state: "todo", text: "Email sign-in against your list. No one is on the list yet" };
-  return { state: "ready", text: `Email sign-in against your list. ${listed} on the list, ${signedIn} signed in` };
+export function joiningLine(open: boolean, listed: number, signedIn: number): string {
+  if (open) return `Open joining by name. ${signedIn === 1 ? "1 person has" : `${signedIn} people have`} joined so far.`;
+  return `Email sign-in against your list. ${listed} on the list, ${signedIn} signed in.`;
 }
 
 export function inviteText(church: string, title: string, when: string | null, link: string, code: string, host = brandFor("clearway").host): string {
   return [`${church}: ${title}${when ? `, ${when}` : ""}.`, `Join on your phone at ${link}`, `Or go to ${host} and enter the room code ${code}.`].join("\n");
+}
+
+export function dayInZone(at: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
+}
+
+export function eventDayOffset(date: string | null, zone: string, now: Date): number | null {
+  return date ? (Date.parse(date) - Date.parse(dayInZone(now, zone))) / 86_400_000 : null;
+}
+
+export function roomTime(at: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, hour: "numeric", minute: "2-digit", hour12: true })
+    .format(new Date(at)).replace(/\s+(a\.?m\.?|p\.?m\.?)$/i, (_, suffix: string) => ` ${suffix[0].toLowerCase()}.m.`);
 }
