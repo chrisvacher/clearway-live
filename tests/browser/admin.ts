@@ -7,6 +7,8 @@ import { setupInput } from "../../lib/setup/policy";
 import { linkQr } from "../../lib/tv/qr";
 import { db, engagement, facilitator, localEnv, mailbox, press, startApp } from "./harness";
 async function main() {
+  const operationsAddress = "operations@clearway.test";
+  process.env.OPERATIONS_ALERT_EMAIL = operationsAddress;
   if(process.env.KIT_AREA==="b" && process.env.KIT_BEFORE!=="1") process.env.TEAM_HUB_DATABASE_URL="postgres://clearway_live_reader:local@127.0.0.1:1/postgres";
   const env=localEnv(), sql=db(env), mail=await mailbox(), app=await startApp(env,mail.url);
   const browser=await chromium.launch();
@@ -20,6 +22,8 @@ async function main() {
     if(process.env.KIT_AREA==="c") await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
     const context=await browser.newContext(); await context.addCookies(fac.cookies(app.origin));
     const page=await context.newPage();
+    const pageErrors: { path: string; message: string }[] = [];
+    page.on("pageerror", error => pageErrors.push({ path: new URL(page.url()).pathname, message: error.message }));
     const before=process.env.KIT_BEFORE==="1", area=process.env.KIT_AREA??"a";
     const paths:Record<string,string[]>={a:["/sign-in","/admin","/control",...(!before?["/admin/users","/admin/operations"]:[])],b:["/admin/new",`/admin/${room.id}`,`/admin/${room.id}/details`,`/admin/${room.id}/joining`],c:[`/admin/${room.id}/door`,`/admin/${room.id}/tv`,`/admin/${room.id}/discover`,`/admin/${room.id}/four-lists`,"/admin/templates"],d:["after","check-ins","recap","share","report","plan","map","review","latency"].map(p=>`/control/${room.id}/${p}`)};
     for(const width of [1440,390]) {
@@ -242,19 +246,49 @@ async function main() {
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); assert.equal(await columns(),3,"Room admin opens as a third column");
       assert.ok(await colX(".ctl-run")<await colX(".ctl-centre")&&await colX(".ctl-centre")<await colX(".ctl-side"),"run of show, screens and Room admin run left to right");
       await page.getByRole("button",{name:"Room admin",exact:true}).click(); await page.locator(".ctl-side").waitFor({state:"hidden",timeout:2000}); assert.equal(await columns(),2,"and hides again, after it slides away");
-      // The centre column's bands (November 15): Go live is the one big button, in a transport bar pinned in view. Since November 19
-      // it is solid Clearway Orange (the action-live token) with a bold label of 19px or more, and nothing else on the page is Orange.
+      // The transport leads with the Navy Go live button and its orange icon tile.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
       assert.ok(take.height>=63&&take.width>=199,`Go live is at least 64 by 200: ${take.width}x${take.height}`);
-      const golive=await page.evaluate(()=>{const probe=document.createElement("i");probe.style.color=getComputedStyle(document.querySelector(".ctl-take")!).getPropertyValue("--cwl-action-live");document.body.appendChild(probe);const want=getComputedStyle(probe).color;probe.remove();
-        const all=[...document.querySelectorAll<HTMLButtonElement>(".is-golive")];
-        return {want,count:all.length,labels:all.map(b=>({size:parseFloat(getComputedStyle(b).fontSize),weight:Number(getComputedStyle(b).fontWeight),bg:getComputedStyle(b).backgroundColor,disabled:b.disabled})),
-          others:[...document.querySelectorAll("body *")].filter(e=>!e.closest(".is-golive, .ctl-run-actions .is-go")&&[getComputedStyle(e).backgroundColor,getComputedStyle(e).borderTopColor,getComputedStyle(e).color].includes(want)).map(e=>e.className).slice(0,5)};});
-      assert.ok(golive.want&&golive.count>=1,"the transport bar has the filled Go live");
-      const outlines=await page.locator(".ctl-run-actions .is-go:not(:disabled)").evaluateAll(els=>els.map(e=>getComputedStyle(e).borderTopColor));
-      assert.ok(outlines.length>0&&outlines.every(c=>c===golive.want),"each run of show step's Go live is outlined in Orange");
-      for(const l of golive.labels){assert.ok(l.size>=19&&l.weight>=700,`every Go live label is bold at 19px or more (${l.size}px, ${l.weight})`);if(!l.disabled)assert.equal(l.bg,golive.want,"an enabled Go live is Orange");}
-      assert.deepEqual(golive.others,[],"nothing but Go live is Orange");
+      const golive = await page.evaluate(() => {
+        const transport = document.querySelector<HTMLButtonElement>(".ctl-take")!;
+        const colors: string[] = [];
+        for (const token of ["--cwl-action-live", "--cwl-action-live-surface"]) {
+          const probe = document.createElement("span");
+          probe.style.color = `var(${token})`;
+          transport.append(probe);
+          colors.push(getComputedStyle(probe).color);
+          probe.remove();
+        }
+        const [orange, navy] = colors;
+        const buttons = [...document.querySelectorAll<HTMLButtonElement>(".is-golive")];
+        return {
+          orange, navy,
+          labels: buttons.map(button => {
+            const style = getComputedStyle(button);
+            const tile = button.querySelector(".ctl-golive-tile, svg");
+            return {
+              size: parseFloat(style.fontSize), weight: Number(style.fontWeight),
+              background: style.backgroundColor, tile: tile && getComputedStyle(tile).backgroundColor, disabled: button.disabled,
+            };
+          }),
+          others: [...document.querySelectorAll("body *")].filter(element => {
+            if (element.closest(".is-golive, .ctl-run-actions .is-go")) return false;
+            const style = getComputedStyle(element);
+            return [style.backgroundColor, style.borderTopColor, style.color].includes(orange);
+          }).map(element => element.className).slice(0,5),
+        };
+      });
+      assert.ok(golive.labels.length >= 1, "the transport bar has Go live");
+      const outlines = await page.locator(".ctl-run-actions .is-go:not(:disabled)").evaluateAll(elements => elements.map(element => getComputedStyle(element).borderTopColor));
+      assert.ok(outlines.length > 0 && outlines.every(color => color === golive.navy), "run list Go live buttons have Navy outlines");
+      for (const label of golive.labels) {
+        assert.ok(label.size >= 19 && label.weight >= 700, "large Go live labels stay bold and readable");
+        if (!label.disabled) {
+          assert.equal(label.background, golive.navy, "Go live has a Navy fill");
+          assert.equal(label.tile, golive.orange, "Go live has an orange icon tile");
+        }
+      }
+      assert.deepEqual(golive.others, [], "Go live owns the Orange accent");
       assert.ok(bar.y+bar.height<=982+1,"the transport bar is in view without scrolling");
       assert.equal(await page.locator(".ctl-screen.is-preview .ctl-take").count(),0,"no Go live on the preview screen itself");
       const wide=async(sel:string)=>(await page.locator(sel).boundingBox())!.width;
@@ -335,8 +369,15 @@ async function main() {
       await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
       await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
     }
-    if(mail.count) console.log(JSON.stringify(mail.messages.map(m=>({to:m.to,subject:m.subject,text:(m.text||"").slice(0,200)}))));
-    assert.equal(mail.count,0,"admin audit sends no email");
+    const operationsAlert = (message: { to: string[]; subject?: string }) =>
+      message.to.length === 1 && message.to[0] === operationsAddress && message.subject === "Check Clearway Live";
+    const unexpectedMail = mail.messages.filter(message => !operationsAlert(message));
+    if (pageErrors.length) console.log("Browser errors:", JSON.stringify(pageErrors));
+    if (mail.messages.some(operationsAlert)) {
+      const events = app.output().match(/Clearway operational event \{[^}]*\}/g) ?? [];
+      console.log("Operations alert captured by the local mailbox.", ...events);
+    }
+    assert.deepEqual(unexpectedMail.map(({ to, subject }) => ({ to, subject })), [], "admin audit sends no engagement mail");
     console.log(`Admin ${area} kit passed at desktop and narrow widths${before?" (baseline)":""}.`);
   } finally {await browser.close(); app.stop(); await mail.close(); await sql.end();}
 }
