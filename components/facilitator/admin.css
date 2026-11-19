@@ -155,6 +155,11 @@ label.create-option { flex-direction:row; }
 .create-option.is-on { border-color:var(--cwl-app-primary); box-shadow:inset 0 0 0 1px var(--cwl-app-primary); background:var(--cwl-app-selected); }
 .create-option.is-linked { cursor:default; background:var(--cwl-app-sunken); }
 .admin-page .create-picked { margin:var(--space-3) 0 0; }
+.admin-page .create-group { margin:var(--space-4) 0 0; font-size:var(--cwl-fs-app-label); font-weight:var(--fw-semibold); color:var(--cwl-app-text-muted); }
+.create-flow .create-options + .admin-button { margin-top:var(--space-3); }
+.create-flow .joining-line { margin-bottom:0; }
+.create-flow .joining-line > span { font-size:var(--cwl-fs-app-body); color:var(--cwl-app-text-muted); }
+.create-flow .cwl-help.is-bad { color:var(--cwl-app-error); font-weight:var(--fw-semibold); }
 .admin-editor label.create-option { display:flex; flex-direction:row; align-items:flex-start; }
 .surface .admin-page h2.admin-section-name { margin:var(--space-6) 0 var(--space-3); font-size:var(--cwl-fs-app-micro); letter-spacing:0.06em; }
 /* Batch A: the four create steps are one card. A step that is a fieldset keeps its legend for assistive tech, drawn as the card's title inside it. */
