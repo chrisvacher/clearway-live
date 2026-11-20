@@ -439,3 +439,9 @@
   --cwl-wordmark-h-print: 28px; /* Lockup height: printouts. */
   --cwl-wordmark-h-page: 32px; /* Lockup height: review pages and documents about the app. */
 }
+
+/* Live room run list, design pass 10 E. Facilitator controls stay in Clearway. */
+[data-surface="control"] {
+  --cwl-live-edge: #84A92B;
+  --cwl-live-tint: #F4FFE0;
+}

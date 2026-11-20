@@ -101,12 +101,22 @@ jobs:
         id: admin-kit
         shell: bash
         run: npm run test:admin 2>&1 | tee "${{ runner.temp }}/admin-kit.log"
+        env:
+          PASS10_E_SHOTS: ${{ runner.temp }}/design-pass-10-live-room
       - name: Upload failed admin kit output
         if: ${{ !cancelled() && steps.admin-kit.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
         with:
           name: admin-kit-failure
           path: ${{ runner.temp }}/admin-kit.log
+          retention-days: 14
+      - name: Upload live room evidence at 1280, 1440 and 1512 pixels
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-pass-10-live-room
+          path: ${{ runner.temp }}/design-pass-10-live-room/
+          if-no-files-found: ignore
           retention-days: 14
       - name: Test the two addresses (live.clearway.co and live.novetera.co) from one deployment
         run: npm run test:two-addresses

@@ -1,12 +1,13 @@
 "use client";
 import { useEffect } from "react";
-import { ChevronLeft, ChevronRight, House, MonitorOff, Plus, QrCode, Send, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
+import { ChevronLeft, ChevronRight, House, Plus, QrCode, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
 import { kindOf } from "@/lib/interactions/kinds";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { TvScreen } from "@/lib/control/types";
 import { MarkDecision } from "./mark-decision";
 import { burstLeft, type Room } from "./live-controls";
 import { AnswersToggle } from "./answers-toggle";
+import { GoLiveTile } from "./press-flash";
 
 // The live room's centre column, in fixed bands (November 15, "Live room centre column" research): the screens, a pinned
 // transport bar, the step controls in fixed slots, then the step panel. The screens and transport bar never move or
@@ -16,31 +17,33 @@ const Key = ({ k }: { k: string }) => <kbd className="ctl-kbd" aria-hidden="true
 
 // 3. The transport bar: Back, Go live with what&apos;s in preview, Next, then the screens the TV can show in place of a step.
 const screenButtons: { screen: TvScreen; label: string; key: string; Icon: typeof House }[] = [
-  { screen: "blackout", label: "Blackout", key: "B", Icon: MonitorOff },
+  { screen: "blackout", label: "Blackout", key: "B", Icon: Square },
   { screen: "join", label: "Join", key: "J", Icon: QrCode },
   { screen: "holding", label: "Home", key: "H", Icon: House },
 ];
-export function Transport({ room, context, previewing, onGoLive }: { room: Room; context: ShowContext; previewing: ShowSession | null; onGoLive: (s: ShowSession) => void }) {
+export function Transport({ room, context, previewing, onGoLive, flashing = false }: { room: Room; context: ShowContext; previewing: ShowSession | null; onGoLive: (s: ShowSession) => void; flashing?: boolean }) {
   const { frame, steps, pending, press } = room;
   const busy = Boolean(pending) || !frame || context.closed;
   const liveId = frame?.state.live_session_id ?? null, content = frame?.state.tv_content ?? "holding";
   const isLive = Boolean(previewing && liveId === previewing.id);
   const blocked = !previewing || busy || isLive || previewing.state === "draft";
-  return <div className="ctl-transport" role="group" aria-label="Transport">
+  return <div id="ctl-transport" className="ctl-transport" role="group" aria-label="Transport">
+    <div className="ctl-transport-inner">
     <div className="ctl-steps">
-      <button className="show-button ctl-tp-back" disabled={busy || !steps.back} onClick={() => void press("back")} title={steps.back?.title} aria-keyshortcuts="ArrowLeft"><ChevronLeft size={20} aria-hidden="true" />Back<Key k="←" /></button>
-      <button type="button" className="ctl-take is-golive" disabled={blocked} onClick={() => previewing && onGoLive(previewing)} aria-keyshortcuts="Enter"
+      <button className="show-button ctl-tp-back" disabled={busy || !steps.back} onClick={() => void press("back")} title={steps.back?.title} aria-keyshortcuts="ArrowLeft"><ChevronLeft size={16} aria-hidden="true" />Back<Key k="←" /></button>
+      <button type="button" className={`ctl-take is-golive${flashing ? " is-flashing" : ""}`} disabled={blocked} onClick={() => previewing && onGoLive(previewing)} aria-keyshortcuts="Enter"
         aria-label={!previewing ? "Nothing in preview" : isLive ? `${previewing.title} is live` : `Go live: ${previewing.title}`}
         title={previewing?.state === "draft" ? "Mark this step ready in setup before it goes live" : undefined}>
-        <Send size={20} aria-hidden="true" />{isLive ? "Live now" : "Go live"}<Key k="↵" /></button>
-      <button className="show-button ctl-tp-next" disabled={busy || !steps.next} onClick={() => void press("next")} title={steps.next?.title} aria-keyshortcuts="ArrowRight">Next<ChevronRight size={20} aria-hidden="true" /><Key k="→" /></button>
+        <GoLiveTile />{isLive ? "Live now" : "Go live"}<Key k="↵" /></button>
+      <button className="show-button ctl-tp-next" disabled={busy || !steps.next} onClick={() => void press("next")} title={steps.next?.title} aria-keyshortcuts="ArrowRight">Next<ChevronRight size={16} aria-hidden="true" /><Key k="→" /></button>
     </div>
     <div className="ctl-screen-bar" role="group" aria-label="TV screen">
       {screenButtons.map(({ screen, label, key, Icon }) => {
         const on = !liveId && content === screen;
-        return <button key={screen} type="button" className={`ctl-screen-btn is-${screen}`} aria-pressed={on} disabled={busy || on} aria-keyshortcuts={key}
-          onClick={() => void press("tv_screen", { screen })}><Icon size={16} aria-hidden="true" />{label}<Key k={key} /></button>;
+        return <button key={screen} type="button" className={`ctl-screen-btn is-${screen}`} aria-pressed={on} disabled={busy || on} aria-keyshortcuts={key} aria-label={label} title={label}
+          onClick={() => void press("tv_screen", { screen })}><Icon size={16} aria-hidden="true" /><span>{label}</span><Key k={key} /></button>;
       })}
+    </div>
     </div>
   </div>;
 }
@@ -54,7 +57,7 @@ export function StepControls({ room, minutes, setMinutes, onPanel, workshop }: {
   if (!session) return <div className="ctl-stepctl is-quiet"><p>Nothing live on the TV. Go live with what&apos;s in preview, or press Back to return to the last step.</p></div>;
   if (session.state === "closed") return <div className="ctl-stepctl is-quiet"><p>Answers for this step are stopped. Phones show it without taking answers.</p>
     <div className="ctl-slot is-answers"><AnswersToggle room={room} /></div></div>;
-  if (session.interaction === "content") return <div className="ctl-stepctl is-quiet"><p>Reading along. Nothing to run on this screen.</p>
+  if (session.interaction === "content") return <div className="ctl-stepctl is-quiet"><p>Nothing to run on a content screen.</p>
     {!workshop && <div className="ctl-slot is-decision"><MarkDecision room={room} variant="laptop" host="ctl-decision-host" /></div>}</div>;
   const spotlightKind = (kindOf(session)?.spotlight ?? "none") !== "none";
   return <div className="ctl-stepctl">
@@ -85,7 +88,7 @@ export function useRoomKeys({ room, previewing, onGoLive, minutes }: { room: Roo
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target instanceof HTMLElement ? e.target : null;
-      if (target?.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='dialog'], [role='radiogroup']")) return;
+      if (target?.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], dialog, [role='dialog'], [role='alertdialog'], [role='radiogroup'], [role='tablist'], [role='menu']")) return;
       const frame = room.frame;
       if (!frame || room.pending || room.show.context.closed) return;
       const session = frame.session, liveId = frame.state.live_session_id, content = frame.state.tv_content;

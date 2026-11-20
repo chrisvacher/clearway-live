@@ -118,7 +118,7 @@ async function main() {
     });
     const all = <T>(run: (p: Phone, i: number) => Promise<T>) => Promise.all(phones.map(run));
 
-    const control = await facContext.newPage();
+    const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
     await control.goto(`${app.origin}/control/${room.id}`);
     await control.locator(".ctl-app").waitFor({ timeout: 15000 });
     const stats = async () => control.locator(".ctl-stats b").allInnerTexts();
@@ -135,7 +135,7 @@ async function main() {
           if (await tally() !== label) return false;
         }
         const s = await stats();
-        return s[1] === String(r.people) && s[2] === String(r.total);
+        return s[1] === String(r.people) && await control.locator(".ctl-live-step-head").getAttribute("data-answer-count") === String(r.total);
       }, `${label}: the TV, the server and the control surface agree`, 15000).catch(async error => {
         throw new Error(`${error.message}\nserver ${JSON.stringify({ people: (await results())?.people, total: (await results())?.total })} TV "${await tally()}" control ${JSON.stringify(await stats())}`);
       });
@@ -144,7 +144,7 @@ async function main() {
     // Every phone shows the step's prompt: the phones have moved with the room.
     const phonesOn = async (title: string) => { const prompt = (await prompts()).get(title)!; await all(p => until(async () => (await p.page.locator(".ph-app").innerText().catch(() => "")).includes(prompt), `${title} on ${p.name}'s phone`, 20000)); };
     const goLive = async (title: string) => {
-      await control.getByRole("button", { name: `Preview ${title}` }).click();
+      await control.getByRole("button", { name: `Choose ${title}` }).click();
       await control.locator(".ctl-take").getByText("Go live").waitFor();
       await control.getByRole("button", { name: `Go live: ${title}`, exact: true }).click();
       const id = await idOf(title);
@@ -174,6 +174,7 @@ async function main() {
       await p.locator(".ph-send").click();
     };
     await step("Rehearse: test answers on the scale, the word cloud, the wall and Q&A, marked on phones and the control surface", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsing").isVisible(), "Rehearsing on the control surface", 8000);
       await goLive("Check-in");
@@ -193,6 +194,7 @@ async function main() {
       await goLive("Your questions");
       await ben.page.locator("#qa-question").fill(rehearsalWords[3]); await ben.page.locator(".qa-ask-form .ph-send").click();
       await until(async () => (await layer().innerText()).includes("budget"), "the rehearsal question on the TV", 8000);
+      await control.getByRole("tab", { name: /^Questions/ }).click();
       await control.locator(".qa-ctl-item", { hasText: "budget" }).first().getByRole("button", { name: "Spotlight" }).click();
       await until(async () => await tv.locator(".qa-spot.is-on").count() === 1, "a spotlit rehearsal question", 8000);
       await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test items"), "the control surface counts the test answers", 10000);
@@ -220,12 +222,13 @@ async function main() {
       await until(async () => await liveId() === await idOf("Your questions"), "B again returns to the step", 8000);
       await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Your questions", "and the control surface shows it", 8000);
       // The preview: Preview on a row puts that step in the preview screen, and the preview draws it before it goes live.
-      await control.getByRole("button", { name: "Preview Check-in", exact: true }).click();
+      await control.getByRole("button", { name: "Choose Check-in", exact: true }).click();
       await until(async () => (await control.locator("#ctl-preview-title").innerText()) === "Check-in", "Check-in in the preview", 8000);
       await control.locator(".ctl-screen.is-preview .tv-mirror").waitFor({ timeout: 8000 });
       await shot(control, "team-control-preview");
     });
     await step("Clear test answers: refused while live, then everything from the rehearsal goes and the steps are Ready again", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       assert.equal(await control.getByRole("button", { name: "Clear test answers" }).isDisabled(), true, "held while a session is live");
       await control.locator(".ctl-screen-bar").getByRole("button", { name: "Home", exact: true }).click();
       await until(async () => await liveId() === null, "Home", 8000);
@@ -479,9 +482,9 @@ async function main() {
       const page = await facContext.newPage();
       for (const path of ["after", "report", "plan", "share", "check-ins", "review", "map"]) { await page.goto(`${app.origin}/control/${room.id}/${path}`); assert.equal(new URL(page.url()).pathname, `/control/${room.id}/recap`, path); }
       await page.goto(`${app.origin}/admin/${room.id}/discover`); assert.equal(new URL(page.url()).pathname, `/admin/${room.id}`);
-      await page.goto(`${app.origin}/control/${room.id}`); await page.getByRole("heading", { name: "Live room", exact: true }).waitFor();
+      await page.goto(`${app.origin}/control/${room.id}`); await page.locator(".ctl-app h1").waitFor();
       for (const title of ["Scribe", "Overnight review"]) assert.equal(await page.getByLabel(`${title}, only you see this`, { exact: true }).count(), 0, title);
-      assert.equal(await page.getByLabel("Room, only you see this", { exact: true }).count(), 1);
+      assert.equal(await page.getByRole("tab", { name: "Room", exact: true }).count(), 1);
       assert.equal(await page.getByRole("link", { name: "Draft Clearway Map", exact: true }).count(), 0);
       await page.close();
     });

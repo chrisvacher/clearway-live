@@ -36,7 +36,7 @@ async function main() {
       const moveTo = async (button: "next" | "back", to: string) => { await settled(); await control.locator(`.ctl-tp-${button}`).click(); await until(async () => (await live()) === to, `${button} to the step`, 10000); await settled(); };
 
       const ctx = await browser!.newContext({ viewport: { width: 1440, height: 900 } }); await ctx.addCookies(fac.cookies(app.origin));
-      const control = await ctx.newPage();
+      const control = await ctx.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
       const visited: string[] = []; control.on("framenavigated", f => { if (f === control.mainFrame()) visited.push(new URL(f.url()).pathname); });
       let tv!: Page; const phones: Phone[] = [];
       const started = Date.now();
@@ -44,12 +44,12 @@ async function main() {
 
       await step(`${skin}: the TV chip opens the TV already paired, and then says the TV is live`, async () => {
         const chip = control.getByTestId("tv-chip"); await chip.waitFor({ timeout: 20000 });
-        assert.match(await chip.innerText(), /No TV connected\. Open the TV/);
+        assert.match(await chip.innerText(), /No TV\. Open the TV/);
         const popup = ctx.waitForEvent("page"); await chip.click(); tv = await popup;
         await tv.locator(".tv-scene.tv-holding.is-active").waitFor({ timeout: 20000 });
         assert.equal(await tv.locator("main[data-surface=tv]").getAttribute("data-skin"), skin);
         await control.getByTestId("tv-live").waitFor({ timeout: 20000 });
-        assert.match(await control.getByTestId("tv-live").innerText(), /TV is live/);
+        assert.match(await control.getByTestId("tv-live").innerText(), /TV connected/);
       });
 
       const newPhone = async (name: string) => {
@@ -117,13 +117,13 @@ async function main() {
 
       await step(`${skin}: Start fresh is held while a step is live, then deletes every answer and keeps the TV and phones`, async () => {
         // The TV window took the focus when it opened; the live room is the window in front from here (Room admin animates open).
-        await openAdmin();
+        await openAdmin(); await control.getByRole("tab", { name: "Tools", exact: true }).click();
         const fresh = control.getByTestId("start-fresh"); await fresh.waitFor();
         assert.ok(await fresh.isDisabled(), "held while a step is live");
         assert.equal(await control.getByTestId("fresh-export").getAttribute("href"), `/api/control/${room.id}/export?session=all`, "Export answers sits beside it");
         await settled(); await control.locator(".ctl-screen-btn.is-holding").click(); await until(async () => (await live()) === null, "Home", 10000);
         await until(async () => !(await fresh.isDisabled()), "Start fresh is on once nothing is live", 10000);
-        await fresh.click(); assert.match(await fresh.innerText(), /Tap again to delete every answer/); await fresh.click();
+        await fresh.click(); await control.getByRole("dialog", { name: "Start fresh?" }).getByRole("button", { name: "Start fresh", exact: true }).click();
         await until(async () => (await answers()) === 0, "every answer is deleted", 15000);
         for (const s of steps) assert.equal(await state(s), "ready", "every step is Ready");
         const kept = (await sql.query(`select (select count(*)::int from private.tv_devices where engagement_id=$1 and not deleted) tvs,
@@ -135,11 +135,11 @@ async function main() {
       });
 
       await step(`${skin}: End the workshop: phones say it ended, the TV window says Workshop ended with no code`, async () => {
-        await settled(); await control.locator(`li[data-session="${steps[0]}"] button.is-go`).click(); await until(async () => (await live()) === steps[0], "a step is live", 10000);
+        await settled(); await control.locator(`li[data-session="${steps[0]}"]`).hover(); await control.locator(`li[data-session="${steps[0]}"] button.is-go`).click(); await until(async () => (await live()) === steps[0], "a step is live", 10000);
         await answer(phones[0], "Again", 0); await until(async () => (await answered(steps[0])) === 1, "answered", 10000);
         await moveTo("next", steps[1]);
         await settled(); await control.getByTestId("stop-answers").click(); await until(async () => (await state(steps[1])) === "closed", "stopped before the end", 10000);
-        await control.getByTestId("header-more").click(); await control.getByTestId("end-workshop").click(); await control.getByTestId("end-workshop-confirm").click();
+        await control.getByRole("button", { name: "More actions", exact: true }).click(); await control.getByRole("menuitem", { name: "End the workshop", exact: true }).click(); await control.getByTestId("end-workshop-confirm").click();
         await control.getByTestId("workshop-ended").waitFor({ timeout: 15000 });
         await tv.getByTestId("tv-ended").waitFor({ timeout: 20000 });
         assert.equal(await tv.locator(".tv-scene.tv-pair.is-active").count(), 0, "no pairing code on the ended TV");
@@ -167,7 +167,7 @@ async function main() {
         await page.goto(`${origin}/tv`);
         await page.getByText("Open this screen from the live room with Open the TV. Using a second computer? Type this code in the live room.").waitFor({ timeout: 20000 });
         const code = await until(async () => { const c = (await page.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "a pairing code", 15000);
-        await openAdmin();
+        await openAdmin(); await control.getByRole("tab", { name: "Tools", exact: true }).click();
         await control.getByTestId("second-computer").click();
         await control.fill("#ctl-tv-code", code); await control.fill("#ctl-tv-label", "Side TV");
         await control.getByRole("button", { name: "Pair this TV" }).click();

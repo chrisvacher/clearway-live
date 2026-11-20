@@ -67,7 +67,13 @@ test("app components cannot introduce literal colors, inline styles or the desig
 
 test("phone routes cannot import private control code or facilitator-only tokens", async () => {
   for (const path of [...await files("app/(room)"), ...await files("components")].filter(p => /\.tsx?$/.test(p))) {
-    assert.doesNotMatch(await read(path), /cwl-fac-|@\/app\/\(facilitator\)|@\/components\/facilitator|@\/lib\/server/, path);
+    const source = await read(path);
+    // Room admin belongs to the laptop control surface. Its display settings reuse the same control as Screens.
+    const facade = path === "components/control/room-admin.tsx"
+      ? source.replace('import { TvSizeControl } from "@/components/facilitator/tv-size-control";', "")
+      : source;
+    assert.doesNotMatch(facade, /cwl-fac-|@\/app\/\(facilitator\)|@\/components\/facilitator|@\/lib\/server/, path);
+    if (path.startsWith("app/(room)/")) assert.doesNotMatch(source, /components\/control\/(?:room-admin|control-surface)/, path);
   }
   for (const folder of ["app/(facilitator)", "app/(room)", "app/(display)", "app/(remote)"]) {
     await access(join(root, folder));

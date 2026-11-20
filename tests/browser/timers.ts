@@ -59,11 +59,11 @@ async function main() {
       await phonePage.goto(`${app.origin}/room/${room.id}`);
       await phonePage.fill("#open-name", "Ruth"); await phonePage.getByRole("button", { name: "Join the room" }).click();
       await phonePage.locator(".ph-app").waitFor({ timeout: 15000 });
-      const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
+      const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${room.id}`);
       const timerOnTv = tv.locator(".tv-timer");
 
       await step(`${skin}: the Preview shows the step's timer as the TV will`, async () => {
-        await control.getByRole("button", { name: "Preview Talk at your tables" }).click();
+        await control.getByRole("button", { name: "Choose Talk at your tables" }).click();
         await until(async () => (await control.locator(".ctl-screen.is-preview .tv-timer.is-on b").innerText().catch(() => "")) === "1:10", "the preview shows 1:10", 10000);
         await shot(control, `${skin}-timer-preview-control`);
       });
@@ -105,6 +105,7 @@ async function main() {
         assert.equal(await timerOnTv.locator("b").innerText(), held, "the TV holds while paused");
         await card.getByRole("button", { name: "Resume" }).click();
         await until(async () => (await timerOnTv.locator("b").innerText()) !== held, "running again", 5000);
+        await control.getByRole("button", { name: "Timer", exact: true }).click();
         const chip = control.locator("[data-timer-chip]");
         await chip.getByRole("button", { name: "1 min" }).click();
         await card.getByRole("button", { name: "Reset" }).click();
