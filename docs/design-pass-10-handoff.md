@@ -28,7 +28,7 @@ Apply these in order to the Clearway Live project.
 | `20261120130000_engagement_details_patch.sql` | Save targeted details changes without replacing room access settings. |
 | `20261120140000_clearway_user_management.sql` | Update Clearway user roles and remove access. |
 
-The sweep uses isolated migrations in CI. Hosted application of these files needs verification in the rollout record.
+The sweep uses isolated migrations in CI. Until the Details migration is applied, facilitators save event and church edits separately. Hosted application of these files needs verification in the rollout record.
 
 ## Verification and handoff
 

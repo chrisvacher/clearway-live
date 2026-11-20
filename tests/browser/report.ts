@@ -66,9 +66,13 @@ async function main() {
     const status = async (key: string) => (await secs()).find(s => s.key === key)?.status;
     const open = async (key: string) => { await page.getByTestId(`rpt-section-${key}`).click(); await page.locator(`[data-testid="rpt-body"][data-key="${key}"]`).waitFor(); };
     const body = page.getByTestId("rpt-body");
-
-    await step("After the retreat is on the control surface and the hub lists the report, the visibility plan, the Check-ins tile and the Share tile linked", async () => {
+    const openRoomTools = async () => {
       await page.goto(`${app.origin}/control/${room}`);
+      await page.getByRole("complementary", { name: "Room admin", exact: true }).getByRole("tab", { name: "Tools", exact: true }).click();
+    };
+
+    await step("After the retreat is in Room admin Tools and the hub links the report, visibility plan, Check-ins and Share", async () => {
+      await openRoomTools();
       await page.getByTestId("after-link").waitFor({ timeout: 20000 });
       await page.getByTestId("after-link").click();
       await page.getByTestId("after-hub").waitFor({ timeout: 15000 });
@@ -533,11 +537,21 @@ async function main() {
       const reload = () => sql.query("notify pgrst, 'reload schema'");
       await sql.query("alter function public.report_state(uuid) rename to report_state_off"); renamed = true; await reload();
       try {
-        await until(async () => { await page.goto(`${app.origin}/control/${room}`); await page.getByRole("heading", { name: /Room|Live/ }).first().waitFor({ timeout: 10000 }).catch(() => {}); return (await page.getByTestId("after-link").count()) === 0 && (await page.locator(".ctl-private").count()) > 0; }, "the link is gone and the control surface is still there", 45000);
+        await until(async () => {
+          const [probe] = await Promise.all([
+            page.waitForResponse(`${app.origin}/api/control/${room}/report?probe=1`, { timeout: 5000 }),
+            openRoomTools(),
+          ]);
+          return (await probe.json()).status !== "ok" && (await page.getByTestId("after-link").count()) === 0
+            && await page.locator("#ctl-privacy").isVisible();
+        }, "the link is gone and the control surface is still there", 45000);
         await until(async () => { await page.goto(`${app.origin}/control/${room}/after`); return /isn’t available yet/.test(await page.getByTestId("after-report").innerText()); }, "the hub's tile says it isn't here yet", 45000);
         assert.ok(!/error|went wrong/i.test(await page.locator("main").innerText()), "and no complaint");
       } finally { await sql.query("alter function public.report_state_off(uuid) rename to report_state"); renamed = false; await reload(); }
-      await until(async () => { await page.goto(`${app.origin}/control/${room}`); return await page.getByTestId("after-link").waitFor({ timeout: 5000 }).then(() => true, () => false); }, "the link comes back", 45000);
+      await until(async () => {
+        await openRoomTools();
+        return await page.getByTestId("after-link").waitFor({ timeout: 5000 }).then(() => true, () => false);
+      }, "the link comes back", 45000);
     });
 
     console.log(`Report kit: ${passed.length} checks passed.`);
