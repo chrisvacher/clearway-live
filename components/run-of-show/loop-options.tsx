@@ -59,7 +59,8 @@ export function LoopOptions({ session, value, context, fresh, locked, onChange }
         return <li key={`${id}:${i}`} className={`loop-item${drag === i ? " is-drag" : ""}`} draggable={!locked}
           onDragStart={e => { setDrag(i); e.dataTransfer.effectAllowed = "move"; }} onDragEnd={() => setDrag(null)}
           onDragOver={e => { if (drag !== null) e.preventDefault(); }} onDrop={e => { e.preventDefault(); if (drag !== null) move(drag, i); setDrag(null); }}>
-          <div className="add-images-item-head"><span className="add-images-num">{i + 1}</span><span className="add-images-name">{name}</span>
+          <div className="add-images-item-head"><span className="add-images-num">{i + 1}</span><span className="add-images-name">{name}</span></div>
+          <div className="loop-item-actions">
             <button type="button" className="show-button is-icon is-small" aria-label={`Move ${name} earlier`} disabled={locked || i === 0} onClick={() => move(i, i - 1)}><ArrowLeft size={14} aria-hidden="true" /></button>
             <button type="button" className="show-button is-icon is-small" aria-label={`Move ${name} later`} disabled={locked || i === images.length - 1} onClick={() => move(i, i + 1)}><ArrowRight size={14} aria-hidden="true" /></button>
             <button type="button" className="show-button is-icon is-small" aria-label={`Remove ${name}`} disabled={locked} onClick={() => set({ images: images.filter((_, k) => k !== i) })}><X size={14} aria-hidden="true" /></button></div>

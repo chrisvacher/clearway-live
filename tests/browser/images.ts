@@ -47,7 +47,7 @@ async function main() {
 
       await step(`${skin}: Add images as slides uploads three images, keeps their order, and adds one Image step each to the chosen section`, async () => {
         await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
-        await editor.getByRole("button", { name: "Add images as slides" }).click();
+        await editor.getByRole("button", { name: "Add slides from images", exact: true }).click();
         const dialog = editor.getByRole("dialog", { name: "Add images as slides" });
         await dialog.locator("#add-images-file").setInputFiles(slides.map((buffer, i) => ({ name: `Slide${i + 1}.png`, mimeType: "image/png", buffer })));
         await until(async () => await dialog.locator(".add-images-item.is-done, .add-images-item:not(.is-uploading):not(.is-failed)").count() === 3, "three uploads done", 30000);
@@ -70,17 +70,16 @@ async function main() {
 
       await step(`${skin}: typing a title clears the greyed default; an image goes In place on a headline and on a question`, async () => {
         await editor.locator(".rb-row", { hasText: "Image 1" }).getByRole("button", { name: /Open options/ }).click();
-        await editor.locator(".rb-row.is-open #session-title").fill("Where we have been");
-        await editor.locator(".rb-row.is-open").getByRole("button", { name: "Done", exact: true }).click();
+        await editor.locator(".rb-settings #session-title").fill("Where we have been");
         await until(async () => (await sql.query("select options from public.sessions where engagement_id=$1 and title='Where we have been'", [room.id])).rows[0]?.options.untitled === undefined, "untitled cleared", 10000);
         const image = (await sql.query("select options#>>'{image,id}' as id from public.sessions where engagement_id=$1 and title='Image 2'", [room.id])).rows[0].id as string;
         for (const [title, id] of [["Why we are here", opening], ["Which next step first?", question]] as const) {
           await editor.locator(".rb-row", { hasText: title }).first().getByRole("button", { name: /Open options/ }).click();
-          const open = editor.locator(".rb-row.is-open");
-          await open.getByRole("combobox", { name: "Use an image already added" }).selectOption(image);
+          const open = editor.locator(".rb-settings");
+          await open.getByRole("button", { name: "Add an image" }).click();
+          await editor.getByRole("dialog", { name: "Choose an image" }).getByRole("button", { name: "Slide2.png", exact: true }).click();
           if (title === "Which next step first?") assert.equal(await open.getByRole("radio", { name: "Fill" }).isDisabled(), true, "interaction steps get In place only");
           else await open.getByRole("radio", { name: "In place" }).click();
-          await open.getByRole("button", { name: "Done", exact: true }).click();
           await until(async () => (await sql.query("select options#>>'{image,display}' as d from public.sessions where id=$1", [id])).rows[0].d === "place", `${title} In place`, 10000);
         }
         // The database refuses Fill on an interaction step, whatever the browser sends.

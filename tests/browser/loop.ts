@@ -44,7 +44,7 @@ async function main() {
       await step(`${skin}: the run of show builds a loop: three images in order, seconds per image, a transition, and Use as the Home screen`, async () => {
         await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
         await editor.locator(".rb-row", { hasText: "Walk-in loop" }).getByRole("button", { name: /Open options/ }).click();
-        const open = editor.locator(".rb-row.is-open");
+        const open = editor.locator(".rb-settings");
         await open.locator("#loop-file").setInputFiles(pictures.map((buffer, i) => ({ name: `Loop${i + 1}.png`, mimeType: "image/png", buffer })));
         await until(async () => await open.locator(".loop-item").count() === 3, "three images in the loop", 30000);
         assert.match(await open.locator(".loop-item").nth(1).innerText(), /Letterboxed/, "the 4:3 image says it will be letterboxed");
@@ -54,10 +54,9 @@ async function main() {
         assert.match(await open.innerText(), /3 images, 9 seconds a turn/);
         await open.getByRole("radio", { name: "Slide" }).click();
         await shot(editor, `${skin}-loop-run-of-show`);
-        await open.getByRole("button", { name: "Done", exact: true }).click();
         await until(async () => { const o = (await sql.query("select options from public.sessions where id=$1", [walkIn])).rows[0].options; return o.images?.length === 3 && o.seconds === 3 && o.transition === "slide"; }, "loop saved", 10000);
         await editor.locator(".rb-row", { hasText: "Walk-in loop" }).getByRole("button", { name: /Open options/ }).click();
-        await editor.locator(".rb-row.is-open").getByRole("switch", { name: "Use as the Home screen" }).click();
+        await editor.locator(".rb-settings").getByRole("switch", { name: "Use as the Home screen" }).click();
         await until(async () => (await sql.query("select settings->>'home_session' h from public.engagements where id=$1", [room.id])).rows[0].h === walkIn, "Home set", 10000);
         await editor.locator(".rb-row", { hasText: "Walk-in loop" }).locator(".rb-chip", { hasText: "Home screen" }).waitFor({ timeout: 5000 });
         await editor.locator(".rb-row", { hasText: "Walk-in loop" }).locator(".rb-chip", { hasText: "3 images · 3s" }).waitFor({ timeout: 5000 });
