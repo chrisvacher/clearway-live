@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StageChip, StepChip } from "@/components/ui/chips";
 import { useToast } from "@/components/ui/toast";
 import type { Stage } from "@/lib/setup/stage";
+import { neighbours } from "@/lib/control/policy";
 import { kindLabels } from "@/lib/interactions/kinds";
 import { fillYears } from "@/lib/run-of-show/policy";
 import type { RunOfShow, ShowContext, ShowSession } from "@/lib/run-of-show/types";
@@ -124,11 +125,17 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
   const context = show.context;
   const shownId = frame?.state.live_session_id ?? null;
   const [chosen, setChosen] = useState<string | null>(null);
+  const [lastTake, setLastTake] = useState<{ id: string; version: number } | null>(null);
   const [askingEnd, setAskingEnd] = useState(false);
   const [picked, setMinutes] = useState<3 | 4 | 5 | null>(null);
   const [timerOpen, setTimerOpen] = useState(false), [notesOpen, setNotesOpen] = useState(false);
   const side = useRoomAdmin(), pressFlash = usePressFlash();
-  const previewing = (chosen ? show.sessions.find(step => step.id === chosen) : null) ?? room.upNext ?? null;
+  const selected = chosen ? show.sessions.find(step => step.id === chosen) : undefined;
+  // The press can succeed before the room stream delivers its new live step.
+  const next = lastTake && lastTake.version > (frame?.version ?? -1)
+    ? neighbours(show.sessions, lastTake.id, null).next
+    : room.steps.next;
+  const previewing = selected ?? next;
   const KindPanel = frame?.session ? controlPanels[frame.session.interaction] : undefined;
   const minutes = picked ?? ([3, 4, 5].includes(Number(current?.settings?.burst_minutes)) ? Number(current?.settings?.burst_minutes) as 3 | 4 | 5 : 4);
   const stage = context.closed ? workshop ? "done" : "closed" : shownId ? "live" : (initialStage === "done" || initialStage === "closed" || (frame && initialStage === "live")) ? "setup" : initialStage;
@@ -143,7 +150,8 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
   const goLive = (step: ShowSession) => void room.press("go_live", { session: step.id }).then(result => {
     if (result.status !== "ok") return;
     pressFlash.flash();
-    setChosen(null);
+    if (result.version !== undefined) setLastTake({ id: step.id, version: result.version });
+    setChosen(id => id === chosen ? null : id);
   });
   useRoomKeys({ room, previewing, onGoLive: goLive, minutes });
   function openPanel() {
@@ -203,7 +211,7 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
         <Banners room={room} />
         {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
         <div className="ctl-screens">
-          <PreviewScreen room={room} session={previewing} context={context} chosen={Boolean(chosen)} />
+          <PreviewScreen room={room} session={previewing} context={context} chosen={Boolean(selected)} />
           <LiveScreen room={room} flashing={pressFlash.flashing} />
         </div>
         <Transport room={room} context={context} previewing={previewing} onGoLive={goLive} flashing={pressFlash.flashing} />

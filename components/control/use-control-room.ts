@@ -164,7 +164,7 @@ export function useControlRoom(engagement: string, initialShow: RunOfShow) {
   const reload = now > 0 && (lastOk === null ? now - started.current > reloadAfterMs : mode === "offline" && now - lastOk > reloadAfterMs);
   const waiting = awaiting !== null && confirmed !== null && confirmed < awaiting;
 
-  const press = useCallback(async (action: ControlAction, extra: Omit<ControlPress, "id" | "action"> = {}) => {
+  const press = useCallback(async (action: ControlAction, extra: Omit<ControlPress, "id" | "action"> = {}): Promise<ControlResult> => {
     const id = pressId();
     setPending(action); setMessage("");
     try {

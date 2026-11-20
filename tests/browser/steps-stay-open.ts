@@ -87,6 +87,21 @@ async function main() {
         await until(async () => (await control.locator(`li[data-session="${steps[0]}"] .ctl-state-count`).innerText()) === "2", "the run of show counts the first step's answers", 10000);
       });
 
+      await step(`${skin}: Go live advances Preview to the following step, including one already open`, async () => {
+        const previewTitle = control.locator("#ctl-preview-title");
+        const transport = control.getByRole("group", { name: "Transport", exact: true });
+        await control.getByRole("button", { name: "Choose Another word", exact: true }).click();
+        await transport.getByRole("button", { name: "Go live: Another word", exact: true }).click();
+        await until(async () => (await live()) === steps[2], "the chosen step goes live", 10000);
+        await previewTitle.filter({ hasText: /^Last thoughts$/ }).waitFor();
+        await control.getByRole("img", { name: "Preview: Last thoughts", exact: true }).waitFor();
+
+        await settled();
+        await transport.getByRole("button", { name: "Go live: Last thoughts", exact: true }).click();
+        await until(async () => (await live()) === steps[3], "the final step goes live directly from Preview", 10000);
+        await previewTitle.filter({ hasText: /^Nothing to preview$/ }).waitFor();
+      });
+
       await step(`${skin}: Back twice puts an earlier step on the TV, live and answering`, async () => {
         await moveTo("back", steps[2]);
         await moveTo("back", steps[1]);
