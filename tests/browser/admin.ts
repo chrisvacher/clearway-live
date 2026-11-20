@@ -194,15 +194,22 @@ async function main() {
       await page.getByRole("button",{name:"Save changes",exact:true}).click();
       await page.getByRole("button",{name:"Save changes",exact:true}).waitFor({state:"hidden"});
       // Logo upload and removal use the same Save bar; content validation still happens on upload.
-      const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/lK0AAAAASUVORK5CYII=","base64");
+      const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==","base64");
       assert.equal(await page.getByText("No logo",{exact:true}).count(),1,"a church without a logo shows the empty box");
+      const uploaded=page.waitForResponse(response=>new URL(response.url()).pathname==="/api/setup/logo" && response.request().method()==="POST");
       await page.locator('input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:png});
-      await page.getByRole("img",{name:"Church logo preview"}).waitFor();
+      const uploadResponse=await uploaded;
+      assert.equal(uploadResponse.ok(),true,"a valid PNG uploads through Setup");
+      const uploadResult=await uploadResponse.json() as { url: string };
+      const logoPreview=page.getByRole("img",{name:"Church logo preview"});
+      assert.ok(await logoPreview.evaluate(async (img:HTMLImageElement)=>{ await img.decode(); return img.naturalWidth>0; }),"the uploaded PNG decodes before saving");
       await page.getByRole("status").filter({hasText:"Logo ready. Save to keep it."}).waitFor();
       await page.getByRole("button",{name:"Save changes",exact:true}).click();
       await page.getByRole("button",{name:"Save changes",exact:true}).waitFor({state:"hidden"});
-      await page.reload(); await page.getByRole("img",{name:"Church logo preview"}).waitFor();
-      assert.ok(await page.getByRole("img",{name:"Church logo preview"}).evaluate((img:HTMLImageElement)=>img.complete&&img.naturalWidth>0),"the saved logo loads after a reload");
+      const storedLogo=(await sql.query("select c.logo_url from public.engagements e join public.churches c on c.id=e.church_id where e.id=$1",[room.id])).rows[0].logo_url;
+      assert.equal(storedLogo,uploadResult.url,"Save changes stores the uploaded address");
+      await page.reload();
+      assert.ok(await logoPreview.evaluate(async (img:HTMLImageElement)=>{ await img.decode(); return img.naturalWidth>0; }),"the saved logo loads after a reload");
       await page.locator('input[type="file"]').setInputFiles({name:"logo.png",mimeType:"image/png",buffer:Buffer.from("this is only text")});
       await page.getByRole("alert").filter({hasText:"Use a PNG, JPEG or WebP image."}).waitFor();
       await page.getByRole("button",{name:"Remove",exact:true}).click();
