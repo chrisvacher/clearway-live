@@ -178,13 +178,14 @@ export function JoiningEditor({ initial, admin, onJoiningChange, navigationRef }
         </> : <Button size="small" disabled={busy || form.saving} onClick={() => void run(() => makeAdminLink("create"))}>Make an admin link</Button>}
       </SettingsSection>}
     </SettingsCard>
-    {message && <p role="alert" className="people-invalid">{message}</p>}
+    {message && !confirm && <p role="alert" className="people-invalid">{message}</p>}
     <SaveBar dirtyFields={form.dirtyFields} labels={labels} onDiscard={form.discard} onSave={save} error={form.error}
       saving={form.saving || busy} confirmation={form.confirmation} />
     <ConfirmDialog open={confirm !== null} title={confirm === "admin" ? "Make a new admin link?" : "Make a new room code?"}
-      description={confirm === "admin" ? "The old link stops working and anyone using it loses access." : "The old code and any printed QR code stop working. The link name keeps working."}
+      description={<>{confirm === "admin" ? "The old link stops working and anyone using it loses access." : "The old code and any printed QR code stop working. The link name keeps working."}
+        {message && <p role="alert" className="people-invalid">{message}</p>}</>}
       confirmLabel={confirm === "admin" ? "Make a new link" : "Make a new code"} busy={busy}
-      onCancel={() => setConfirm(null)} onConfirm={() => void run(async () => {
+      onCancel={() => { setConfirm(null); setMessage(""); }} onConfirm={() => void run(async () => {
         if (confirm === "admin") return makeAdminLink("cycle");
         const result = await setupRequest({ action: "room_code_renew", id: initial.id });
         setCode(result.room_code);

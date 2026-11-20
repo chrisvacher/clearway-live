@@ -1,23 +1,28 @@
 begin;
 
-alter table private.room_auth_devices add column signed_in_by_hand boolean not null default false;
+-- Signing in by name never grants scribe capabilities. The check applies to
+-- every write path, including direct edits and imports. Existing rows are retained.
+alter table public.attendees add constraint synthetic_attendee_is_participant
+  check (room_role <> 'scribe' or email !~ '@(?:guest|practice)\.clearway\.invalid$') not valid;
 
-create or replace function private.sign_in_room_device(p_engagement uuid,p_attendee uuid,p_code text) returns boolean
+create function private.attendee_roster_edit(p_engagement uuid,p_attendee uuid,p_person jsonb) returns boolean
 language plpgsql security definer set search_path='' as $$
-declare person public.attendees%rowtype;
 begin
-  if not ((select private.is_admin()) or private.can_facilitate(p_engagement)) or not private.room_is_open(p_engagement) then return false; end if;
-  select * into person from public.attendees where id=p_attendee and engagement_id=p_engagement and not deleted;
-  if not found then return false; end if;
-  update private.room_auth_devices set signed_in_by_hand=true,attendee_id=person.id,verified_email=person.email,granted_at=now(),claim_id=null,claim_started_at=null
-    where engagement_id=p_engagement and device_code=upper(replace(p_code,' ','')) and not deleted and revoked_at is null;
-  if not found then return false; end if;
-  update public.join_requests j set status=case when j.email=person.email then 'approved'::public.join_request_status else 'declined'::public.join_request_status end,
-    decided_at=now(),decided_by=private.clearway_user_id(),attendee_id=case when j.email=person.email then person.id else null end
-    where j.engagement_id=p_engagement and j.device_id in(select id from private.room_auth_devices where engagement_id=p_engagement and device_code=upper(replace(p_code,' ','')))
-      and j.status='pending' and not j.deleted;
-  return true;
+  if not ((select private.is_admin()) or private.can_facilitate(p_engagement)) then raise insufficient_privilege; end if;
+  perform private.lock_room_roster(p_engagement);
+  if not exists(select 1 from public.engagements where id=p_engagement and not deleted) then return false; end if;
+  update public.attendees
+    set name=btrim(p_person->>'name'),email=lower(btrim(p_person->>'email')),
+      role_at_church=coalesce(p_person->>'role_at_church',''),
+      room_role=coalesce(p_person->>'room_role','participant')::public.room_role
+    where id=p_attendee and engagement_id=p_engagement and not deleted;
+  return found;
 end $$;
+
+create function public.attendee_roster_edit(p_engagement uuid,p_attendee uuid,p_person jsonb) returns boolean
+language sql security invoker set search_path='' as $$ select private.attendee_roster_edit(p_engagement,p_attendee,p_person) $$;
+revoke all on function private.attendee_roster_edit(uuid,uuid,jsonb),public.attendee_roster_edit(uuid,uuid,jsonb) from public,anon,authenticated;
+grant execute on function private.attendee_roster_edit(uuid,uuid,jsonb),public.attendee_roster_edit(uuid,uuid,jsonb) to authenticated;
 
 -- Facilitators receive attendance facts only; OTP proofs and Auth identifiers stay private.
 create function private.attendee_roster_presence(p_engagement uuid)
@@ -27,19 +32,16 @@ begin
   if not ((select private.is_admin()) or private.can_facilitate(p_engagement)) then raise insufficient_privilege; end if;
   return query
   with activity as (
-    select d.attendee_id,max(d.last_seen_at) as latest from public.device_sessions d
+    select d.attendee_id,max(d.last_seen_at) as latest,(array_agg(d.signed_in_by_hand order by d.created_at desc,d.id desc))[1] as manual from public.device_sessions d
       where d.engagement_id=p_engagement and not d.deleted group by d.attendee_id
   ), sent as (
     select distinct (entry.person->>'id')::uuid as id from private.invitation_batches b
       cross join lateral jsonb_array_elements(b.payload->'people') as entry(person)
       where b.engagement_id=p_engagement and b.status='sent' and not b.deleted
-  ), by_hand as (
-    select distinct d.attendee_id from private.room_auth_devices d
-      where d.engagement_id=p_engagement and not d.deleted and d.signed_in_by_hand
   )
-  select p.id,coalesce(r.present,false),a.latest,s.id is not null,h.attendee_id is not null
+  select p.id,coalesce(r.present,false),a.latest,s.id is not null,coalesce(a.manual,false)
     from public.attendees p left join private.room_presence(p_engagement) r on r.attendee_id=p.id
-    left join activity a on a.attendee_id=p.id left join sent s on s.id=p.id left join by_hand h on h.attendee_id=p.id
+    left join activity a on a.attendee_id=p.id left join sent s on s.id=p.id
     where p.engagement_id=p_engagement and not p.deleted;
 end $$;
 
@@ -78,7 +80,7 @@ begin
   if cardinality(people)<>(select count(distinct id) from unnest(people) id) then
     return jsonb_build_object('status','invalid');
   end if;
-  perform pg_advisory_xact_lock(hashtextextended(p_engagement::text,7));
+  perform private.lock_room_roster(p_engagement);
   if not exists(select 1 from public.engagements where id=p_engagement and not deleted) then return jsonb_build_object('status','missing'); end if;
   perform 1 from public.attendees where engagement_id=p_engagement and id=any(people) order by id for update;
   if cardinality(people)<>(select count(*) from public.attendees

@@ -56,12 +56,27 @@ select tests.login(1);
 select is(public.attendee_merge(tests.id(100),tests.id(501),array[tests.id(503)])->>'status','invalid','A cross-room merge is refused');
 select is(public.attendee_merge(tests.id(100),tests.id(501),array[tests.id(504)])->>'status','invalid','An attendee on the email list cannot merge');
 select is(public.attendee_merge(tests.id(100),tests.id(502),array[tests.id(501)])->>'status','invalid','The earliest entry is retained');
+reset role;
+insert into private.followup_access(engagement_id,attendee_id,email,session_ids,token_hash,code_hash,opens_at,closes_at)
+values(tests.id(100),tests.id(502),'second@guest.clearway.invalid',array[tests.id(601)],repeat('a',64),repeat('b',64),now(),now()+interval '1 hour');
+set local role authenticated;
+select tests.login(1);
+select is(public.attendee_merge(tests.id(100),tests.id(501),array[tests.id(502)])->>'status','invalid','A merge cannot move an active follow-up credential');
+reset role;
+update private.followup_access set revoked_at=now() where attendee_id=tests.id(502);
+set local role authenticated;
+select tests.login(1);
 select is(public.attendee_merge(tests.id(100),tests.id(501),array[tests.id(502)])->>'status','ok','The assigned facilitator merges same-name guests');
 select is((select count(*)::integer from public.room_presence(tests.id(100))),1,'Presence counts one person');
 select is((select device_count::integer from public.room_presence(tests.id(100)) where attendee_id=tests.id(501)),2,'Both originally verified devices stay signed in');
 select is((select count(*)::integer from public.attendee_roster_presence(tests.id(100)) where present),1,'Roster marks one present person');
 select is(public.attendee_roster_change(tests.id(100),'role',jsonb_build_array(jsonb_build_object('id',tests.id(501))),'scribe')->>'status',
   'invalid','Merged guests cannot gain the scribe role via the roster');
+select throws_ok($$select public.attendee_roster_edit(tests.id(100),tests.id(501),
+  '{"name":"Kit Dana","email":"first@guest.clearway.invalid","room_role":"scribe"}')$$,
+  '23514',null,'A row edit cannot make a no-email guest a scribe');
+select is(public.attendee_roster_edit(tests.id(100),tests.id(504),
+  '{"name":"Kit Dana","email":"listed@example.org","room_role":"scribe"}'),true,'A listed person can still be assigned as scribe');
 select tests.login(3);
 select is(tests.role(100),'participant','The original retained device still participates');
 select is((select id from public.attendees where id=tests.id(501)),tests.id(501),'Retained account still sees the retained attendee');

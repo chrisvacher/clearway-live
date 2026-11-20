@@ -45,7 +45,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (result.error || result.data?.status !== "ok") {
     return answer({
       ok: false,
-      message: body.action === "merge" ? "Choose entries with the same name, no email and the Participant role."
+      message: result.data?.status === "busy" ? "The room is updating these people. Try again." : body.action === "merge" ? "Choose entries with the same name, no email and the Participant role."
         : body.action === "restore" ? "The roster has changed. Add the person again if needed."
         : "The roster has changed. Review the selection and try again.",
     }, 409);

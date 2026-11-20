@@ -64,6 +64,7 @@ export function AttendeeEditor({ data, joining, admin, church, zone, linked, ini
   const [query, setQuery] = useState("");
   const [selected, select] = useState<string[]>([]);
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [editEmail, setEditEmail] = useState("");
   const [confirm, setConfirm] = useState<Confirmation | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -73,6 +74,7 @@ export function AttendeeEditor({ data, joining, admin, church, zone, linked, ini
   const access = useRef<{ leave: (continueNavigation: () => void) => void }>(null);
   const inFlight = useRef(false);
   const { id, closed } = joining;
+  const editHasEmail = Boolean(editEmail.trim()) && !guestEmail(editEmail.trim());
 
   useEffect(() => {
     if (tab !== "people") return;
@@ -229,7 +231,7 @@ export function AttendeeEditor({ data, joining, admin, church, zone, linked, ini
           {canMerge && <Button size="small" disabled={busy} onClick={() => setConfirm({ kind: "merge", attendees: chosen })}><Merge aria-hidden="true" />Merge into one</Button>}
           {canInvite && <Button size="small" disabled={busy} onClick={() => void act(() => sendInvites(chosen))}><Mail aria-hidden="true" />Send invites</Button>}
           {data.changesAvailable && <Menu label="Change role" trigger={<>Change role <ChevronDown aria-hidden="true" /></>}
-            items={Object.entries(roleLabel).map(([role, label]) => ({ label, disabled: busy || !canUpdateSelection, onSelect: () => void act(() => changeRole(role as PeopleAttendee["room_role"])) }))} />}
+            items={Object.entries(roleLabel).map(([role, label]) => ({ label, disabled: busy || !canUpdateSelection || (role === "scribe" && chosen.some(withoutEmail)), onSelect: () => void act(() => changeRole(role as PeopleAttendee["room_role"])) }))} />}
           <Button variant="danger" size="small" disabled={busy || !canUpdateSelection} onClick={() => setConfirm({ kind: "remove", attendees: chosen })}>Remove</Button>
         </>}
         rows={visible.map(person => {
@@ -242,14 +244,14 @@ export function AttendeeEditor({ data, joining, admin, church, zone, linked, ini
             now: <Now status={joined} zone={zone} invited={isInvited(person)} />,
             role: person.id === data.teamFacilitator ? "Team facilitator" : data.facilitatorEmails.includes(person.email) ? "Co-facilitator" : roleLabel[person.room_role],
             actions: <Menu label={`Actions for ${person.name}`} items={[
-              { label: "Edit", disabled: busy, onSelect: () => setPanel({ kind: "edit", attendee: person }) },
+              { label: "Edit", disabled: busy, onSelect: () => { setError(""); setEditEmail(withoutEmail(person) ? "" : person.email); setPanel({ kind: "edit", attendee: person }); } },
               ...(!withoutEmail(person) && !closed ? [{ label: "Sign in this device", disabled: busy, onSelect: () => setPanel({ kind: "manual", attendee: person }) }] : []),
               ...(hasEmail(person) && !closed ? [{ label: "Send invite", disabled: busy, onSelect: () => void act(() => sendInvites([person])) }] : []),
               { label: "Remove", danger: true, dividerBefore: true, disabled: busy, onSelect: () => setConfirm({ kind: "remove", attendees: [person] }) },
             ]} />,
           } };
         })} />
-      {error && !panel && <p role="alert" className="people-invalid">{error}</p>}
+      {error && !panel && !confirm && <p role="alert" className="people-invalid">{error}</p>}
     </TabPanel>
     <TabPanel id="access" active={tab === "access"}><JoiningEditor initial={joining} admin={admin} onJoiningChange={setOpen} navigationRef={access} /></TabPanel>
     {panel && <PeoplePanel title={panel.kind === "add" ? sources[panel.source] : panel.kind === "waiting" ? "Waiting to join" : panel.kind === "edit" ? "Edit person" : "Sign in this device"}
@@ -262,9 +264,11 @@ export function AttendeeEditor({ data, joining, admin, church, zone, linked, ini
       </li>)}</ul>}
       {panel.kind === "edit" && <form className="form-stack" onSubmit={event => void savePerson(event, panel.attendee)}>
         <label>Name<input name="name" defaultValue={panel.attendee.name} maxLength={200} required /></label>
-        <label>Email<input name="email" type="email" defaultValue={withoutEmail(panel.attendee) ? "" : panel.attendee.email} maxLength={254} required={!withoutEmail(panel.attendee)} /></label>
+        <label>Email<input name="email" type="email" value={editEmail} onChange={event => setEditEmail(event.target.value)} maxLength={254} required={!withoutEmail(panel.attendee)} /></label>
         <label>Role at the church<input name="role_at_church" defaultValue={panel.attendee.role_at_church} maxLength={200} /></label>
-        <label>Room role<Select name="room_role" defaultValue={panel.attendee.room_role}><option value="participant">Participant</option><option value="scribe">Scribe</option></Select></label>
+        {editHasEmail
+          ? <label>Room role<Select name="room_role" defaultValue={panel.attendee.room_role}><option value="participant">Participant</option><option value="scribe">Scribe</option></Select></label>
+          : <><input type="hidden" name="room_role" value="participant" /><p>Room role <strong>Participant</strong>. Add an email address to choose Scribe.</p></>}
         <p>Changing an email signs out the person’s devices. They’ll use the new email to sign in again.</p>
         {!!Object.keys(panel.attendee.extra_fields ?? {}).length && <details><summary>View additional fields</summary><dl>{Object.entries(panel.attendee.extra_fields).map(([key, value]) => <div key={key}><dt>{key}</dt><dd>{value}</dd></div>)}</dl></details>}
         <Button variant="primary" type="submit" disabled={busy}>Save person</Button>
@@ -286,8 +290,9 @@ export function AttendeeEditor({ data, joining, admin, church, zone, linked, ini
       {error && <p role="alert" className="people-invalid">{error}</p>}
     </PeoplePanel>}
     <ConfirmDialog open={Boolean(confirm)} title={confirm?.kind === "merge" ? "Merge these people?" : confirm?.attendees.length === 1 ? `Remove ${confirm.attendees[0].name}?` : "Remove these people?"}
-      description={confirm?.kind === "merge" ? "The earliest entry keeps their answers and signed-in devices." : "Their signed-in devices lose access. Answers stay with the engagement."}
-      cancelLabel="Cancel" confirmLabel={confirm?.kind === "merge" ? "Merge into one" : "Remove"} busy={busy} onCancel={() => setConfirm(null)}
+      description={<>{confirm?.kind === "merge" ? "The earliest entry keeps their answers and signed-in devices." : "Their signed-in devices lose access. Answers stay with the engagement."}
+        {error && <p role="alert" className="people-invalid">{error}</p>}</>}
+      cancelLabel="Cancel" confirmLabel={confirm?.kind === "merge" ? "Merge into one" : "Remove"} busy={busy} onCancel={() => { setConfirm(null); setError(""); }}
       onConfirm={() => void act(confirmAction)} />
   </main>;
 }
