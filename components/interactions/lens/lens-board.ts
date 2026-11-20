@@ -20,6 +20,7 @@ type Cluster = { el: HTMLElement; num: HTMLElement; label: HTMLElement; count: H
 
 export class LensBoard {
   private feed: Feed;
+  private feedList: HTMLElement;
   private arrivals = new ArrivalOrder();
   private clusters = new Map<string, Cluster>();
   private order: string[] = [];
@@ -43,7 +44,8 @@ export class LensBoard {
     this.empty = make("p", "lens-empty", "Clustering as sentences arrive");
     this.list = make("div", "lens-cluster-list");
     clusters.append(head, this.empty, this.list);
-    const column = make("section", "tv-feed lens-feed"), rows = make("div", "tv-feed-list");
+    const column = make("section", "tv-feed lens-feed");
+    const rows = this.feedList = make("div", "tv-feed-list");
     column.setAttribute("aria-label", "Sentences");
     column.append(make("p", "tv-feed-head", "Sentences · newest first"), rows);
     this.wall.append(clusters, column);
@@ -163,24 +165,31 @@ export class LensBoard {
     return { drifting, now };
   }
   private drift(moves: { id: string; to: string }[]) {
+    if (!moves.length) return;
+    const feedBox = this.feedList.getBoundingClientRect();
     const rootBox = this.root.getBoundingClientRect(), scale = this.root.offsetWidth ? rootBox.width / this.root.offsetWidth : 1;
     const duration = tokenMs(this.root, "cwl-dur-cluster-drift"), step = tokenMs(this.root, "cwl-delay-regroup-step");
     // A sentence crosses much of the screen, so it keeps an even pace (a sine in and out): the calm curve's
     // fast first moments would read as a snap on a long drift.
     const easing = "cubic-bezier(0.37, 0, 0.63, 1)";
-    moves.forEach(({ id, to }, index) => {
+    let driftIndex = 0;
+    for (const { id, to } of moves) {
       const row = this.feed.element(id), target = this.clusters.get(to)?.el;
-      if (!row || !target || typeof row.animate !== "function") return;
-      const a = row.getBoundingClientRect(), b0 = target.getBoundingClientRect(), g = this.glides.get(target), b = g ? { left: b0.left - g.dx, top: b0.top - g.dy, width: b0.width, height: b0.height } : b0;
-      if (!a.width || !b.width) return;
+      if (!row || !target || typeof row.animate !== "function") continue;
+      const a = row.getBoundingClientRect();
+      // The feed retains older rows below its clip. Only copy a row viewers can see.
+      if (!a.width || !a.height || a.bottom <= feedBox.top || a.top >= feedBox.bottom) continue;
+      const b0 = target.getBoundingClientRect(), g = this.glides.get(target), b = g ? { left: b0.left - g.dx, top: b0.top - g.dy, width: b0.width, height: b0.height } : b0;
+      if (!b.width) continue;
       const ghost = row.cloneNode(true) as HTMLElement;
       ghost.classList.add("lens-ghost"); ghost.removeAttribute("data-key"); ghost.setAttribute("aria-hidden", "true");
       Object.assign(ghost.style, { left: `${(a.left - rootBox.left) / scale}px`, top: `${(a.top - rootBox.top) / scale}px`, width: `${a.width / scale}px` });
       this.root.appendChild(ghost);
       const dx = (b.left + b.width / 2 - (a.left + a.width / 2)) / scale, dy = (b.top + b.height / 2 - (a.top + a.height / 2)) / scale;
       const run = ghost.animate([{ transform: "translate(0,0)", opacity: 0 }, { opacity: 1, offset: 0.15 }, { transform: `translate(${dx}px,${dy}px) scale(0.6)`, opacity: 0 }],
-        { duration, delay: index * step, easing, fill: "backwards" });
+        { duration, delay: driftIndex * step, easing, fill: "backwards" });
+      driftIndex++;
       run.onfinish = run.oncancel = () => ghost.remove();
-    });
+    }
   }
 }

@@ -14,6 +14,10 @@ export function shortRoomLink(code: string, skin: Skin = "clearway", env?: Param
   if (!roomCode(code)) throw new Error("Invalid room code");
   return `${roomOrigin(skin, env)}/${roomPath(code, name)}`;
 }
+// TV scenes and their mirrors use the same public room address during server and browser rendering.
+export function publicRoomLink(code: string, skin: Skin, name?: string | null) {
+  return shortRoomLink(code, skin, {}, name);
+}
 // What follows the host in the room link: the chosen link name when there is one, else the code in capitals.
 export const roomPath = (code: string, name?: string | null) => name && /^[a-z0-9]{3,24}$/.test(name) ? name : code.toUpperCase();
 // What a person types or pastes into the join box: the code alone, with spaces or a

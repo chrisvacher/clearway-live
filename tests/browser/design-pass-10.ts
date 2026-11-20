@@ -52,6 +52,23 @@ function engagementVisits(id: string, workshop: boolean): Visit[] {
   ];
 }
 
+async function waitForContent(page: Page, visit: Visit) {
+  const loading = {
+    report: "Reading the report.",
+    plan: "Reading the plan.",
+    review: "Reading the review.",
+  } as const;
+  if (visit.destination?.endsWith("/recap") || visit.name === "results") {
+    await page.getByLabel("Loading summary", { exact: true }).waitFor({ state: "hidden", timeout: 5000 });
+  } else if (visit.name === "operations") {
+    await page.getByText(/^Last checked at /).waitFor({ timeout: 5000 });
+  } else if (visit.name === "live-room") {
+    await page.locator(".ctl-screen.is-preview .tv-mirror").waitFor({ timeout: 5000 });
+  } else if (visit.name === "report" || visit.name === "plan" || visit.name === "review") {
+    await page.getByText(loading[visit.name], { exact: true }).waitFor({ state: "hidden", timeout: 5000 });
+  }
+}
+
 async function checkLayout(page: Page, visit: Visit, width: number) {
   const layout = await page.evaluate(() => {
     const bounds = document.querySelector("#main")!.getBoundingClientRect();
@@ -133,6 +150,7 @@ async function main() {
               await tab.click({ timeout: 5_000 });
               await page.locator('[role="tab"][aria-selected="true"]').filter({ hasText: visit.tab }).waitFor({ timeout: 5_000 });
             }
+            await waitForContent(page, visit);
             await page.evaluate(() => document.fonts.ready.then(() => undefined));
             const capture = async (name: string) => {
               const file = join(group.key, `${name}.png`);

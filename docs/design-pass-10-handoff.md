@@ -12,7 +12,7 @@
 | E1 to E5, live room | Redesigned header, run list, TV and phone monitors, transport controls and Room admin drawer. Added responsive controls and a simplified facilitator remote. |
 | R1 to R5, run of show | Three desktop panes hold the step list, engagement-skinned TV and phone preview, and the selected step's settings. Step editing autosaves. File, template, print and reload actions stay in the toolbar or its More menu. |
 | G1 to G5, results and admin | Results has summary and download actions and a per-step results grid. Templates and Blocks share a library. Clearway users and Operations use the shared admin patterns. Date and time formatting on Templates and the live room is deterministic across server and browser. |
-| S, sweep | Added a reproducible signed-in browser sweep for both workshop brands and Wayfinding. It checks page widths and route destinations and records 1440-pixel screenshots. |
+| S, sweep | Added a reproducible signed-in browser sweep for both workshop brands and Wayfinding. It checks page widths, route destinations and render errors and records 1440-pixel screenshots. The room link and QR code now render identically in the server and browser TV previews. Lens items animate from visible feed rows. |
 
 ## Migrations for rollout
 
