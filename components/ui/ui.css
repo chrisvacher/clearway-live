@@ -197,12 +197,18 @@
 
   .cwl-ui-tabs { display: flex; min-width: 0; gap: var(--space-1); flex-wrap: wrap; border-bottom: 1px solid var(--cwl-app-border); }
   .cwl-ui-tabs button {
-    display: inline-flex; min-height: 36px; align-items: center; gap: var(--space-2); padding: 10px 12px;
-    margin-bottom: -1px; border-bottom: 2px solid transparent;
-    color: var(--cwl-app-text-muted); font-size: var(--cwl-fs-app-table); font-weight: var(--fw-semibold); cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    min-height: 36px; margin: 0 0 -1px; padding: 10px 12px;
+    border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+    background: transparent; box-shadow: none;
+    color: var(--cwl-app-text-muted); font: inherit;
+    font-size: var(--cwl-fs-app-table); font-weight: var(--fw-semibold); line-height: 1.25;
+    white-space: nowrap; cursor: pointer;
   }
-  .cwl-ui-tabs button:hover { background: var(--cwl-app-hover); }
-  .cwl-ui-tabs button[aria-selected="true"] { color: var(--cwl-app-text); font-weight: var(--fw-bold); border-color: var(--cwl-app-primary); }
+  .cwl-ui-tabs button:hover { background: transparent; color: var(--cwl-app-text); border-bottom-color: var(--cwl-app-border-strong); }
+  .cwl-ui-tabs button[aria-selected="true"] { color: var(--cwl-app-text); font-weight: var(--fw-bold); border-bottom-color: var(--cwl-app-primary); }
+  .cwl-ui-tabs button[aria-selected="true"]:hover { border-bottom-color: var(--cwl-app-primary); }
   .cwl-ui-tab-count { padding: 0 var(--space-1); border-radius: 4px; background: var(--cwl-app-sunken); font-size: var(--cwl-fs-app-micro); }
 
   .cwl-ui-data-table { min-width: 0; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }

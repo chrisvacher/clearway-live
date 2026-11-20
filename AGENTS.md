@@ -42,6 +42,7 @@ Match CORE (`chrisvacher/clearway-core`) as closely as possible: copy its packag
 - One milestone at a time. Chris accepts each in the practice room before the next starts.
 - Write tests from the acceptance criteria. They run on every pull request.
 - Every pull request gets a Vercel preview.
+- When Chris asks to commit and push to remote `main`, push to `main` for Vercel production and let GitHub CI run in the background. Run any checks Chris explicitly requests before pushing. Verify that `live.clearway.co` serves the new deployment.
 - Raise a question rather than work around a decision marked Decided in the PRD.
 - Build to every Default in the PRD until Chris changes it.
 

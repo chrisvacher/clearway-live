@@ -50,6 +50,10 @@ function Fixture() {
     <Tabs label="People and access" value={tab} onChange={setTab} items={[{ label: "People", id: "people", count: 1 }, { label: "Access", id: "access" }]} />
     <TabPanel id="people" active={tab === "people"}>People joining the room.</TabPanel>
     <TabPanel id="access" active={tab === "access"}>How people join.</TabPanel>
+    <Tabs label="Engagements by date" value="upcoming" onChange={() => {}} items={[{ label: "Upcoming", id: "upcoming", count: 1 }, { label: "Past", id: "past" }]} />
+    <div data-surface="control">
+      <Tabs label="Room admin tabs" value="room" onChange={() => {}} items={[{ label: "Room", id: "room" }, { label: "Questions", id: "questions", count: 2 }, { label: "Responses", id: "responses" }, { label: "Tools", id: "tools" }]} />
+    </div>
     <SettingsCard>
       <SettingsSection title="The event" description="Set the event title and time zone.">
         <Field label="Event title" wide dirty={form.dirtyFields.includes("title")}>

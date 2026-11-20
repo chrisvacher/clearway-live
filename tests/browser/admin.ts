@@ -6,6 +6,7 @@ import { chromium } from "playwright";
 import { setupInput } from "../../lib/setup/policy";
 import { linkQr } from "../../lib/tv/qr";
 import { db, engagement, facilitator, localEnv, mailbox, press, startApp, until } from "./harness";
+import { checkTabAppearance } from "./tab-appearance";
 async function main() {
   const operationsAddress = "operations@clearway.test";
   process.env.OPERATIONS_ALERT_EMAIL = operationsAddress;
@@ -82,11 +83,15 @@ async function main() {
           }
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/admin");
           if(path==="/admin") {
+            await checkTabAppearance(page.getByRole("tablist",{name:"Engagements by date",exact:true}));
             const row=page.locator(".eng-row").filter({has:page.locator(`a[href="/admin/${room.id}"]`)});
             assert.equal(await row.getByRole("link",{name:"Continue setup",exact:true}).count(),1,"a workshop in Setup leads with Continue setup");
             await row.getByRole("button",{name:"More actions",exact:true}).click();
             for(const label of ["Overview","Run of show","People","Results"]) assert.equal(await page.getByRole("menuitem",{name:label,exact:true}).count(),1,label);
             await page.keyboard.press("Escape");
+          }
+          if(path===`/admin/${room.id}/joining`) {
+            await checkTabAppearance(page.getByRole("tablist",{name:"People and access",exact:true}));
           }
           if(path===`/admin/${room.id}`) {
             assert.equal(await page.getByRole("heading",{name:"Staff planning workshop",level:1}).count(),1,"Overview is headed by the event title");
@@ -643,6 +648,7 @@ async function main() {
         await toggle.click();
         await drawer.waitFor();
         await page.locator(".ctl-cols.has-side:not(.is-side-off)").waitFor();
+        if (width === 1440) await checkTabAppearance(drawer.getByRole("tablist", { name: "Room admin tabs", exact: true }));
         const after = (await transport.boundingBox())!;
         assert.ok(Math.abs(before.width-after.width)<1 && Math.abs(before.x-after.x)<1, `the overlay leaves the transport in place at ${width}px`);
         const buttonBoxes = await transport.locator("button").evaluateAll(buttons => buttons.map(button => {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, readdir } from "node:fs/promises";
 import { build } from "esbuild";
 import { chromium, expect as playwrightExpect } from "playwright/test";
+import { checkTabAppearance } from "./tab-appearance";
 
 const origin = "http://clearway-ui-kit.test";
 const stylesheet = [
@@ -69,6 +70,10 @@ async function main() {
     await page.keyboard.press("ArrowRight");
     await playwrightExpect(tabs.getByRole("tab", { name: "Access" })).toBeFocused();
     await playwrightExpect(tabs.getByRole("tab", { name: "Access" })).toHaveAttribute("aria-selected", "true");
+    await playwrightExpect(tabs.getByRole("tab", { name: "Access" })).toHaveCSS("outline-width", "2px");
+    await playwrightExpect(tabs.getByRole("tab", { name: "Access" })).toHaveCSS("outline-offset", "2px");
+    const tablists = [tabs, ...["Engagements by date", "Room admin tabs"].map(name => page.getByRole("tablist", { name, exact: true }))];
+    for (const tablist of tablists) await checkTabAppearance(tablist);
 
     const zone = page.getByRole("combobox", { name: "Time zone" });
     await zone.fill("can");
@@ -138,6 +143,11 @@ async function main() {
     for (const width of [1280, 1440, 1512, 390]) {
       await page.setViewportSize({ width, height: 900 });
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `the kit fits at ${width}px`);
+    }
+    for (const tablist of tablists) {
+      for (const tab of await tablist.getByRole("tab").all()) {
+        assert.ok((await tab.boundingBox())!.height >= 44, "each tab keeps a 44px phone touch target");
+      }
     }
     await page.getByRole("button", { name: "More for Ruth" }).click();
     await page.getByRole("menuitem", { name: "Edit Ruth" }).click();
