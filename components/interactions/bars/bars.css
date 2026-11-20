@@ -110,9 +110,12 @@
 [data-theme="light"] .ph-scale-btns button:not([aria-checked="true"]), [data-theme="light"] .ph-stmt-btns button:not([aria-checked="true"]) { box-shadow: inset 0 0 0 1px var(--cwl-border); }
 .ph-scale-btns button[aria-checked="true"], .ph-stmt-btns button[aria-checked="true"] { background: var(--cwl-button-primary); color: var(--cwl-on-accent); box-shadow: 0 0 0 2px var(--cwl-surface), 0 0 0 4px var(--cwl-border-strong); }
 .ph-scale-btns button:disabled, .ph-stmt-btns button:disabled { cursor: default; }
-.ph-ends { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-semibold); line-height: 1.35; }
+.ph-ends { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); line-height: 1.3; }
 .surface .ph-app .ph-ends, .ph-ends { color: var(--cwl-text-muted); }
-.ph-ends span:last-child { text-align: right; }
+.ph-end { display: flex; flex-direction: column; gap: 2px; max-width: 42%; }
+.ph-end:last-child { align-items: flex-end; text-align: right; }
+.ph-end-n { font-size: var(--cwl-fs-phone-body); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; color: var(--cwl-text); }
+.ph-end-label { font-size: var(--cwl-fs-phone-micro); font-weight: var(--fw-regular); }
 .ph-slider-row { display: flex; align-items: baseline; justify-content: space-between; }
 .ph-slider-value { font-size: var(--cwl-fs-phone-headline); font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; color: var(--cwl-text); }
 .ph-slider { -webkit-appearance: none; appearance: none; width: 100%; height: var(--cwl-phone-touch); margin: 0; background: transparent; cursor: pointer; }

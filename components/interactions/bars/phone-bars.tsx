@@ -44,6 +44,15 @@ export function ChoiceInput({ step, mine, open, send }: PhoneInputProps) {
   </div>;
 }
 
+// The two ends of a scale: the number large on its own line, the label smaller beneath it,
+// so 1 and the top number stay easy to find however long the labels are.
+function Ends({ low, high, max }: { low: string; high: string; max: number }) {
+  return <div className="ph-ends" aria-hidden="true">
+    <span className="ph-end"><span className="ph-end-n">1</span><span className="ph-end-label">{low}</span></span>
+    <span className="ph-end"><span className="ph-end-n">{max}</span><span className="ph-end-label">{high}</span></span>
+  </div>;
+}
+
 // INT-05: up to seven numbers as buttons (a tap sends, another tap changes it); wider
 // ranges as a slider that sends when it comes to rest.
 export function ScaleInput({ step, mine, open, send }: PhoneInputProps) {
@@ -53,7 +62,7 @@ export function ScaleInput({ step, mine, open, send }: PhoneInputProps) {
   const [slide, setSlide] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
-  const ends = <div className="ph-ends" aria-hidden="true"><span>1 · {o.low ?? "Not at all"}</span><span>{max} · {o.high ?? "Completely"}</span></div>;
+  const ends = <Ends low={o.low ?? "Not at all"} high={o.high ?? "Completely"} max={max} />;
   if (scaleUsesSlider(max)) {
     const shown = slide ?? value ?? Math.ceil(max / 2);
     const settle = (n: number) => { setSlide(n); clearTimeout(timer.current); timer.current = setTimeout(() => { choose(n); setSlide(null); }, 600); };
@@ -188,7 +197,7 @@ export function StatementsInput({ step, mine, open, send }: PhoneInputProps) {
     setLocal(next); send({ text: `${Object.keys(next).length} of ${items.length} rated`, value: { ratings: next } });
   };
   return <div className="ph-bars">
-    <div className="ph-ends"><span>1 · {o.low ?? "Strongly disagree"}</span><span>5 · {o.high ?? "Strongly agree"}</span></div>
+    <Ends low={o.low ?? "Strongly disagree"} high={o.high ?? "Strongly agree"} max={5} />
     <div className="ph-stmts">{items.map(s => <div key={s.key} className="ph-stmt">
       <p className="ph-stmt-text" id={`ph-stmt-${step.id}-${s.key}`}>{s.text}</p>
       <div className="ph-stmt-btns" role="radiogroup" aria-labelledby={`ph-stmt-${step.id}-${s.key}`}>
