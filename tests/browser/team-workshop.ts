@@ -89,7 +89,8 @@ async function main() {
       await tv.goto(app.origin + "/tv");
       const code = await until(async () => { const c = (await tv.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
       await setup.goto(`${app.origin}/admin/${room.id}/tv`);
-      await setup.locator("#tv-pair-code").fill(code); await setup.locator("#tv-label").fill("Workshop TV");
+      await setup.getByLabel("Code on the TV", { exact: true }).fill(code);
+      await setup.getByLabel("Name this screen", { exact: true }).fill("Workshop TV");
       await setup.getByRole("button", { name: "Pair this TV" }).click();
       await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
       await until(async () => (await setup.locator(".tv-screen-list").innerText().catch(() => "")).includes("Workshop TV"), "the TV in Paired screens", 10000);
