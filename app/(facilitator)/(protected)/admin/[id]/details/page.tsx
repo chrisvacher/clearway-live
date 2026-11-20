@@ -1,20 +1,40 @@
 import { notFound } from "next/navigation";
-import { requireFacilitator } from "@/lib/server/facilitator";
 import { SetupEditor } from "@/components/facilitator/setup-editor";
-import { setupFormFromRows } from "@/lib/setup/form";
+import { requireFacilitator } from "@/lib/server/facilitator";
 import { teamHubConfigured } from "@/lib/server/team-hub";
-import { brandFor,skins } from "@/lib/brand";
 import { uuid } from "@/lib/room/policy";
+import { setupFormFromRows } from "@/lib/setup/form";
+import { eventDate } from "@/lib/setup/listing";
+import { overviewReadiness } from "@/lib/setup/overview";
+import { readOverviewFacts } from "@/lib/setup/overview-server";
+import { stageFor } from "@/lib/setup/stage";
+
 export const metadata = { title: "Details" };
-export default async function EditEngagement({params}:{params:Promise<{id:string}>}){
-  const {id}=await params;if(!uuid(id))notFound();const {client,profile}=await requireFacilitator();
-  const {data:e}=await client.from("engagements").select("*").eq("id",id).eq("deleted",false).maybeSingle();if(!e)notFound();
-  const [{data:c},{data:members},{data:assignments}]=await Promise.all([
-    client.from("churches").select("*").eq("id",e.church_id).eq("deleted",false).maybeSingle(),
-    client.from("clearway_users").select("id,name,email").eq("deleted",false).eq("kind","person").order("name"),
-    client.from("engagement_facilitators").select("clearway_user_id,role").eq("engagement_id",id).eq("deleted",false),
-  ]);if(!c)notFound();
-  return <><main id="main" className="admin-page"><header className="admin-heading"><div><div className="admin-kicker">{c.name} · {e.title}</div><h1>Details</h1><p>The event, the church and how the room works. Each card saves on its own.</p></div></header>
-    <SetupEditor id={id} roomPath={e.link_name??e.room_code} hosts={Object.fromEntries(skins.map(s=>[s,brandFor(s).host]))} admin={profile.is_admin} hubConfigured={teamHubConfigured()} members={members||[]} initial={setupFormFromRows(e,c,assignments)} />
-  </main></>;
+
+export default async function EditEngagement({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  if (!uuid(id)) notFound();
+  const { client, profile } = await requireFacilitator();
+  const { data: engagement } = await client.from("engagements").select("*").eq("id", id).eq("deleted", false).maybeSingle();
+  if (!engagement) notFound();
+  const [church, members, assignments, facts, atomicSave] = await Promise.all([
+    client.from("churches").select("*").eq("id", engagement.church_id).eq("deleted", false).maybeSingle(),
+    client.from("clearway_users").select("id,name,email").eq("deleted", false).eq("kind", "person").order("name"),
+    client.from("engagement_facilitators").select("clearway_user_id,role,user:clearway_users!inner(kind)").eq("user.kind", "person")
+      .eq("engagement_id", id).eq("deleted", false),
+    engagement.type === "team_workshop" ? readOverviewFacts(client, id) : null,
+    client.rpc("engagement_details_patch", { p_engagement: id, p_change: {} }),
+  ]);
+  if (!church.data) notFound();
+  const initial = setupFormFromRows(engagement, church.data, assignments.data);
+  const readiness = facts ? overviewReadiness({
+    ...facts, hasDate: Boolean(eventDate(engagement, church.data.timezone)), openJoin: initial.engagement.settings.open_join,
+  }) : [];
+  const stage = stageFor(engagement, readiness, { live_session_id: facts?.liveSessionId });
+  const canSaveMixedDetails = atomicSave.data === "ok";
+  return <main id="main" className="admin-page cwl-c-details">
+    <SetupEditor id={id} initial={initial} members={members.data ?? []} admin={profile.is_admin} hubConfigured={teamHubConfigured()}
+      canSaveMixedDetails={canSaveMixedDetails} canChangeFacilitators={profile.kind === "person" && canSaveMixedDetails}
+      stage={stage} archiveAvailable={profile.kind === "person" && Object.hasOwn(engagement, "archived_at")} archived={Boolean(engagement.archived_at)} now={new Date().toISOString()} />
+  </main>;
 }

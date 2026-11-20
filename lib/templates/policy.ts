@@ -1,3 +1,4 @@
+import { formatInZone } from "../time/format";
 import { uuid } from "../room/identity";
 import type { Template } from "./types";
 
@@ -5,7 +6,8 @@ import type { Template } from "./types";
 export type TemplateAction =
   | { action: "save"; input: { engagement: string; name: string; description: string; shared: boolean; sessions?: string[] } }
   | { action: "apply"; input: { template: string; engagement: string; start: string | null } }
-  | { action: "remove"; input: { template: string } };
+  | { action: "remove" | "duplicate"; input: { template: string } }
+  | { action: "rename"; input: { template: string; name: string } };
 
 export function templateInput(body: Record<string, unknown>): TemplateAction {
   const v = body.input && typeof body.input === "object" && !Array.isArray(body.input) ? body.input as Record<string, unknown> : {};
@@ -29,9 +31,15 @@ export function templateInput(body: Record<string, unknown>): TemplateAction {
     }
     return { action: "apply", input: { template: v.template, engagement: v.engagement, start } };
   }
-  if (body.action === "remove") {
+  if (body.action === "rename") {
+    const name = typeof v.name === "string" ? v.name.replace(/\s+/g, " ").trim() : "";
     if (!uuid(v.template)) throw new Error("Choose a template.");
-    return { action: "remove", input: { template: v.template } };
+    if (!name || [...name].length > 120) throw new Error("Give the template a name of up to 120 characters.");
+    return { action: "rename", input: { template: v.template, name } };
+  }
+  if (body.action === "remove" || body.action === "duplicate") {
+    if (!uuid(v.template)) throw new Error("Choose a template.");
+    return { action: body.action, input: { template: v.template } };
   }
   throw new Error("Choose a template action.");
 }
@@ -49,8 +57,8 @@ export const removeTemplateQuestion = (name: string) => `Remove ${name}? Engagem
 
 // The line under a template's name in the library. Every part is its own piece, joined with a separator, so a name, a person
 // and a date never run together; a part that is missing or isn't a date is left out.
-export function templateByline(t: Pick<Template, "kind" | "mine" | "by" | "created_at">, timeZone?: string): string {
+export function templateByline(t: Pick<Template, "kind" | "mine" | "by" | "created_at">, timeZone = "America/Toronto"): string {
   if (t.kind === "shipped") return "Ships with the app";
-  const time = Date.parse(t.created_at), date = Number.isFinite(time) ? new Intl.DateTimeFormat("en-CA", { month: "short", day: "numeric", timeZone }).format(time) : "";
+  const date = formatInZone(t.created_at, timeZone, "date");
   return [`Saved by ${t.mine ? "you" : t.by?.trim() || "a Clearway facilitator"}`, date].filter(Boolean).join(" · ");
 }

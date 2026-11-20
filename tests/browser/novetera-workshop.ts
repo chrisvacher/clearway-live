@@ -79,7 +79,7 @@ async function main() {
     await sql.connect();
     const room = await engagement(sql, people);
     const code = (await sql.query("select room_code from public.engagements where id=$1", [room.id])).rows[0].room_code as string;
-    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',start_date=current_date+1,settings=settings||'{\"ai_enabled\":true,\"open_join\":true}' where id=$1", [room.id]);
+    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',how_the_room_decides='We will make decisions together.',start_date=current_date+1,settings=settings||'{\"ai_enabled\":true,\"open_join\":true}' where id=$1", [room.id]);
     const fac = await facilitator(env, sql, room.id);
     await sql.query("update public.clearway_users set is_admin=true where email=$1", [fac.session.user.email]);
     const skinNow = async () => (await sql.query("select skin from public.engagements where id=$1", [room.id])).rows[0].skin as string;
@@ -93,18 +93,19 @@ async function main() {
     await step("A workshop engagement with open joining, an attendee list and AI on has Clearway as its Brand until an admin changes it", async () => {
       assert.equal(await skinNow(), "clearway");
       await setup.goto(`${CW}/admin/${room.id}/joining`);
-      await setup.getByRole("radio", { name: /Anyone who has the link or code/ }).waitFor();
-      assert.equal(await setup.getByRole("radio", { name: /Anyone who has the link or code/ }).isChecked(), true, "open joining");
-      await setup.getByRole("heading", { name: "3 people" }).waitFor();
+      await setup.getByRole("tab", { name: "People 3", exact: true }).waitFor();
+      await setup.getByRole("tab", { name: "Access", exact: true }).click();
+      const openJoining = setup.getByRole("radio", { name: /^Anyone who has the link or code/ });
+      await openJoining.waitFor();
+      assert.equal(await openJoining.isChecked(), true, "open joining");
     });
     await step("On Details an admin switches the Brand to Novetera and the room's links move to the Novetera address", async () => {
       await setup.goto(`${CW}/admin/${room.id}/details`);
-      await setup.getByRole("combobox", { name: /^Brand/ }).selectOption("novetera");
-      await setup.getByRole("button", { name: "Save engagement", exact: true }).click();
-      await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 });
+      await setup.getByRole("radio", { name: "Novetera", exact: true }).check();
+      await setup.getByRole("status").filter({ hasText: "Brand changed to Novetera" }).waitFor({ timeout: 15000 });
       await until(async () => await skinNow() === "novetera", "the skin is saved", 10000);
       await setup.goto(`${CW}/admin/${room.id}`);
-      assert.equal(await setup.locator(".invite-card a.text-link").getAttribute("href"), `${NV}/${code}`, "the invite card's link is at the Novetera address");
+      assert.equal(await setup.getByRole("region", { name: "Invite the room", exact: true }).getByRole("link", { name: `${new URL(NV).host}/${code}`, exact: true }).getAttribute("href"), `${NV}/${code}`, "the invite card's link is at the Novetera address");
     });
     // The run of show: a content screen, a scale, a word cloud, an open wall with AI grouping and Q&A. All from existing elements.
     const ids: Record<string, string> = {};
@@ -129,7 +130,8 @@ async function main() {
       await audit(tv, "TV pairing screen"); await shot(tv, "01-tv-pairing");
       const pairingCode = await until(async () => { const c = (await tv.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
       await setup.goto(`${CW}/admin/${room.id}/tv`);
-      await setup.locator("#tv-pair-code").fill(pairingCode); await setup.locator("#tv-label").fill("Workshop TV");
+      await setup.getByLabel("Code on the TV", { exact: true }).fill(pairingCode);
+      await setup.getByLabel("Name this screen", { exact: true }).fill("Workshop TV");
       await setup.getByRole("button", { name: "Pair this TV" }).click();
       await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
       await until(async () => (await setup.locator(".tv-screen-list").innerText().catch(() => "")).includes("Workshop TV"), "the TV in Paired screens", 10000);
@@ -203,11 +205,11 @@ async function main() {
     });
     await step("The invite email goes to the attendee list from Novetera, with Novetera links, its AI paragraph and its sign-off", async () => {
       await setup.goto(`${CW}/admin/${room.id}/joining`);
-      await setup.getByRole("heading", { name: "6 people" }).waitFor();   // the three on the list and the three who joined by name, who have no email to invite
+      await setup.getByRole("tab", { name: "People 6" }).waitFor();   // the three on the list and the three who joined by name, who have no email to invite
       const before = mail.count;
-      await setup.getByRole("button", { name: "Select all for invites" }).click();
-      await setup.getByRole("button", { name: "Send 3 invites" }).click();
-      await setup.getByText("Sent 3 invites.").waitFor({ timeout: 20000 });
+      await setup.getByRole("checkbox", { name: "Select all visible rows" }).check();
+      await setup.getByRole("button", { name: "Send invites", exact: true }).click();
+      await setup.getByText("Sent 3 invites",{exact:true}).waitFor({ timeout: 20000 });
       await until(() => mail.messages.slice(before).filter(m => /invited to/.test(m.text)).length === 3, "three invites", 15000);
       for (const person of room.attendees) {
         const invite = mail.messages.slice(before).find(m => m.to.includes(person.email) && /invited to/.test(m.text))!; assert.ok(invite, `${person.name} has an invite`);
@@ -318,11 +320,12 @@ async function main() {
       await until(async () => await recap.locator(".recap-card").count() === 4, "four cards (every session that took answers)", 10000);
       const card = recap.getByTestId("workshop-summary");
       await card.getByRole("button", { name: "Draft a summary", exact: true }).click();
-      await card.getByText("AI drafted this from the room’s answers. Read it before you share it.").waitFor({ timeout: 20000 });
+      await card.getByText("Drafted by AI from the answers, then edited by you").waitFor({ timeout: 20000 });
       assert.match(await card.locator(".ws-body").innerText(), /The room began with/);
       const runs = await sql.query("select status,prompt_version from private.ai_runs where engagement_id=$1 and job='draft_workshop_summary'", [room.id]);
       assert.deepEqual(runs.rows.map(r => r.status), ["ok"], "one run, from the fake model");
-      const [download] = await Promise.all([recap.waitForEvent("download"), card.getByRole("link", { name: "Download as Word", exact: true }).click()]);
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Summary as Word", exact: true }).click()]);
       assert.match(download.suggestedFilename(), /summary\.docx$/); assert.ok(!clearway.test(download.suggestedFilename()), "the file's name");
       const zip = await JSZip.loadAsync(readFileSync((await download.path())!));
       const parts = Object.keys(zip.files).filter(n => /\.(xml|rels)$/i.test(n)); assert.ok(parts.includes("docProps/core.xml") && parts.includes("word/document.xml"));
@@ -343,8 +346,8 @@ async function main() {
       await send(phones[0].page, "grateful"); await until(async () => (await tvText()).includes("grateful"), "the word on the Novetera TV", 10000);
       await novetera(); await shot(tv, "14-before-switch-tv"); await shot(phones[0].page, "14-before-switch-phone");
       await setup.goto(`${CW}/admin/${room.id}/details`);
-      await setup.getByRole("combobox", { name: /^Brand/ }).selectOption("clearway"); await setup.getByRole("button", { name: "Save engagement", exact: true }).click();
-      await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 }); await until(async () => await skinNow() === "clearway", "back to Clearway", 10000);
+      await setup.getByRole("radio", { name: "Clearway", exact: true }).check();
+      await setup.getByRole("status").filter({ hasText: "Brand changed to Clearway" }).waitFor({ timeout: 15000 }); await until(async () => await skinNow() === "clearway", "back to Clearway", 10000);
       // The TV and the phones follow without being touched. A reload is the fallback a person would use, so the kit says which one it needed.
       const follows = async (page: Page, selector: string, label: string) => {
         try { await until(async () => await page.locator(selector).first().getAttribute("data-skin") === "clearway", `${label} takes the Clearway look`, 20000); return "live"; }

@@ -1,79 +1,372 @@
 "use client";
-import { practiceId } from "@/lib/room/practice";
-import Link from "next/link";
+
 import Image from "next/image";
-import { useEffect,useRef,useState,type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { statusName } from "@/lib/setup/listing";
-import { brandFor,skinOf } from "@/lib/brand";
-import { BrandField } from "./brand-field";
-import { Select } from "@/components/ui/select";
-import { localTime } from "@/lib/setup/policy";
+import { PowerOff, RefreshCw, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { StageChip } from "@/components/ui/chips";
+import { Combobox } from "@/components/ui/combobox";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PageHeader } from "@/components/ui/page-header";
+import { SaveBar } from "@/components/ui/save-bar";
+import { DangerZone, Field, SettingsCard, SettingsSection } from "@/components/ui/settings";
+import { useToast } from "@/components/ui/toast";
+import { AiIcon } from "@/components/interactions/ai/ai-icon";
+import { useDirtyForm } from "@/hooks/use-dirty-form";
+import { practiceId } from "@/lib/room/practice";
+import { detailsChurchFields, detailsLabels, detailsValues, lensFields, type DetailsField } from "@/lib/setup/details";
+import { typeName } from "@/lib/setup/listing";
 import { logoMaxBytes } from "@/lib/setup/logo";
-import { supportedZones,zoneOptions } from "@/lib/setup/timezones";
-import type { ChurchForm,EngagementForm,Member,SetupForm } from "@/lib/setup/types";
-import type { HubClient,HubEngagement,HubElement,HubEvent } from "@/lib/team-hub/reader";
-export async function setupRequest(body:Record<string,unknown>){const response=await fetch("/api/setup",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store",body:JSON.stringify(body)});const result=await response.json();if(!response.ok||!result.ok)throw Object.assign(new Error(result.message||"We couldn’t finish that. Please try again."),{existingId:result.existing_id});return result;}
-function Field({label,value,onChange,type="text",required=false}:{label:string;value:string;onChange:(value:string)=>void;type?:string;required?:boolean}){return <label>{label}<input type={type} value={value} required={required} onChange={e=>onChange(e.target.value)} /></label>;}
-export function SetupEditor({id,initial,members,admin,hubConfigured,roomPath,hosts}:{id?:string;initial:SetupForm;members:Member[];admin:boolean;hubConfigured:boolean;roomPath?:string;hosts?:Record<string,string>}){
- const router=useRouter(),[form,setForm]=useState(initial),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[existingId,setExistingId]=useState(""),[search,setSearch]=useState(""),[clients,setClients]=useState<HubClient[]>([]),[engagements,setEngagements]=useState<(HubEngagement & { live_id?: string })[]>([]),[planned,setPlanned]=useState<{elements:HubElement[];events:HubEvent[]}|null>(null),[reset,setReset]=useState(false),[where,setWhere]=useState("page"),[hubLogo,setHubLogo]=useState(""),[broken,setBroken]=useState(""),[uploading,setUploading]=useState(false),[zones,setZones]=useState<string[]>([]),saving=useRef("event"),savedSkin=useRef(initial.engagement.skin??"clearway"),picker=useRef<HTMLInputElement>(null);
- useEffect(()=>setZones(supportedZones()),[]);
- const church=(key:keyof ChurchForm,value:string)=>setForm(f=>({...f,church:{...f.church,[key]:value}}));
- const engagement=(key:keyof EngagementForm,value:unknown)=>setForm(f=>({...f,engagement:{...f.engagement,[key]:value}}));
- const settings=(key:keyof EngagementForm["settings"],value:unknown)=>setForm(f=>({...f,engagement:{...f.engagement,settings:{...f.engagement.settings,[key]:value}}}));
- async function perform(action:()=>Promise<void>,place="page"){setBusy(true);setWhere(place);setMessage("");setExistingId("");try{await action();}catch(e){setMessage(e instanceof Error?e.message:"Please try again.");if(e instanceof Error&&"existingId" in e&&typeof e.existingId==="string")setExistingId(e.existingId);}finally{setBusy(false);}}
- function applyClient(c:HubClient){setHubLogo(c.logo||"");setForm(f=>({...f,church:{...f.church,name:c.name,timezone:c.timezone||f.church.timezone,logo_url:c.logo||""}}));}
- async function chooseClient(client:string){setForm(f=>({...f,hub_client:client,hub_engagement:""}));setEngagements([]);if(client)await perform(async()=>{const result=await setupRequest({action:"hub_engagements",client});setEngagements(result.engagements);if(result.client)applyClient(result.client);});}
- function chooseEngagement(value:string){const e=engagements.find(x=>x.id===value);setForm(f=>({...f,hub_engagement:value,engagement:{...f.engagement,title:e?.title||f.engagement.title,start_date:e?.start_date||"",end_date:e?.end_date||"",type:e && ["wayfinding","day_and_a_half","team_workshop"].includes(e.engagement_type)?e.engagement_type:f.engagement.type}}));}
- async function save(event:FormEvent){event.preventDefault();const place=id?saving.current:"page";await perform(async()=>{const result=await setupRequest({...form,id,action:id?"save":"create"});if(!id)router.push(`/admin/${result.id}`);else{const now=form.engagement.skin??"clearway";setMessage(roomPath&&now!==savedSkin.current?`Saved. The room link is now ${hosts?.[now]??brandFor(skinOf(now)).host}/${roomPath}.`:"Saved.");savedSkin.current=now;router.refresh();}},place);}
- async function upload(file:File|undefined){if(!file||!id)return;if(file.size>logoMaxBytes){setWhere("church");setMessage("Use a logo that is 1 MB or smaller.");return;}setUploading(true);setWhere("church");setMessage("");try{const data=new FormData();data.set("id",id);data.set("file",file);const response=await fetch("/api/setup/logo",{method:"POST",cache:"no-store",body:data}),result=await response.json().catch(()=>({}));if(!response.ok||!result.ok)throw new Error(result.message||"We couldn’t upload that logo. Please try again.");church("logo_url",result.url);setMessage("Logo ready. Save to keep it.");}catch(e){setMessage(e instanceof Error?e.message:"We couldn’t upload that logo. Please try again.");}finally{setUploading(false);if(picker.current)picker.current.value="";}}
- const eng=form.engagement, wayfinding=eng.type!=="team_workshop", logo=form.church.logo_url, shown=logo&&broken!==logo, note=(key:string)=>where===key?message:"", live=(key:string)=>where===key?"status" as const:undefined;
- const saveRow=(key:string,label:string,name:string)=><div className="admin-card-save"><button type="submit" className="admin-button is-primary" aria-label={name} disabled={busy||uploading} onClick={()=>{saving.current=key;}}>{busy&&where===key?"Saving…":label}</button><span className="admin-saved" role={live(key)} aria-live="polite">{note(key)}</span></div>;
- return <section className="setup-section admin-editor admin-narrow">
-  {!hubConfigured&&<p className="admin-panel">The Team Hub reader is waiting for its approved connection. You can still edit existing engagement details and import a CSV or pasted list.</p>}
-  {!id&&<section className="admin-panel form-stack"><h2>Choose from Team Hub</h2><label>Find a church<input value={search} disabled={busy} onChange={e=>setSearch(e.target.value)} /></label><button type="button" className="button-link" disabled={busy||!hubConfigured} onClick={()=>perform(async()=>setClients((await setupRequest({action:"hub_clients",search})).clients))}>Find churches</button>
-   <label>Church<Select value={form.hub_client} disabled={busy} onChange={e=>chooseClient(e.target.value)}><option value="">Choose a church</option>{clients.map(c=><option value={c.id} key={c.id}>{c.name}</option>)}</Select></label>
-   <label>Team Hub engagement<Select value={form.hub_engagement} disabled={busy} onChange={e=>chooseEngagement(e.target.value)}><option value="">Choose an engagement</option>{engagements.map(e=><option value={e.id} key={e.id} disabled={Boolean(e.live_id)}>{e.title}{e.live_id ? " · Already in Live" : ""}</option>)}</Select></label>{engagements.some(e=>e.live_id)&&<div><h3>Already in Live</h3><ul>{engagements.filter(e=>e.live_id).map(e=><li key={e.id}><Link className="text-link" href={`/admin/${e.live_id}`}>Open {e.title}</Link></li>)}</ul></div>}</section>}
-  <form className="form-stack" onSubmit={save}>
-   <section className="admin-panel" aria-labelledby="details-event"><h2 id="details-event">The event</h2><div className="form-grid"><Field label="Event title" value={eng.title} onChange={v=>engagement("title",v)} required />
-    <label>Kind of event<Select value={eng.type} disabled={eng.type==="practice"} onChange={e=>engagement("type",e.target.value)}><option value="wayfinding">Wayfinding</option><option value="day_and_a_half">Day and a half</option><option value="team_workshop">Workshop</option>{eng.type==="practice"&&<option value="practice">Practice</option>}</Select></label>
-    <label>Status<Select value={eng.status} onChange={e=>engagement("status",e.target.value)}>{["setup","discover","pre_call","retreat","follow_up","closed"].map(s=><option key={s} value={s}>{statusName(s)}</option>)}</Select></label>
-    <Field label={wayfinding?"Engagement start":"Workshop date"} type="date" value={eng.start_date} onChange={v=>engagement("start_date",v)} required={!wayfinding} />
-    <Field label={wayfinding?"Engagement end":"Workshop end date, if more than one day"} type="date" value={eng.end_date} onChange={v=>engagement("end_date",v)} />
-    <label>Lead facilitator<Select value={form.lead} disabled={!admin} required onChange={e=>setForm(f=>({...f,lead:e.target.value}))}><option value="">Choose a facilitator</option>{members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</Select></label>
-    <BrandField value={eng.skin??"clearway"} onChange={v=>engagement("skin",v)} admin={admin} id="details-brand" />
-    <label>Co-facilitator<Select value={form.co} onChange={e=>setForm(f=>({...f,co:e.target.value}))}><option value="">No co-facilitator</option>{members.filter(m=>m.id!==form.lead).map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</Select></label>
-   </div><p className="admin-muted">Closing an engagement ends every device sign-in. Reopening it requires people to sign in again.</p>{id&&saveRow("event","Save","Save engagement")}</section>
-   <section className="admin-panel" aria-labelledby="details-church"><h2 id="details-church">The church</h2>
-    <div className="logo-row"><div className={`logo-preview${shown?"":" is-empty"}`}>{shown?<Image unoptimized src={logo} alt="Church logo preview" width={96} height={96} onError={()=>setBroken(logo)} />:<span>{logo?"Can’t show this logo":"No logo"}</span>}</div>
-     <div className="logo-actions"><div className="admin-actions"><button type="button" className="admin-button" disabled={busy||uploading||!id} onClick={()=>picker.current?.click()}>{uploading?"Uploading…":"Upload a logo"}</button>{hubLogo&&hubLogo!==logo&&<button type="button" className="admin-button" disabled={busy||uploading} onClick={()=>{church("logo_url",hubLogo);setWhere("church");setMessage("Team Hub logo ready. Save to keep it.");}}>Use the Team Hub logo</button>}{logo&&<button type="button" className="admin-button" disabled={busy||uploading} onClick={()=>{church("logo_url","");setWhere("church");setMessage("Logo removed. Save to keep that.");}}>Remove logo</button>}</div>
-      <input ref={picker} type="file" hidden aria-label="Logo file" accept="image/png,image/jpeg,image/webp" onChange={e=>upload(e.target.files?.[0])} /><p className="admin-muted">PNG, JPEG or WebP, up to 1 MB.</p>
-      <details className="logo-address"><summary>Paste an address instead</summary><Field label="Logo address" type="url" value={logo} onChange={v=>church("logo_url",v)} /></details></div></div>
-    <div className="form-grid"><Field label="Name on screens" value={form.church.name} onChange={v=>church("name",v)} required />
-     <label>Time zone<Select value={form.church.timezone} required onChange={e=>church("timezone",e.target.value)}>{zoneOptions(form.church.timezone,zones).map(g=><optgroup key={g.label} label={g.label}>{g.zones.map(z=><option key={z} value={z}>{z}</option>)}</optgroup>)}</Select></label></div>
-    {id&&form.hub_client&&<div className="hub-line"><span className="admin-chip">Linked to Team Hub</span><span className="hub-names">{initial.church.name} · {initial.engagement.title}</span><button className="admin-button" type="button" disabled={busy||!hubConfigured} onClick={()=>perform(async()=>{const r=await setupRequest({action:"hub_refresh",id});setPlanned(r);if(r.client)applyClient(r.client);setMessage("Church details refreshed. Review and save your changes.");},"church")}>Refresh from Team Hub</button></div>}
-   {planned&&<div><h3>Planned dates</h3>{planned.elements.length+planned.events.length===0?<p>No planned dates were found.</p>:<ul>{planned.elements.map(x=><li key={x.id}>{x.title}: {x.scheduled_date||"Date to follow"}{x.scheduled_date&&<button type="button" className="text-link" onClick={()=>engagement(wayfinding?"retreat_start_date":"start_date",x.scheduled_date!.slice(0,10))}>{wayfinding?"Use for retreat start":"Use for workshop date"}</button>}</li>)}{planned.events.map(x=><li key={x.id}>{x.event_name}: {x.start_date_time?new Intl.DateTimeFormat("en-CA",{timeZone:form.church.timezone,dateStyle:"medium",timeStyle:"short"}).format(new Date(x.start_date_time)):"Time to follow"}{x.start_date_time&&<button type="button" className="text-link" onClick={()=>engagement(wayfinding?"pre_call_local":"start_date",wayfinding?localTime(x.start_date_time,form.church.timezone):localTime(x.start_date_time,form.church.timezone).slice(0,10))}>{wayfinding?"Use for pre-call":"Use for workshop date"}</button>}</li>)}</ul>}</div>}
-    {id&&saveRow("church","Save","Save church")}</section>
-   <section className="admin-panel" aria-labelledby="details-ai"><h2 id="details-ai">{id?"AI in the room":wayfinding?"Five Lenses and room settings":"Room settings"}</h2>
-    {!id&&<div className="form-grid">{wayfinding&&eng.lens_names.map((name,i)=><Field key={i} label={`Lens ${i+1}`} value={name} onChange={v=>engagement("lens_names",eng.lens_names.map((n,j)=>j===i?v:n))} required />)}
-    {wayfinding&&<Field label="Scripture translation" value={eng.settings.scripture_translation} onChange={v=>settings("scripture_translation",v)} />}
-    <label>TV theme<Select value={eng.settings.tv_theme} onChange={e=>settings("tv_theme",e.target.value)}><option value="dark">Dark</option><option value="light">Light</option></Select></label>
-    <label>TV text size<Select value={eng.settings.room_size} onChange={e=>settings("room_size",e.target.value)}>{["very_small","small","medium","large","very_large"].map(x=><option key={x} value={x}>{{very_small:"Largest text",small:"Larger text",medium:"Medium text",large:"Smaller text",very_large:"Smallest text"}[x]}</option>)}</Select></label></div>}
-    {(id?[['ai_enabled']] as const:[['texture'],['ai_enabled'],['neutral_join_message']] as const).map(([key])=>{const [title,line]={ai_enabled:["Use AI in live sessions","Combine words, group answers, fold questions and write summaries on request."],texture:["Show the Live texture",""],neutral_join_message:["Use “Check with your facilitator” for emails not on the list",""]}[key];return <label className="check-row" key={key}><input type="checkbox" checked={eng.settings[key]} onChange={e=>settings(key,e.target.checked)} /><span><strong>{title}</strong>{line&&<span className="admin-muted">{line}</span>}</span></label>;})}
-    {!id&&eng.type==="team_workshop"&&<label className="check-row"><input type="checkbox" checked={eng.settings.open_join} disabled={!admin} onChange={e=>settings("open_join",e.target.checked)} />Open joining: anyone with the room code joins with their name, without an email or sign-in code. Use it for workshops where you won’t have an attendee list{!admin&&". Only an admin can change this"}</label>}
-    {id&&saveRow("ai","Save","Save AI setting")}</section>
-   {id&&wayfinding&&<section className="admin-panel" aria-labelledby="details-wayfinding"><h2 id="details-wayfinding">Wayfinding settings</h2><div className="form-grid">
-    <Field label="Pre-call time in the church’s time zone" type="datetime-local" value={eng.pre_call_local} onChange={v=>engagement("pre_call_local",v)} />
-    <Field label="Retreat start" type="date" value={eng.retreat_start_date} onChange={v=>engagement("retreat_start_date",v)} /><Field label="Retreat end" type="date" value={eng.retreat_end_date} onChange={v=>engagement("retreat_end_date",v)} /><Field label="Base year, or leave blank for the retreat year" type="number" value={eng.base_year} onChange={v=>engagement("base_year",v)} />
-    <Field label="Governance body’s name" value={form.church.governance_body_name} onChange={v=>church("governance_body_name",v)} />
-    <Field label="Scripture translation" value={eng.settings.scripture_translation} onChange={v=>settings("scripture_translation",v)} />
-    {eng.lens_names.map((name,i)=><Field key={i} label={`Lens ${i+1}`} value={name} onChange={v=>engagement("lens_names",eng.lens_names.map((n,j)=>j===i?v:n))} required />)}</div>
-    {([['mission','Mission'],['purpose','Purpose'],['values','Values, one per line'],['strategy','Strategy'],['leadership_rhythms','Leadership Rhythms, one per line']] as const).map(([key,label])=><label key={key}>{label}<textarea value={form.church[key]} onChange={e=>church(key,e.target.value)} rows={3} maxLength={10000} /></label>)}
-    {saveRow("wayfinding","Save","Save Wayfinding settings")}</section>}
-   {!id&&<section className="admin-panel"><h2>How the room decides</h2><p>{wayfinding?"This appears in every invite and on the pre-call welcome.":"This appears in workshop invites. Explain how the team will reach decisions."}</p><label>Explain how you’ll reach consensus<textarea value={eng.how_the_room_decides} onChange={e=>engagement("how_the_room_decides",e.target.value)} maxLength={4000} rows={5} /></label></section>}
-   {!id&&<button className="button-link" type="submit" disabled={busy||!form.hub_engagement}>{busy?"Saving…":"Create engagement"}</button>}
-  </form>
-  {id===practiceId&&<section className="admin-panel"><h2>Reset the practice room</h2><p>This signs out every practice phone and clears its guest list. Riverside’s fictional team stays in place.</p>{reset?<div className="actions"><button className="button-link" disabled={busy} onClick={()=>perform(async()=>{await setupRequest({action:"reset_practice",id});setReset(false);setMessage("Practice room reset. Phones can join again.");router.refresh();})}>Confirm reset</button><button className="text-link" onClick={()=>setReset(false)}>Keep the practice room</button></div>:<button className="button-link" disabled={busy} onClick={()=>setReset(true)}>Reset practice room</button>}</section>}
-  <p className="admin-feedback" role={live("page")} aria-live="polite">{note("page")}{where==="page"&&existingId&&<> <Link className="text-link" href={`/admin/${existingId}`}>Open the existing engagement</Link></>}</p>
- </section>;
+import { localTime } from "@/lib/setup/policy";
+import type { Stage, StageChoice } from "@/lib/setup/stage";
+import { detailsTimeZones } from "@/lib/setup/timezones";
+import type { Member, SetupForm } from "@/lib/setup/types";
+import type { HubClient, HubElement, HubEvent } from "@/lib/team-hub/reader";
+import { BrandField } from "./brand-field";
+
+async function post(endpoint: string, body: Record<string, unknown>) {
+  const response = await fetch(endpoint, {
+    method: "POST", headers: { "Content-Type": "application/json" }, cache: "no-store", body: JSON.stringify(body),
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) {
+    throw Object.assign(new Error(result.message || "We couldn’t finish that. Please try again."), { existingId: result.existing_id });
+  }
+  return result;
+}
+
+export const setupRequest = (body: Record<string, unknown>) => post("/api/setup", body);
+
+type DialogAction = "close" | "archive" | "reset" | "end" | "stage_close";
+type Planned = { elements: HubElement[]; events: HubEvent[] };
+type Immediate = { brand: string; ai: boolean };
+const churchFields = new Set<DetailsField>(detailsChurchFields);
+
+function previewableLogo(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || (url.protocol === "http:" && ["127.0.0.1", "localhost"].includes(url.hostname));
+  } catch { return false; }
+}
+
+export function SetupEditor({ id, initial, members, admin, hubConfigured, canSaveMixedDetails, canChangeFacilitators, stage, archiveAvailable, archived, now }: {
+  id: string;
+  initial: SetupForm;
+  members: Member[];
+  admin: boolean;
+  hubConfigured: boolean;
+  canSaveMixedDetails: boolean;
+  canChangeFacilitators: boolean;
+  stage: Stage;
+  archiveAvailable: boolean;
+  archived: boolean;
+  now: string;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+  const form = useDirtyForm(detailsValues(initial));
+  const { values, set, dirtyFields } = form;
+  const [immediate, setImmediate] = useState<Immediate>({
+    brand: initial.engagement.skin ?? "clearway",
+    ai: initial.engagement.settings.ai_enabled,
+  });
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const commitVersions = useRef({ brand: 0, ai: 0 });
+  const [dialog, setDialog] = useState<DialogAction | null>(null);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [planned, setPlanned] = useState<Planned | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showAddress, setShowAddress] = useState(false);
+  const [broken, setBroken] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+  const wayfinding = initial.engagement.type !== "team_workshop";
+  const closed = initial.engagement.status === "closed";
+  const zones = useMemo(() => detailsTimeZones(initial.church.timezone, now), [initial.church.timezone, now]);
+  const disabled = busy || form.saving;
+  const eventEditsLocked = !canSaveMixedDetails && (busy || uploading || dirtyFields.some(key => churchFields.has(key)));
+  const churchEditsLocked = !canSaveMixedDetails && dirtyFields.some(key => !churchFields.has(key));
+  const fieldLocked = (key: DetailsField) => churchFields.has(key) ? churchEditsLocked : eventEditsLocked;
+
+  function textField(key: DetailsField, type = "text", options: { wide?: boolean; help?: string; required?: boolean } = {}) {
+    return <Field key={key} label={detailsLabels[key]} dirty={dirtyFields.includes(key)} wide={options.wide} help={options.help}>
+      <input type={type} value={values[key]} required={options.required} disabled={fieldLocked(key)} onChange={event => set(key, event.target.value)} />
+    </Field>;
+  }
+
+  function selectField(key: "lead" | "co") {
+    if (!canChangeFacilitators || (key === "lead" && !admin)) {
+      const person = members.find(member => member.id === values[key]);
+      return <Field label={detailsLabels[key]}><input value={person?.name ?? (key === "co" ? "None" : "Unassigned")} readOnly /></Field>;
+    }
+    return <Field label={detailsLabels[key]} dirty={dirtyFields.includes(key)}>
+      <select value={values[key]} onChange={event => set(key, event.target.value)}>
+        <option value="">{key === "co" ? "None" : "Choose a facilitator"}</option>
+        {members.filter(member => key === "lead" || member.id !== values.lead).map(member =>
+          <option key={member.id} value={member.id}>{member.name}</option>)}
+      </select>
+    </Field>;
+  }
+
+  async function perform(task: () => Promise<void>) {
+    if (inFlight.current || form.saving) return;
+    inFlight.current = true;
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try { await task(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Please try again."); }
+    finally { inFlight.current = false; setBusy(false); }
+  }
+
+  function save() {
+    if (inFlight.current || uploading || dialog) return;
+    if (!dirtyFields.length) return;
+    setError("");
+    setNotice("");
+    inFlight.current = true;
+    void form.save(async (candidate, fields) => {
+      const changes = Object.fromEntries(fields.map(key => [key, candidate[key]]));
+      const result = await post("/api/setup/details", { id, action: "fields", fields: changes });
+      router.refresh();
+      return { ...candidate, ...result.values };
+    }).finally(() => { inFlight.current = false; });
+  }
+
+  async function saveImmediate<K extends keyof Immediate>(key: K, value: Immediate[K], previous: Immediate[K]) {
+    setImmediate(current => ({ ...current, [key]: value }));
+    try {
+      await post("/api/setup/details", { id, action: key, value });
+    } catch (cause) {
+      setImmediate(current => ({ ...current, [key]: previous }));
+      throw cause;
+    }
+  }
+
+  function updateNow<K extends keyof Immediate>(key: K, value: Immediate[K]) {
+    const previous = immediate[key];
+    if (previous === value) return;
+    void perform(async () => {
+      await saveImmediate(key, value, previous);
+      const version = ++commitVersions.current[key];
+      const message = key === "brand" ? `Brand changed to ${value === "novetera" ? "Novetera" : "Clearway"}`
+        : value ? "AI is on in live sessions" : "AI is off in live sessions";
+      router.refresh();
+      toast(message, {
+        action: { label: "Undo", onClick: async () => {
+          if (commitVersions.current[key] !== version) return;
+          let undone = false;
+          await perform(async () => {
+            await saveImmediate(key, previous, value);
+            commitVersions.current[key]++;
+            router.refresh();
+            undone = true;
+          });
+          if (!undone) throw new Error("We couldn’t undo that change.");
+        } },
+      });
+    });
+  }
+
+  function selectStage(choice: StageChoice) {
+    if (disabled) return;
+    if (choice.stage === "done") { setDialog("end"); return; }
+    if (choice.status === "closed") { setDialog("stage_close"); return; }
+    void perform(async () => {
+      if (wayfinding) await post("/api/setup/engagement", { id, action: "stage", status: choice.status });
+      else await setupRequest({ id, action: "reopen_workshop" });
+      toast(wayfinding ? "Stage changed" : "Workshop reopened");
+      router.refresh();
+    });
+  }
+
+  function confirm() {
+    if (!dialog) return;
+    void perform(async () => {
+      if (dialog === "archive") {
+        await post("/api/setup/engagement", { id, action: "archive" });
+        toast("Engagement archived");
+        form.guardNavigation(() => router.push("/admin"));
+      } else if (dialog === "reset") {
+        await setupRequest({ id, action: "reset_practice" });
+        toast("Practice room reset");
+      } else if (wayfinding) {
+        await post("/api/setup/engagement", { id, action: "stage", status: "closed" });
+        toast("Engagement closed");
+      } else {
+        await setupRequest({ id, action: "end_workshop" });
+        toast("Workshop ended");
+      }
+      setDialog(null);
+      router.refresh();
+    });
+  }
+
+  async function upload(file: File | undefined) {
+    if (!file || uploading || disabled || churchEditsLocked) return;
+    if (file.size > logoMaxBytes) {
+      setError("Use a logo that is 1 MB or smaller.");
+      return;
+    }
+    setUploading(true);
+    setError("");
+    setNotice("");
+    try {
+      const body = new FormData();
+      body.set("id", id);
+      body.set("file", file);
+      const response = await fetch("/api/setup/logo", { method: "POST", cache: "no-store", body });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.ok) throw new Error(result.message || "We couldn’t upload that logo. Please try again.");
+      set("logo_url", result.url);
+      setBroken("");
+      setNotice("Logo ready. Save to keep it.");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "We couldn’t upload that logo. Please try again."); }
+    finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  }
+
+  function refreshFromHub() {
+    if (churchEditsLocked) return;
+    void perform(async () => {
+      const result = await setupRequest({ action: "hub_refresh", id }) as Planned & { client: HubClient | null };
+      setPlanned({ elements: result.elements, events: result.events });
+      if (result.client) {
+        set("name", result.client.name);
+        if (result.client.timezone) set("timezone", result.client.timezone);
+        if (result.client.logo) set("logo_url", result.client.logo);
+      }
+      setNotice("Church details refreshed. Review and save your changes.");
+    });
+  }
+
+  const dangerActions = [
+    { title: "Close this engagement", description: "Ends every device sign-in. Reopening asks people to sign in again.",
+      action: <Button size="small" variant="danger" disabled={closed || disabled} onClick={() => setDialog("close")}><PowerOff size={16} aria-hidden="true" />Close engagement</Button> },
+    ...(archiveAvailable && !archived ? [{ title: "Archive", description: "Hides it from Engagements. Answers and results are kept.",
+      action: <Button size="small" variant="danger" disabled={disabled} onClick={() => setDialog("archive")}><Trash2 size={16} aria-hidden="true" />Archive</Button> }] : []),
+    ...(id === practiceId ? [{ title: "Reset the practice room", description: "Signs out practice phones and clears the guest list. Riverside’s fictional team stays.",
+      action: <Button size="small" variant="danger" disabled={disabled} onClick={() => setDialog("reset")}>Reset practice room</Button> }] : []),
+  ];
+  const confirmations = {
+    close: ["Close this engagement?", "Ends every device sign-in. Reopening asks people to sign in again.", "Close engagement"],
+    stage_close: ["Close this engagement?", "Ends every device sign-in. Reopening asks people to sign in again.", "Close engagement"],
+    archive: ["Archive this engagement?", "Hides it from Engagements. Answers and results are kept. Find it under Archived to restore it.", "Archive"],
+    reset: ["Reset the practice room?", "This signs out practice phones and clears the guest list. Riverside’s fictional team stays in place.", "Reset practice room"],
+    end: ["End the workshop?", "Phones are signed out and answers close. Results stay here to read and download. If you reopen it, people sign in again.", "End the workshop"],
+  } as const;
+  const [question, consequence, actionLabel] = confirmations[dialog ?? "close"];
+  const logo = values.logo_url;
+  const showLogo = logo !== broken && previewableLogo(logo);
+
+  return <>
+    <PageHeader kicker={initial.church.name} title="Details" lead="The event, the church and how AI works in the room."
+      stage={<StageChip stage={stage} type={initial.engagement.type} interactive onStageChange={selectStage} />} />
+    {!canSaveMixedDetails && <p className="cwl-c-feedback">Save event and church changes separately.</p>}
+    <form className="cwl-c-details-form" onSubmit={event => { event.preventDefault(); save(); }}>
+      <SettingsCard>
+        <SettingsSection title="The event" description="What it is, when, and who leads it. The stage is set from the page header.">
+          {textField("title", "text", { wide: true, required: true })}
+          <div className="cwl-ui-field">
+            <label htmlFor="details-kind">Kind of event</label>
+            <div className="cwl-c-locked-kind">
+              <input id="details-kind" value={typeName(initial.engagement.type)} readOnly aria-describedby="details-kind-help" />
+              <small id="details-kind-help">Set when created</small>
+            </div>
+          </div>
+          <BrandField id="details-brand" value={immediate.brand} onChange={value => updateNow("brand", value)} admin={admin} disabled={disabled} />
+          {textField("start_date", "date")}
+          <div className="cwl-ui-field" data-dirty={dirtyFields.includes("end_date") || undefined}>
+            <label htmlFor="details-ends">Ends</label>
+            <div className="cwl-c-date" data-empty={!values.end_date || undefined}>
+              <input id="details-ends" type="date" value={values.end_date} disabled={eventEditsLocked} aria-describedby={values.end_date ? undefined : "details-same-day"}
+                onChange={event => set("end_date", event.target.value)} />
+              {!values.end_date && <span id="details-same-day">Same day</span>}
+            </div>
+          </div>
+          {selectField("lead")}
+          {selectField("co")}
+        </SettingsSection>
+        <SettingsSection title="The church" description={<>
+          <div>Shown on the TV, phones and invites.{initial.hub_client && ` Linked to Team Hub: ${initial.church.name}.`}</div>
+          {initial.hub_client && <Button className="cwl-c-refresh" variant="quiet" size="small" disabled={disabled || !hubConfigured || churchEditsLocked} onClick={refreshFromHub}><RefreshCw size={14} aria-hidden="true" />Refresh from Team Hub</Button>}
+        </>}>
+          <div className="cwl-ui-field is-wide" data-dirty={dirtyFields.includes("logo_url") || undefined}>
+            <strong className="cwl-c-field-title">Logo</strong>
+            <div className="cwl-c-logo-row" onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = churchEditsLocked ? "none" : "copy"; }}
+              onDrop={event => { event.preventDefault(); void upload(event.dataTransfer.files[0]); }}>
+              <div className="cwl-c-logo-tile">
+                {showLogo ? <Image unoptimized src={logo} alt="Church logo preview" width={64} height={64} onError={() => setBroken(logo)} />
+                  : <span>{logo ? "No preview" : "No logo"}</span>}
+              </div>
+              <div>
+                <div className="cwl-c-logo-actions">
+                  <Button size="small" disabled={disabled || uploading || churchEditsLocked} onClick={() => fileInput.current?.click()}>{uploading ? "Uploading…" : logo ? "Replace" : "Add logo"}</Button>
+                  {logo && <Button size="small" disabled={disabled || uploading || churchEditsLocked} onClick={() => { set("logo_url", ""); setNotice(""); }}>Remove</Button>}
+                </div>
+                <input ref={fileInput} type="file" hidden disabled={churchEditsLocked} aria-label="Logo file" accept="image/png,image/jpeg,image/webp"
+                  onChange={event => void upload(event.target.files?.[0])} />
+                <div className="cwl-ui-field-help">PNG, JPEG or WebP, up to 1 MB. Drop a file here.</div>
+                <Button variant="quiet" size="small" disabled={churchEditsLocked} aria-expanded={showAddress} onClick={() => setShowAddress(!showAddress)}>Paste an address instead</Button>
+              </div>
+            </div>
+            {showAddress && <Field label="Logo address"><input type="url" value={logo} disabled={churchEditsLocked} onChange={event => set("logo_url", event.target.value)} /></Field>}
+          </div>
+          {textField("name", "text", { required: true })}
+          <Field label="Time zone" dirty={dirtyFields.includes("timezone")}>
+            <Combobox label="Time zone" value={values.timezone} options={zones} disabled={churchEditsLocked} onChange={zone => set("timezone", zone)} />
+          </Field>
+          {planned && <div className="cwl-ui-field is-wide">
+            <strong>Planned dates</strong>
+            {planned.elements.length + planned.events.length === 0 && <p>No planned dates were found.</p>}
+            {planned.elements.map(item => <div className="cwl-c-planned" key={item.id}><span>{item.title} · {item.scheduled_date ?? "Date to follow"}</span>
+              {item.scheduled_date && <Button variant="quiet" size="small" disabled={eventEditsLocked} onClick={() => set(wayfinding ? "retreat_start_date" : "start_date", item.scheduled_date!.slice(0, 10))}>
+                {wayfinding ? "Use for retreat start" : "Use for workshop date"}
+              </Button>}</div>)}
+            {planned.events.map(item => <div className="cwl-c-planned" key={item.id}><span>{item.event_name} · {item.start_date_time ? localTime(item.start_date_time, values.timezone).replace("T", " ") : "Time to follow"}</span>
+              {item.start_date_time && <Button variant="quiet" size="small" disabled={eventEditsLocked} onClick={() => set(wayfinding ? "pre_call_local" : "start_date", wayfinding ? localTime(item.start_date_time, values.timezone) : localTime(item.start_date_time, values.timezone).slice(0, 10))}>
+                {wayfinding ? "Use for pre-call" : "Use for workshop date"}
+              </Button>}</div>)}
+          </div>}
+        </SettingsSection>
+        <div id="details-ai">
+          <SettingsSection title="AI in the room" description="Switches save as soon as you change them.">
+            <div className="cwl-c-switch-row">
+              <button type="button" className="cwl-c-switch" role="switch" aria-checked={immediate.ai} aria-labelledby="details-ai-label" aria-describedby="details-ai-help"
+                disabled={disabled} onClick={() => updateNow("ai", !immediate.ai)} />
+              <AiIcon size={18} />
+              <div><strong id="details-ai-label">Use AI in live sessions</strong><p id="details-ai-help">Combine words, group answers, fold questions and write summaries on request.</p></div>
+            </div>
+          </SettingsSection>
+        </div>
+        {wayfinding && <div className="cwl-c-section-divider">
+          <SettingsSection title="Wayfinding settings">
+            {textField("pre_call_local", "datetime-local")}
+            {textField("base_year", "number", { help: "Leave blank to use the retreat year." })}
+            {textField("retreat_start_date", "date")}
+            {textField("retreat_end_date", "date")}
+            {textField("governance_body_name")}
+            {textField("scripture_translation")}
+            {lensFields.map(key => textField(key, "text", { required: true }))}
+            {(["mission", "purpose", "values", "strategy", "leadership_rhythms"] as const).map(key =>
+              <Field key={key} label={detailsLabels[key]} wide dirty={dirtyFields.includes(key)} help={key === "values" || key === "leadership_rhythms" ? "Use one per line." : undefined}>
+                <textarea rows={3} maxLength={10000} value={values[key]} disabled={churchEditsLocked} onChange={event => set(key, event.target.value)} />
+              </Field>)}
+          </SettingsSection>
+        </div>}
+      </SettingsCard>
+      <DangerZone actions={dangerActions} />
+      {notice && <p role="status" className="cwl-c-feedback">{notice}</p>}
+      {error && !dialog && <p role="alert" className="cwl-c-feedback is-error">{error}</p>}
+      <SaveBar dirtyFields={dirtyFields} labels={detailsLabels} onDiscard={form.discard} onSave={save}
+        error={form.error} saving={disabled || uploading} confirmation={form.confirmation} />
+    </form>
+    <ConfirmDialog open={Boolean(dialog)} title={question} description={<>{consequence}{error && <p role="alert">{error}</p>}</>}
+      confirmLabel={actionLabel} cancelLabel={dialog === "end" ? "Keep the workshop going" : "Cancel"} busy={busy}
+      onCancel={() => { setDialog(null); setError(""); }} onConfirm={confirm} />
+  </>;
 }

@@ -649,7 +649,7 @@ test("one add-and-invite request saves recipients and safely retries a failed de
  const sentBefore=sentBatches.length;
  const saved=await setupPost(jar,{action:"import",id:roomId,source:"person",person:{name:"Ann Lee",email:"ann@example.org"}});assert.equal(saved.data.count,1);assert.equal(sentBatches.length,sentBefore);
  const page=await fetch(origin+`/admin/${roomId}/joining`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
- assert.match(html,/Add and invite/);assert.match(html,/Add without inviting/);assert.match(html,/Send invite/);assert.doesNotMatch(html,/Review import|Save people/);
+ assert.equal(page.status,200);assert.match(html,/Add people/);assert.match(html,/Choose how to add people/);assert.doesNotMatch(html,/Invite the team|Review import|Save people/);
 });
 
 test("practice phones join with a name and no email, while control remains protected",async()=>{
@@ -726,7 +726,9 @@ test("run of show and printable notes require a facilitator session and stay pri
   }
   assert.equal((await fetch(origin+`/api/run-of-show/${roomId}`)).status,401);
   const {jar}=await finishLogin("allowed"),headers={cookie:cookieHeader(jar)};
-  const page=await fetch(origin+`/admin/${roomId}/run-of-show`,{headers});assert.equal(page.status,200);assert.match(await page.text(),/Add session|Print run of show/);
+  const page=await fetch(origin+`/admin/${roomId}/run-of-show`,{headers});
+  assert.equal(page.status,200,output);
+  assert.match(await page.text(),/Add step/);
   const print=await fetch(origin+`/admin/${roomId}/run-of-show/print`,{headers});const html=await print.text();assert.equal(print.status,200);assert.match(html,/PRIVATE-PRINT-NOTES/);assert.match(html,/It is 2036/);assert.match(html,/Phone-only planning depth/);assert.match(print.headers.get("cache-control")!,/no-store/);
   assert.equal((await fetch(origin+`/api/run-of-show/${practiceRoom}`,{headers})).status,403);
 });

@@ -26,7 +26,11 @@ export async function POST(request: NextRequest) {
   try { body = templateInput(await limitedJson(request, 16384)); }
   catch (error) { return answer({ status: "invalid_request", message: error instanceof Error && error.message !== "Invalid request" ? error.message : "Check the template details." }, 422); }
   try {
-    const write = () => fac.client.rpc("template_write", { p_action: body.action, p_input: body.input });
+    const write = () => body.action === "rename" || body.action === "duplicate"
+      ? fac.client.rpc("template_manage", {
+        p_action: body.action, p_template: body.input.template, p_name: body.action === "rename" ? body.input.name : null,
+      })
+      : fac.client.rpc("template_write", { p_action: body.action, p_input: body.input });
     // Starting from a template adds sessions to the room, so it carries a room version.
     const { data, error } = body.action === "apply" ? await roomMutation(fac.client, body.input.engagement, write) : await write();
     if (error || !data) throw new Error("save");

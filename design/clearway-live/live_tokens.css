@@ -328,6 +328,8 @@
   --cwl-app-info-ink: #1E40AF; /* Info chip text (design pass 10, November 19). */
   --cwl-app-selected-ink: #1E40AF; /* Done and Closed stage text (design pass 10, November 19). */
   --cwl-app-stage-info-ink: #1E3A8A; /* Discover, Pre-call and Follow-up stage text (design pass 10, November 19). */
+  --cwl-app-row-soon: #FAFCFF; /* Engagements happening today or tomorrow (design pass 10, November 19). */
+  --cwl-app-calendar-month: #B91C1C; /* Month in the engagement date block (design pass 10, November 19). */
   --cwl-action-live-hover: #D8441E; /* App surfaces only: Go live hover (Off-White 4.3:1). */
   --cwl-action-live-pressed: #B03514; /* App surfaces only: Go live pressed, and the glyph in its key hint (6.1:1 on Off-White). */
   --cwl-on-action-live: #FCFCFD; /* App surfaces only: the Go live icon on its Orange tile. */
@@ -336,6 +338,7 @@
   --cwl-app-selected: var(--cwl-sky-pale); /* App surfaces: selected rows, active nav item. */
   --cwl-app-avatar: var(--cwl-sky-light); /* App surfaces: initials avatars (Navy text). */
   --cwl-app-warning: var(--cw-warning, #D97706); /* App surfaces only: Warning icon and disc fill. Never as text. Never on the TV or phones. */
+  --cwl-app-warning-border: #FCD34D; /* Design pass 10: waiting to join on People. */
   --cwl-app-warning-bg: var(--cw-warning-light, #FEF3C7); /* App surfaces only: Warning banners and chips (Navy text). */
   --cwl-app-on-warning: var(--cw-navy, #03294E); /* App surfaces only: glyph on a Warning disc. */
   --cwl-app-error: var(--cw-error, #DC2626); /* App surfaces only: Error text, input edges, icons, destructive buttons. Never on the TV or phones. */
@@ -436,4 +439,10 @@
   --cwl-wordmark-h-tv: 56px; /* Lockup height: the TV before pairing, the height of the TV's top row. */
   --cwl-wordmark-h-print: 28px; /* Lockup height: printouts. */
   --cwl-wordmark-h-page: 32px; /* Lockup height: review pages and documents about the app. */
+}
+
+/* Live room run list, design pass 10 E. Facilitator controls stay in Clearway. */
+[data-surface="control"] {
+  --cwl-live-edge: #84A92B;
+  --cwl-live-tint: #F4FFE0;
 }

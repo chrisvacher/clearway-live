@@ -63,7 +63,7 @@ async function main() {
 
     const facContext = await browser.newContext({ viewport: { width: 1440, height: 1100 } });
     await facContext.addCookies(fac.cookies(app.origin));
-    const control = await facContext.newPage();
+    const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
     await control.goto(`${app.origin}/control/${room.id}`);
 
     async function signIn(page: Page, email: string) {
@@ -165,6 +165,7 @@ async function main() {
     });
 
     await step("Rehearsal: answers made while it runs are test answers, shown on phones and the control surface", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsing").isVisible(), "Rehearsing on the control surface", 8000);
       await press(fac, sql, room.id, "go_live", { session: choice });
@@ -224,7 +225,7 @@ async function main() {
       assert.ok(lines.some(l => l.includes("this fall")) && !/Priya|Ben/.test(wall.text), "answers without names");
       const priv = await csv(form);
       assert.match(priv.text, /Name,What would make this retreat a win for you\?/); assert.match(priv.text, /Ruth,Honest talk about the building/);
-      const button = control.locator(".ctl-screen.is-live").getByRole("link", { name: "Export answers", exact: true });
+      const button = control.getByRole("region", { name: "Live step", exact: true }).getByRole("link", { name: "Export answers", exact: true });
       await until(async () => await button.isVisible(), "Export answers on the control surface", 8000);
       const [download] = await Promise.all([control.waitForEvent("download"), button.click()]);
       assert.match(download.suggestedFilename(), /for-the-facilitators\.csv$/);
@@ -251,10 +252,11 @@ async function main() {
       await until(async () => (await card.locator(".recap-count").innerText()) === "3 answers", "the card updates on its own", 12000);
       assert.equal(await card.locator(".tv-mirror").evaluate(el => Boolean((el as HTMLElement & { __kept?: boolean }).__kept)), true, "without redrawing the card");
       assert.equal(await card.locator(".tv-mirror").getAttribute("data-motion"), "reduced", "and without re-animating it");
-      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("link", { name: "Every answer as CSV" }).click()]);
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Every answer as CSV", exact: true }).click()]);
       assert.match(download.suggestedFilename(), /all-answers\.csv$/);
       await recap.emulateMedia({ media: "print" });
-      assert.equal(await recap.locator(".recap-actions").isVisible(), false, "print leaves the buttons off");
+      assert.equal(await recap.locator(".cwl-ui-page-actions").isVisible(), false, "print leaves the buttons off");
       const pdf = await recap.pdf({ format: "Letter" });
       assert.ok(pdf.byteLength > 10000, "prints to PDF");
       if (shots) { writeFileSync(`${shots}/recap.pdf`, pdf); await recap.screenshot({ path: `${shots}/recap-print.png`, fullPage: true }); }

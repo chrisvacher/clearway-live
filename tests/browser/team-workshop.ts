@@ -47,7 +47,7 @@ async function main() {
   try {
     await sql.connect();
     const room = await engagement(sql, people);
-    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
+    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',how_the_room_decides='We will make decisions together.',settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
     // KIT_SKIN=novetera runs the same workshop in the Novetera skin, for the Novetera front page's screenshots (npm run home:shots).
     if (process.env.KIT_SKIN === "novetera") await sql.query("update public.engagements set skin='novetera' where id=$1", [room.id]);
     const fac = await facilitator(env, sql, room.id);
@@ -89,13 +89,28 @@ async function main() {
       await tv.goto(app.origin + "/tv");
       const code = await until(async () => { const c = (await tv.locator(".tv-code span").allTextContents()).join("").trim(); return /^\d{6}$/.test(c) && c; }, "pairing code", 15000);
       await setup.goto(`${app.origin}/admin/${room.id}/tv`);
-      await setup.locator("#tv-pair-code").fill(code); await setup.locator("#tv-label").fill("Workshop TV");
+      await setup.getByLabel("Code on the TV", { exact: true }).fill(code);
+      await setup.getByLabel("Name this screen", { exact: true }).fill("Workshop TV");
       await setup.getByRole("button", { name: "Pair this TV" }).click();
       await tv.locator(".tv-church-logo").waitFor({ timeout: 15000 });
       await until(async () => (await setup.locator(".tv-screen-list").innerText().catch(() => "")).includes("Workshop TV"), "the TV in Paired screens", 10000);
       await setup.close();
     });
 
+    const roster = await facContext.newPage();
+    await step("Invite selected people and filter the roster as phones arrive", async () => {
+      await roster.goto(`${app.origin}/admin/${room.id}/joining`);
+      const table = roster.getByRole("table", { name: "People", exact: true });
+      const recipients = room.attendees.slice(0, 2);
+      for (const person of recipients) await table.getByRole("checkbox", { name: `Select ${person.name}`, exact: true }).check();
+      const before = mail.count;
+      await roster.getByRole("button", { name: "Send invites", exact: true }).click();
+      await roster.getByText("Sent 2 invites", { exact: true }).waitFor();
+      assert.deepEqual(mail.messages.slice(before).filter(message => /invited to/i.test(message.text)).flatMap(message => message.to).sort(), recipients.map(person => person.email).sort());
+      await roster.getByRole("button", { name: /^Invited, not joined/ }).click();
+      assert.equal(await table.getByText("Invited", { exact: true }).count(), 2);
+      await roster.getByRole("button", { name: /^In the room/ }).click();
+    });
     const phones: Phone[] = [];
     await step("Eight phones sign in by email code; the AI line sits under Sign in and links to How we use AI", async () => {
       for (const [i, person] of room.attendees.entries()) {
@@ -115,12 +130,18 @@ async function main() {
         phones.push({ name: person.name, ctx, page });
       }
       assert.equal(phones.length, 8);
+      await roster.bringToFront();
+      const table = roster.getByRole("table", { name: "People", exact: true });
+      await table.getByText("In the room", { exact: true }).nth(7).waitFor({ timeout: 15000 });
+      assert.equal(await table.getByText("In the room", { exact: true }).count(), 8);
+      await roster.close();
     });
     const all = <T>(run: (p: Phone, i: number) => Promise<T>) => Promise.all(phones.map(run));
 
-    const control = await facContext.newPage();
+    const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
     await control.goto(`${app.origin}/control/${room.id}`);
     await control.locator(".ctl-app").waitFor({ timeout: 15000 });
+    const liveStep = control.getByRole("region", { name: "Live step", exact: true });
     const stats = async () => control.locator(".ctl-stats b").allInnerTexts();
     // The TV's count, the server's and the control surface's agree (one source for every count).
     async function counts(label: string, expected: { people?: number; total?: number; unit: "answering" | "answers" | "questions" | null }) {
@@ -135,7 +156,7 @@ async function main() {
           if (await tally() !== label) return false;
         }
         const s = await stats();
-        return s[1] === String(r.people) && s[2] === String(r.total);
+        return s[1] === String(r.people) && await control.locator(".ctl-live-step-head").getAttribute("data-answer-count") === String(r.total);
       }, `${label}: the TV, the server and the control surface agree`, 15000).catch(async error => {
         throw new Error(`${error.message}\nserver ${JSON.stringify({ people: (await results())?.people, total: (await results())?.total })} TV "${await tally()}" control ${JSON.stringify(await stats())}`);
       });
@@ -144,7 +165,7 @@ async function main() {
     // Every phone shows the step's prompt: the phones have moved with the room.
     const phonesOn = async (title: string) => { const prompt = (await prompts()).get(title)!; await all(p => until(async () => (await p.page.locator(".ph-app").innerText().catch(() => "")).includes(prompt), `${title} on ${p.name}'s phone`, 20000)); };
     const goLive = async (title: string) => {
-      await control.getByRole("button", { name: `Preview ${title}` }).click();
+      await control.getByRole("button", { name: `Choose ${title}` }).click();
       await control.locator(".ctl-take").getByText("Go live").waitFor();
       await control.getByRole("button", { name: `Go live: ${title}`, exact: true }).click();
       const id = await idOf(title);
@@ -174,6 +195,7 @@ async function main() {
       await p.locator(".ph-send").click();
     };
     await step("Rehearse: test answers on the scale, the word cloud, the wall and Q&A, marked on phones and the control surface", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsing").isVisible(), "Rehearsing on the control surface", 8000);
       await goLive("Check-in");
@@ -193,7 +215,7 @@ async function main() {
       await goLive("Your questions");
       await ben.page.locator("#qa-question").fill(rehearsalWords[3]); await ben.page.locator(".qa-ask-form .ph-send").click();
       await until(async () => (await layer().innerText()).includes("budget"), "the rehearsal question on the TV", 8000);
-      await control.locator(".qa-ctl-item", { hasText: "budget" }).first().getByRole("button", { name: "Spotlight" }).click();
+      await liveStep.locator(".qa-ctl-item", { hasText: "budget" }).first().getByRole("button", { name: "Spotlight" }).click();
       await until(async () => await tv.locator(".qa-spot.is-on").count() === 1, "a spotlit rehearsal question", 8000);
       await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test items"), "the control surface counts the test answers", 10000);
       await shot(control, "team-rehearsal-control");
@@ -223,12 +245,13 @@ async function main() {
       await until(async () => await liveId() === await idOf("Your questions"), "B again returns to the step", 8000);
       await until(async () => (await control.locator("#ctl-live-title").innerText()) === "Your questions", "and the control surface shows it", 8000);
       // The preview: Preview on a row puts that step in the preview screen, and the preview draws it before it goes live.
-      await control.getByRole("button", { name: "Preview Check-in", exact: true }).click();
+      await control.getByRole("button", { name: "Choose Check-in", exact: true }).click();
       await until(async () => (await control.locator("#ctl-preview-title").innerText()) === "Check-in", "Check-in in the preview", 8000);
       await control.locator(".ctl-screen.is-preview .tv-mirror").waitFor({ timeout: 8000 });
       await shot(control, "team-control-preview");
     });
     await step("Clear test answers: refused while live, then everything from the rehearsal goes and the steps are Ready again", async () => {
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       assert.equal(await control.getByRole("button", { name: "Clear test answers" }).isDisabled(), true, "held while a session is live");
       await control.locator(".ctl-screen-bar").getByRole("button", { name: "Home", exact: true }).click();
       await until(async () => await liveId() === null, "Home", 8000);
@@ -381,10 +404,10 @@ async function main() {
       await until(async () => (await topRow()).startsWith("Who decides"), "and to the top of the TV", 10000);
       await counts("Q&A", { unit: "questions" });
       await shot(tv, "team-09-qa-tv"); await shot(ben.page, "team-09-qa-phone");
-      await control.locator(".qa-ctl-item", { hasText: "Who decides" }).first().getByRole("button", { name: "Spotlight" }).click();
+      await liveStep.locator(".qa-ctl-item", { hasText: "Who decides" }).first().getByRole("button", { name: "Spotlight" }).click();
       await until(async () => (await tv.locator(".qa-spot.is-on .qa-spot-text").innerText().catch(() => "")).includes("Who decides"), "spotlit on the TV", 8000);
       await shot(tv, "team-09-qa-spotlight-tv");
-      await control.locator(".qa-ctl-spot").getByRole("button", { name: "Answered" }).click();
+      await liveStep.locator(".qa-ctl-spot").getByRole("button", { name: "Answered" }).click();
       await until(async () => await tv.locator(".qa-spot.is-on").count() === 0, "Answered clears it", 8000);
       await counts("Q&A after Answered", { total: 6, unit: "questions" });
       await shot(control, "team-09-qa-control");
@@ -455,15 +478,16 @@ async function main() {
         else assert.ok(!people.some(n => text.includes(`,${n},`)), `${title}: anonymous`);
         assert.match(download.suggestedFilename(), /^riverside-church-.+\.csv$/);
       }
-      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("link", { name: "Every answer as CSV" }).click()]);
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Every answer as CSV", exact: true }).click()]);
       const every = readFileSync((await download.path())!, "utf8").replace(/^﻿/, "").trim().split("\r\n");
       assert.equal(every.length - 1, Object.values(expected).reduce((n, e) => n + e.rows, 0), "Download all has every row");
     });
-    await step("After the workshop: AI drafts a short summary from the room's answers, the facilitator edits it and downloads it as Word", async () => {
-      assert.equal(await recap.getByRole("heading", { name: "After the workshop", exact: true }).count(), 1);
+    await step("Results: AI drafts a short summary from the room's answers, the facilitator edits it and downloads it as Word", async () => {
+      assert.equal(await recap.getByRole("heading", { name: "Results", exact: true }).count(), 1);
       const card = recap.getByTestId("workshop-summary");
       await card.getByRole("button", { name: "Draft a summary", exact: true }).click();
-      await card.getByText("AI drafted this from the room\u2019s answers. Read it before you share it.").waitFor({ timeout: 20000 });
+      await card.getByText("Drafted by AI from the answers, then edited by you").waitFor({ timeout: 20000 });
       const drafted = await card.locator(".ws-body").innerText();
       assert.match(drafted, /The room began with/); assert.ok(!/[\u2014\u2013]/.test(drafted), "no dashes in the summary");
       const runs = await sql.query("select status,model,prompt_version,session_id from private.ai_runs where engagement_id=$1 and job='draft_workshop_summary'", [room.id]);
@@ -472,8 +496,9 @@ async function main() {
       await card.getByLabel("Summary", { exact: true }).fill("The team began unsure.\n\nIt ended with a commitment.");
       await card.getByRole("button", { name: "Save summary", exact: true }).click();
       await until(async () => await card.locator(".ws-body p").count() === 2, "the edit is shown as two paragraphs", 10000);
-      assert.equal(await card.getByText(/AI drafted this/).count(), 0, "an edited summary is the facilitator's");
-      const [download] = await Promise.all([recap.waitForEvent("download"), card.getByRole("link", { name: "Download as Word", exact: true }).click()]);
+      assert.equal(await card.getByText("Drafted by AI from the answers, then edited by you").count(), 1, "the summary keeps its AI provenance");
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Summary as Word", exact: true }).click()]);
       assert.match(download.suggestedFilename(), /summary\.docx$/);
       const bytes = readFileSync(await download.path());
       assert.equal(bytes.subarray(0, 2).toString(), "PK", "the Word file is a real document");
@@ -483,15 +508,15 @@ async function main() {
       const page = await facContext.newPage();
       for (const path of ["after", "report", "plan", "share", "check-ins", "review", "map"]) { await page.goto(`${app.origin}/control/${room.id}/${path}`); assert.equal(new URL(page.url()).pathname, `/control/${room.id}/recap`, path); }
       await page.goto(`${app.origin}/admin/${room.id}/discover`); assert.equal(new URL(page.url()).pathname, `/admin/${room.id}`);
-      await page.goto(`${app.origin}/control/${room.id}`); await page.getByRole("heading", { name: "Live room", exact: true }).waitFor();
+      await page.goto(`${app.origin}/control/${room.id}`); await page.locator(".ctl-app h1").waitFor();
       for (const title of ["Scribe", "Overnight review"]) assert.equal(await page.getByLabel(`${title}, only you see this`, { exact: true }).count(), 0, title);
-      assert.equal(await page.getByLabel("Room, only you see this", { exact: true }).count(), 1);
+      assert.equal(await page.getByRole("tab", { name: "Room", exact: true }).count(), 1);
       assert.equal(await page.getByRole("link", { name: "Draft Clearway Map", exact: true }).count(), 0);
       await page.close();
     });
     await step("Print the recap to PDF", async () => {
       await recap.emulateMedia({ media: "print" });
-      assert.equal(await recap.locator(".recap-actions").isVisible(), false, "print leaves the buttons off");
+      assert.equal(await recap.locator(".cwl-ui-page-actions").isVisible(), false, "print leaves the buttons off");
       const pdf = await recap.pdf({ format: "Letter" });
       assert.ok(pdf.byteLength > 10000, "prints to PDF");
       if (shots) writeFileSync(`${shots}/team-recap.pdf`, pdf);

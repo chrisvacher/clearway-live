@@ -9,6 +9,10 @@ export const metadata = { title: "Remote" };
 export default async function RemotePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; if (!uuid(id)) notFound();
   const { client } = await requireFacilitator();
-  const show = await readShow(client, id); if (!show) notFound();
-  return <Remote initial={show} />;
+  const [show, { data: event }] = await Promise.all([
+    readShow(client, id),
+    client.from("engagements").select("type").eq("id", id).eq("deleted", false).maybeSingle(),
+  ]);
+  if (!show) notFound();
+  return <Remote initial={show} workshop={event?.type === "team_workshop"} handover={event?.type === "wayfinding" || event?.type === "day_and_a_half"} />;
 }

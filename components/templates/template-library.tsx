@@ -3,11 +3,18 @@ import { ShellNav } from "@/components/layout/shell-nav";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, EyeOff, Play, Trash2, X } from "lucide-react";
+import { EyeOff, Play, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Dialog } from "@/components/ui/dialog";
+import { Menu } from "@/components/ui/menu";
+import { PageHeader } from "@/components/ui/page-header";
+import { Tabs, TabPanel } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/toast";
 import { kindLabel } from "@/lib/interactions/kinds";
 import { clock } from "@/lib/run-of-show/builder";
 import { parts } from "@/lib/run-of-show/types";
-import { removeTemplateQuestion, templateByline } from "@/lib/templates/policy";
+import { templateByline } from "@/lib/templates/policy";
 import { localTime, zonedInstant } from "@/lib/setup/policy";
 import type { Template, TemplateLibrary as Library } from "@/lib/templates/types";
 import "@/components/run-of-show/builder.css";
@@ -27,67 +34,148 @@ function tomorrowAtNine(timezone: string) {
   return `${d.toISOString().slice(0, 10)}T09:00`;
 }
 
-// SET-08: the template library with the team workshop template, Use a template from a
-// template, and Remove template for the facilitator's own.
+function templateKind(template: Template) {
+  if (template.block) return "Block";
+  if (template.engagement_type) return template.engagement_type === "wayfinding" || template.engagement_type === "day_and_a_half" ? "Wayfinding" : "Workshop";
+  return template.sessions.some(step => step.part !== "Day 1" || ["lens", "four_lists", "lens_summary"].includes(step.interaction)) ? "Wayfinding" : "Workshop";
+}
+
+type LibraryTab = "templates" | "blocks";
+const tabFor = (template: Template | undefined | null): LibraryTab => template?.block ? "blocks" : "templates";
+
 export function TemplateLibrary({ initial, admin, engagement, template }: { initial: Library | null; admin: boolean; engagement: string | null; template: string | null }) {
   const router = useRouter();
-  const [library, setLibrary] = useState(initial), [selected, setSelected] = useState<string | null>(() => template ?? initial?.templates.find(t => t.kind === "shipped")?.id ?? initial?.templates[0]?.id ?? null);
-  const [starting, setStarting] = useState<string | null>(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [asking, setAsking] = useState<string | null>(null);
-  const current = library?.templates.find(t => t.id === selected) ?? null;
-  async function remove(t: Template) {
-    setAsking(null); setBusy(true); setMessage("");
+  const toast = useToast();
+  const [library, setLibrary] = useState(initial);
+  const initialPreview = initial?.templates.find(item => item.id === template) ?? initial?.templates.find(item => item.kind === "shipped") ?? initial?.templates[0];
+  const [selected, setSelected] = useState<string | null>(initialPreview?.id ?? null);
+  const [tab, setTab] = useState<LibraryTab>(tabFor(initialPreview));
+  const [starting, setStarting] = useState<string | null>(null);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [asking, setAsking] = useState<Template | null>(null);
+  const [renaming, setRenaming] = useState<Template | null>(null);
+  const [name, setName] = useState("");
+  const current = library?.templates.find(item => item.id === selected) ?? null;
+  const templates = library?.templates.filter(item => !item.block) ?? [];
+  const blocks = library?.templates.filter(item => item.block) ?? [];
+
+  async function manage(action: "remove" | "duplicate" | "rename", item: Template, name?: string) {
+    setBusy(true);
+    setMessage("");
     try {
-      const response = await fetch("/api/templates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "remove", input: { template: t.id } }) });
+      const response = await fetch("/api/templates", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, input: { template: item.id, ...(name ? { name } : {}) } }),
+      });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok || result.status !== "ok") { setMessage(result.message || "We couldn’t remove the template. Please try again."); return; }
-      const next = await fetch("/api/templates", { cache: "no-store" }).then(r => r.json());
-      if (next.status === "ok") { setLibrary({ templates: next.templates, engagements: next.engagements }); setSelected(next.templates[0]?.id ?? null); }
-      setMessage(`${t.name} removed.`);
-    } catch { setMessage("We couldn’t remove the template. Please try again."); }
+      if (!response.ok || result.status !== "ok") {
+        setMessage(result.message || "We couldn't change that template. Please try again.");
+        return;
+      }
+
+      setRenaming(null);
+      setAsking(null);
+      const next = await fetch("/api/templates", { cache: "no-store" }).then(response => response.json()).catch(() => null);
+      if (next?.status === "ok") {
+        const refreshed = next.templates as Template[];
+        setLibrary({ templates: refreshed, engagements: next.engagements, can_manage: next.can_manage === true });
+        if (action === "duplicate" || action === "rename") {
+          setSelected(result.id);
+          setTab(tabFor(item));
+        } else if (selected === item.id) {
+          setSelected(refreshed.find(candidate => tabFor(candidate) === tab)?.id ?? null);
+        }
+      } else if (action === "remove") {
+        setLibrary(previous => previous ? { ...previous, templates: previous.templates.filter(candidate => candidate.id !== item.id) } : previous);
+        if (selected === item.id) setSelected(null);
+      } else {
+        setMessage("The change was saved. Reload the page to see it.");
+      }
+      toast(action === "remove" ? `${item.name} deleted` : action === "rename" ? "Name saved" : "Copy created");
+    } catch { setMessage("We couldn't change that template. Please try again."); }
     finally { setBusy(false); }
   }
-  return <main id="main" className="show-app">
+
+  function selectTab(next: string) {
+    if (next !== "templates" && next !== "blocks") return;
+    setTab(next);
+    if (current && tabFor(current) !== next) setSelected(null);
+  }
+
+  function cards(list: Template[], label: string) {
+    return <div className="tpl-grid" role="list" aria-label={label}>
+      {list.map(item => <article key={item.id} role="listitem" className={`tpl-card${item.id === selected ? " is-on" : ""}`} aria-labelledby={`tpl-${item.id}`}>
+        <div className="tpl-card-head"><h2 id={`tpl-${item.id}`}>{item.name}</h2><span className="cwl-g-template-kind">{templateKind(item)}</span></div>
+        <p className="show-muted">{length(item.minutes)} · {item.count} {item.count === 1 ? "step" : "steps"}</p>
+        <p className="show-help">{templateByline(item)}</p>
+        <div className="tpl-card-foot">
+          <Button variant="primary" size="small" aria-label={`Use ${item.name}`} onClick={() => { setSelected(item.id); setStarting(item.id); }}><Play aria-hidden="true" />Use</Button>
+          <Button size="small" aria-pressed={item.id === selected} onClick={() => setSelected(item.id)}>Preview</Button>
+          {(library?.can_manage || item.can_remove) && <Menu label={`Actions for ${item.name}`} items={[
+            ...(library?.can_manage && item.can_remove ? [{ label: "Rename", disabled: busy, onSelect: () => { setName(item.name); setMessage(""); setRenaming(item); } }] : []),
+            ...(library?.can_manage ? [{ label: "Duplicate", disabled: busy, onSelect: () => void manage("duplicate", item) }] : []),
+            ...(item.can_remove ? [{ label: "Delete", danger: true, disabled: busy, onSelect: () => { setMessage(""); setAsking(item); } }] : []),
+          ]} />}
+        </div>
+      </article>)}
+      {!list.length && <p className="show-empty">{label === "Blocks" ? "No saved blocks yet." : "No templates yet."}</p>}
+    </div>;
+  }
+
+  return <main id="main" className="show-app cwl-g-template-library">
     <ShellNav admin={admin} />
     <div className="show-workspace">
       <div className="show-private"><EyeOff size={15} aria-hidden="true" />Only you see this</div>
-      <header className="show-header"><div><p className="show-eyebrow">Library</p><h1>Templates</h1></div></header>
-      {message && <div className="show-message" role="status">{message}</div>}
-      {!library ? <p className="show-message is-error" role="alert">We couldn’t load the templates. Reload the page to try again.</p> :
-      <div className="tpl-body">
-        <div className="tpl-grid" role="list" aria-label="Templates">
-          {library.templates.map(t => <article key={t.id} role="listitem" className={`tpl-card${t.id === selected ? " is-on" : ""}`} aria-labelledby={`tpl-${t.id}`}>
-            <div className="tpl-card-head"><h2 id={`tpl-${t.id}`}>{t.name}</h2>{t.kind === "shipped" && <span className="rb-chip is-ready"><BadgeCheck aria-hidden="true" />Clearway</span>}{t.block && <span className="rb-chip">Block</span>}</div>
-            <p className="show-muted">{length(t.minutes)} · {t.count} {t.count === 1 ? "session" : "sessions"}</p>
-            <p className="show-help">{templateByline(t)}</p>
-            <div className="tpl-card-foot">
-              <button type="button" className={`show-button${t.id === selected ? " is-primary" : ""}`} aria-label={`Use ${t.name}`} onClick={() => { setSelected(t.id); setStarting(t.id); }}><Play size={16} aria-hidden="true" />Use</button>
-              <button type="button" className="show-button" aria-pressed={t.id === selected} onClick={() => setSelected(t.id)}>Preview</button>
+      <div className="cwl-g-template-content">
+        <PageHeader title="Templates and blocks" lead="Start an event from a template, or drop a saved block into a run of show." />
+        {message && !renaming && !asking && <p className="show-message is-error" role="alert">{message}</p>}
+        {!library ? <p className="show-message is-error" role="alert">We couldn&rsquo;t load the templates. Reload the page to try again.</p> :
+          <>
+            <Tabs label="Template library" value={tab} onChange={selectTab} items={[
+              { id: "templates", label: "Templates", count: templates.length },
+              { id: "blocks", label: "Blocks", count: blocks.length },
+            ]} />
+            <div className={`tpl-body${current ? "" : " cwl-g-no-preview"}`}>
+              <div className="cwl-g-template-cards">
+                <TabPanel id="templates" active={tab === "templates"}>{tab === "templates" && cards(templates, "Templates")}</TabPanel>
+                <TabPanel id="blocks" active={tab === "blocks"}>{tab === "blocks" && cards(blocks, "Blocks")}</TabPanel>
+              </div>
+              {current && <aside className="tpl-panel" aria-labelledby="tpl-panel-title">
+                <div className="show-panel-head"><h2 id="tpl-panel-title">{current.name}</h2>
+                  <Button iconOnly variant="quiet" aria-label="Close preview" onClick={() => setSelected(null)}><X aria-hidden="true" /></Button>
+                </div>
+                <div className="tpl-panel-body">
+                  {current.description && <p className="show-muted">{current.description}</p>}
+                  {parts.map(part => {
+                    const list = current.sessions.filter(step => step.part === part);
+                    if (!list.length) return null;
+                    let at = 0;
+                    return <section key={part} aria-label={part}><h3>{part}</h3><ol className="tpl-sessions">{list.map((step, index) => {
+                      const time = step.mode === "live" ? clock(at) : "Self-paced";
+                      if (step.mode === "live") at += step.planned_minutes;
+                      return <li key={index}><span className="rb-time">{time}</span><div className="rb-name"><strong>{step.title}</strong><span className="show-muted">{kindLabel(step.interaction, step.screen)} · {step.planned_minutes} min{step.state === "draft" ? " · Draft" : ""}</span></div></li>;
+                    })}</ol></section>;
+                  })}
+                </div>
+                <div className="show-panel-foot"><Button onClick={() => setStarting(current.id)}><Play aria-hidden="true" />{current.block ? "Use this block" : "Use this template"}</Button></div>
+              </aside>}
             </div>
-          </article>)}
-          {!library.templates.length && <p className="show-empty">No templates yet. Save any run of show as a template from its run of show.</p>}
-        </div>
-        {current && <aside className="tpl-panel" aria-labelledby="tpl-panel-title">
-          <div className="show-panel-head"><div><p className="show-eyebrow">Template</p><h2 id="tpl-panel-title">{current.name}</h2></div><button type="button" className="show-button is-icon" aria-label="Close preview" onClick={() => setSelected(null)}><X size={20} aria-hidden="true" /></button></div>
-          <div className="tpl-panel-body">
-            {current.description && <p className="show-muted">{current.description}</p>}
-            {parts.map(part => {
-              const list = current.sessions.filter(s => s.part === part); if (!list.length) return null;
-              let at = 0;
-              return <section key={part} aria-label={part}><h3>{part}</h3><ol className="tpl-sessions">{list.map((s, i) => {
-                const time = s.mode === "live" ? clock(at) : "Self-paced"; if (s.mode === "live") at += s.planned_minutes;
-                return <li key={i}><span className="rb-time">{time}</span><div className="rb-name"><strong>{s.title}</strong><span className="show-muted">{kindLabel(s.interaction, s.screen)} · {s.planned_minutes} min{s.state === "draft" ? " · Draft" : ""}</span></div></li>;
-              })}</ol></section>;
-            })}
-          </div>
-          <div className="show-panel-foot">{current.can_remove && (asking === current.id
-              ? <span className="show-message" role="alert" data-remove-confirm>{removeTemplateQuestion(current.name)}{" "}
-                <button type="button" className="show-button is-small" disabled={busy} onClick={() => void remove(current)}>Remove template</button>{" "}
-                <button type="button" className="show-button is-small" onClick={() => setAsking(null)}>Keep it</button></span>
-              : <button type="button" className="show-button" disabled={busy} onClick={() => setAsking(current.id)}><Trash2 size={16} aria-hidden="true" />Remove template</button>)}
-            <button type="button" className="show-button is-primary" onClick={() => setStarting(current.id)}><Play size={16} aria-hidden="true" />Use this template</button></div>
-        </aside>}
-      </div>}
+          </>}
+      </div>
     </div>
+    <Dialog open={Boolean(renaming)} onClose={() => { if (!busy) setRenaming(null); }} label="Rename template" className="cwl-g-rename-template">
+      <h2>Rename {renaming?.block ? "block" : "template"}</h2>
+      <form className="form-stack" onSubmit={event => { event.preventDefault(); if (renaming && name.trim()) void manage("rename", renaming, name); }}>
+        <label>Name<input value={name} required maxLength={120} data-initial-focus onChange={event => setName(event.target.value)} /></label>
+        {message && <p role="alert">{message}</p>}
+        <div className="admin-actions"><Button disabled={busy} onClick={() => setRenaming(null)}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={busy || !name.trim()}>Save name</Button></div>
+      </form>
+    </Dialog>
+    <ConfirmDialog open={Boolean(asking)} title={`Delete ${asking?.name ?? "this template"}?`}
+      description={<>Engagements already started from it keep their sessions.{message && <p role="alert">{message}</p>}</>}
+      cancelLabel="Keep it" confirmLabel="Delete" onCancel={() => setAsking(null)} busy={busy} onConfirm={() => { if (asking) void manage("remove", asking); }} />
     {starting && library && <StartEngagement library={library} template={starting} engagement={engagement} admin={admin} onClose={() => setStarting(null)} onStarted={(id, count) => { setStarting(null); router.push(`/admin/${id}/run-of-show?from=template&count=${count}`); }} />}
   </main>;
 }

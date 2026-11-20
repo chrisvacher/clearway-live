@@ -19,9 +19,9 @@ insert into engagements(id,church_id,title,status) values(tests.id(10),tests.id(
 insert into auth.users(id,email,email_confirmed_at) values(tests.id(1),'ann@example.org',now()),(tests.id(2),'fac@clearway.co',now()),(tests.id(3),'other@clearway.co',now()),(tests.id(4),'unassigned@clearway.co',now());
 insert into auth.identities(user_id,provider,provider_id,identity_data)
 select id,'google',id::text,jsonb_build_object('email',email,'email_verified',true) from auth.users where id in(tests.id(2),tests.id(3),tests.id(4));
-insert into auth.sessions(id,user_id) values(tests.id(201),tests.id(1)),(tests.id(202),tests.id(2)),(tests.id(203),tests.id(3)),(tests.id(204),tests.id(4)),(tests.id(211),tests.id(1));
+insert into auth.sessions(id,user_id) values(tests.id(201),tests.id(1)),(tests.id(202),tests.id(2)),(tests.id(203),tests.id(3)),(tests.id(204),tests.id(4)),(tests.id(211),tests.id(1)),(tests.id(221),tests.id(1));
 insert into auth.mfa_amr_claims(id,session_id,created_at,updated_at,authentication_method)
-select gen_random_uuid(),id,now(),now(),case when user_id=tests.id(1) then 'otp' else 'oauth' end from auth.sessions where id in(tests.id(201),tests.id(202),tests.id(203),tests.id(204),tests.id(211));
+select gen_random_uuid(),id,now(),now(),case when user_id=tests.id(1) then 'otp' else 'oauth' end from auth.sessions where id in(tests.id(201),tests.id(202),tests.id(203),tests.id(204),tests.id(211),tests.id(221));
 insert into clearway_users(id,auth_user_id,name,email,team_hub_team_member_id)
 select tests.id(300+n),tests.id(n),'Facilitator '||n,case n when 2 then 'fac@clearway.co' when 3 then 'other@clearway.co' else 'unassigned@clearway.co' end,tests.id(400+n) from generate_series(2,4)n;
 insert into engagement_facilitators(engagement_id,clearway_user_id,role) values(tests.id(10),tests.id(302),'lead'),(tests.id(11),tests.id(303),'lead');
@@ -99,19 +99,26 @@ select is(public.decide_room_join(current_setting('tests.join')::uuid,true),fals
 select is((select count(*)::integer from attendees),2,'Approved guest is visible without revealing another engagement');
 select is(public.sign_in_room_device(tests.id(10),tests.id(30),'AAAA AAAD'),true,'Facilitator can approve a listed person by device code');
 select is((select device_count::integer from public.room_presence(tests.id(10)) where attendee_id=tests.id(30)),2,'Door list counts actual active Auth bindings');
+select is((select manual from public.attendee_roster_presence(tests.id(10)) where attendee_id=tests.id(30)),false,
+  'A manual approval waiting on Auth does not change the roster method');
 reset role;
 set local role service_role;
 select is((public.room_auth('status',tests.payload(7))->>'can_claim')::boolean,true,'Approved phone can continue without another user step');
 select is((public.room_auth('status',tests.payload(4))->>'can_claim')::boolean,true,'Manual phone approval can continue');
+select set_config('tests.claim',(public.room_auth('prepare_claim',tests.payload(4))->>'claim'),true);
+select is(public.room_auth('bind',tests.payload(4)||jsonb_build_object('claim',current_setting('tests.claim'),'user',tests.id(1),'session',tests.id(221)))->>'status','signed_in',
+  'The manually approved phone binds an independently verified Auth session');
+select is((select signed_in_by_hand from public.device_sessions where auth_session_id=tests.id(221)),true,
+  'A completed manual binding records the method on the bound device');
 reset role;
-delete from auth.sessions where id=tests.id(211);
+delete from auth.sessions where id in (tests.id(211),tests.id(221));
 set local role authenticated;
 select tests.login(2);
 select is((select device_count::integer from public.room_presence(tests.id(10)) where attendee_id=tests.id(30)),1,'Revoked Auth session no longer counts as signed in');
 reset role;
 update attendees set email='changed@example.org' where id=tests.id(30);
 set local role service_role;
-select is(public.room_auth('status',tests.payload(4))->>'status','device_missing','Changing attendee identity revokes outstanding manual approval');
+select is(public.room_auth('status',tests.payload(4))->>'status','device_missing','Changing attendee identity revokes the approved device proof');
 reset role;
 update engagements set status='closed' where id=tests.id(10);
 set local role service_role;

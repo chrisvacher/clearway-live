@@ -69,7 +69,7 @@ try {
   // The laptop and the remote.
   const facContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await facContext.addCookies(fac.cookies(app.origin));
-  const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
+  const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${room.id}`);
   await control.locator(".ctl-app").waitFor({ timeout: 15000 });
   const remoteContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   await remoteContext.addCookies(fac.cookies(app.origin));
@@ -100,10 +100,12 @@ try {
     await delay(1500);
     assert.equal(await tvText(), held, "the TV keeps its last state, never blank");
     assert.ok(held.includes("youth"));
-    // After 12 seconds silent the TV drops out of confirmation and the laptop offers the TV view on phones.
+    // After 12 seconds silent the TV drops out of confirmation. Tools can send its view to phones.
     await until(async () => (await control.locator(".ctl-banner").innerText().catch(() => "")).includes("reconnecting"), "laptop warning", 25000);
     await shot(control, "fail-02-laptop-warning");
-    await control.getByRole("button", { name: "Show the TV view on phones" }).click();
+    const roomAdmin = control.getByRole("complementary", { name: "Room admin", exact: true });
+    await roomAdmin.getByRole("tab", { name: "Tools", exact: true }).click();
+    await roomAdmin.getByRole("button", { name: "TV view on phones", exact: true }).click();
     await until(async () => (await ben.page.locator(".ph-app .tv-mirror").count()) === 1, "TV view on phones");
     await until(async () => (await ben.page.locator(".ph-app .tv-mirror").innerText()).includes("baptisms"), "phones show what the TV would show");
     await shot(ben.page, "fail-02-tv-view-on-phones");

@@ -11,7 +11,8 @@ import { engagementAi } from "@/lib/ai/disclosure";
 import { roomOrigin,skinOf,type Skin } from "@/lib/brand";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
-import { setupFormFromRows } from "@/lib/setup/form";
+import { roomMutation } from "@/lib/live/mutation";
+import { guestEmail } from "@/lib/setup/people";
 import { clearwayEmail } from "@/lib/auth/policy";
 import { fictionalEmail, practiceId } from "@/lib/room/practice";
 import { uuid } from "@/lib/room/policy";
@@ -64,21 +65,25 @@ export async function POST(request:NextRequest){
         if(existing.data)return answer({ok:false,message:"This engagement is already in Live. Open it from your engagements.",existing_id:existing.data.id},409);
         const hub=teamHubReader();const [c,e]=await Promise.all([hub.client(body.hub_client),hub.engagement(body.hub_engagement,body.hub_client)]);if(!c||!e)return answer({ok:false},400);linkedClient=c.id;linkedEngagement=e.id;
       }else{const existing=await scoped();id=existing.id;linkedClient=existing.team_hub_client_id;linkedEngagement=existing.team_hub_engagement_id;}
-      const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});
+      const linkName=action==="create" ? body.link_name : null;
+      if(linkName!=null && (typeof linkName!=="string" || !/^[a-z0-9]{3,24}$/.test(linkName) || input.engagement.type!=="team_workshop")) return answer({ok:false,message:"Use 3 to 24 lowercase letters or digits for the link name."},400);
+      if(linkName){
+        const check=await client.rpc("engagement_link_name_status",{p_name:linkName,p_engagement:null});
+        if(check.error) return answer({ok:false,message:"Link names aren't available during creation yet. Clear the name to use the room code."},503);
+        if(check.data!=="available") return answer({ok:false,message:check.data==="taken_name"?"That link name is taken. Choose another.":"Choose an available link name."},check.data==="taken_name"?409:400);
+      }
+      const saved=await rpc("save_engagement",{p_id:id,p_church:input.church,p_engagement:{...input.engagement,...(linkName?{link_name:linkName}:{})},p_lead:uuid(body.lead)?body.lead:null,p_co:uuid(body.co)?body.co:null,p_client:linkedClient,p_hub_engagement:linkedEngagement});return answer({ok:true,id:saved});
     }
-    // End the workshop: the Details form as it stands with the status set to closed, saved through the same function Details uses.
-    // Closing signs out every phone and closes answers, in the database, whichever page asks.
-    // Reopen the workshop (Chris, November 16): the same save with the status back to setup, from the live room. The database reopens
-    // the steps End closed (private.reopen_ended_steps); people sign in again and Open the TV pairs the screen again.
+    // A status change runs the room's close or reopen triggers without replacing facilitator assignments.
     if(action==="end_workshop"||action==="reopen_workshop"){
       const reopen=action==="reopen_workshop";
       const e=await scoped();if(e.type!=="team_workshop")return answer({ok:false,message:reopen?"Only a workshop can be reopened this way.":"Only a workshop can be ended this way."},400);
       if(reopen&&e.status!=="closed")return answer({ok:true});
-      const [{data:c},{data:assignments}]=await Promise.all([client.from("churches").select("*").eq("id",e.church_id).eq("deleted",false).maybeSingle(),client.from("engagement_facilitators").select("clearway_user_id,role").eq("engagement_id",e.id).eq("deleted",false)]);
-      if(!c)throw new Error("missing");
-      const form=setupFormFromRows(e,c,assignments);form.engagement.status=reopen?"setup":"closed";
-      const input=setupInput(form as unknown as Record<string,unknown>);if(!profile.is_admin)delete (input.engagement.settings as Record<string,unknown>).open_join;
-      await rpc("save_engagement",{p_id:e.id,p_church:input.church,p_engagement:input.engagement,p_lead:uuid(form.lead)?form.lead:null,p_co:uuid(form.co)?form.co:null,p_client:e.team_hub_client_id,p_hub_engagement:e.team_hub_engagement_id});return answer({ok:true});
+      const changed=await roomMutation(client,e.id,()=>client.from("engagements").update({status:reopen?"setup":"closed"})
+        .eq("id",e.id).eq("type","team_workshop").eq("deleted",false).select("id").maybeSingle());
+      if(changed.error)refuse(changed.error);
+      if(!changed.data)throw new Error("missing");
+      return answer({ok:true});
     }
     if(action==="joining_save"||action==="room_code_renew"){
       const e=await scoped();
@@ -124,7 +129,16 @@ export async function POST(request:NextRequest){
     if(action==="edit_attendee"||action==="remove_attendee"){
       const e=await scoped();if(!uuid(body.attendee))return answer({ok:false},400);
       const person=action==="edit_attendee"?validatePeople([body.person]).people[0]:null;
-      if(person){const {error}=await client.from("attendees").update({name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)refuse(error);}
+      if(person){
+        if(person.room_role==="scribe"&&guestEmail(person.email))return answer({ok:false,message:"Use an email address for a scribe."},400);
+        const fields={name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"};
+        const saved=await client.rpc("attendee_roster_edit",{p_engagement:e.id,p_attendee:body.attendee,p_person:fields});
+        if(saved.error?.code==="PGRST202"){
+          const {error}=await client.from("attendees").update(fields).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);
+          if(error)refuse(error);
+        }else if(saved.error)refuse(saved.error);
+        else if(saved.data!==true)return answer({ok:false,message:"That person isn’t in this engagement."},404);
+      }
       // Removing a person is a soft delete through a function, so the lead and co-facilitator can do it as well as an admin: the table's read
       // rule hides a removed row from a non-admin, which refuses a plain update to deleted.
       else{const removed=await rpc("remove_attendee",{p_engagement:e.id,p_attendee:body.attendee}) as {status?:string}|null;if(removed?.status==="missing")return answer({ok:false,message:"That person isn’t in this engagement."},404);if(removed?.status!=="ok")throw new Error("save");}

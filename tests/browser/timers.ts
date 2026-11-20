@@ -35,14 +35,14 @@ async function main() {
       await step(`${skin}: the run of show adds a 1:10 countdown that runs through the next step, on the TV and phones, and marks the span`, async () => {
         await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
         await editor.locator(".rb-row", { hasText: "Talk at your tables" }).getByRole("button", { name: /Open options/ }).click();
-        const open = editor.locator(".rb-row.is-open");
+        const open = editor.locator(".rb-settings");
+        await open.getByRole("tab", {name: "Settings"}).click();
         await open.locator("#timer-on").check();
         await open.locator("#timer-mins").fill("1");
         await open.locator("#timer-secs").fill("10");
         await open.locator("#timer-through").selectOption(share);
         await open.locator("#timer-phones").check();
         await shot(editor, `${skin}-timer-run-of-show`);
-        await open.getByRole("button", { name: "Done", exact: true }).click();
         await until(async () => { const t = (await sql.query("select options->'timer' t from public.sessions where id=$1", [talk])).rows[0].t; return t?.seconds === 70 && t.through === share && t.phones === true && t.tv === true && t.start === "live"; }, "timer saved", 10000);
         await editor.locator(`.rb-row[data-row="${talk}"] [data-timer-mark="owner"]`).waitFor({ timeout: 5000 });
         await editor.locator(`.rb-row[data-row="${share}"] [data-timer-mark="end"]`).waitFor({ timeout: 5000 });
@@ -59,11 +59,11 @@ async function main() {
       await phonePage.goto(`${app.origin}/room/${room.id}`);
       await phonePage.fill("#open-name", "Ruth"); await phonePage.getByRole("button", { name: "Join the room" }).click();
       await phonePage.locator(".ph-app").waitFor({ timeout: 15000 });
-      const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${room.id}`);
+      const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${room.id}`);
       const timerOnTv = tv.locator(".tv-timer");
 
       await step(`${skin}: the Preview shows the step's timer as the TV will`, async () => {
-        await control.getByRole("button", { name: "Preview Talk at your tables" }).click();
+        await control.getByRole("button", { name: "Choose Talk at your tables" }).click();
         await until(async () => (await control.locator(".ctl-screen.is-preview .tv-timer.is-on b").innerText().catch(() => "")) === "1:10", "the preview shows 1:10", 10000);
         await shot(control, `${skin}-timer-preview-control`);
       });
@@ -101,10 +101,15 @@ async function main() {
         await until(async () => (await timerOnTv.getAttribute("data-timer")) === "normal", "back to normal with time added", 8000);
         await card.getByRole("button", { name: "Pause" }).click();
         await until(async () => (await sql.query("select timer ? 'paused_at' p from public.room_states where engagement_id=$1", [room.id])).rows[0].p, "paused", 5000);
-        const held = await timerOnTv.locator("b").innerText(); await delay(2200);
-        assert.equal(await timerOnTv.locator("b").innerText(), held, "the TV holds while paused");
+        // The write can finish before the TV has drawn the paused frame.
+        const pausedOnTv = tv.locator(".tv-timer.is-on.is-paused");
+        await pausedOnTv.waitFor({ timeout: 5000 });
+        const held = await pausedOnTv.locator("b").innerText();
+        await delay(2200);
+        assert.equal(await pausedOnTv.locator("b").innerText(), held, "the TV holds while paused");
         await card.getByRole("button", { name: "Resume" }).click();
         await until(async () => (await timerOnTv.locator("b").innerText()) !== held, "running again", 5000);
+        await control.getByRole("button", { name: "Timer", exact: true }).click();
         const chip = control.locator("[data-timer-chip]");
         await chip.getByRole("button", { name: "1 min" }).click();
         await card.getByRole("button", { name: "Reset" }).click();

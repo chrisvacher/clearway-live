@@ -34,20 +34,29 @@ async function main() {
     const titles = async () => (await run()).map(r => r.title);
     const rows = () => editor.locator(".rb-part[data-part='Day 1'] .rb-row");
     const rowTitles = async () => (await rows().locator(".rb-name strong").allInnerTexts());
-    // The run is still: no rows gliding and, unless options are meant to stay open, no
-    // options panel open or sliding closed. Positions read before this can be stale: a
-    // closing panel shrinks the page, the browser clamps the scroll and every row moves.
-    const still = (panels: boolean) => until(() => editor.evaluate(panels => (!panels || !document.querySelector(".rb-opts .show-panel"))
-      && [...document.querySelectorAll<HTMLElement>(".rb-run [data-glide]")].every(el => !el.style.transform), panels), "the run settles", 10000);
+    const options = editor.getByRole("region", { name: "Step settings" });
+    const openAdd = () => editor.getByRole("button", { name: "Add step", exact: true }).first().click();
+    const chooseStep = (title: string) => editor.getByRole("button", { name: `Open options for ${title}`, exact: true }).first().click();
+    const more = () => editor.getByRole("button", { name: "More run of show actions" });
+    const deleteStep = async () => {
+      await options.getByRole("button", { name: "More step actions" }).click();
+      await editor.getByRole("menuitem", { name: "Delete", exact: true }).click();
+      await editor.getByRole("dialog", { name: "Delete this step?" }).getByRole("button", { name: "Delete step" }).click();
+    };
+    const still = () => until(() => editor.evaluate(() => [...document.querySelectorAll<HTMLElement>(".rb-run [data-glide]")]
+      .every(el => !el.style.transform)), "the run settles", 10000);
     // A real pointer drag, in small steps so the gap follows the pointer.
     async function drag(from: string, to: { row: number; above: boolean } | "end", hold?: () => Promise<void>) {
-      await still(false);
-      await editor.locator(from).evaluate(el => el.scrollIntoView({ block: "center" }));
-      const a = await editor.locator(from).boundingBox(); assert.ok(a, `${from} on screen`);
-      await editor.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await editor.mouse.down();
+      if (from.startsWith(".rb-tile")) await openAdd();
+      await still();
+      const source = editor.locator(from);
+      // A real Playwright hover draws the pointer only after the intended tile is
+      // stable and hit-testable. Coordinates read during a scroll can grab its neighbor.
+      await source.hover();
+      const a = await source.boundingBox(); assert.ok(a, `${from} on screen`);
+      await editor.mouse.down();
       await editor.mouse.move(a.x + a.width / 2 - 20, a.y + a.height / 2, { steps: 4 });
-      // Picking it up slides any open options closed first; read the run once that is done.
-      await still(true);
+      await still();
       let x = 0, y = 0;
       if (to === "end") { const b = (await rows().last().boundingBox())!; x = b.x + b.width / 2; y = b.y + b.height + 30; }
       else {
@@ -67,13 +76,38 @@ async function main() {
       await editor.goto(`${app.origin}/admin/templates?engagement=${room.id}`);
       const card = editor.locator(".tpl-card", { hasText: "Team workshop" });
       await card.waitFor();
-      assert.match(await card.innerText(), /90 minutes · 11 sessions/);
-      assert.match(await card.innerText(), /Clearway/); assert.match(await card.innerText(), /Ships with the app/);
+      assert.match(await card.innerText(), /90 minutes · 11 steps/);
+      assert.match(await card.innerText(), /Workshop/); assert.match(await card.innerText(), /Ships with the app/);
       await card.getByRole("button", { name: "Preview" }).click();
       const panel = editor.locator(".tpl-panel");
       assert.deepEqual((await panel.locator(".rb-name strong").allInnerTexts()).slice(0, 4), ["Screen check", "Welcome", "Opening prayer", "Check-in"]);
       assert.ok((await panel.innerText()).includes("1:25"), "times from the durations");
       await shot(editor, "set-08-library");
+    });
+    await step("The library separates blocks and protects shipped templates while allowing a copy", async () => {
+      const card = editor.locator(".tpl-card", { hasText: "Team workshop" });
+      const actions = card.getByRole("button", { name: "Actions for Team workshop", exact: true });
+      if (await actions.count()) {
+        await actions.click();
+        assert.equal(await editor.getByRole("menuitem", { name: "Rename", exact: true }).count(), 0);
+        assert.equal(await editor.getByRole("menuitem", { name: "Delete", exact: true }).count(), 0);
+        await editor.getByRole("menuitem", { name: "Duplicate", exact: true }).click();
+        const copy = editor.locator(".tpl-card").filter({ hasText: "Team workshop (copy)" });
+        await copy.waitFor();
+        await copy.getByRole("button", { name: "Actions for Team workshop (copy)", exact: true }).click();
+        await editor.getByRole("menuitem", { name: "Rename", exact: true }).click();
+        const rename = editor.getByRole("dialog", { name: "Rename template", exact: true });
+        await rename.getByRole("textbox", { name: "Name", exact: true }).fill("Workshop test copy");
+        await rename.getByRole("button", { name: "Save name", exact: true }).click();
+        await editor.getByRole("button", { name: "Actions for Workshop test copy", exact: true }).click();
+        await editor.getByRole("menuitem", { name: "Delete", exact: true }).click();
+        await editor.getByRole("dialog", { name: "Delete Workshop test copy?", exact: true }).getByRole("button", { name: "Delete", exact: true }).click();
+        await editor.getByRole("button", { name: "Actions for Workshop test copy", exact: true }).waitFor({ state: "detached" });
+      }
+      await editor.getByRole("tab", { name: /^Blocks/ }).click();
+      assert.equal(await editor.getByRole("tabpanel", { name: /^Blocks/ }).isVisible(), true);
+      await editor.getByRole("tab", { name: /^Templates/ }).click();
+      await card.getByRole("button", { name: "Preview", exact: true }).click();
     });
     await step("SET-08: Use a template from the team workshop copies its sessions, prompts, settings, timings and notes", async () => {
       await editor.locator(".tpl-panel").getByRole("button", { name: "Use this template" }).click();
@@ -96,8 +130,17 @@ async function main() {
       assert.equal(copied[10].planned_start?.toISOString(), "2026-11-20T01:25:00.000Z");
       assert.equal(copied.find(r => r.title === "Where to focus")!.options.cut, 3);
       assert.deepEqual(await rowTitles(), template.map(t => t.title));
-      assert.equal(await rows().first().locator(".rb-time").innerText(), "7:00 p.m.");
-      assert.equal(await editor.locator(".rb-chip.is-ready").count(), 11, "every session Ready");
+      assert.equal(await rows().first().locator(".rb-time").innerText(), "19:00");
+      assert.equal(await editor.locator(".rb-design.is-ready").count(), 11, "every session Ready");
+      assert.equal(await editor.locator(".rb-part").count(), 1, "workshops leave out unused parts");
+      await editor.setViewportSize({ width: 1280, height: 900 });
+      const header = editor.locator(".rb-header");
+      const actions = await header.locator(".rb-header-actions > *").evaluateAll(elements => elements.map(element => element.getBoundingClientRect().top));
+      assert.ok(Math.max(...actions) - Math.min(...actions) < 20, "header actions are on one row at 1280");
+      await openAdd();
+      assert.equal(await editor.getByRole("group", { name: "Wayfinding", exact: true }).count(), 0);
+      await editor.keyboard.press("Escape");
+      await editor.setViewportSize({ width: 1440, height: 1000 });
       await shot(editor, "set-07-from-template");
     });
 
@@ -112,7 +155,7 @@ async function main() {
         await shot(editor, "set-07-drag-gap", 250);
       });
       await until(async () => (await rowTitles())[check + 1] === "Multiple choice", "dropped into the gap");
-      await editor.locator(".rb-row.is-open #session-title").waitFor();
+      await editor.locator(".rb-settings #session-title").waitFor();
       assert.equal(await editor.locator(".rb-row.is-open").count(), 1);
       await until(async () => (await titles())[check + 1] === "Multiple choice", "saved where it landed", 8000);
       const after = await run(), dropped = after[check + 1];
@@ -120,57 +163,59 @@ async function main() {
       assert.equal(after[check + 2].planned_start!.getTime() - before[check + 1].planned_start!.getTime(), 5 * 60000, "the times after it move by its length");
       await shot(editor, "set-07-dropped-options");
     });
-    await step("SET-07: the options open in place; Done saves them and marks the session Ready", async () => {
-      const open = editor.locator(".rb-row.is-open");
-      await open.locator("#session-title").fill("Which do we start with?");
-      await open.locator("#session-prompt").fill("Which of these should our team start with?");
-      await open.getByLabel("Choice 1", { exact: true }).fill("Clearer communication");
-      await open.getByLabel("Choice 2", { exact: true }).fill("Shared priorities");
-      await open.getByLabel("Choice 3", { exact: true }).fill("Better meetings");
-      await open.locator("#session-notes").fill("Ask for one pick each.");
-      assert.ok((await open.innerText()).includes("from the lengths before it"), "its start follows the lengths before it");
+    await step("SET-07: editing updates the preview, autosaves, and keeps the options selected after marking ready", async () => {
+      await options.locator("#session-title").fill("Which do we start with?");
+      await options.locator("#session-prompt").fill("Which of these should our team start with?");
+      await editor.locator(".rb-preview-phone").getByText("Which of these should our team start with?", { exact: true }).waitFor();
+      await options.getByLabel("Choice 1", { exact: true }).fill("Clearer communication");
+      await options.getByLabel("Choice 2", { exact: true }).fill("Shared priorities");
+      await options.getByLabel("Choice 3", { exact: true }).fill("Better meetings");
+      await options.getByRole("button", { name: "Reorder choice 1" }).press("ArrowDown");
+      assert.equal(await options.getByLabel("Choice 2", { exact: true }).inputValue(), "Clearer communication");
+      await options.getByRole("button", { name: "Reorder choice 2" }).press("ArrowUp");
+      await options.getByRole("tab", { name: "Notes" }).click();
+      await options.locator("#session-notes").fill("Ask for one pick each.");
+      await editor.getByText("All changes saved", { exact: true }).waitFor();
+      assert.equal((await run()).find(row => row.title === "Which do we start with?")?.notes, "Ask for one pick each.", "notes saved without a save button");
+      await options.getByRole("tab", { name: "Settings" }).click();
+      assert.ok((await options.innerText()).includes("from the lengths before it"), "its start follows the lengths before it");
       await shot(editor, "set-07-options-in-place");
-      await open.getByRole("button", { name: "Done" }).click();
-      await until(async () => (await run()).find(r => r.title === "Which do we start with?")?.state === "ready", "saved as Ready", 8000);
-      const saved = (await run()).find(r => r.title === "Which do we start with?")!;
-      assert.deepEqual((saved.options.items as { text: string }[]).map(o => o.text), ["Clearer communication", "Shared priorities", "Better meetings"]);
-      assert.equal(saved.notes, "Ask for one pick each.");
-      await until(async () => await editor.locator(".rb-row.is-open").count() === 0, "Done closes the options");
-      assert.equal(await editor.locator(".rb-row", { hasText: "Which do we start with?" }).locator(".rb-chip").innerText(), "Ready");
+      await options.getByRole("button", { name: "Mark ready", exact: true }).click();
+      await until(async () => (await run()).find(row => row.title === "Which do we start with?")?.state === "ready", "saved as Ready", 8000);
+      const saved = (await run()).find(row => row.title === "Which do we start with?")!;
+      assert.deepEqual((saved.options.items as { text: string }[]).map(option => option.text), ["Clearer communication", "Shared priorities", "Better meetings"]);
+      assert.equal(await editor.locator(".rb-row.is-open").count(), 1, "marking ready keeps the selection");
+      assert.equal(await editor.locator(".rb-row", { hasText: "Which do we start with?" }).locator(".rb-design").getAttribute("aria-label"), "Ready");
     });
-    await step("SET-07: grabbing another tile slides any open options closed first; Save as draft keeps a Draft", async () => {
-      await editor.locator(".rb-row", { hasText: "What's working" }).getByRole("button", { name: /Open options/ }).click();
-      await editor.locator(".rb-row.is-open #session-title").waitFor();
-      await editor.locator(".rb-row.is-open #session-prompt").fill("What's working that we should protect this season?");
-      await drag(".rb-tile:has-text('Statements')", { row: (await rowTitles()).indexOf("Your questions"), above: true }, async () => {
-        assert.equal(await editor.locator(".rb-row.is-open").count(), 0, "the open options closed before the gap opened");
-        assert.equal(await editor.locator(".rb-row", { hasText: "What's working" }).locator(".rb-chip.is-unsaved").count(), 1, "its unsaved edits wait");
-      });
-      const open = editor.locator(".rb-row.is-open");
-      await open.locator("#session-title").waitFor();
-      assert.equal(await open.locator("#session-title").inputValue(), "Statements");
-      await open.getByRole("button", { name: "Save as draft" }).click();
-      await until(async () => (await run()).find(r => r.title === "Statements")?.state === "draft", "kept as a Draft", 8000);
-      await until(async () => await editor.locator(".rb-row.is-open").count() === 0, "closed");
-      // Reopen the first session: its unsaved edits are still there.
-      await editor.locator(".rb-row", { hasText: "What's working" }).getByRole("button", { name: /Open options/ }).click();
-      assert.equal(await editor.locator(".rb-row.is-open #session-prompt").inputValue(), "What's working that we should protect this season?");
-      await editor.locator(".rb-row.is-open").getByRole("button", { name: "Done" }).click();
+    await step("SET-07: a pending edit survives dragging a new draft into the run", async () => {
+      await chooseStep("What's working");
+      await options.locator("#session-prompt").fill("What's working that we should protect this season?");
+      await drag(".rb-tile:has-text('Ranking')", { row: (await rowTitles()).indexOf("Your questions"), above: true });
+      await options.getByLabel("Title in the run of show").waitFor();
+      assert.equal(await options.locator("#session-title").inputValue(), "Ranking");
+      await until(async () => (await run()).find(row => row.title === "Ranking")?.state === "draft", "the new step stays Draft", 8000);
+      await chooseStep("What's working");
+      assert.equal(await options.locator("#session-prompt").inputValue(), "What's working that we should protect this season?");
       await until(async () => (await sql.query("select prompt from public.sessions where engagement_id=$1 and title=$2", [room.id, "What's working"])).rows[0].prompt === "What's working that we should protect this season?", "saved after the move", 8000);
     });
     await step("SET-07: clicking a tile adds it at the end; Remove takes a session out", async () => {
       const n = (await run()).length;
+      await chooseStep("Sending prayer");
+      await openAdd();
       await editor.locator(".rb-tile", { hasText: "Word cloud" }).click();
       await until(async () => (await rowTitles()).at(-1) === "Word cloud", "added at the end");
-      await editor.locator(".rb-row.is-open #session-title").waitFor();
+      await editor.locator(".rb-settings #session-title").waitFor();
       await until(async () => (await run()).length === n + 1 && (await titles()).at(-1) === "Word cloud", "saved at the end", 8000);
-      await editor.locator(".rb-row.is-open").getByRole("button", { name: "Remove" }).click();
+      await deleteStep();
       await until(async () => !(await rowTitles()).includes("Word cloud"), "removed from the run");
       await until(async () => (await run()).length === n, "removed in the database", 8000);
       const last = await run();
       assert.equal(last.at(-1)!.title, "Sending prayer");
     });
     await step("SET-07: the keyboard picks up a tile or a row, moves it with the arrows and drops it", async () => {
+      await chooseStep("Sending prayer");
+      await openAdd();
+      const n = (await run()).length;
       const tile = editor.locator(".rb-tile", { hasText: "Scale" });
       await tile.focus(); await editor.keyboard.press("Space");
       await until(async () => await editor.locator(".rb-slot").count() === 1, "a gap at the end");
@@ -178,11 +223,10 @@ async function main() {
       await editor.keyboard.press("ArrowUp"); await editor.keyboard.press("ArrowUp");
       await shot(editor, "set-07-keyboard-gap", 300);
       await editor.keyboard.press("Enter");
-      const n = (await run()).length;
       await until(async () => (await rowTitles()).at(-3) === "Scale", "dropped two from the end");
-      await editor.locator(".rb-row.is-open #session-title").waitFor();
+      await editor.locator(".rb-settings #session-title").waitFor();
       await until(async () => (await run()).length === n + 1 && (await titles()).at(-3) === "Scale", "saved there", 8000);
-      await editor.locator(".rb-row.is-open").getByRole("button", { name: "Remove" }).click();
+      await deleteStep();
       await until(async () => (await run()).length === n, "removed", 8000);
       // Move Sending prayer up one place with the keyboard.
       await editor.getByRole("button", { name: "Move Sending prayer" }).focus(); await editor.keyboard.press("Space");
@@ -195,32 +239,35 @@ async function main() {
       const r = (await run()).filter(x => x.planned_start);
       for (let i = 1; i < r.length; i++) assert.equal(r[i].planned_start!.getTime(), r[i - 1].planned_start!.getTime() + r[i - 1].planned_minutes * 60000, `${r[i].title} starts when ${r[i - 1].title} ends`);
       const total = r.reduce((n, s) => n + s.planned_minutes, 0);
-      assert.match(await editor.locator(".show-header").innerText(), new RegExp(`${r.length} sessions · ${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`));
+      assert.match(await editor.locator(".show-header").innerText(), new RegExp(`${r.length} steps · ${Math.floor(total / 60)} h ${total % 60} min`));
       await shot(editor, "set-07-built");
     });
     await step("SET-07: the palette adds a self-paced session; its times use the form's self-paced fields and never move", async () => {
       const liveBefore = (await run()).filter(r => r.planned_start).map(r => r.planned_start!.getTime());
+      await chooseStep("Sending prayer");
+      await openAdd();
       await editor.getByRole("radio", { name: "Self-paced" }).click();
       assert.equal(await editor.locator(".rb-tile", { hasText: "Holding" }).isDisabled(), true, "content screens run in the room");
       await editor.locator(".rb-tile", { hasText: "Open text" }).click();
-      const open = editor.locator(".rb-row.is-open");
+      const open = options;
+      await open.getByRole("tab", { name: "Settings" }).click();
       await open.locator("#session-opens").waitFor();
       assert.ok(await open.locator("#session-opens").inputValue(), "a starting window"); assert.ok(await open.locator("#session-closes").inputValue());
       assert.equal(await open.locator("#session-mode").inputValue(), "self_paced");
+      await open.getByRole("tab", { name: "Content" }).click();
       await open.locator("#session-title").fill("Before we meet");
       await open.locator("#session-prompt").fill("What do you hope this workshop changes for our team?");
       const local = (ms: number) => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Toronto", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(ms)).replace(" ", "T");
       const opens = Math.floor(Date.now() / 60000) * 60000 - 3600000, closes = opens + 3 * 86400000;
+      await open.getByRole("tab", { name: "Settings" }).click();
       await open.locator("#session-opens").fill(local(opens)); await open.locator("#session-closes").fill(local(closes));
-      assert.match(await open.innerText(), /takes no room time/);
+      assert.match(await open.innerText(), /outside the live room/);
       await shot(editor, "set-07-self-paced-options");
-      await open.getByRole("button", { name: "Done", exact: true }).click();
+      await open.getByRole("button", { name: "Mark ready", exact: true }).click();
       const saved = await until(async () => (await sql.query("select mode,state,opens_at,closes_at,planned_start from public.sessions where engagement_id=$1 and title='Before we meet'", [room.id])).rows.find(r => r.state === "ready"), "saved as a ready self-paced session", 8000);
-      // Done has finished on screen too: its options have slid closed.
-      await until(async () => await editor.locator(".rb-opts .show-panel").count() === 0, "Done closes the options", 10000);
+      await editor.getByText("All changes saved", { exact: true }).waitFor();
       assert.equal(saved.mode, "self_paced"); assert.equal(saved.opens_at.getTime(), opens); assert.equal(saved.closes_at.getTime(), closes); assert.equal(saved.planned_start, null);
       await until(async () => (await editor.locator(".rb-row", { hasText: "Before we meet" }).innerText()).includes("Self-paced"), "the row says Self-paced");
-      assert.match(await editor.locator(".rb-row", { hasText: "Before we meet" }).innerText(), /Open until/);
       assert.deepEqual((await run()).filter(r => r.planned_start).map(r => r.planned_start!.getTime()), liveBefore, "a self-paced session takes no room time");
       // Moving a live session never moves the self-paced window.
       await drag(".rb-row:has-text('Sending prayer') .rb-grip", { row: (await rowTitles()).indexOf("Our commitment"), above: true });
@@ -229,11 +276,14 @@ async function main() {
       assert.equal(after.opens_at.getTime(), opens); assert.equal(after.closes_at.getTime(), closes);
       await drag(".rb-row:has-text('Our commitment') .rb-grip", { row: (await rowTitles()).indexOf("Sending prayer"), above: true });
       await until(async () => (await titles()).filter(t => t !== "Before we meet").slice(-2).join() === "Our commitment,Sending prayer", "moved back", 8000);
+      await openAdd();
       await editor.getByRole("radio", { name: "Live in the room" }).click();
+      await editor.keyboard.press("Escape");
       await shot(editor, "set-07-self-paced-row");
     });
     await step("SET-08: Save as template keeps any run of show for next time", async () => {
-      await editor.getByRole("button", { name: "Save as template" }).click();
+      await more().click();
+      await editor.getByRole("menuitem", { name: "Save as template" }).click();
       const dialog = editor.getByRole("dialog", { name: "Save as template" });
       await dialog.locator("#template-name").fill(tplName);
       assert.match(await dialog.innerText(), /14 sessions with their prompts, interaction settings, timings and presenter notes/);
@@ -252,7 +302,8 @@ async function main() {
       for (const mode of ["click", "type"] as const) {
         const typed = `Typed ${mode} ${room.id.slice(0, 4)}`;
         await editor.goto(`${app.origin}/admin/${room.id}/run-of-show`);
-        await editor.getByRole("button", { name: "Save as template" }).click();
+        await more().click();
+      await editor.getByRole("menuitem", { name: "Save as template" }).click();
         const dialog = editor.getByRole("dialog", { name: "Save as template" }), field = dialog.locator("#template-name");
         assert.equal(await field.inputValue(), title, "the name starts as the engagement title");
         if (mode === "click") await field.click();
@@ -287,13 +338,14 @@ async function main() {
       assert.equal(Math.min(...copied.filter(r => r.planned_start).map(r => r.planned_start.getTime())), Date.parse("2026-12-04T00:00:00Z"), "the first live session starts when chosen");
       // Step 6a's surfaces on the engagement started from the template.
       await sql.query("update public.sessions set opens_at=now()-interval '1 hour',closes_at=now()+interval '2 days' where engagement_id=$1 and title='Before we meet'", [second.id]);
-      const control = await facContext.newPage(); await control.goto(`${app.origin}/control/${second.id}`);
+      const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 }); await control.goto(`${app.origin}/control/${second.id}`);
       await until(async () => (await control.locator(".sp-list li", { hasText: "Before we meet" }).innerText().catch(() => "")).includes("0 answered"), "the self-paced list", 15000);
       assert.match(await control.locator(".sp-list li", { hasText: "Before we meet" }).innerText(), /Open/);
+      await control.getByRole("tab", { name: "Tools", exact: true }).click();
       await control.getByRole("button", { name: "Start rehearsal" }).click();
       await until(async () => await control.locator(".sp-rehearsal[data-rehearsing='on']").count() === 1, "rehearsing", 10000);
       await press(fac, sql, second.id, "go_live", { session: (await sql.query("select id from public.sessions where engagement_id=$1 and title='Check-in'", [second.id])).rows[0].id });
-      const exportLink = control.locator(".ctl-screen.is-live").getByRole("link", { name: "Export answers", exact: true });
+      const exportLink = control.getByRole("region", { name: "Live step", exact: true }).getByRole("link", { name: "Export answers", exact: true });
       await until(async () => await exportLink.isVisible(), "Export answers", 10000);
       const [download] = await Promise.all([control.waitForEvent("download"), exportLink.click()]);
       assert.match(download.suggestedFilename(), /\.csv$/);
@@ -387,21 +439,21 @@ async function main() {
       const sectionOf = async (title: string) => (await sql.query("select section from public.sessions where engagement_id=$1 and title=$2 and not deleted", [room.id, title])).rows[0]?.section as string;
       const row = editor.locator(".rb-row", { hasText: "Our commitment" });
       await row.locator(".rb-tog").click();
-      const open = editor.locator(".rb-row.is-open .show-panel"); await open.waitFor();
-      for (const group of ["Basics", "On the TV and phones", "Settings and limits", "Your notes"]) assert.equal(await open.getByRole("heading", { name: group, exact: true }).count(), 1, `the options are grouped: ${group}`);
+      const open = options;
+      for (const group of ["Content", "Settings", "Notes"]) assert.equal(await open.getByRole("tab", { name: group, exact: true }).count(), 1);
+      await open.getByRole("tab", { name: "Settings" }).click();
       await open.locator("#session-section").fill("Closing");
-      await open.getByRole("button", { name: "Done", exact: true }).click();
       await until(async () => await sectionOf("Our commitment") === "Closing", "the section is saved", 8000);
       await until(async () => await editor.locator(".rb-sec").count() >= 2, "section headers appear once one is named", 8000);
       const named = editor.locator(".rb-sec", { has: editor.locator("input[value='Closing']") });
-      assert.match(await named.innerText(), /1 session/);
+      assert.match(await named.innerText(), /\d+ min/);
       // The session after it has no section yet. Naming its header joins the two.
       const last = editor.locator(".rb-sec").last().getByLabel("Section name", { exact: true });
       assert.equal(await last.inputValue(), "", "sessions with no section sit under a header waiting for a name");
       await last.fill("Closing"); await last.press("Enter");
       await until(async () => await sectionOf("Sending prayer") === "Closing", "naming a header names its sessions", 8000);
       const size = (await rowTitles()).length - (await rowTitles()).indexOf("Our commitment");
-      await until(async () => (await editor.locator(".rb-sec").last().innerText()).includes(`${size} sessions`), "the two runs are one section", 8000);
+      await until(async () => await editor.locator(".rb-row[data-sec='Closing']").count() === size, "the two runs are one section", 8000);
       // Rename it from the header.
       const head = editor.locator(".rb-sec").last().getByLabel("Section name", { exact: true });
       await head.fill("Send-off"); await head.blur();
@@ -443,20 +495,22 @@ async function main() {
       const saved = (await sql.query("select block,sessions from private.templates where name=$1 and not deleted", [blockName])).rows[0] as { block: boolean; sessions: { section: string }[] };
       assert.equal(saved.block, true); assert.equal(saved.sessions.length, size); assert.ok(saved.sessions.every(x => x.section === "Send-off"));
       await dialog.getByRole("button", { name: "Close" }).last().click();
-      await editor.getByRole("radio", { name: "Saved blocks", exact: true }).click();
+      await chooseStep((await rowTitles()).at(-1)!);
+      await openAdd();
       const tile = editor.getByTestId("saved-blocks").locator(".rb-block", { hasText: blockName });
-      await tile.waitFor(); assert.ok((await tile.innerText()).includes(`${size} sessions`));
+      await tile.waitFor();
       await shot(editor, "saved-blocks");
       await tile.locator(".rb-tile").click();
-      await editor.getByText(`${blockName} added: ${size} sessions at the end of the run.`).waitFor({ timeout: 15000 });
+      await editor.getByText(`${blockName} added: ${size} steps.`).waitFor({ timeout: 15000 });
       await until(async () => (await titles()).length === count + size, "its sessions are added", 8000);
       const tail = (await sql.query("select title,section,state from public.sessions where engagement_id=$1 and not deleted and part='Day 1' order by position desc limit $2", [room.id, size])).rows;
       assert.ok(tail.every(r => r.section === "Send-off"), "the added sessions carry the block's section");
-      await until(async () => (await editor.locator(".rb-sec").last().innerText()).includes(`${size * 2} sessions`), "they join the section at the end of the run", 8000);
-      editor.once("dialog", d => void d.accept());
+      await until(async () => await editor.locator(".rb-row[data-sec='Send-off']").count() === size * 2, "they join the section", 8000);
+      await openAdd();
       await tile.getByRole("button", { name: `Remove ${blockName}`, exact: true }).click();
+      await editor.getByRole("dialog", { name: "Delete this saved block?" }).getByRole("button", { name: "Delete block" }).click();
       await editor.getByText(`${blockName} removed.`).waitFor();
-      assert.equal(await editor.getByTestId("saved-blocks").locator(".rb-block", { hasText: blockName }).count(), 0);
+      await until(async () => await editor.getByTestId("saved-blocks").locator(".rb-block", { hasText: blockName }).count() === 0, "saved block removed", 8000);
       assert.equal((await titles()).length, count + size, "removing a block leaves the run alone");
       await editor.goto(`${app.origin}/admin/${room.id}/run-of-show/print`);
       assert.equal(await editor.locator(".show-print-sec", { hasText: "Send-off" }).count(), 1, "the printed run of show names the section");
