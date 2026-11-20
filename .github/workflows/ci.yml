@@ -98,7 +98,16 @@ jobs:
           retention-days: 14
       - name: Test the signed-in admin pages (one frame, one button family, one field standard, at desktop and 390px) in a real browser, areas a to d
         if: ${{ !cancelled() }}
-        run: npm run test:admin
+        id: admin-kit
+        shell: bash
+        run: npm run test:admin 2>&1 | tee "${{ runner.temp }}/admin-kit.log"
+      - name: Upload failed admin kit output
+        if: ${{ !cancelled() && steps.admin-kit.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-kit-failure
+          path: ${{ runner.temp }}/admin-kit.log
+          retention-days: 14
       - name: Test the two addresses (live.clearway.co and live.novetera.co) from one deployment
         run: npm run test:two-addresses
       - name: Test the live room before Pickering (steps stay open, the TV from the live room, Start fresh, End and Reopen) in both skins
