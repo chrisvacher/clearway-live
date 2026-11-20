@@ -693,6 +693,10 @@ async function main() {
       const enabledGoLive = page.getByRole("button", { name: "Go live: Welcome", exact: true });
       await enabledGoLive.waitFor();
       assert.ok(await enabledGoLive.isEnabled(), "the palette is checked on an enabled Go live control");
+      await page.locator(".ctl-head h1").hover();
+      await enabledGoLive.evaluate(async button => {
+        await Promise.allSettled(button.getAnimations({ subtree: true }).map(animation => animation.finished));
+      });
       // The transport leads with the Navy Go live button and its orange icon tile.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
       assert.ok(take.height>=63&&take.width>=179,`Go live is at least 64 by 180: ${take.width}x${take.height}`);
