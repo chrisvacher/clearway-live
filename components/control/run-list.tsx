@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AlignLeft, Check, ClipboardList, Cloud, Eye, Gauge, Grid2X2, ListChecks, ListOrdered, MessageCircleQuestion, Monitor, Send, Signature, Target, type LucideIcon } from "lucide-react";
+import { PrivateTag } from "@/components/interactions/private-tag";
 import { StepChip } from "@/components/ui/chips";
 import { kindOf } from "@/lib/interactions/kinds";
 import { partOpen } from "@/lib/run-of-show/self-paced";
@@ -98,6 +99,7 @@ export function RunList({ room, preview, initialTimes, onPreview, onGoLive }: {
                   <span className="ctl-state-icon" data-status={statusName} data-state={state} title={state === "closed" ? "Stopped" : statusName === "open" ? "Open for answers" : "Not yet shown"}><Icon size={done ? 14 : 16} aria-hidden="true" /></span>
                   <span className="ctl-run-title" title={step.title}>{step.title}</span>
                   <span className="ctl-run-summary">
+                    <PrivateTag step={step} compact />
                     {isLive ? <StepChip state="live" compact /> : isPreview ? <StepChip state="preview" compact /> : answers !== null ? <span className="ctl-state-count" aria-label={`${answers} ${answers === 1 ? "answer" : "answers"}`}>{answers}</span> : null}
                   </span>
                 </button>

@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, House, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
+import { PrivateTag } from "@/components/interactions/private-tag";
+import { isPrivateStep } from "@/lib/interactions/visibility";
 import { fillYears } from "@/lib/run-of-show/policy";
 import { screensDown, stateLabels } from "@/lib/control/policy";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
@@ -88,6 +90,7 @@ export function PreviewCard({ session, context, room, onClose, flashing, onGoLiv
   return <section className="ctl-preview" aria-labelledby="ctl-preview-title">
     <div className="ctl-row is-between"><span className="ctl-eyebrow">Preview · not on the TV</span><span className={`show-state is-${session.state}`}>{stateLabels[session.state] ?? session.state}</span></div>
     <h2 id="ctl-preview-title">{session.title}</h2>
+    <PrivateTag step={session} />
     <dl className="ctl-defs">
       <dt>On the TV and phones</dt><dd>{fillYears(session.prompt, context.base_year) || "No prompt"}</dd>
       <dt>Phones only</dt><dd>{session.phone_depth ? fillYears(session.phone_depth, context.base_year) : "No phone depth"}</dd>
@@ -146,7 +149,7 @@ export function LiveControls({ room, variant, onItems, onRoomSize, flashing, onG
     {input && <div className="ctl-grid">
       {spotlit
         ? <button className={btn} disabled={busy} onClick={() => void press("clear_spotlight")}><SunDim size={18} aria-hidden="true" />Clear spotlight</button>
-        : <button className={btn} disabled={busy} onClick={onItems}><Sun size={18} aria-hidden="true" />Spotlight</button>}
+        : isPrivateStep(frame?.session) ? null : <button className={btn} disabled={busy} onClick={onItems}><Sun size={18} aria-hidden="true" />Spotlight</button>}
       <button className={btn} disabled={busy} onClick={onItems}><EyeOff size={18} aria-hidden="true" />Hide</button>
     </div>}
     <div className="ctl-grid">
@@ -170,20 +173,20 @@ export function ItemList({ room, onClose }: { room: Room; onClose?: () => void }
 // The general list of items with Spotlight and Hide. A kind's own list may show it too.
 export function GeneralItems({ room, onClose, title = "Items on the TV" }: { room: Room; onClose?: () => void; title?: string }) {
   const items = room.status?.items ?? [], spot = room.frame?.state.spotlight_key, busy = Boolean(room.pending);
-  const kind = room.frame?.session?.interaction;
+  const kind = room.frame?.session?.interaction, hiddenStep = isPrivateStep(room.frame?.session);
   return <section className="ctl-items" aria-labelledby="ctl-items-title">
-    <div className="ctl-row is-between"><h2 id="ctl-items-title">{title}</h2>{onClose && <button className="show-button is-icon" aria-label="Close items" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
-    <p className="show-help">{kind === "wall" ? "Answers, newest first. Names never show." : kind === "word_cloud" ? "Words, most mentioned first." : "In the TV’s order, with the server’s numbers."}{room.status?.counts.hidden ? ` ${room.status.counts.hidden} hidden.` : ""}</p>
+    <div className="ctl-row is-between"><h2 id="ctl-items-title">{hiddenStep ? "Answers" : title}</h2><PrivateTag step={room.frame?.session} />{onClose && <button className="show-button is-icon" aria-label="Close items" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
+    <p className="show-help">{hiddenStep ? "Only the facilitators see these. The TV and phones show how many have answered. " : ""}{kind === "wall" ? "Answers, newest first. Names never show." : kind === "word_cloud" ? "Words, most mentioned first." : "In the TV’s order, with the server’s numbers."}{room.status?.counts.hidden ? ` ${room.status.counts.hidden} hidden.` : ""}</p>
     {items.length ? <ul className="ctl-item-list">{items.map(item => <li key={item.key} className={item.hidden ? "is-hidden" : item.key === spot ? "is-spot" : ""}>
       <span className="ctl-item-text">{item.text}{kind === "word_cloud" && <small> · {item.count}</small>}</span>
       {item.hidden
         ? <button className="show-button" disabled={busy} onClick={() => void room.press("unhide", { item: item.key })}><Eye size={16} aria-hidden="true" />Unhide</button>
         : <>
-          {item.key === spot
+          {hiddenStep ? null : item.key === spot
             ? <button className="show-button" disabled={busy} onClick={() => void room.press("clear_spotlight")}><SunDim size={16} aria-hidden="true" />Clear</button>
             : <button className="show-button" disabled={busy} onClick={() => void room.press("spotlight", { item: item.key }).then(r => { if (r.status === "ok") onClose?.(); })}><Sun size={16} aria-hidden="true" />Spotlight</button>}
           <button className="show-button" disabled={busy} onClick={() => void room.press("hide", { item: item.key })}><EyeOff size={16} aria-hidden="true" />Hide</button>
         </>}
-    </li>)}</ul> : <p className="show-empty">Nothing on the TV yet.</p>}
+    </li>)}</ul> : <p className="show-empty">{hiddenStep ? "No answers yet." : "Nothing on the TV yet."}</p>}
   </section>;
 }

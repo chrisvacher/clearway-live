@@ -5,6 +5,7 @@
 import type { LiveAnswer, LiveResults, LiveSession, LiveSnapshot } from "../live/types";
 import type { TvAppearance } from "../tv/types";
 import { countOf, countUnit, kindOf } from "../interactions/kinds";
+import { withVisibility } from "../interactions/visibility";
 
 export type RecapEntry = { part: string; mode: "live" | "self_paced"; opens_at: string | null; closes_at: string | null; session: LiveSession;
   hidden_keys: string[]; hidden_ids: string[]; results: LiveResults; answers: LiveAnswer[];
@@ -20,7 +21,9 @@ export function recapFrame(recap: Pick<Recap, "display" | "server_time" | "versi
     state: { engagement_id: "", live_session_id: entry.session.id, version: recap.version, tv_content: "session", phones_down: false, burst_ends_at: null,
       spotlight_key: null, spotlight_id: null, hidden_keys: entry.hidden_keys, hidden_ids: entry.hidden_ids, show_tv_on_phones: false, results: entry.results },
     // Closed steps show the quiet mark beside Closed; a recap card has no live mark at all.
-    session: { ...entry.session, state: entry.session.state === "closed" ? "closed" : "open" },
+    // The recap is for the facilitators, so a private step (Facilitators only) draws its full results like a public one; the card
+    // carries the Private tag instead. The server sends the recap's results and answers in full for every step.
+    session: { ...entry.session, options: withVisibility(entry.session.options, "public"), state: entry.session.state === "closed" ? "closed" : "open" },
     answers: entry.answers,
   };
 }

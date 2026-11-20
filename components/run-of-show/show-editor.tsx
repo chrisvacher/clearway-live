@@ -20,6 +20,7 @@ import { loopOf } from "@/lib/images/loop";
 import { stepTimer, timerMarks } from "@/lib/live/timer";
 import { sortSessions } from "@/lib/run-of-show/policy";
 import { Timer as TimerIcon } from "lucide-react";
+import { PrivateTag } from "@/components/interactions/private-tag";
 import { contentLabels, contentOf, fallbackKinds, type ContentScreen, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { canSelfPace, clock, droppedSession, endOfRun, hasSections, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, sectionAt, sectionName, sectionsOf, slots, stepSlot, type PaletteEntry, type Section, type Slot } from "@/lib/run-of-show/builder";
 import type { Template } from "@/lib/templates/types";
@@ -646,6 +647,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                           <span className="rb-ic"><Icon size={16} aria-hidden="true" /></span>
                           <span className="rb-name"><strong className={current.options?.untitled ? "is-untitled" : undefined}>{current.title || "Untitled step"}</strong>
                             {step.mode === "self_paced" && <span className="sr-only">Self-paced</span>}</span>
+                          <PrivateTag step={current} />
                           <span className={`rb-design is-${design.toLowerCase()}`} role="img" aria-label={design} title={design}><State size={16} aria-hidden="true" /></span>
                         </button>
                         {loopChips(step, home)}

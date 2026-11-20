@@ -3,6 +3,7 @@
 // as names, never strokes. This only lays the rows out, one column per option, statement,
 // item or question so a spreadsheet can sort and total them.
 import type { InteractionKind } from "../interactions/kinds";
+import { isPrivateStep } from "../interactions/visibility";
 
 export type ExportRow = { id: string; at: string; name?: string | null; text: string; value?: Record<string, unknown> | null; hidden: boolean; test: boolean;
   votes?: number | null; answered?: boolean | null; folded_into?: string | null };
@@ -82,15 +83,18 @@ function kindColumns(data: SessionExport): { header: string[]; cells: (row: Expo
 
 export function sessionCsv(data: SessionExport): string {
   const columns = kindColumns(data);
-  const header = ["Answered at", ...(data.named ? ["Name"] : []), ...columns.header, "Hidden from the TV", "Test answer"];
-  const lines = data.rows.map(r => csvLine([localStamp(r.at, data.timezone), ...(data.named ? [r.name ?? ""] : []), ...columns.cells(r), yes(r.hidden), yes(r.test)]));
+  // A private step (Facilitators only) says so in a last column; a public step's file is unchanged.
+  const hidden = isPrivateStep(data.session);
+  const header = ["Answered at", ...(data.named ? ["Name"] : []), ...columns.header, "Hidden from the TV", "Test answer", ...(hidden ? ["Private"] : [])];
+  const lines = data.rows.map(r => csvLine([localStamp(r.at, data.timezone), ...(data.named ? [r.name ?? ""] : []), ...columns.cells(r), yes(r.hidden), yes(r.test), ...(hidden ? ["Yes"] : [])]));
   return csvFile([csvLine(header), ...lines]);
 }
 // Every session in one file, the answer as the phone sent it, for the recap's download.
 export function allSessionsCsv(list: SessionExport[]): string {
-  const header = ["Part", "Session", "Interaction", "Mode", "Answered at", "Name", "Answer", "Hidden from the TV", "Test answer"];
+  const marked = list.some(data => isPrivateStep(data.session));
+  const header = ["Part", "Session", "Interaction", "Mode", "Answered at", "Name", "Answer", "Hidden from the TV", "Test answer", ...(marked ? ["Private"] : [])];
   const lines = list.flatMap(data => data.rows.map(r => csvLine([data.session.part, data.session.title, data.session.label, data.session.mode === "self_paced" ? "Self-paced" : "Live",
-    localStamp(r.at, data.timezone), data.named ? r.name ?? "" : "", r.text, yes(r.hidden), yes(r.test)])));
+    localStamp(r.at, data.timezone), data.named ? r.name ?? "" : "", r.text, yes(r.hidden), yes(r.test), ...(marked ? [yes(isPrivateStep(data.session))] : [])])));
   return csvFile([csvLine(header), ...lines]);
 }
 // "riverside-church-five-lenses-congregation.csv"

@@ -12,6 +12,7 @@ import { windowLabel } from "@/lib/run-of-show/self-paced";
 import { type ShowContext } from "@/lib/run-of-show/types";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { WorkshopSummary } from "./workshop-summary";
+import { PrivateTag } from "@/components/interactions/private-tag";
 import "./self-paced.css";
 
 // One card: the session's type, prompt and count, and the TV's own picture of its results.
@@ -23,6 +24,7 @@ const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry
     <div className="recap-meta"><span className="ctl-eyebrow">{label}{entry.mode === "self_paced" ? " · Self-paced" : ""}</span>
       <span className={`show-state is-${s.state}`}>{entry.mode === "self_paced" ? windowLabel({ ...entry, state: s.state }, zone, now) : s.state === "closed" ? "Closed" : s.state === "open" ? "Taking late answers" : s.state === "live" || s.state === "phones_down" ? "Live" : "Ready"}</span></div>
     <h3>{s.title}</h3>
+    <PrivateTag step={s} />
     {s.prompt && <p className="recap-prompt">{s.prompt}</p>}
     <TvMirror frame={frame} label={`Results for ${s.title}`} />
     {s.interaction === "lens" && !lensOptions(s.options).seed && lensOf(entry.results).seeded.length > 0 && <p className="recap-prompt">The count is this step&rsquo;s own answers. Seeded sentences are counted in the seeding step&rsquo;s CSV.</p>}

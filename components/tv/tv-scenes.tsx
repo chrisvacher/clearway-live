@@ -13,6 +13,8 @@ import { Spotlight, Tally } from "./live-board";
 import { ContentScreen, MediaSurface, ScreenCheck } from "./content-screen";
 import { ChurchLockup, LiveMark, type MarkState } from "./live-mark";
 import { tvViews } from "@/components/interactions/tv-views";
+import { FormView } from "@/components/interactions/grid-form-sign/sign-view";
+import { isPrivateStep } from "@/lib/interactions/visibility";
 import { contentOf, kindOf } from "@/lib/interactions/kinds";
 import { QaWaiting } from "@/components/interactions/qa/qa-tv";
 import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
@@ -65,14 +67,16 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
   }, [layers]);
   return <div ref={box} className={`tv-layers${asking ? " is-asking" : ""}`}>{layers.map(layer => {
     const shown = !layer.leaving && frame && frame.session?.id === layer.id ? frame : layer.frame, session = shown.session!;
-    const kind = kindOf(session), input = Boolean(kind?.input), View = tvViews[session.interaction];
+    // A private step (Facilitators only) draws the private form's screen whatever its kind: the question, the count and the line
+    // that only the facilitators will read the answers. The database sends it counts only, so there is nothing else to draw.
+    const kind = kindOf(session), input = Boolean(kind?.input), hidden = input && isPrivateStep(session), View = hidden ? FormView : tvViews[session.interaction];
     const joinLink = session.settings?.join_strip && shown.display
       ? publicRoomLink(shown.display.room_code, skinOf(shown.display.skin), shown.display.link_name) : null;
-    return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} data-kind={session.interaction} aria-hidden={layer.leaving}>
+    return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} data-kind={session.interaction} data-private={hidden ? "true" : undefined} aria-hidden={layer.leaving}>
       {input ? <>
         <InputHead session={session} engagement={shown.state.engagement_id} />
         {View && <View session={session.id} frame={shown} flow={flow} />}
-        {!kind?.structured && <p className="tv-note tv-muted">Waiting for answers</p>}
+        {!kind?.structured && !hidden && <p className="tv-note tv-muted">Waiting for answers</p>}
         {joinLink && <div className="tv-join-strip"><span className="tv-upclose">{joinLink.replace("https://", "")}</span><Qr link={joinLink} /></div>}
       </> : <ContentScreen frame={shown} />}
     </div>;

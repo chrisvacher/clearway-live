@@ -114,7 +114,8 @@
 .gfs-lock svg { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 /* The count is the content on these two screens, so the count badges stay away. */
 .tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="form"]) .tv-top .tv-tally,
-.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="sign"]) .tv-top .tv-tally { opacity: 0; }
+.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-kind="sign"]) .tv-top .tv-tally,
+.tv-stage:has(.tv-layer.is-input:not(.is-leaving)[data-private="true"]) .tv-top .tv-tally { opacity: 0; }
 
 /* ---------- Phone: the grid on one screen ---------- */
 .gfs-ph-grid { display: flex; flex-direction: column; gap: 10px; }

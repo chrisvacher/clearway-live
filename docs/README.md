@@ -42,7 +42,8 @@ limits and the full database/Auth restore procedure awaiting a drill.
 [small-room word cloud and open text](small-room.md),
 [bar family](bar-family.md), [grid, private form and sign together](grid-form-sign.md),
 [Q&A](qa.md), [live AI](ai-live.md), [self-paced sessions, exports and recap](self-paced.md),
-[run of show](run-of-show.md), [templates](templates.md), [failure states](failure-states.md).
+[run of show](run-of-show.md), [templates](templates.md), [failure states](failure-states.md),
+[who sees answers (public or private steps)](step-visibility.md).
 
 ## Wayfinding, scribe and overnight
 

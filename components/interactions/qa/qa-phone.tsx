@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowUp, Check, MessageCircleQuestion, RefreshCw, WifiOff } from "lucide-react";
 import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { askedBy, checkQuestion, questionsOf, type QaQuestion } from "@/lib/interactions/qa";
+import { isPrivateStep } from "@/lib/interactions/visibility";
 import type { OwnShown } from "@/lib/phone/types";
 import { useQaPhone } from "./use-qa-phone";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
@@ -35,7 +36,9 @@ function Question({ q, mine, voted, pending, open, onVote }: { q: QaQuestion; mi
 export function QaPhoneInput({ step, mine, open, send, frame }: PhoneInputProps) {
   const qa = useQaPhone(frame?.state.engagement_id ?? null);
   const [draft, setDraft] = useState("");
-  const list = frame?.session?.id === step.id ? questionsOf(frame.state.results) : [];
+  // A private Q&A (Facilitators only): the room never receives the questions, so a phone lists only its own.
+  const hidden = isPrivateStep(step);
+  const list = frame?.session?.id === step.id && !hidden ? questionsOf(frame.state.results) : [];
   const ownIds = new Set([...mine.map(a => a.id), ...qa.asked.map(a => a.id)]);
   const ownOf = (q: QaQuestion) => mine.find(a => q.ids.includes(a.id)) ?? (q.ids.some(id => ownIds.has(id)) ? { id: q.id, text: q.text, revision: 0, status: "sent" as const, withdrawn: false } : undefined);
   const waiting = list.filter(q => !q.answered), answered = list.filter(q => q.answered);
@@ -52,7 +55,7 @@ export function QaPhoneInput({ step, mine, open, send, frame }: PhoneInputProps)
       {unseen.map(a => <li key={a.id} className="qa-item is-mine"><div className="qa-item-body"><p className="qa-item-text">{a.text}</p><p className="qa-item-meta"><span>Yours</span><Status status={a.status} /></p></div></li>)}
       {waiting.map(q => { const v = qa.votes.get(q.id); return <Question key={q.id} q={q} mine={ownOf(q)} voted={Boolean(v?.voted)} pending={Boolean(v?.pending)} open={open} onVote={() => qa.vote(q.id, step.id)} />; })}
     </ul>
-    {!waiting.length && !unseen.length && <p className="ph-muted">No questions yet. Be the first to ask.</p>}
+    {!waiting.length && !unseen.length && !hidden && <p className="ph-muted">No questions yet. Be the first to ask.</p>}
     {qa.notice && <p className="ph-muted" role="status">{qa.notice}</p>}
     {answered.length > 0 && <><p className="qa-section">Answered</p><ul className="qa-list" aria-label="Answered questions">{answered.map(q => <Question key={q.id} q={q} mine={ownOf(q)} voted={false} pending={false} open={false} onVote={() => {}} />)}</ul></>}
     {open && <form className="qa-ask-form" onSubmit={ask}>

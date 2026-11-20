@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChartColumn, Copy, EyeOff, NotebookPen, PanelRight, Repeat, Smartphone, Timer } from "lucide-react";
+import { PrivateTag } from "@/components/interactions/private-tag";
 import { Button } from "@/components/ui/button";
 import { StageChip, StepChip } from "@/components/ui/chips";
 import { useToast } from "@/components/ui/toast";
@@ -217,7 +218,7 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
         <Transport room={room} context={context} previewing={previewing} onGoLive={goLive} flashing={pressFlash.flashing} />
         <section id="ctl-step-panel" className="ctl-step-panel" aria-label="Live step" tabIndex={-1}>
           <div className="ctl-live-step-head" data-answer-count={room.status?.counts.answers}>
-            <div><h2>{current ? `Live step: ${current.title}` : "No live step"}</h2>
+            <div><h2>{current ? `Live step: ${current.title}` : "No live step"}</h2><PrivateTag step={current} />
               {current && <p className="show-help">{context.kinds?.find(kind => kind.kind === current.interaction)?.label ?? kindLabels[current.interaction]} · {current.planned_minutes} min</p>}</div>
             <div className="ctl-row">
               <Button size="small" aria-expanded={timerOpen} aria-controls="ctl-step-timer" onClick={() => {
@@ -253,6 +254,7 @@ function PreviewScreen({ room, session, context, chosen }: { room: Room; session
     <div className="ctl-screen-head">
       <StepChip state="preview" compact />
       <h2 id="ctl-preview-title" className="ctl-screen-title">{session ? session.title : "Nothing to preview"}</h2>
+      <PrivateTag step={session} />
       {session && !chosen && <span className="ctl-screen-note">Up next</span>}
     </div>
     <div className="ctl-screen-frame">
@@ -288,6 +290,7 @@ function LiveScreen({ room, flashing }: { room: Room; flashing: boolean }) {
     <div className="ctl-screen-head">
       <StepChip state="live" compact />
       <h2 id="ctl-live-title" className="ctl-screen-title">{current ? current.title : screenNames[content] ?? "Home screen"}</h2>
+      <PrivateTag step={current} />
     </div>
     <div className={`ctl-screen-frame ctl-live-monitor${flashing ? " is-flashing" : ""}`}><TvMirror frame={room.mirror} /></div>
     <LoopLine room={room} />

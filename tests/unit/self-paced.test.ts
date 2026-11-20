@@ -108,8 +108,9 @@ test("An anonymous session exports without names; a named or private one with th
   assert.equal(sign[1], "2026-11-03 09:05:09,Ben Ortiz,,");
   const form = lines(sessionCsv(data("form", [row(1, { name: "Ruth Morrison", value: { answers: { q1: "Honest talk", q2: "No" } } })],
     { questions: [{ key: "q1", text: "What would make this a win?" }, { key: "q2", text: "Anything else?" }] }, true)));
-  assert.deepEqual(form[0].split(","), ["Answered at", "Name", "What would make this a win?", "Anything else?", "Hidden from the TV", "Test answer"]);
-  assert.equal(form[1], "2026-11-03 09:05:09,Ruth Morrison,Honest talk,No,,");
+  // The form is always private (Who sees answers: Facilitators only), so its file says so in a last column.
+  assert.deepEqual(form[0].split(","), ["Answered at", "Name", "What would make this a win?", "Anything else?", "Hidden from the TV", "Test answer", "Private"]);
+  assert.equal(form[1], "2026-11-03 09:05:09,Ruth Morrison,Honest talk,No,,,Yes");
 });
 
 test("Structured kinds export one column per option, statement, item or question", () => {

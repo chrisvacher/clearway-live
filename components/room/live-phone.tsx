@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Lock, FlaskConical, MonitorSmartphone
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
+import { isPrivateStep, privateLine } from "@/lib/interactions/visibility";
 import { PhoneContent, phoneContentWaits } from "./phone-content";
 import { PhoneTimer } from "@/components/tv/tv-timer";
 import { bannerKey, bannerTaken, checkAnswer, limitHint, ownAnswers, selfListHidden, sendsUsed, type ShownAnswer } from "@/lib/phone/policy";
@@ -221,8 +222,8 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
             {takesInput && (view.interaction === "lens" && lensOptions(view.options).seed
               ? <p className="ph-who"><span className="ph-marker"><Lock size={14} aria-hidden="true" />Hidden</span><span><strong>Who sees my answers?</strong> {seedingWhoText}</span></p>
-              : kind?.shares_answers === false
-              ? <p className="ph-who"><span className="ph-marker">Private</span><span><strong>Who sees my answers?</strong> Only the facilitators will read this, with your name. It never shows on the screen.</span></p>
+              : isPrivateStep(view) || kind?.shares_answers === false
+              ? <p className="ph-who" data-private-line><span className="ph-marker"><Lock size={14} aria-hidden="true" />Private</span><span><strong>Who sees my answers?</strong> {privateLine}</span></p>
               : <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>)}
             {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}

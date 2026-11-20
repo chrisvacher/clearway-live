@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { ChevronLeft, ChevronRight, House, Plus, QrCode, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
 import { kindOf } from "@/lib/interactions/kinds";
+import { isPrivateStep } from "@/lib/interactions/visibility";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
 import type { TvScreen } from "@/lib/control/types";
 import { MarkDecision } from "./mark-decision";
@@ -72,7 +73,8 @@ export function StepControls({ room, minutes, setMinutes, onPanel, workshop }: {
     <div className="ctl-slot is-phones">{down
       ? <button className="show-button" disabled={busy} onClick={() => void press("open_phones")} aria-keyshortcuts="P"><Smartphone size={18} aria-hidden="true" />Open phones<Key k="P" /></button>
       : <button className="show-button" disabled={busy} onClick={() => void press("phones_down")} aria-keyshortcuts="P"><Smartphone size={18} aria-hidden="true" />Phones down<Key k="P" /></button>}</div>
-    <div className="ctl-slot is-spotlight">{spotlightKind && (spotlit
+    {/* A private step's answers never reach the TV, so there is nothing to spotlight there. */}
+    <div className="ctl-slot is-spotlight">{spotlightKind && !isPrivateStep(session) && (spotlit
       ? <button className="show-button" disabled={busy} onClick={() => void press("clear_spotlight")}><SunDim size={18} aria-hidden="true" />Clear spotlight</button>
       : <button className="show-button" disabled={busy} onClick={onPanel}><Sun size={18} aria-hidden="true" />Spotlight</button>)}</div>
     <div className="ctl-slot is-hide">{spotlightKind && <button className="show-button" disabled={busy} onClick={onPanel}><EyeOff size={18} aria-hidden="true" />Hide</button>}</div>

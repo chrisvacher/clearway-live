@@ -14,6 +14,7 @@ import { Select } from "@/components/ui/select";
 import { contentPromptLabel } from "./content-options";
 import { StepTimerField } from "./step-timer";
 import { StepImageField } from "./step-image";
+import { alwaysPrivate, canBePrivate, privateLine, visibilityLabels, visibilityOf, withVisibility, type Visibility } from "@/lib/interactions/visibility";
 
 const stepTakesImage = (s: Pick<ShowSession, "interaction" | "options">) => s.interaction !== "content" || !["image", "loop", "screen_check"].includes(contentOf(s.options).screen);
 const workshopKinds: InteractionKind[] = ["content", "word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa", "sign", "form"];
@@ -69,6 +70,9 @@ export function SessionForm({ session, context, locked, workshop, saving, tab, o
     setValue(previous => ({ ...previous, settings: { ...previous.settings, [key]: next } }));
   const seedable = others.filter(other => other.id !== session.id && other.interaction === value.interaction && other.seeded_from !== session.id);
   const running = !["draft", "ready"].includes(session.state);
+  // A public step seeded from a private one would publish its answers: the database refuses the save, so say why here first.
+  const seedSource = value.seeded_from ? others.find(other => other.id === value.seeded_from) : undefined;
+  const seedBlocked = Boolean(seedSource && visibilityOf(seedSource) === "private" && visibilityOf(value) === "public");
   const kinds: KindInfo[] = context.kinds?.length ? context.kinds : Object.values(fallbackKinds);
   const availableKinds = workshop ? kinds.filter(kind => workshopKinds.includes(kind.kind) || session.interaction === kind.kind) : kinds;
   const kind = kinds.find(kind => kind.kind === value.interaction) ?? fallbackKinds[value.interaction];
@@ -96,7 +100,8 @@ export function SessionForm({ session, context, locked, workshop, saving, tab, o
             {!kinds.some(k => k.kind === value.interaction) && <option value={value.interaction}>{value.interaction}</option>}</Select></label>
           {seedable.length > 0 && <label className="is-full" htmlFor="session-seeded">Seeded from<Select id="session-seeded" value={value.seeded_from ?? ""} onChange={e => change("seeded_from", e.target.value || null)}>
             <option value="">Nothing, start empty</option>{seedable.map(s => <option key={s.id} value={s.id}>{s.part}: {s.title}</option>)}</Select>
-            <span className="show-help">Starts this step from the earlier step’s answers, so the room does not begin from nothing.</span></label>}
+            <span className="show-help">{seedBlocked ? "That step is for the facilitators only, so this step can’t start from its answers while it shows answers to everyone. Choose Facilitators only in Settings, or pick another step."
+              : "Starts this step from the earlier step’s answers, so the room does not begin from nothing."}</span></label>}
           {Editor && <Editor session={session} value={value.options ?? {}} context={context} fresh={false} locked={locked} reorderOptions onChange={options => change("options", options)} setPrompt={prompt => change("prompt", prompt)} />}
           {stepTakesImage(value) && <><h3 className="is-full show-group">Image beside the question</h3>
             <StepImageField engagement={context.id} value={value.options ?? {}} canFill={value.interaction === "content"} locked={locked} onChange={options => change("options", options)} /></>}
@@ -114,6 +119,13 @@ export function SessionForm({ session, context, locked, workshop, saving, tab, o
           {value.mode === "self_paced" && <><label htmlFor="session-opens">Opens<input id="session-opens" type="datetime-local" required value={opens} onChange={e => setOpens(e.target.value)} /></label><label htmlFor="session-closes">Closes<input id="session-closes" type="datetime-local" required value={closes} onChange={e => setCloses(e.target.value)} /></label><p className="show-help is-full">It opens and closes on phones at these times, outside the live room. Next and Back skip it, and invite emails link to it.</p></>}
           <h3 className="is-full show-group">Timer</h3>
           <StepTimerField session={value} others={others} value={value.options ?? {}} locked={locked} onChange={options => change("options", options)} />
+          {kind?.input && canBePrivate(value.interaction) && <label className="is-full" htmlFor="session-visibility">Who sees answers
+            <Select id="session-visibility" disabled={running || alwaysPrivate(value.interaction)} value={visibilityOf(value)}
+              onChange={e => change("options", withVisibility(value.options, e.target.value as Visibility))}>
+              {(["public", "private"] as const).map(v => <option key={v} value={v}>{visibilityLabels[v]}</option>)}</Select>
+            <span className="show-help">{alwaysPrivate(value.interaction) ? "A private form is always for the facilitators only."
+              : visibilityOf(value) === "private" ? `The TV and phones show the question and how many have answered, never the answers. Phones read: “${privateLine}” Results, the CSV and the recap show every answer, marked Private.`
+              : "Answers show on the TV and on phones."}</span></label>}
           {kind?.input && <>
             {kind.named === "setting" ? <label className="show-check is-full" htmlFor="session-anonymous"><input id="session-anonymous" type="checkbox" checked={value.settings.anonymous} onChange={e => setting("anonymous", e.target.checked)} />Anonymous on the screen</label>
               : <p className="show-help is-full">{kind.named === "always" ? "Named by design: names show on the screen." : "Answers are anonymous on the screen."}</p>}

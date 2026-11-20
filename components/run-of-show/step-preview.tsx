@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Lock, Send } from "lucide-react";
 import { previewFrame } from "@/components/control/use-preview";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { PhoneContent } from "@/components/room/phone-content";
@@ -9,6 +9,7 @@ import { TvMirror } from "@/components/tv/tv-mirror";
 import { brandFor, skinOf } from "@/lib/brand";
 import { phoneTheme } from "@/lib/brand/screens";
 import { kindOf } from "@/lib/interactions/kinds";
+import { isPrivateStep, privateLine } from "@/lib/interactions/visibility";
 import type { LiveSession, LiveSnapshot } from "@/lib/live/types";
 import type { PhoneStep } from "@/lib/phone/types";
 import { fillYears } from "@/lib/run-of-show/policy";
@@ -25,7 +26,9 @@ function phoneStep(step: ShowSession, context: ShowContext): PhoneStep & LiveSes
 }
 
 function sampleFrame(step: PhoneStep & LiveSession, display: TvAppearance, engagement: string): LiveSnapshot {
-  const { results, answers } = sampleAnswers(step);
+  // Facilitators only: the TV and phones would receive counts only, so the preview draws from counts only too.
+  const sample = sampleAnswers(step), hidden = isPrivateStep(step);
+  const results = hidden ? { total: sample.results.total, people: sample.results.people, words: [] } : sample.results, answers = hidden ? [] : sample.answers;
   const base: LiveSnapshot = {
     status: "ok", role: "facilitator", version: 0, server_time: sampleTime, topic: "", answers: [], next: null,
     phone_depth: null, display, session: null, state: { engagement_id: engagement, live_session_id: null, version: 0,
@@ -58,6 +61,7 @@ export function StepPreview({ step, context, display }: { step: ShowSession | un
         <div className="rb-preview-phone-inner" inert>
           {phone.interaction === "content" ? <PhoneContent step={phone} /> : <>
             <h3 className="ph-headline">{phone.prompt || phone.title}</h3>
+            {isPrivateStep(phone) && <p className="ph-who" data-private-line><span className="ph-marker"><Lock size={14} aria-hidden="true" />Private</span><span><strong>Who sees my answers?</strong> {privateLine}</span></p>}
             {Input ? <Input step={phone} mine={[]} open frame={frame} send={noop} change={noop} withdraw={noop} />
               : kind?.input && <div className="rb-phone-example"><textarea className="ph-input" aria-label="Your answer" placeholder="Type your answer" /><button className="ph-send" type="button"><Send size={18} aria-hidden="true" />Send</button></div>}
           </>}
