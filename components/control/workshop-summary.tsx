@@ -1,56 +1,88 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Download, Pencil } from "lucide-react";
-import { AiIcon, AiMark } from "@/components/interactions/ai/ai-icon";
+import { Pencil } from "lucide-react";
+import { AiIcon } from "@/components/interactions/ai/ai-icon";
+import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { SUMMARY_MAX, paragraphsOf, summaryMessage, type SummaryState } from "@/lib/workshop/summary";
 
-// After the workshop: the short summary. AI drafts it from the room's answers when the facilitator asks, and the facilitator edits it.
-// If the summary's functions are not in the database yet, the card is left out.
-export function WorkshopSummary({ engagement, answers }: { engagement: string; answers: boolean }) {
-  const [state, setState] = useState<SummaryState | null>(null), [busy, setBusy] = useState<"draft" | "save" | "clear" | null>(null);
-  const [message, setMessage] = useState(""), [editing, setEditing] = useState(false), [text, setText] = useState("");
+export function WorkshopSummary({ engagement, answers, onAvailability }: {
+  engagement: string;
+  answers: boolean;
+  onAvailability: (available: boolean) => void;
+}) {
+  const [state, setState] = useState<SummaryState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<"draft" | "save" | "clear" | null>(null);
+  const [confirm, setConfirm] = useState<"draft" | "clear" | null>(null);
+  const [message, setMessage] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState("");
   const url = `/api/control/${engagement}/summary`;
   useEffect(() => {
-    let stop = false;
-    void fetch(url, { cache: "no-store" }).then(r => r.json()).then((d: SummaryState) => { if (!stop && d.status === "ok") setState(d); }).catch(() => {});
-    return () => { stop = true; };
-  }, [url]);
+    const controller = new AbortController();
+    void fetch(url, { cache: "no-store", signal: controller.signal }).then(async response => {
+      const result = await response.json() as SummaryState;
+      if (controller.signal.aborted) return;
+      if (result.status === "ok") {
+        setState(result);
+        onAvailability(Boolean(result.summary));
+      }
+    }).catch(() => {}).finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [onAvailability, url]);
+
+  if (loading) return <section className="ws-card cwl-g-summary" aria-label="Loading summary" aria-busy="true">
+    <div className="cwl-g-skeleton" aria-hidden="true"><span /><span /><span /></div>
+  </section>;
   if (!state) return null;
   const summary = state.summary;
+  const byline = summary?.drafted_at ? "Drafted by AI from the answers, then edited by you" : summary ? "Written by you" : null;
   async function send(action: "draft" | "save" | "clear", body?: string) {
-    setBusy(action); setMessage("");
+    setBusy(action);
+    setConfirm(null);
+    setMessage("");
     try {
       const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, body }) });
       const data = await response.json() as SummaryState & { message?: string };
-      if (response.ok && data.status === "ok") { setState(data); setEditing(false); }
-      else setMessage(data.message ?? summaryMessage(String(data.status)));
+      if (response.ok && data.status === "ok") {
+        setState(data);
+        setEditing(false);
+        onAvailability(Boolean(data.summary));
+      } else setMessage(data.message ?? summaryMessage(String(data.status)));
     } catch { setMessage(summaryMessage("unavailable")); }
-    setBusy(null);
+    finally { setBusy(null); }
   }
-  const draft = () => { if (!summary || summary.source === "ai" || window.confirm("Draft again? This replaces the summary, including your edits.")) void send("draft"); };
-  return <section className="ws-card" aria-labelledby="ws-title" data-testid="workshop-summary">
-    <div className="ws-head"><h2 id="ws-title">Summary</h2>
+  return <section className="ws-card cwl-g-summary" aria-labelledby="ws-title" data-testid="workshop-summary">
+    <div className="ws-head">
+      <div className="cwl-g-summary-name"><AiIcon size={20} /><div><h2 id="ws-title">Summary</h2>{byline && <p className="ws-note">{byline}</p>}</div></div>
       {!editing && <div className="ctl-row ws-actions">
-        {summary && <button className="show-button is-small" type="button" disabled={Boolean(busy)} onClick={() => { setText(summary.body); setEditing(true); setMessage(""); }}><Pencil size={14} aria-hidden="true" />Edit</button>}
-        {state.ai && answers && <button className={`show-button is-small${summary ? "" : " is-primary"}`} type="button" disabled={Boolean(busy)} onClick={draft}><AiIcon size={14} />{busy === "draft" ? "Drafting" : summary ? "Draft again" : "Draft a summary"}</button>}
-        {!summary && <button className="show-button is-small" type="button" disabled={Boolean(busy)} onClick={() => { setText(""); setEditing(true); setMessage(""); }}><Pencil size={14} aria-hidden="true" />Write it yourself</button>}
-        {summary && <a className="show-button is-small" href={`${url}?format=docx`} download><Download size={14} aria-hidden="true" />Download as Word</a>}
+        <Button size="small" disabled={Boolean(busy)} onClick={() => { setText(summary?.body ?? ""); setEditing(true); setMessage(""); }}>
+          <Pencil aria-hidden="true" />{summary ? "Edit" : "Write it yourself"}
+        </Button>
+        {state.ai && answers && <Button size="small" disabled={Boolean(busy)} onClick={() => {
+          if (summary?.source === "edited") setConfirm("draft");
+          else void send("draft");
+        }}>{busy === "draft" ? "Drafting" : summary ? "Draft again" : "Draft a summary"}</Button>}
       </div>}
     </div>
-    {summary?.source === "ai" && !editing && <p className="ws-note"><AiMark label="AI" />AI drafted this from the room&rsquo;s answers. Read it before you share it.</p>}
     {message && <p className="show-message is-error ws-message" role="alert">{message}</p>}
     {busy === "draft" && <p className="ws-note" role="status">Reading the room&rsquo;s answers. This takes up to a minute.</p>}
-    {editing ? <form className="ws-form" onSubmit={e => { e.preventDefault(); void send("save", text); }}>
+    {editing ? <form className="ws-form" onSubmit={event => { event.preventDefault(); void send("save", text); }}>
       <label htmlFor="ws-text">Summary</label>
-      <textarea id="ws-text" rows={10} maxLength={SUMMARY_MAX} value={text} onChange={e => setText(e.target.value)} />
+      <textarea id="ws-text" rows={10} maxLength={SUMMARY_MAX} value={text} onChange={event => setText(event.target.value)} />
       <p className="show-help">Leave a blank line between paragraphs.</p>
       <div className="ctl-row">
-        <button className="show-button is-primary is-small" type="submit" disabled={Boolean(busy) || !text.trim()}>{busy === "save" ? "Saving" : "Save summary"}</button>
-        <button className="show-button is-small" type="button" disabled={Boolean(busy)} onClick={() => setEditing(false)}>Cancel</button>
-        {summary && <button className="show-button is-small" type="button" disabled={Boolean(busy)} onClick={() => { if (window.confirm("Remove the summary?")) void send("clear"); }}>Remove summary</button>}
+        <Button variant="primary" size="small" type="submit" disabled={Boolean(busy) || !text.trim()}>{busy === "save" ? "Saving" : "Save summary"}</Button>
+        <Button size="small" disabled={Boolean(busy)} onClick={() => setEditing(false)}>Cancel</Button>
+        {summary && <Button variant="quiet" size="small" disabled={Boolean(busy)} onClick={() => setConfirm("clear")}>Remove summary</Button>}
       </div>
     </form>
-      : summary ? <div className="ws-body">{paragraphsOf(summary.body).map((p, i) => <p key={i}>{p}</p>)}</div>
-      : <p className="ws-empty">{!answers ? "Once the room has answered, you can draft a short summary of what it said here." : state.ai ? "Draft a short summary of what the room said, then edit it before you share it." : "AI is off for this engagement, so there is no draft. You can write the summary yourself."}</p>}
+      : summary ? <div className="ws-body">{paragraphsOf(summary.body).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+      : <p className="ws-empty">{!answers ? "Once the room has answered, you can draft a short summary of what it said here." : state.ai ? "Draft a short summary of what the room said, then edit it before you share it." : "AI is off for this engagement. You can write the summary yourself."}</p>}
+    <ConfirmDialog open={Boolean(confirm)} title={confirm === "draft" ? "Draft again?" : "Remove the summary?"}
+      description={confirm === "draft" ? "This replaces the summary, including your edits." : "The session results stay available."}
+      confirmLabel={confirm === "draft" ? "Draft again" : "Remove summary"} onCancel={() => setConfirm(null)}
+      onConfirm={() => { if (confirm) void send(confirm); }} />
   </section>;
 }

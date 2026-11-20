@@ -251,10 +251,11 @@ async function main() {
       await until(async () => (await card.locator(".recap-count").innerText()) === "3 answers", "the card updates on its own", 12000);
       assert.equal(await card.locator(".tv-mirror").evaluate(el => Boolean((el as HTMLElement & { __kept?: boolean }).__kept)), true, "without redrawing the card");
       assert.equal(await card.locator(".tv-mirror").getAttribute("data-motion"), "reduced", "and without re-animating it");
-      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("link", { name: "Every answer as CSV" }).click()]);
+      await recap.getByRole("button", { name: "Download", exact: true }).click();
+      const [download] = await Promise.all([recap.waitForEvent("download"), recap.getByRole("menuitem", { name: "Every answer as CSV", exact: true }).click()]);
       assert.match(download.suggestedFilename(), /all-answers\.csv$/);
       await recap.emulateMedia({ media: "print" });
-      assert.equal(await recap.locator(".recap-actions").isVisible(), false, "print leaves the buttons off");
+      assert.equal(await recap.locator(".cwl-ui-page-actions").isVisible(), false, "print leaves the buttons off");
       const pdf = await recap.pdf({ format: "Letter" });
       assert.ok(pdf.byteLength > 10000, "prints to PDF");
       if (shots) { writeFileSync(`${shots}/recap.pdf`, pdf); await recap.screenshot({ path: `${shots}/recap-print.png`, fullPage: true }); }
