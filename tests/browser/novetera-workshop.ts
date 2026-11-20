@@ -104,7 +104,7 @@ async function main() {
       await setup.getByText(/^Saved\./).first().waitFor({ timeout: 15000 });
       await until(async () => await skinNow() === "novetera", "the skin is saved", 10000);
       await setup.goto(`${CW}/admin/${room.id}`);
-      assert.equal(await setup.locator(".invite-card a.text-link").getAttribute("href"), `${NV}/${code}`, "the invite card's link is at the Novetera address");
+      assert.equal(await setup.getByRole("region", { name: "Invite the room", exact: true }).getByRole("link", { name: `${new URL(NV).host}/${code}`, exact: true }).getAttribute("href"), `${NV}/${code}`, "the invite card's link is at the Novetera address");
     });
     // The run of show: a content screen, a scale, a word cloud, an open wall with AI grouping and Q&A. All from existing elements.
     const ids: Record<string, string> = {};

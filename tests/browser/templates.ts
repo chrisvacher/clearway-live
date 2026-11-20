@@ -42,9 +42,12 @@ async function main() {
     // A real pointer drag, in small steps so the gap follows the pointer.
     async function drag(from: string, to: { row: number; above: boolean } | "end", hold?: () => Promise<void>) {
       await still(false);
-      await editor.locator(from).evaluate(el => el.scrollIntoView({ block: "center" }));
-      const a = await editor.locator(from).boundingBox(); assert.ok(a, `${from} on screen`);
-      await editor.mouse.move(a.x + a.width / 2, a.y + a.height / 2); await editor.mouse.down();
+      const source = editor.locator(from);
+      // A real Playwright hover draws the pointer only after the intended tile is
+      // stable and hit-testable. Coordinates read during a scroll can grab its neighbor.
+      await source.hover();
+      const a = await source.boundingBox(); assert.ok(a, `${from} on screen`);
+      await editor.mouse.down();
       await editor.mouse.move(a.x + a.width / 2 - 20, a.y + a.height / 2, { steps: 4 });
       // Picking it up slides any open options closed first; read the run once that is done.
       await still(true);

@@ -55,11 +55,56 @@ async function main() {
             if(await sidebar.count()) assert.ok((await sidebar.boundingBox())!.height<220,`${path} navigation stays compact`);
           }
           if(path==="/control") assert.equal(new URL(page.url()).pathname,"/admin");
-          if(path==="/admin") { assert.ok(await page.getByRole("link",{name:/^(Continue setup|Open overview|Open the live room|Open results)$/}).count(),"each engagement leads with one action");
-            for(const label of ["Details","Run of show","Door list","Results"]) assert.ok(await page.locator(".admin-more-list a",{hasText:label}).count(),label); }
-          if(path===`/admin/${room.id}`) { assert.equal(await page.getByRole("heading",{name:"Invite the room",exact:true}).count(),1); assert.equal(await page.getByRole("button",{name:"Copy link",exact:true}).count(),1); assert.equal(await page.getByRole("img",{name:`QR code for ${clearwayHost}/`}).count(),1); }
+          if(path==="/admin") {
+            const row=page.locator(".eng-row").filter({has:page.locator(`a[href="/admin/${room.id}"]`)});
+            assert.equal(await row.getByRole("link",{name:"Continue setup",exact:true}).count(),1,"a workshop in Setup leads with Continue setup");
+            await row.getByRole("button",{name:"More actions",exact:true}).click();
+            for(const label of ["Overview","Run of show","People","Results"]) assert.equal(await page.getByRole("menuitem",{name:label,exact:true}).count(),1,label);
+            await page.keyboard.press("Escape");
+          }
+          if(path===`/admin/${room.id}`) {
+            assert.equal(await page.getByRole("heading",{name:"Staff planning workshop",level:1}).count(),1,"Overview is headed by the event title");
+            assert.equal(await page.getByRole("progressbar",{name:"Getting ready"}).count(),1);
+            assert.equal(await page.getByRole("heading",{name:"On the day",exact:true}).count(),1);
+            assert.equal(await page.getByRole("heading",{name:"Admin link",exact:true}).count(),0);
+            assert.match(await page.locator(".eng-code").innerText(),/^[A-Z0-9]{4} [A-Z0-9]{4}$/);
+            assert.equal(await page.getByRole("heading",{name:"Invite the room",exact:true}).count(),1); assert.equal(await page.getByRole("button",{name:"Copy link",exact:true}).count(),1); assert.equal(await page.getByRole("img",{name:`QR code for ${clearwayHost}/`}).count(),1); }
         }
         if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/${path.replace(room.id,"engagement").replaceAll("/","-").slice(1)}-${width}.png`,fullPage:true}); }
+      }
+    }
+    if(!before && area==="a") {
+      await context.grantPermissions(["clipboard-read","clipboard-write"],{origin:app.origin});
+      await page.goto(app.origin+"/admin");
+      const row=page.locator(".eng-row").filter({has:page.locator(`a[href="/admin/${room.id}"]`)});
+      const search=page.getByRole("searchbox",{name:"Search churches and events"});
+      await search.fill("no event uses this unique phrase");
+      await page.getByRole("heading",{name:"No matching engagements"}).waitFor();
+      await search.fill("Staff planning workshop");
+      await row.waitFor();
+      await page.getByRole("button",{name:"Kind",exact:true}).click();
+      await page.getByRole("menuitem",{name:"Wayfinding",exact:true}).click();
+      await page.getByRole("heading",{name:"No matching engagements"}).waitFor();
+      await page.getByRole("button",{name:"Kind",exact:true}).click();
+      await page.getByRole("menuitem",{name:"Workshop",exact:true}).click();
+      await page.getByRole("button",{name:"Brand",exact:true}).click();
+      await page.getByRole("menuitem",{name:"Clearway",exact:true}).click();
+      await row.getByRole("button",{name:"Copy link",exact:true}).click();
+      await page.getByRole("status").filter({hasText:"Link copied:"}).waitFor();
+      assert.ok((await page.evaluate(()=>navigator.clipboard.readText())).startsWith(app.origin+"/"));
+      assert.equal(await page.getByRole("tab",{name:/^No date yet/}).count(),1);
+      assert.equal(await page.getByRole("tab",{name:/^Past/}).count(),1);
+      assert.equal(await page.getByRole("tab",{name:/^Practice/}).count(),1);
+      const archived=page.getByRole("tab",{name:/^Archived/});
+      if(await archived.count()) {
+        await row.getByRole("button",{name:"More actions",exact:true}).click();
+        await page.getByRole("menuitem",{name:"Archive",exact:true}).click();
+        await page.getByRole("dialog",{name:"Archive Staff planning workshop?"}).getByRole("button",{name:"Archive",exact:true}).click();
+        await row.waitFor({state:"detached"});
+        await archived.click();
+        await page.locator(".eng-row").filter({hasText:"Staff planning workshop"}).getByRole("button",{name:"Restore",exact:true}).click();
+        await page.getByRole("tab",{name:/^Upcoming/}).click();
+        await row.waitFor();
       }
     }
     if(!before && area==="d") {
@@ -111,14 +156,25 @@ async function main() {
       const payload={action:"create",hub_client:ids.team_hub_client_id,hub_engagement:ids.team_hub_engagement_id,church:{name:"Riverside",timezone:"America/Toronto"},engagement:{title:"Planning",type:"team_workshop",status:"setup",start_date:"2027-02-20",end_date:"",retreat_start_date:"",retreat_end_date:"",base_year:"",lens_names:[],how_the_room_decides:"The team agrees together.",settings:{}}};
       const duplicate=await context.request.post(app.origin+"/api/setup",{headers:{origin:app.origin},data:payload});
       assert.equal(duplicate.status(),409); assert.equal((await duplicate.json()).existing_id,room.id);
+      let churchSearches=0;
       await page.route("**/api/setup",async route=>{
         const data=route.request().postDataJSON();
-        if(data.action==="hub_clients") return route.fulfill({json:{ok:true,clients:[{id:ids.team_hub_client_id,name:"Riverside Church"}]}});
+        if(data.action==="hub_clients") {
+          churchSearches+=1;
+          assert.equal(data.search,"Riv");
+          return route.fulfill({json:{ok:true,clients:[{id:ids.team_hub_client_id,name:"Riverside Church"}]}});
+        }
         if(data.action==="hub_engagements") return route.fulfill({json:{ok:true,engagements:[{id:ids.team_hub_engagement_id,title:"Staff planning workshop",live_id:room.id}]}});
         return route.continue();
       });
-      await page.goto(app.origin+"/admin/new"); await page.getByRole("button",{name:"Find churches",exact:true}).click();
-      await page.getByRole("button",{name:/^Riverside Church/}).click();
+      await page.goto(app.origin+"/admin/new");
+      const churchSearch=page.getByRole("combobox",{name:"Church",exact:true});
+      await churchSearch.fill("R");
+      await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,275)));
+      assert.equal(churchSearches,0,"one letter does not query Team Hub");
+      await churchSearch.fill("Riv");
+      await page.getByRole("option",{name:/^Riverside Church/}).click();
+      assert.equal(churchSearches,1,"typeahead searches once after typing");
       await page.getByText("Already in Live.").waitFor();
       assert.equal(await page.getByRole("link",{name:"Open Staff planning workshop",exact:true}).getAttribute("href"),`/admin/${room.id}`);
       assert.equal(await page.getByRole("button",{name:"Create engagement",exact:true}).isDisabled(),true,"a linked engagement can’t be created twice");
@@ -126,11 +182,11 @@ async function main() {
       // The four steps are four identical cards: the title sits inside the card at one size, and one button is primary.
       const steps=await page.locator(".create-flow .admin-panel:has(h2, legend)").evaluateAll(cards=>cards.map(card=>{ const title=card.querySelector("h2, legend")!, box=card.getBoundingClientRect(), at=title.getBoundingClientRect(), style=getComputedStyle(card); return {inside:at.top>=box.top+parseFloat(style.paddingTop)-1&&at.left>=box.left+parseFloat(style.paddingLeft)-1,size:getComputedStyle(title).fontSize,border:style.borderTopWidth,radius:style.borderTopLeftRadius,pad:style.paddingTop}; }));
       assert.equal(steps.length,4,"four step cards"); assert.ok(steps.every(x=>x.inside),"each title is inside its card"); for(const key of ["size","border","radius","pad"] as const) assert.equal(new Set(steps.map(x=>x[key])).size,1,`the four cards share one ${key}`);
-      assert.equal(await page.locator(".create-flow .admin-button.is-primary").count(),1,"one primary button on the page"); assert.equal(await page.getByRole("group",{name:/^2\. What kind of event/}).count(),1,"step 2 keeps its group name");
+      assert.equal(await page.locator(".create-flow .cwl-ui-button--primary").count(),1,"one primary button on the page"); assert.equal(await page.getByRole("group",{name:/^2\. What kind of event/}).count(),1,"step 2 keeps its group name");
       if(process.env.KIT_SHOTS) await page.screenshot({path:`${process.env.KIT_SHOTS}/setup-new-linked-workshop-390.png`,fullPage:true});
       await page.unroute("**/api/setup");
       // Brand on create: Clearway is selected to start, the choice is the same field as on Details, and a new engagement can start as Novetera.
-      const newHub={client:randomUUID(),engagement:randomUUID()}; const sent:{body?:{engagement:{skin?:string}}}={};
+      const newHub={client:randomUUID(),engagement:randomUUID()}; const sent:{body?:{engagement:{skin?:string};link_name?:string}}={};
       await page.route("**/api/setup",async route=>{
         const data=route.request().postDataJSON();
         if(data.action==="hub_clients") return route.fulfill({json:{ok:true,clients:[{id:newHub.client,name:"Lakeside Church",timezone:"America/Toronto"}]}});
@@ -138,19 +194,39 @@ async function main() {
         if(data.action!=="create") return route.continue();
         // The local stack has no Team Hub, so the page's create is carried out the way the route does it: the same checks, then the same database function.
         sent.body=data; const input=setupInput(data);
-        const saved=await fac.client.rpc("save_engagement",{p_id:null,p_church:input.church,p_engagement:input.engagement,p_lead:data.lead,p_co:null,p_client:data.hub_client,p_hub_engagement:data.hub_engagement});
+        const saved=await fac.client.rpc("save_engagement",{p_id:null,p_church:input.church,p_engagement:{...input.engagement,...(data.link_name?{link_name:data.link_name}:{})},p_lead:data.lead,p_co:null,p_client:data.hub_client,p_hub_engagement:data.hub_engagement});
         assert.equal(saved.error,null,JSON.stringify(saved.error)); return route.fulfill({json:{ok:true,id:saved.data}});
       });
-      await page.goto(app.origin+"/admin/new"); await page.getByRole("button",{name:"Find churches",exact:true}).click();
-      await page.getByRole("button",{name:/^Lakeside Church/}).click(); await page.getByRole("button",{name:/^AI workshop/}).click();
-      const createBrand=page.getByRole("combobox",{name:/^Brand/});
-      assert.equal(await createBrand.inputValue(),"clearway","Clearway is selected to start"); assert.deepEqual(await createBrand.locator("option").allInnerTexts(),["Clearway","Novetera"]);
-      assert.equal(await createBrand.isEnabled(),true,"an admin can choose the brand");
-      assert.equal(await page.getByText("Sets what the room sees: the screens, phones, emails and summary, and the room’s address.",{exact:true}).count(),1,"the help line is Details’ help line");
-      await createBrand.selectOption("novetera"); await page.getByRole("button",{name:"Create engagement",exact:true}).click();
+      await page.goto(app.origin+"/admin/new");
+      await page.getByRole("combobox",{name:"Church",exact:true}).fill("Lakeside");
+      await page.getByRole("option",{name:/^Lakeside Church/}).click();
+      await page.getByRole("radio",{name:/^AI workshop/}).check();
+      const brandGroup=page.getByRole("group",{name:"Brand",exact:true});
+      if(await brandGroup.getByRole("radio",{name:"Novetera",exact:true}).count()) {
+        assert.equal(await brandGroup.getByRole("radio",{name:"Clearway",exact:true}).isChecked(),true,"Clearway is selected to start");
+        await brandGroup.getByRole("radio",{name:"Novetera",exact:true}).check();
+      } else {
+        const createBrand=page.getByRole("combobox",{name:/^Brand/});
+        assert.equal(await createBrand.inputValue(),"clearway","Clearway is selected to start");
+        await createBrand.selectOption("novetera");
+      }
+      const linkField=page.getByRole("textbox",{name:"Link name",exact:true});
+      const named=await linkField.count() ? `lakeside${room.id.replace(/-/g,"").slice(0,8)}` : null;
+      if(named) {
+        await linkField.fill("admin");
+        await page.getByText("Choose another name",{exact:true}).waitFor();
+        await linkField.fill(named);
+        await page.getByText("Available",{exact:true}).waitFor();
+        assert.ok((await page.locator(".create-link-field").innerText()).includes(noveteraHost),"name follows the chosen brand");
+      }
+      await page.getByRole("button",{name:"Create engagement",exact:true}).click();
       await page.waitForURL(/\/admin\/[0-9a-f-]{36}$/); assert.equal(sent.body?.engagement.skin,"novetera","the create carries the brand");
       assert.equal((await sql.query("select skin from public.engagements where team_hub_engagement_id=$1",[newHub.engagement])).rows[0].skin,"novetera","the new engagement is stored as Novetera");
-      const newInvite=page.locator(".invite-facts"); await newInvite.waitFor();
+      if(named) {
+        assert.equal(sent.body?.link_name,named,"the create carries the named link");
+        assert.equal((await sql.query("select link_name from public.engagements where team_hub_engagement_id=$1",[newHub.engagement])).rows[0].link_name,named);
+      }
+      const newInvite=page.getByRole("region",{name:"Invite the room",exact:true}); await newInvite.waitFor();
       assert.ok((await newInvite.innerText()).includes(noveteraHost),`the Overview's invite card shows the Novetera address (${noveteraHost})`); assert.equal((await newInvite.innerText()).includes(clearwayHost),false,"and not the Clearway one");
       await page.unroute("**/api/setup");
       // Clearway users: the team fills the picker when the page opens, with no button pressed, and a failure offers Try again.
@@ -177,7 +253,7 @@ async function main() {
       await page.getByText("Saved. The new link works now.").waitFor();
       const visitor=await browser.newPage(); await visitor.goto(`${app.origin}/${linkName.toUpperCase()}`); assert.equal(new URL(visitor.url()).pathname,`/room/${room.id}`,"the chosen name opens the room, in any case");
       const lost=await visitor.goto(`${app.origin}/nosuchroomname`); assert.equal(lost?.status(),404,"a name nobody chose is a page that doesn't exist"); await visitor.close();
-      await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`${clearwayHost}/${linkName}`),"the Overview shows the chosen link");
+      await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await page.getByRole("region",{name:"Invite the room",exact:true}).innerText()).includes(`${clearwayHost}/${linkName}`),"the Overview shows the chosen link");
       // The skin: an admin switches the engagement to Novetera on Details, the room link on the Overview moves to Novetera's address, and switching back restores it.
       await sql.query("update public.clearway_users set is_admin=true where email=$1",[fac.session.user.email]);
       await page.goto(`${app.origin}/admin/${room.id}/details`);
@@ -187,12 +263,12 @@ async function main() {
       await page.getByRole("combobox",{name:/^Brand/}).selectOption("novetera"); await page.getByRole("button",{name:"Save engagement",exact:true}).click();
       await page.getByText(`Saved. The room link is now ${noveteraHost}/${linkName}.`,{exact:true}).waitFor();
       assert.equal((await sql.query("select skin from public.engagements where id=$1",[room.id])).rows[0].skin,"novetera","the skin is stored");
-      await page.goto(`${app.origin}/admin/${room.id}`); const invite=await page.locator(".invite-card").innerText();
+      await page.goto(`${app.origin}/admin/${room.id}`); const invite=await page.getByRole("region",{name:"Invite the room",exact:true}).innerText();
       assert.ok(invite.includes(`${noveteraHost}/${linkName}`)&&invite.includes(`typed at ${noveteraHost}`),"the Overview invite card shows Novetera's address"); assert.ok(!invite.includes(`${clearwayHost}/`),"and no longer Clearway's");
-      assert.equal(await page.locator(".invite-card a.text-link").getAttribute("href"),`${app.noveteraOrigin}/${linkName}`,"the link opens at Novetera's address");
+      assert.equal(await page.getByRole("region",{name:"Invite the room",exact:true}).getByRole("link",{name:`${noveteraHost}/${linkName}`,exact:true}).getAttribute("href"),`${app.noveteraOrigin}/${linkName}`,"the link opens at Novetera's address");
       await page.goto(`${app.origin}/admin/${room.id}/details`); await page.getByRole("combobox",{name:/^Brand/}).selectOption("clearway"); await page.getByRole("button",{name:"Save engagement",exact:true}).click();
       await page.getByText(`Saved. The room link is now ${clearwayHost}/${linkName}.`,{exact:true}).waitFor();
-      await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await page.locator(".invite-card").innerText()).includes(`${clearwayHost}/${linkName}`),"switching back restores Clearway's address");
+      await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await page.getByRole("region",{name:"Invite the room",exact:true}).innerText()).includes(`${clearwayHost}/${linkName}`),"switching back restores Clearway's address");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
       await page.goto(`${app.origin}/admin/${room.id}/details`); assert.equal(await page.getByRole("combobox",{name:/^Brand/}).isDisabled(),true,"only an admin changes the brand");
     }
@@ -407,12 +483,12 @@ async function main() {
       // The pages around it lead on.
       await page.goto(`${app.origin}/admin/${room.id}/door`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the Door list leads to the live room");
       await page.goto(`${app.origin}/admin/${room.id}/run-of-show`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the run of show leads to the live room");
-      await page.goto(`${app.origin}/admin`); const row=page.locator(`.admin-row:has(a[href*="${room.id}"])`);
+      await page.goto(`${app.origin}/admin`); const row=page.locator(`.eng-row:has(a[href*="${room.id}"])`);
       assert.equal(await row.getByTestId("brand-label").innerText(),"Novetera","the list names the engagement's brand");
       if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/list-1512.png`}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/list-756.png`}); await page.setViewportSize({width:1512,height:982}); }
       await page.goto(`${app.origin}/admin/${room.id}/tv`); assert.equal(await page.locator("#tv-texture").count(),0,"a Novetera engagement has no texture setting");
       await sql.query("update public.engagements set skin='clearway' where id=$1",[room.id]);
-      await page.goto(`${app.origin}/admin`); assert.equal(await page.locator(`.admin-row:has(a[href*="${room.id}"])`).getByTestId("brand-label").innerText(),"Clearway");
+      await page.goto(`${app.origin}/admin`); assert.equal(await page.locator(`.eng-row:has(a[href*="${room.id}"])`).getByTestId("brand-label").innerText(),"Clearway");
       await page.goto(`${app.origin}/admin/${room.id}/tv`); assert.equal(await page.locator("#tv-texture").count(),1,"a Clearway engagement keeps it");
       // 5. The remote: a panel with the link, a copy button and a code, and a way to open it here.
       await page.goto(control); await page.waitForLoadState("networkidle");
