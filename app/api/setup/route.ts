@@ -11,6 +11,7 @@ import { engagementAi } from "@/lib/ai/disclosure";
 import { roomOrigin,skinOf,type Skin } from "@/lib/brand";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { parseCsv,parsePasted,setupInput,validatePeople } from "@/lib/setup/policy";
+import { guestEmail } from "@/lib/setup/people";
 import { setupFormFromRows } from "@/lib/setup/form";
 import { clearwayEmail } from "@/lib/auth/policy";
 import { fictionalEmail, practiceId } from "@/lib/room/practice";
@@ -131,7 +132,16 @@ export async function POST(request:NextRequest){
     if(action==="edit_attendee"||action==="remove_attendee"){
       const e=await scoped();if(!uuid(body.attendee))return answer({ok:false},400);
       const person=action==="edit_attendee"?validatePeople([body.person]).people[0]:null;
-      if(person){const {error}=await client.from("attendees").update({name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"}).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);if(error)refuse(error);}
+      if(person){
+        if(person.room_role==="scribe"&&guestEmail(person.email))return answer({ok:false,message:"Use an email address for a scribe."},400);
+        const fields={name:person.name,email:person.email,role_at_church:person.role_at_church,room_role:person.room_role||"participant"};
+        const saved=await client.rpc("attendee_roster_edit",{p_engagement:e.id,p_attendee:body.attendee,p_person:fields});
+        if(saved.error?.code==="PGRST202"){
+          const {error}=await client.from("attendees").update(fields).eq("id",body.attendee).eq("engagement_id",e.id).eq("deleted",false);
+          if(error)refuse(error);
+        }else if(saved.error)refuse(saved.error);
+        else if(saved.data!==true)return answer({ok:false,message:"That person isn’t in this engagement."},404);
+      }
       // Removing a person is a soft delete through a function, so the lead and co-facilitator can do it as well as an admin: the table's read
       // rule hides a removed row from a non-admin, which refuses a plain update to deleted.
       else{const removed=await rpc("remove_attendee",{p_engagement:e.id,p_attendee:body.attendee}) as {status?:string}|null;if(removed?.status==="missing")return answer({ok:false,message:"That person isn’t in this engagement."},404);if(removed?.status!=="ok")throw new Error("save");}

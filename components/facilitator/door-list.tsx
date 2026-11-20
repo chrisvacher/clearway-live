@@ -1,22 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, startTransition, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Select } from "@/components/ui/select";
 
 type Request = { id: string; name: string; email: string };
 type Attendee = { id: string; name: string; email: string };
-// The Door list page keeps up on its own: while the tab is visible it refreshes the server data every 5 seconds (the live room does the same every 15), and once more when the tab comes back. Typed text stays, because only server data is refreshed.
-export function DoorKeepUp() {
-  const router = useRouter();
-  useEffect(() => {
-    const tick = () => { if (document.visibilityState === "visible") startTransition(() => router.refresh()); };
-    const timer = setInterval(tick, 5000);
-    document.addEventListener("visibilitychange", tick);
-    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", tick); };
-  }, [router]);
-  return null;
-}
 export function DoorList({ engagement, requests, attendees, listed = true }: { engagement: string; requests: Request[]; attendees: Attendee[]; listed?: boolean }) {
   const router = useRouter(); const [message, setMessage] = useState(""); const [busy,setBusy]=useState(false);
   async function act(action: string, data: Record<string,unknown>) {

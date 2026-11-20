@@ -79,7 +79,7 @@ async function main() {
     await sql.connect();
     const room = await engagement(sql, people);
     const code = (await sql.query("select room_code from public.engagements where id=$1", [room.id])).rows[0].room_code as string;
-    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',start_date=current_date+1,settings=settings||'{\"ai_enabled\":true,\"open_join\":true}' where id=$1", [room.id]);
+    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',how_the_room_decides='We will make decisions together.',start_date=current_date+1,settings=settings||'{\"ai_enabled\":true,\"open_join\":true}' where id=$1", [room.id]);
     const fac = await facilitator(env, sql, room.id);
     await sql.query("update public.clearway_users set is_admin=true where email=$1", [fac.session.user.email]);
     const skinNow = async () => (await sql.query("select skin from public.engagements where id=$1", [room.id])).rows[0].skin as string;
@@ -203,11 +203,11 @@ async function main() {
     });
     await step("The invite email goes to the attendee list from Novetera, with Novetera links, its AI paragraph and its sign-off", async () => {
       await setup.goto(`${CW}/admin/${room.id}/joining`);
-      await setup.getByRole("heading", { name: "6 people" }).waitFor();   // the three on the list and the three who joined by name, who have no email to invite
+      await setup.getByRole("tab", { name: "People 6" }).waitFor();   // the three on the list and the three who joined by name, who have no email to invite
       const before = mail.count;
-      await setup.getByRole("button", { name: "Select all for invites" }).click();
-      await setup.getByRole("button", { name: "Send 3 invites" }).click();
-      await setup.getByText("Sent 3 invites.").waitFor({ timeout: 20000 });
+      await setup.getByRole("checkbox", { name: "Select all visible rows" }).check();
+      await setup.getByRole("button", { name: "Send invites", exact: true }).click();
+      await setup.getByText("Sent 3 invites",{exact:true}).waitFor({ timeout: 20000 });
       await until(() => mail.messages.slice(before).filter(m => /invited to/.test(m.text)).length === 3, "three invites", 15000);
       for (const person of room.attendees) {
         const invite = mail.messages.slice(before).find(m => m.to.includes(person.email) && /invited to/.test(m.text))!; assert.ok(invite, `${person.name} has an invite`);

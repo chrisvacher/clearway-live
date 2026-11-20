@@ -77,7 +77,11 @@ async function currentAttendee(client:ReturnType<typeof participantClient>,engag
   if(error||!user)return null;
   const { data: attendee,error:denied } = await client.from("attendees").select("id,name,room_role").eq("engagement_id", engagement).eq("auth_user_id", user.id).eq("deleted", false).maybeSingle();
   if(denied)throw new Error("Room connection unavailable");
-  return attendee;
+  if (attendee) return attendee;
+  // A merged guest keeps this signed-in device and resolves the attendee it now belongs to.
+  const { data: merged, error: lookup } = await client.rpc("room_merged_attendee", { p_engagement: engagement });
+  if (lookup && lookup.code !== "PGRST202") throw new Error("Room connection unavailable");
+  return merged as { id: string; name: string; room_role: string } | null;
 }
 export async function initialRoomAccess(engagement:string):Promise<RoomAccessStatus>{
   const jar=await cookies();

@@ -47,7 +47,7 @@ async function main() {
   try {
     await sql.connect();
     const room = await engagement(sql, people);
-    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
+    await sql.query("update public.engagements set title='Team workshop',type='team_workshop',how_the_room_decides='We will make decisions together.',settings=settings||'{\"ai_enabled\":true}' where id=$1", [room.id]);
     // KIT_SKIN=novetera runs the same workshop in the Novetera skin, for the Novetera front page's screenshots (npm run home:shots).
     if (process.env.KIT_SKIN === "novetera") await sql.query("update public.engagements set skin='novetera' where id=$1", [room.id]);
     const fac = await facilitator(env, sql, room.id);
@@ -96,6 +96,20 @@ async function main() {
       await setup.close();
     });
 
+    const roster = await facContext.newPage();
+    await step("Invite selected people and filter the roster as phones arrive", async () => {
+      await roster.goto(`${app.origin}/admin/${room.id}/joining`);
+      const table = roster.getByRole("table", { name: "People", exact: true });
+      const recipients = room.attendees.slice(0, 2);
+      for (const person of recipients) await table.getByRole("checkbox", { name: `Select ${person.name}`, exact: true }).check();
+      const before = mail.count;
+      await roster.getByRole("button", { name: "Send invites", exact: true }).click();
+      await roster.getByText("Sent 2 invites", { exact: true }).waitFor();
+      assert.deepEqual(mail.messages.slice(before).filter(message => /invited to/i.test(message.text)).flatMap(message => message.to).sort(), recipients.map(person => person.email).sort());
+      await roster.getByRole("button", { name: /^Invited, not joined/ }).click();
+      assert.equal(await table.getByText("Invited", { exact: true }).count(), 2);
+      await roster.getByRole("button", { name: /^In the room/ }).click();
+    });
     const phones: Phone[] = [];
     await step("Eight phones sign in by email code; the AI line sits under Sign in and links to How we use AI", async () => {
       for (const [i, person] of room.attendees.entries()) {
@@ -115,6 +129,11 @@ async function main() {
         phones.push({ name: person.name, ctx, page });
       }
       assert.equal(phones.length, 8);
+      await roster.bringToFront();
+      const table = roster.getByRole("table", { name: "People", exact: true });
+      await table.getByText("In the room", { exact: true }).nth(7).waitFor({ timeout: 15000 });
+      assert.equal(await table.getByText("In the room", { exact: true }).count(), 8);
+      await roster.close();
     });
     const all = <T>(run: (p: Phone, i: number) => Promise<T>) => Promise.all(phones.map(run));
 

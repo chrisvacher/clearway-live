@@ -45,8 +45,9 @@ async function main() {
             if (width < 900) await navigation.getByRole("button", {name:"Close navigation", exact:true}).click();
           }
           if(area==="c" && path.endsWith("/door")) {
-            assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
-            assert.equal(await page.getByText("Joined by name · Not signed in",{exact:true}).count(),0);
+            assert.equal(new URL(page.url()).pathname,`/admin/${room.id}/joining`);
+            assert.equal(new URL(page.url()).searchParams.get("filter"),"in-the-room");
+            assert.equal(await page.getByRole("heading",{name:"People",exact:true,level:1}).count(),1);
           }
           if(area==="c" && path.endsWith("/discover") && page.url().endsWith(path)) { assert.equal(await page.getByText("Only you see this",{exact:true}).count(),1,"Discover draws no privacy marker of its own"); assert.equal(await page.getByText("Back to the engagement").count(),0); assert.ok((await page.locator("main .admin-kicker").textContent() ?? "").includes("Riverside Church")); }
           if(area==="c" && path.endsWith("/four-lists") && page.url().endsWith(path)) { assert.equal(await page.getByRole("link",{name:"Download CSV"}).count(),0,"no CSV without a Four Helpful Lists step"); assert.equal(await page.getByRole("button",{name:"Refresh lists",exact:true}).count(),1); assert.equal(await page.getByRole("navigation",{name:"Engagement",exact:true}).getByRole("link",{name:"Four Helpful Lists",exact:true}).count(),0,"the sidebar leaves out Four Helpful Lists without the step"); }
@@ -242,15 +243,28 @@ async function main() {
       await page.goto(app.origin+"/admin/users"); await page.getByRole("combobox",{name:/^Team member/}).locator("option",{hasText:"Mara Quinn"}).waitFor({state:"attached"}); assert.equal(await page.getByRole("combobox",{name:/^Team member/}).isEnabled(),true,"the picker fills on open, with nothing pressed");
       await page.unroute("**/api/setup");
       await sql.query("update public.clearway_users set is_admin=false where email=$1",[fac.session.user.email]);
-      await page.goto(`${app.origin}/admin/${room.id}/joining`); assert.equal(await page.getByRole("radio",{name:/^Anyone who has the link or code/}).isDisabled(),true,"only an admin changes open joining");
-      // The lead names the link, and the name opens the room for a phone with no sign-in.
-      const linkName=`kit${room.id.replace(/-/g,"").slice(0,12)}`;
-      await page.getByRole("radio",{name:/^A name you choose/}).check();
-      await page.getByLabel(`${clearwayHost}/`,{exact:true}).fill("ab"); assert.equal(await page.getByRole("button",{name:"Save the name",exact:true}).isDisabled(),true,"a name needs three characters");
-      await page.getByLabel(`${clearwayHost}/`,{exact:true}).fill("Set Up!"); assert.equal(await page.getByLabel(`${clearwayHost}/`,{exact:true}).inputValue(),"setup","only letters and digits are kept");
-      await page.getByRole("button",{name:"Save the name",exact:true}).click(); await page.getByText("That name is used by the app. Choose another.").waitFor();
-      await page.getByLabel(`${clearwayHost}/`,{exact:true}).fill(linkName); await page.getByRole("button",{name:"Save the name",exact:true}).click();
-      await page.getByText("Saved. The new link works now.").waitFor();
+      await page.goto(`${app.origin}/admin/${room.id}/people`);
+      assert.equal(new URL(page.url()).pathname,`/admin/${room.id}/joining`);
+      await page.getByRole("tab",{name:"Access",exact:true}).click();
+      assert.equal(await page.getByRole("radio",{name:/^Anyone who has the link or code/}).isDisabled(),true,"only an admin changes open joining");
+      for(const title of ["The link","Who can join","How the room decides","Admin link"]) await page.getByRole("heading",{name:title,exact:true}).waitFor();
+      await page.getByRole("button",{name:"Make an admin link"}).click();
+      const adminLink=await page.getByRole("textbox",{name:"Admin link",exact:true}).inputValue();
+      assert.ok(adminLink.startsWith(`${app.origin}/a/`),"Access holds the event's admin link");
+      await page.getByRole("button",{name:"Make a new link",exact:true}).click();
+      const cycle=page.getByRole("dialog",{name:"Make a new admin link?"});
+      await cycle.getByRole("button",{name:"Make a new link",exact:true}).click();
+      await cycle.waitFor({state:"hidden"});
+      assert.notEqual(await page.getByRole("textbox",{name:"Admin link",exact:true}).inputValue(),adminLink);
+      const linkName=`kit${room.id.replace(/-/g,"").slice(0,12)}`, nameInput=page.getByRole("textbox",{name:"Link name"});
+      await nameInput.fill("ab"); await page.getByRole("button",{name:"Save changes",exact:true}).click();
+      await page.getByRole("alert").filter({hasText:"Use 3 to 24 letters or numbers."}).waitFor();
+      await nameInput.fill("Set Up!"); assert.equal(await nameInput.inputValue(),"setup","only letters and digits are kept");
+      await page.getByRole("button",{name:"Save changes",exact:true}).click(); await page.getByRole("alert").filter({hasText:"That name is used by the app. Choose another."}).waitFor();
+      await nameInput.fill(linkName); await page.getByRole("button",{name:"Save changes",exact:true}).click();
+      await page.getByRole("status").filter({hasText:/^Saved$/}).first().waitFor();
+      await page.getByRole("button",{name:"Make a new code",exact:true}).click();
+      await page.getByRole("dialog",{name:"Make a new room code?"}).getByRole("button",{name:"Cancel"}).click();
       const visitor=await browser.newPage(); await visitor.goto(`${app.origin}/${linkName.toUpperCase()}`); assert.equal(new URL(visitor.url()).pathname,`/room/${room.id}`,"the chosen name opens the room, in any case");
       const lost=await visitor.goto(`${app.origin}/nosuchroomname`); assert.equal(lost?.status(),404,"a name nobody chose is a page that doesn't exist"); await visitor.close();
       await page.goto(`${app.origin}/admin/${room.id}`); assert.ok((await page.getByRole("region",{name:"Invite the room",exact:true}).innerText()).includes(`${clearwayHost}/${linkName}`),"the Overview shows the chosen link");
@@ -360,25 +374,52 @@ async function main() {
       const outsider=await browser.newPage(); await outsider.goto(app.origin+"/admin"); assert.equal(new URL(outsider.url()).pathname,"/sign-in"); await outsider.close();
     }
     if(!before && (area==="c" || area==="all")) {
-      // Open joining: the Door list shows who joined by name, never says to add people in setup, has no Refresh button and keeps up on its own.
-      await sql.query("update public.engagements set type='team_workshop',settings=coalesce(settings,'{}'::jsonb)||'{\"open_join\":true}'::jsonb where id=$1",[room.id]);
-      await sql.query("delete from public.attendees where engagement_id=$1 and email like '%@guest.clearway.invalid'",[room.id]);
-      await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Kit Dana',$2)",[room.id,`guest-dana-${room.id}@guest.clearway.invalid`]);
-      await page.setViewportSize({width:1440,height:1000}); await page.goto(`${app.origin}/admin/${room.id}/door`); await page.waitForLoadState("networkidle");
-      assert.equal(await page.getByRole("heading",{name:"Door list",exact:true,level:1}).count(),1,"the title is the sidebar noun");
-      assert.equal(await page.getByRole("heading",{name:"In the room",exact:true}).count(),1,"open joining says who is in the room");
-      assert.equal(await page.getByText("Kit Dana",{exact:true}).count(),1,"a person who joined by name is listed by name");
-      assert.equal(await page.getByText("Joined by name",{exact:true}).count(),1);
-      assert.equal(await page.getByText(/guest\.clearway\.invalid/).count(),0,"the guest address is never shown");
-      assert.equal(await page.getByText(/in setup/).count(),0,"the door list never sends people to setup");
-      assert.equal(await page.getByRole("button",{name:/Refresh/}).count(),0,"the door list needs no Refresh button");
-      await page.getByLabel("Device code on their phone").fill("ABCD2345");
-      await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Kit Lee',$2)",[room.id,`guest-lee-${room.id}@guest.clearway.invalid`]);
-      await page.getByText("Kit Lee",{exact:true}).waitFor({timeout:10000});
-      assert.equal(await page.getByLabel("Device code on their phone").inputValue(),"ABCD2345","what was typed survives the refresh");
-      await sql.query("delete from public.attendees where engagement_id=$1",[room.id]);
-      await page.getByText("No one has joined yet. People appear here as they join.").waitFor({timeout:10000});
-      await page.getByText("This is for people on a list.").waitFor({timeout:10000}); assert.equal(await page.getByLabel("Device code on their phone").count(),0,"nobody is on a list, so hand sign-in is one line");
+      // People follows verified presence as phones join and consolidate.
+      await sql.query("update public.engagements set type='team_workshop',settings=coalesce(settings,'{}'::jsonb)||jsonb_build_object('open_join',true) where id=$1",[room.id]);
+      await page.setViewportSize({width:1440,height:1000});
+      await page.goto(`${app.origin}/admin/${room.id}/door`);
+      assert.equal(new URL(page.url()).searchParams.get("filter"),"in-the-room");
+      const join = async () => {
+        const guest = await browser.newPage();
+        await guest.goto(`${app.origin}/room/${room.id}`);
+        await guest.getByLabel("Your name",{exact:true}).fill("Kit Dana");
+        await guest.getByRole("button",{name:"Join the room",exact:true}).click();
+        await guest.locator(".ph-app").waitFor({timeout:15000});
+        return guest;
+      };
+      const first = await join();
+      const roster = page.getByRole("table",{name:"People",exact:true});
+      await roster.getByRole("row",{name:/Kit Dana.*In the room/}).waitFor({timeout:15000});
+      const second = await join();
+      await page.getByRole("button",{name:/^Possible duplicates/}).click();
+      await roster.getByRole("row",{name:/Kit Dana/}).nth(1).waitFor({timeout:15000});
+      const named = roster.getByRole("row",{name:/Kit Dana/});
+      assert.equal(await named.count(),2);
+      assert.equal(await roster.getByText("By name",{exact:true}).count(),2);
+      assert.equal(await roster.getByText(/guest\.clearway\.invalid/).count(),0,"synthetic addresses stay private");
+      const hasMerge=(await sql.query("select to_regprocedure('public.attendee_merge(uuid,uuid,uuid[])') is not null as present")).rows[0].present;
+      if(hasMerge) {
+        await named.nth(0).getByRole("checkbox").check();
+        await named.nth(1).getByRole("checkbox").check();
+        await page.getByRole("button",{name:"Merge into one",exact:true}).click();
+        await page.getByRole("dialog",{name:"Merge these people?"}).getByRole("button",{name:"Merge into one",exact:true}).click();
+        await page.getByText("People merged",{exact:true}).waitFor();
+        await page.getByRole("button",{name:/^In the room/}).click();
+        await named.first().waitFor();
+        assert.equal(await named.count(),1,"both phones share one roster entry");
+        await second.reload();
+        await second.locator(".ph-app").waitFor({timeout:15000});
+        await named.first().getByRole("button",{name:"Actions for Kit Dana"}).click();
+        await named.first().getByRole("menuitem",{name:"Remove",exact:true}).click();
+        await page.getByRole("dialog",{name:"Remove Kit Dana?"}).getByRole("button",{name:"Remove",exact:true}).click();
+        await page.getByRole("status").filter({hasText:"Person removed"}).getByRole("button",{name:"Undo"}).click();
+        await page.getByRole("button",{name:/^All/}).click();
+        await named.first().waitFor({timeout:10000});
+      }
+      await Promise.all([first.close(),second.close()]);
+      // Later live-room checks start with a clean roster. Device fixtures reference attendees.
+      await sql.query("delete from private.room_auth_devices where engagement_id=$1",[room.id]);
+      await sql.query("delete from public.device_sessions where engagement_id=$1",[room.id]);
     }
     if(!before && area==="c") {
       // One laptop: the live room's way back, its address and brand, its order on half a screen, the remote's panel and ending a workshop.
@@ -481,7 +522,7 @@ async function main() {
       assert.equal(await page.locator("[data-ai-panel]").getByRole("link",{name:"the engagement's setup",exact:true}).getAttribute("href"),`/admin/${room.id}/details#details-ai`);
       await press(fac,sql,room.id,"nothing_live");
       // The pages around it lead on.
-      await page.goto(`${app.origin}/admin/${room.id}/door`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the Door list leads to the live room");
+      await page.goto(`${app.origin}/admin/${room.id}/door`); assert.equal(new URL(page.url()).searchParams.get("filter"),"in-the-room","the old Door list opens People in the room");
       await page.goto(`${app.origin}/admin/${room.id}/run-of-show`); assert.equal(await page.getByRole("link",{name:"Go to the live room",exact:true}).getAttribute("href"),`/control/${room.id}`,"the run of show leads to the live room");
       await page.goto(`${app.origin}/admin`); const row=page.locator(`.eng-row:has(a[href*="${room.id}"])`);
       assert.equal(await row.getByTestId("brand-label").innerText(),"Novetera","the list names the engagement's brand");
