@@ -1,0 +1,284 @@
+name: Complete deployed revision 2a982df checks
+on:
+  push:
+    branches:
+      - codex/verify-production-2a982df-late
+permissions:
+  contents: read
+jobs:
+  four_lists:
+    name: four lists
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2a982df2bf49d99aa8a0f3ceefc0a02d5615a31b
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - name: Start isolated PostgreSQL 17 and Auth
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Replay migrations from an empty database
+        run: supabase db reset --local --no-seed
+      - name: Test idempotent seeds and native practice sign-in/reset
+        run: npm run test:practice
+        id: seed
+      - name: Build the app for the browser failure kit
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        id: app
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
+        id: chromium
+      - name: Test the Four Helpful Lists with 50 simulated phones in real browsers
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p four-lists-shots && npm run test:four-lists 2>&1 | tee "$RUNNER_TEMP/check-four-lists.log"
+        env:
+          KIT_SHOTS: four-lists-shots
+        shell: bash
+      - name: Upload check logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: four_lists-logs
+          path: ${{ runner.temp }}/check-*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop local database
+        if: always()
+        run: supabase stop --no-backup
+  discover:
+    name: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2a982df2bf49d99aa8a0f3ceefc0a02d5615a31b
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - name: Start isolated PostgreSQL 17 and Auth
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Replay migrations from an empty database
+        run: supabase db reset --local --no-seed
+      - name: Test idempotent seeds and native practice sign-in/reset
+        run: npm run test:practice
+        id: seed
+      - name: Build the app for the browser failure kit
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        id: app
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
+        id: chromium
+      - name: Test Discover themes (draft, accept, rename, merge, reject, redraft, slow and failed AI, who can reach it) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p themes-shots && npm run test:themes 2>&1 | tee "$RUNNER_TEMP/check-themes.log"
+        env:
+          KIT_SHOTS: themes-shots
+        shell: bash
+      - name: Test What We Heard (draft from accepted themes, edit, apply into the step, nothing accepted, slow and failed AI, who can reach it) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p heard-shots && npm run test:what-we-heard 2>&1 | tee "$RUNNER_TEMP/check-what-we-heard.log"
+        env:
+          KIT_SHOTS: heard-shots
+        shell: bash
+      - name: Test the alignment signal (cards on the control surface and the remote, nothing on the TV or phones, dismiss, citation, neutral question, laptop closed) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p signal-shots && npm run test:signal 2>&1 | tee "$RUNNER_TEMP/check-signal.log"
+        env:
+          KIT_SHOTS: signal-shots
+        shell: bash
+      - name: Test milestone 6 acceptance (Four Helpful Lists with 50 simulated phones, Discover, What We Heard, the alignment signal and the neutral question, frame sampling)
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p acceptance-m6-shots && npm run test:acceptance-m6 2>&1 | tee "$RUNNER_TEMP/check-acceptance-m6.log"
+        env:
+          KIT_SHOTS: acceptance-m6-shots
+        shell: bash
+      - name: Upload check logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: discover-logs
+          path: ${{ runner.temp }}/check-*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop local database
+        if: always()
+        run: supabase stop --no-backup
+  sharing:
+    name: sharing
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2a982df2bf49d99aa8a0f3ceefc0a02d5615a31b
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - name: Start isolated PostgreSQL 17 and Auth
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Replay migrations from an empty database
+        run: supabase db reset --local --no-seed
+      - name: Test idempotent seeds and native practice sign-in/reset
+        run: npm run test:practice
+        id: seed
+      - name: Build the app for the browser failure kit
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        id: app
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
+        id: chromium
+      - name: Test the check-ins (scheduled run at 30, 60 and 90 days into the harness mailbox, the phone page offline, results and follow-ups, Send now) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p check-ins-shots && npm run test:check-ins 2>&1 | tee "$RUNNER_TEMP/check-check-ins.log"
+        env:
+          KIT_SHOTS: check-ins-shots
+        shell: bash
+      - name: Test the read-only copy (sharing waits for Day 2, Close the day, a named link shown once, laptop and phone, no inputs, the report only after sign-off, owner status, revoke, nothing private in the page) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p read-only-shots && npm run test:read-only 2>&1 | tee "$RUNNER_TEMP/check-read-only.log"
+        env:
+          KIT_SHOTS: read-only-shots
+        shell: bash
+      - name: Upload check logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: sharing-logs
+          path: ${{ runner.temp }}/check-*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop local database
+        if: always()
+        run: supabase stop --no-backup
+  reports:
+    name: reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2a982df2bf49d99aa8a0f3ceefc0a02d5615a31b
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - name: Start isolated PostgreSQL 17 and Auth
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Replay migrations from an empty database
+        run: supabase db reset --local --no-seed
+      - name: Test idempotent seeds and native practice sign-in/reset
+        run: npm run test:practice
+        id: seed
+      - name: Build the app for the browser failure kit
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        id: app
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
+        id: chromium
+      - name: Test the Wayfinding report (draft all 14 sections, sources and the lit words, the aligned signal as a source, edit, the room's words, redraft, a section the model fails on, sign-off, the Word and PDF export, who can reach it) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p report-shots && npm run test:report 2>&1 | tee "$RUNNER_TEMP/check-report.log"
+        env:
+          KIT_SHOTS: report-shots
+        shell: bash
+      - name: Test the visibility plan (draft in the outward order, sources, edit, review, the public date, add and move and remove, redraft keeps what was touched, a model failure, the report's table, who can reach it) in a real browser
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p plan-shots && npm run test:visibility-plan 2>&1 | tee "$RUNNER_TEMP/check-visibility-plan.log"
+        env:
+          KIT_SHOTS: plan-shots
+        shell: bash
+      - name: "Test milestone 7 acceptance (after the retreat on Riverside end to end: Close the day, the report, sign-off, Word and PDF, the visibility plan, a share link on a phone and a laptop then revoked, the 30-day check-in by the scheduled run, every owner answering, results, owner status on the copy)"
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p acceptance-m7-shots && npm run test:acceptance-m7 2>&1 | tee "$RUNNER_TEMP/check-acceptance-m7.log"
+        env:
+          KIT_SHOTS: acceptance-m7-shots
+        shell: bash
+      - name: Upload check logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-logs
+          path: ${{ runner.temp }}/check-*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop local database
+        if: always()
+        run: supabase stop --no-backup
+  overnight_acceptance:
+    name: overnight acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2a982df2bf49d99aa8a0f3ceefc0a02d5615a31b
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - run: npm ci
+      - name: Start isolated PostgreSQL 17 and Auth
+        run: supabase start --exclude imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Replay migrations from an empty database
+        run: supabase db reset --local --no-seed
+      - name: Test idempotent seeds and native practice sign-in/reset
+        run: npm run test:practice
+        id: seed
+      - name: Build the app for the browser failure kit
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        id: app
+      - name: Install the pinned Playwright Chromium
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
+        id: chromium
+      - name: Test milestone 5 acceptance (scribe, promoted quote, overnight drafts, Day 2 read-back; 50 simulated phones, frame sampling)
+        if: ${{ !cancelled() && steps.chromium.outcome == 'success' }}
+        run: mkdir -p acceptance-m5-shots && npm run test:acceptance-m5 2>&1 | tee "$RUNNER_TEMP/check-acceptance-m5.log"
+        env:
+          KIT_SHOTS: acceptance-m5-shots
+        shell: bash
+      - name: Upload check logs on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: overnight_acceptance-logs
+          path: ${{ runner.temp }}/check-*.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Stop local database
+        if: always()
+        run: supabase stop --no-backup
