@@ -34,4 +34,4 @@ The sweep uses isolated migrations in CI. Until the Details migration is applied
 
 The signed-in layout sweep passed all 292 checks at 390, 1280, 1440 and 1512 pixels for the shared routes, both workshop brands and a Wayfinding retreat. It generated 63 PNGs. The 51 captures at 1440 pixels were visually reviewed and added alongside the six earlier transport views. [Screenshot index](evidence/design-pass-10/) · [Verified CI artifact](https://github.com/chrisvacher/clearway-live/actions/runs/44672701466/artifacts/14600924104).
 
-A passing full browser suite and Chris's practice-room acceptance remain pending. The layout sweep used isolated CI fixtures.
+The [release pull request](https://github.com/chrisvacher/clearway-live/pull/180) records the full browser suite results on each commit. The layout sweep used isolated CI fixtures. Chris's practice-room acceptance remains pending.
