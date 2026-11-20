@@ -649,7 +649,7 @@ test("one add-and-invite request saves recipients and safely retries a failed de
  const sentBefore=sentBatches.length;
  const saved=await setupPost(jar,{action:"import",id:roomId,source:"person",person:{name:"Ann Lee",email:"ann@example.org"}});assert.equal(saved.data.count,1);assert.equal(sentBatches.length,sentBefore);
  const page=await fetch(origin+`/admin/${roomId}/joining`,{headers:{cookie:cookieHeader(jar)}});const html=await page.text();
- assert.match(html,/Add and invite/);assert.match(html,/Add without inviting/);assert.match(html,/Send invite/);assert.doesNotMatch(html,/Review import|Save people/);
+ assert.equal(page.status,200);assert.match(html,/Add people/);assert.match(html,/Choose how to add people/);assert.doesNotMatch(html,/Invite the team|Review import|Save people/);
 });
 
 test("practice phones join with a name and no email, while control remains protected",async()=>{
