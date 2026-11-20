@@ -118,6 +118,22 @@ jobs:
           path: ${{ runner.temp }}/design-pass-10-live-room/
           if-no-files-found: ignore
           retention-days: 14
+      - name: Sweep signed-in layouts at 390, 1280, 1440 and 1512 pixels
+        if: ${{ !cancelled() }}
+        run: npm run test:design-pass-10
+        env:
+          PASS10_SWEEP_SHOTS: ${{ runner.temp }}/design-pass-10-sweep
+      - name: Upload signed-in layout sweep and 1440-pixel screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-pass-10-sweep
+          path: ${{ runner.temp }}/design-pass-10-sweep/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Test opening and unpairing the TV window from Screens and Overview
+        if: ${{ !cancelled() }}
+        run: npm run test:tv-window
       - name: Test the two addresses (live.clearway.co and live.novetera.co) from one deployment
         run: npm run test:two-addresses
       - name: Test the live room before Pickering (steps stay open, the TV from the live room, Start fresh, End and Reopen) in both skins

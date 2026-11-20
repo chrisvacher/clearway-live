@@ -73,8 +73,8 @@ async function main() {
         await page.locator(".tv-code").waitFor(); assert.equal(await page.getByText(expired).count(), 0); await other.close();
       });
       await step(`${skin}: Unpair works and the window goes back to the pairing screen`, async () => {
-        screens.once("dialog", d => void d.accept());
         await screens.getByRole("button", { name: "Unpair" }).click();
+        await screens.getByRole("dialog", { name: "Unpair This laptop?" }).getByRole("button", { name: "Unpair" }).click();
         await screens.getByText("No screens paired yet.").waitFor();
         await until(async () => (await tv.locator(".tv-scene.tv-pair.is-active").count()) === 1, "the window shows its pairing screen", 20000);
       });

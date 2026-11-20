@@ -165,8 +165,12 @@ async function main() {
       await sql.query("update public.engagements set type='team_workshop',status='setup' where id=$1",[room.id]);
       await page.reload();
       await facilitator(env,sql,room.id);
-      const linkSetup=await fac.client.rpc("event_link",{p_engagement:room.id,p_action:"create"});
-      assert.equal(linkSetup.data?.status,"ok");
+      await page.goto(`${app.origin}/admin/${room.id}/joining`);
+      await page.getByRole("tab",{name:"Access",exact:true}).click();
+      await page.getByRole("button",{name:"Make an admin link",exact:true}).click();
+      const initialAdminLink=await page.getByRole("textbox",{name:"Admin link",exact:true}).inputValue();
+      assert.ok(initialAdminLink.startsWith(`${app.origin}/a/`),"Access creates the event's admin link");
+      await page.goto(`${app.origin}/admin/${room.id}/details`);
       const coFacilitators=async()=>(await sql.query(
         "select u.kind from public.engagement_facilitators f join public.clearway_users u on u.id=f.clearway_user_id where f.engagement_id=$1 and f.role='co_facilitator' and not f.deleted order by u.kind",[room.id])).rows.map(row=>row.kind);
       assert.deepEqual(await coFacilitators(),["link_guest","person"]);
@@ -394,9 +398,8 @@ async function main() {
       await page.getByRole("tab",{name:"Access",exact:true}).click();
       assert.equal(await page.getByRole("radio",{name:/^Anyone who has the link or code/}).isDisabled(),true,"only an admin changes open joining");
       for(const title of ["The link","Who can join","How the room decides","Admin link"]) await page.getByRole("heading",{name:title,exact:true}).waitFor();
-      await page.getByRole("button",{name:"Make an admin link"}).click();
       const adminLink=await page.getByRole("textbox",{name:"Admin link",exact:true}).inputValue();
-      assert.ok(adminLink.startsWith(`${app.origin}/a/`),"Access holds the event's admin link");
+      assert.equal(adminLink,initialAdminLink,"Access retains the event's admin link through the Details edits");
       await page.getByRole("button",{name:"Make a new link",exact:true}).click();
       const cycle=page.getByRole("dialog",{name:"Make a new admin link?"});
       await cycle.getByRole("button",{name:"Make a new link",exact:true}).click();
@@ -610,7 +613,7 @@ async function main() {
         await page.setViewportSize({ width, height: 982 });
         assert.equal(await drawer.count(),0,"Room admin starts hidden");
         const before = (await transport.boundingBox())!;
-        if (shots) await page.screenshot({ path: `${shots}/transport-${width}-closed.png` });
+        if (shots) await page.screenshot({ path: `${shots}/transport-${width}-closed.png`, animations: "disabled" });
         await toggle.click();
         await drawer.waitFor();
         await page.locator(".ctl-cols.has-side:not(.is-side-off)").waitFor();
@@ -627,7 +630,13 @@ async function main() {
           assert.ok(first.unobstructed,"the drawer leaves every transport button reachable");
           for (const second of buttonBoxes.slice(i+1)) assert.ok(first.right<=second.left+1 || first.bottom<=second.top+1 || first.top>=second.bottom-1,"transport buttons don't overlap");
         }
-        if (shots) await page.screenshot({ path: `${shots}/transport-${width}-open.png` });
+        if (shots) {
+          await page.waitForFunction(() => {
+            const aside = document.querySelector("#ctl-side");
+            return aside && getComputedStyle(aside).opacity === "1";
+          });
+          await page.screenshot({ path: `${shots}/transport-${width}-open.png`, animations: "disabled" });
+        }
         await drawer.getByRole("button", { name: "Close Room admin" }).click();
         await drawer.waitFor({ state: "hidden" });
       }
