@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Maximize } from "lucide-react";
 import { RoomStream } from "@/lib/live/stream";
 import { clockSample, retryDelay } from "@/lib/live/protocol";
 import type { LiveRead, LiveSnapshot } from "@/lib/live/types";
@@ -182,6 +181,5 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
   const display = frame?.display;
   return <main ref={root} id="main" className={`tv-viewport${awake ? " is-awake" : ""}`} data-surface="tv" data-skin={display ? skinOf(display.skin) : skinOf(address?.skin)} data-theme={display?.theme || "dark"} data-motion={display?.reduced_motion ? "reduced" : undefined} data-room={display?.room_size || "very_small"} data-screen={screenType(frame)} data-join={status.status === "paired" && frame?.state.tv_content === "join" ? "on" : undefined} data-texture={display?.texture === false ? "off" : "on"}>
     <div ref={stage} className="tv-stage" data-version={frame?.version}><TvScenes status={status} pair={pair} linkExpired={linkExpired} frame={frame} flow={flow} nameLimit={nameLimit} reconnecting={syncOffline || status.status === "paired" && ["offline", "connecting"].includes(mode)} address={address} /></div>
-    <div className="tv-tools"><button onClick={() => void fullscreen()}><Maximize size={20} aria-hidden="true" />Toggle full screen (F)</button><span>Escape exits full screen</span></div>
   </main>;
 }

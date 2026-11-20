@@ -282,9 +282,6 @@ button.text-link { color: inherit; background: none; border: 0; font: inherit; c
 .tv-type-floor { font-size: var(--cwl-check-floor); }
 .tv-type-upclose { font-size: var(--cwl-fs-tv-upclose); }
 .tv-check-label { position: absolute; right: var(--cwl-tv-gutter); top: 120px; width: 650px; text-align: right; display: grid; gap: var(--space-3); }
-.tv-tools { position: absolute; left: var(--space-4); bottom: var(--space-4); display: flex; align-items: center; gap: var(--space-4); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); padding: var(--space-3); border-radius: var(--cwl-radius-button); opacity: 0; pointer-events: none; font-size: var(--cwl-fs-phone-body); z-index: 5; }
-.tv-tools button { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--cwl-phone-touch); background: transparent; border: 0; color: inherit; cursor: pointer; }
-.tv-viewport.is-awake .tv-tools, .tv-tools:focus-within { opacity: 1; pointer-events: auto; }
 .tv-viewport[data-motion="reduced"] .tv-scene, .tv-viewport[data-motion="reduced"] .tv-check, .tv-viewport[data-motion="reduced"] .tv-names span { animation: none; transition-duration: var(--cwl-dur-reduced); }
 .tv-manager-code { font-size: var(--cwl-fs-phone-prompt) !important; letter-spacing: 0.2em; font-variant-numeric: tabular-nums; }
 .tv-screen-list { list-style: none; margin: 0; padding: 0; }
