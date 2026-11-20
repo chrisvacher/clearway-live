@@ -14,8 +14,8 @@ import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type Page } from "playwright";
 import { promptVersions } from "../../lib/ai/prompts";
 import { verdict } from "../../lib/latency/report";
-import { joinPhones, Phone, practiceRoom } from "../../scripts/load-test";
-import { db, facilitator, localEnv, mailbox, pairTv, press, startApp, until } from "./harness";
+import { joinPhones, practiceRoom } from "../../scripts/load-test";
+import { db, facilitator, localEnv, mailbox, pairTv, press, signInScribe, startApp, until } from "./harness";
 
 const controlDir = join(tmpdir(), `clearway-read-back-kit-${randomUUID().slice(0, 8)}`), controlFile = join(controlDir, "fake.json");
 mkdirSync(controlDir, { recursive: true });
@@ -127,9 +127,7 @@ async function main() {
       const layer = () => tv.locator(".tv-layer:not(.is-leaving)").last();
       const tvLines = async () => (await layer().locator(".lsm-line:not(.is-gone) .lsm-text").allInnerTexts()).map(l => l.replace(/\s+/g, " ").trim());
       const phones = await joinPhones(app.origin, 50, { prefix: `Readback phone ${tag}` });
-      const scribe = new Phone(app.origin);
-      await scribe.join(room, `Scribe kit ${tag}`);
-      await sql.query("update public.attendees set room_role='scribe' where engagement_id=$1 and name=$2", [room, `Scribe kit ${tag}`]);
+      const scribe = await signInScribe(sql, app.origin, room, `Scribe kit ${tag}`, mail);
 
       // The control surface and the remote open after the 100-answer run: in the practice room every call takes one room-wide lock,
       // and two polling pages would be measured with the phones (the lens summary kit keeps them closed the same way).

@@ -10,7 +10,7 @@
 // checks that the TV's numbers are the server's. No speaker name or scribe identity may reach the TV, a phone or the read-back.
 // The practice room takes one room-wide lock, so no control surface, review page or scribe console is open while phones
 // are being measured (the read-back kit does the same). KIT_SHOTS=<folder> saves screens. Local only: the practice room on the
-// local stack, no email, Team Hub or CORE.
+// local stack and local test mailbox, with no real email, Team Hub or CORE.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -19,10 +19,10 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { verdict, type LatencyReport } from "../../lib/latency/report";
-import { joinPhones, Phone, practiceRoom } from "../../scripts/load-test";
+import { joinPhones, practiceRoom, type Phone } from "../../scripts/load-test";
 import { easelPng } from "./easel";
 import { watcher, type Watch } from "./frame-watch";
-import { db, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
+import { db, facilitator, localEnv, mailbox, pairTv, press, signInScribe, startApp, until } from "./harness";
 
 // The scripted fake model reads this file on every call: slow, failing or well.
 const controlDir = join(tmpdir(), `clearway-m5-acc-${randomUUID().slice(0, 8)}`), controlFile = join(controlDir, "fake.json");
@@ -54,7 +54,8 @@ type Info = { status: string; items: { id: string; label: string; state: string;
 type Results = Record<string, unknown> & { total: number; people: number };
 
 async function main() {
-  const env = localEnv(), sql = db(env), app = await startApp(env);
+  const env = localEnv(), sql = db(env), mail = await mailbox();
+  const app = await startApp(env, mail.url);
   let browser: Browser | undefined;
   const passed: string[] = [], table: string[] = [], cleanup: string[] = [];
   const shots = process.env.KIT_SHOTS, tag = randomUUID().slice(0, 6);
@@ -115,9 +116,7 @@ async function main() {
     const watch = async (sel: string) => tv.evaluate(s => { const a = (window as unknown as { __acc: Watch & { sel: string } }).__acc; const out = { ...a, jumps: a.jumps.slice() }; Object.assign(a, { sel: s, frames: 0, blank: 0, dim: 0, worst: 0, worstKey: "", worstDt: 0, steps: 0, jumps: [] }); return out as Watch; }, sel);
 
     const phones = await joinPhones(app.origin, 50, { prefix: "Wayfinder" });
-    const scribe = new Phone(app.origin);
-    await scribe.join(room, scribeName);
-    await sql.query("update public.attendees set room_role='scribe' where engagement_id=$1 and name=$2", [room, scribeName]);
+    const scribe = await signInScribe(sql, app.origin, room, scribeName, mail);
     assert.equal((await sql.query("select count(*)::int n from public.attendees where engagement_id=$1 and not deleted and name like 'Wayfinder %'", [room])).rows[0].n >= 50, true, "fifty phones in the room");
 
     // ---------- Shared checks ----------
@@ -518,7 +517,7 @@ async function main() {
     if (cleanup.length) await sql.query("update public.sessions set deleted=true where id=any($1::uuid[])", [cleanup]).catch(() => {});
     await sql.query("update private.overnight_publications set withdrawn_at=now() where engagement_id=$1 and withdrawn_at is null", [room]).catch(() => {});
     if (before) await sql.query("update public.engagements set settings=$2 where id=$1", [room, before.settings]).catch(() => {});
-    await browser?.close(); app.stop(); await sql.end().catch(() => {}); rmSync(controlDir, { recursive: true, force: true });
+    await browser?.close(); app.stop(); await mail.close(); await sql.end().catch(() => {}); rmSync(controlDir, { recursive: true, force: true });
   }
 }
 main().catch(error => { console.error(error); process.exit(1); });

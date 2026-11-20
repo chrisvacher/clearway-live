@@ -10,6 +10,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import pg from "pg";
 import { chromium, type Browser } from "playwright";
+import { Phone } from "../../scripts/load-test";
 
 // The live room's Room admin drawer (the AI panel, the alignment signal, the scribe feed, the door list, Rehearsal and the
 // rest) starts hidden for a facilitator who has never opened it. The kits press its panels as a facilitator who keeps it
@@ -74,6 +75,23 @@ export async function mailbox() {
     get count() { return messages.length; },
     close: () => new Promise<void>(r => server.close(() => r())),
   };
+}
+
+// A scribe has a verified, listed email. Guests who join by name stay participants.
+export async function signInScribe(sql: pg.Client, origin: string, room: string, name: string, mail: Awaited<ReturnType<typeof mailbox>>) {
+  const email = `scribe-${randomUUID()}@example.org`;
+  await sql.query("insert into public.attendees(engagement_id,name,email,room_role) values($1,$2,$3,'scribe')", [room, name, email]);
+  const phone = new Phone(origin);
+  const roomApi = `/api/room/${room}`;
+  const before = mail.count;
+  const initial = await phone.call(`${roomApi}/init`, { method: "POST", body: "{}" });
+  assert.equal((await initial.json()).status, "ready", "the scribe phone gets a room device");
+  const sent = await phone.call(`${roomApi}/send`, { method: "POST", body: JSON.stringify({ email }) });
+  assert.equal((await sent.json()).status, "sent", "the scribe code reaches the local mailbox");
+  const code = await mail.code(email, before);
+  const verified = await phone.call(`${roomApi}/verify`, { method: "POST", body: JSON.stringify({ email, code }) });
+  assert.deepEqual(await verified.json(), { status: "signed_in", name, role: "scribe" });
+  return phone;
 }
 
 // The production build, served against the local stack.
