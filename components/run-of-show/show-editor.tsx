@@ -635,7 +635,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                         <button type="button" className="rb-tog" aria-pressed={picked} aria-label={`Open options for ${current.title || "untitled step"}`} onClick={() => { if (!dragRef.current) openOptions(step.id); }}>
                           <span className="rb-time" title={time}>{step.mode === "self_paced" ? "Self" : time}</span>
                           <span className="rb-ic"><Icon size={16} aria-hidden="true" /></span>
-                          <span className="rb-name"><strong className={current.options.untitled ? "is-untitled" : undefined}>{current.title || "Untitled step"}</strong>
+                          <span className="rb-name"><strong className={current.options?.untitled ? "is-untitled" : undefined}>{current.title || "Untitled step"}</strong>
                             {step.mode === "self_paced" && <span className="sr-only">Self-paced</span>}</span>
                           <span className={`rb-design is-${design.toLowerCase()}`} role="img" aria-label={design} title={design}><State size={16} aria-hidden="true" /></span>
                         </button>

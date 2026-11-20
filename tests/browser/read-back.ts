@@ -530,6 +530,7 @@ async function main() {
         const stateOf = async () => (await sql.query("select state,deleted from public.sessions where id=$1", [added])).rows[0] as { state: string; deleted: boolean };
         await laptop.locator(".rb-settings").getByRole("button", { name: "Mark ready" }).click();
         await until(async () => (await stateOf()).state === "ready", "marked ready", 8000);
+        await laptop.getByText("All changes saved", { exact: true }).waitFor({ timeout: 8000 });
         const row = laptop.locator(`[data-row="${added}"]`);
         // On air: Remove is not offered, and the panel says why.
         await press(fac, sql, room, "go_live", { session: added });

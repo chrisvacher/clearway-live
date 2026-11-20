@@ -101,8 +101,12 @@ async function main() {
         await until(async () => (await timerOnTv.getAttribute("data-timer")) === "normal", "back to normal with time added", 8000);
         await card.getByRole("button", { name: "Pause" }).click();
         await until(async () => (await sql.query("select timer ? 'paused_at' p from public.room_states where engagement_id=$1", [room.id])).rows[0].p, "paused", 5000);
-        const held = await timerOnTv.locator("b").innerText(); await delay(2200);
-        assert.equal(await timerOnTv.locator("b").innerText(), held, "the TV holds while paused");
+        // The write can finish before the TV has drawn the paused frame.
+        const pausedOnTv = tv.locator(".tv-timer.is-on.is-paused");
+        await pausedOnTv.waitFor({ timeout: 5000 });
+        const held = await pausedOnTv.locator("b").innerText();
+        await delay(2200);
+        assert.equal(await pausedOnTv.locator("b").innerText(), held, "the TV holds while paused");
         await card.getByRole("button", { name: "Resume" }).click();
         await until(async () => (await timerOnTv.locator("b").innerText()) !== held, "running again", 5000);
         const chip = control.locator("[data-timer-chip]");
