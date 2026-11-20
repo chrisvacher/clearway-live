@@ -93,9 +93,11 @@ async function main() {
     await step("A workshop engagement with open joining, an attendee list and AI on has Clearway as its Brand until an admin changes it", async () => {
       assert.equal(await skinNow(), "clearway");
       await setup.goto(`${CW}/admin/${room.id}/joining`);
-      await setup.getByRole("radio", { name: /Anyone who has the link or code/ }).waitFor();
-      assert.equal(await setup.getByRole("radio", { name: /Anyone who has the link or code/ }).isChecked(), true, "open joining");
-      await setup.getByRole("heading", { name: "3 people" }).waitFor();
+      await setup.getByRole("tab", { name: "People 3", exact: true }).waitFor();
+      await setup.getByRole("tab", { name: "Access", exact: true }).click();
+      const openJoining = setup.getByRole("radio", { name: /^Anyone who has the link or code/ });
+      await openJoining.waitFor();
+      assert.equal(await openJoining.isChecked(), true, "open joining");
     });
     await step("On Details an admin switches the Brand to Novetera and the room's links move to the Novetera address", async () => {
       await setup.goto(`${CW}/admin/${room.id}/details`);
