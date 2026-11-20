@@ -140,6 +140,7 @@ async function main() {
     const control = await facContext.newPage(); await control.setViewportSize({ width: 1680, height: 1000 });
     await control.goto(`${app.origin}/control/${room.id}`);
     await control.locator(".ctl-app").waitFor({ timeout: 15000 });
+    const liveStep = control.getByRole("region", { name: "Live step", exact: true });
     const stats = async () => control.locator(".ctl-stats b").allInnerTexts();
     // The TV's count, the server's and the control surface's agree (one source for every count).
     async function counts(label: string, expected: { people?: number; total?: number; unit: "answering" | "answers" | "questions" | null }) {
@@ -213,8 +214,7 @@ async function main() {
       await goLive("Your questions");
       await ben.page.locator("#qa-question").fill(rehearsalWords[3]); await ben.page.locator(".qa-ask-form .ph-send").click();
       await until(async () => (await layer().innerText()).includes("budget"), "the rehearsal question on the TV", 8000);
-      await control.getByRole("tab", { name: /^Questions/ }).click();
-      await control.locator(".qa-ctl-item", { hasText: "budget" }).first().getByRole("button", { name: "Spotlight" }).click();
+      await liveStep.locator(".qa-ctl-item", { hasText: "budget" }).first().getByRole("button", { name: "Spotlight" }).click();
       await until(async () => await tv.locator(".qa-spot.is-on").count() === 1, "a spotlit rehearsal question", 8000);
       await until(async () => (await control.locator(".sp-rehearsal .ctl-label").innerText()).startsWith("7 test items"), "the control surface counts the test answers", 10000);
       await shot(control, "team-rehearsal-control");
@@ -403,10 +403,10 @@ async function main() {
       await until(async () => (await topRow()).startsWith("Who decides"), "and to the top of the TV", 10000);
       await counts("Q&A", { unit: "questions" });
       await shot(tv, "team-09-qa-tv"); await shot(ben.page, "team-09-qa-phone");
-      await control.locator(".qa-ctl-item", { hasText: "Who decides" }).first().getByRole("button", { name: "Spotlight" }).click();
+      await liveStep.locator(".qa-ctl-item", { hasText: "Who decides" }).first().getByRole("button", { name: "Spotlight" }).click();
       await until(async () => (await tv.locator(".qa-spot.is-on .qa-spot-text").innerText().catch(() => "")).includes("Who decides"), "spotlit on the TV", 8000);
       await shot(tv, "team-09-qa-spotlight-tv");
-      await control.locator(".qa-ctl-spot").getByRole("button", { name: "Answered" }).click();
+      await liveStep.locator(".qa-ctl-spot").getByRole("button", { name: "Answered" }).click();
       await until(async () => await tv.locator(".qa-spot.is-on").count() === 0, "Answered clears it", 8000);
       await counts("Q&A after Answered", { total: 6, unit: "questions" });
       await shot(control, "team-09-qa-control");
