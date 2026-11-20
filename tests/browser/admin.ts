@@ -647,12 +647,13 @@ async function main() {
       await welcomeRow.focus();
       await page.keyboard.press("ArrowDown");
       assert.equal(await page.getByRole("button",{name:"Choose What worries you",exact:true}).evaluate(el=>el===document.activeElement),true,"ArrowDown moves the focused row");
-      await page.keyboard.press("Space"); await page.getByRole("heading",{name:"What worries you",exact:true}).waitFor();
+      await page.keyboard.press("Space"); await page.locator("#ctl-preview-title", { hasText: /^What worries you$/ }).waitFor();
       await page.keyboard.press("Enter");
       await page.locator(".ctl-live-monitor.is-flashing").waitFor({timeout:4000});
       await page.locator("#ctl-live-title", { hasText: /^What worries you$/ }).waitFor();
       await press(fac,sql,room.id,"nothing_live");
       await page.locator("#ctl-live-title", { hasText: /^Home screen$/ }).waitFor();
+      await page.locator(".ctl-take.is-flashing").waitFor({ state: "detached" });
       // The transport leads with the Navy Go live button and its orange icon tile.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
       assert.ok(take.height>=63&&take.width>=179,`Go live is at least 64 by 180: ${take.width}x${take.height}`);
