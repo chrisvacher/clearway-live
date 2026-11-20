@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { chromium } from "playwright";
 import { setupInput } from "../../lib/setup/policy";
 import { linkQr } from "../../lib/tv/qr";
-import { db, engagement, facilitator, localEnv, mailbox, press, startApp } from "./harness";
+import { db, engagement, facilitator, localEnv, mailbox, press, startApp, until } from "./harness";
 async function main() {
   const operationsAddress = "operations@clearway.test";
   process.env.OPERATIONS_ALERT_EMAIL = operationsAddress;
@@ -231,6 +231,32 @@ async function main() {
         await page.locator(".cwl-ui-savebar").waitFor({ state: "hidden" });
       };
       await title.fill(titleBefore);
+      await saveDetails();
+      const detailsUrl=`${app.origin}/admin/${room.id}/details`;
+      const churchName=page.getByRole("textbox",{name:"Name on screens",exact:true});
+      const churchBefore=await churchName.inputValue();
+      const oldSchema=page.getByText("Save event and church changes separately.",{exact:true});
+      // Temporarily hide only the new RPC from this isolated harness's PostgREST schema cache.
+      await sql.query("alter function public.engagement_details_patch(uuid,jsonb) rename to engagement_details_patch_off");
+      try {
+        await sql.query("notify pgrst, 'reload schema'");
+        await until(async()=>{await page.goto(detailsUrl);return await oldSchema.isVisible();},"Details uses the previous schema",45000);
+        await title.fill("Workshop on the previous schema");
+        assert.equal(await churchName.isDisabled(),true,"an unsaved event edit pauses church editing on the previous schema");
+        await saveDetails();
+        assert.equal((await sql.query("select title from public.engagements where id=$1",[room.id])).rows[0].title,"Workshop on the previous schema");
+        await churchName.fill("Riverside on the previous schema");
+        assert.equal(await title.isDisabled(),true,"an unsaved church edit pauses event editing on the previous schema");
+        await saveDetails();
+        assert.equal((await sql.query("select c.name from public.churches c join public.engagements e on e.church_id=c.id where e.id=$1",[room.id])).rows[0].name,"Riverside on the previous schema");
+      } finally {
+        await sql.query("alter function public.engagement_details_patch_off(uuid,jsonb) rename to engagement_details_patch");
+        await sql.query("notify pgrst, 'reload schema'");
+      }
+      await until(async()=>{await page.goto(detailsUrl);return !(await oldSchema.isVisible());},"Details can edit both sections again",45000);
+      await title.fill(titleBefore);
+      await churchName.fill(churchBefore);
+      await page.getByText("2 unsaved changes",{exact:true}).waitFor();
       await saveDetails();
       // Logo upload and removal use the same Save bar; content validation still happens on upload.
       const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==","base64");

@@ -23,7 +23,7 @@ export default async function EditEngagement({ params }: { params: Promise<{ id:
     client.from("engagement_facilitators").select("clearway_user_id,role,user:clearway_users!inner(kind)").eq("user.kind", "person")
       .eq("engagement_id", id).eq("deleted", false),
     engagement.type === "team_workshop" ? readOverviewFacts(client, id) : null,
-    profile.kind === "person" ? client.rpc("engagement_details_patch", { p_engagement: id, p_change: {} }) : null,
+    client.rpc("engagement_details_patch", { p_engagement: id, p_change: {} }),
   ]);
   if (!church.data) notFound();
   const initial = setupFormFromRows(engagement, church.data, assignments.data);
@@ -31,8 +31,10 @@ export default async function EditEngagement({ params }: { params: Promise<{ id:
     ...facts, hasDate: Boolean(eventDate(engagement, church.data.timezone)), openJoin: initial.engagement.settings.open_join,
   }) : [];
   const stage = stageFor(engagement, readiness, { live_session_id: facts?.liveSessionId });
+  const canSaveMixedDetails = atomicSave.data === "ok";
   return <main id="main" className="admin-page cwl-c-details">
     <SetupEditor id={id} initial={initial} members={members.data ?? []} admin={profile.is_admin} hubConfigured={teamHubConfigured()}
-      canChangeFacilitators={atomicSave?.data === "ok"} stage={stage} archiveAvailable={profile.kind === "person" && Object.hasOwn(engagement, "archived_at")} archived={Boolean(engagement.archived_at)} now={new Date().toISOString()} />
+      canSaveMixedDetails={canSaveMixedDetails} canChangeFacilitators={profile.kind === "person" && canSaveMixedDetails}
+      stage={stage} archiveAvailable={profile.kind === "person" && Object.hasOwn(engagement, "archived_at")} archived={Boolean(engagement.archived_at)} now={new Date().toISOString()} />
   </main>;
 }

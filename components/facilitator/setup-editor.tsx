@@ -15,7 +15,7 @@ import { useToast } from "@/components/ui/toast";
 import { AiIcon } from "@/components/interactions/ai/ai-icon";
 import { useDirtyForm } from "@/hooks/use-dirty-form";
 import { practiceId } from "@/lib/room/practice";
-import { detailsLabels, detailsValues, lensFields, type DetailsField } from "@/lib/setup/details";
+import { detailsChurchFields, detailsLabels, detailsValues, lensFields, type DetailsField } from "@/lib/setup/details";
 import { typeName } from "@/lib/setup/listing";
 import { logoMaxBytes } from "@/lib/setup/logo";
 import { localTime } from "@/lib/setup/policy";
@@ -41,6 +41,7 @@ export const setupRequest = (body: Record<string, unknown>) => post("/api/setup"
 type DialogAction = "close" | "archive" | "reset" | "end" | "stage_close";
 type Planned = { elements: HubElement[]; events: HubEvent[] };
 type Immediate = { brand: string; ai: boolean };
+const churchFields = new Set<DetailsField>(detailsChurchFields);
 
 function previewableLogo(value: string) {
   try {
@@ -49,12 +50,13 @@ function previewableLogo(value: string) {
   } catch { return false; }
 }
 
-export function SetupEditor({ id, initial, members, admin, hubConfigured, canChangeFacilitators, stage, archiveAvailable, archived, now }: {
+export function SetupEditor({ id, initial, members, admin, hubConfigured, canSaveMixedDetails, canChangeFacilitators, stage, archiveAvailable, archived, now }: {
   id: string;
   initial: SetupForm;
   members: Member[];
   admin: boolean;
   hubConfigured: boolean;
+  canSaveMixedDetails: boolean;
   canChangeFacilitators: boolean;
   stage: Stage;
   archiveAvailable: boolean;
@@ -84,10 +86,13 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
   const closed = initial.engagement.status === "closed";
   const zones = useMemo(() => detailsTimeZones(initial.church.timezone, now), [initial.church.timezone, now]);
   const disabled = busy || form.saving;
+  const eventEditsLocked = !canSaveMixedDetails && (busy || uploading || dirtyFields.some(key => churchFields.has(key)));
+  const churchEditsLocked = !canSaveMixedDetails && dirtyFields.some(key => !churchFields.has(key));
+  const fieldLocked = (key: DetailsField) => churchFields.has(key) ? churchEditsLocked : eventEditsLocked;
 
   function textField(key: DetailsField, type = "text", options: { wide?: boolean; help?: string; required?: boolean } = {}) {
     return <Field key={key} label={detailsLabels[key]} dirty={dirtyFields.includes(key)} wide={options.wide} help={options.help}>
-      <input type={type} value={values[key]} required={options.required} onChange={event => set(key, event.target.value)} />
+      <input type={type} value={values[key]} required={options.required} disabled={fieldLocked(key)} onChange={event => set(key, event.target.value)} />
     </Field>;
   }
 
@@ -200,7 +205,7 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
   }
 
   async function upload(file: File | undefined) {
-    if (!file || uploading || disabled) return;
+    if (!file || uploading || disabled || churchEditsLocked) return;
     if (file.size > logoMaxBytes) {
       setError("Use a logo that is 1 MB or smaller.");
       return;
@@ -226,6 +231,7 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
   }
 
   function refreshFromHub() {
+    if (churchEditsLocked) return;
     void perform(async () => {
       const result = await setupRequest({ action: "hub_refresh", id }) as Planned & { client: HubClient | null };
       setPlanned({ elements: result.elements, events: result.events });
@@ -260,6 +266,7 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
   return <>
     <PageHeader kicker={initial.church.name} title="Details" lead="The event, the church and how AI works in the room."
       stage={<StageChip stage={stage} type={initial.engagement.type} interactive onStageChange={selectStage} />} />
+    {!canSaveMixedDetails && <p className="cwl-c-feedback">Save event and church changes separately.</p>}
     <form className="cwl-c-details-form" onSubmit={event => { event.preventDefault(); save(); }}>
       <SettingsCard>
         <SettingsSection title="The event" description="What it is, when, and who leads it. The stage is set from the page header.">
@@ -276,7 +283,7 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
           <div className="cwl-ui-field" data-dirty={dirtyFields.includes("end_date") || undefined}>
             <label htmlFor="details-ends">Ends</label>
             <div className="cwl-c-date" data-empty={!values.end_date || undefined}>
-              <input id="details-ends" type="date" value={values.end_date} aria-describedby={values.end_date ? undefined : "details-same-day"}
+              <input id="details-ends" type="date" value={values.end_date} disabled={eventEditsLocked} aria-describedby={values.end_date ? undefined : "details-same-day"}
                 onChange={event => set("end_date", event.target.value)} />
               {!values.end_date && <span id="details-same-day">Same day</span>}
             </div>
@@ -286,11 +293,11 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
         </SettingsSection>
         <SettingsSection title="The church" description={<>
           <div>Shown on the TV, phones and invites.{initial.hub_client && ` Linked to Team Hub: ${initial.church.name}.`}</div>
-          {initial.hub_client && <Button className="cwl-c-refresh" variant="quiet" size="small" disabled={disabled || !hubConfigured} onClick={refreshFromHub}><RefreshCw size={14} aria-hidden="true" />Refresh from Team Hub</Button>}
+          {initial.hub_client && <Button className="cwl-c-refresh" variant="quiet" size="small" disabled={disabled || !hubConfigured || churchEditsLocked} onClick={refreshFromHub}><RefreshCw size={14} aria-hidden="true" />Refresh from Team Hub</Button>}
         </>}>
           <div className="cwl-ui-field is-wide" data-dirty={dirtyFields.includes("logo_url") || undefined}>
             <strong className="cwl-c-field-title">Logo</strong>
-            <div className="cwl-c-logo-row" onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; }}
+            <div className="cwl-c-logo-row" onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = churchEditsLocked ? "none" : "copy"; }}
               onDrop={event => { event.preventDefault(); void upload(event.dataTransfer.files[0]); }}>
               <div className="cwl-c-logo-tile">
                 {showLogo ? <Image unoptimized src={logo} alt="Church logo preview" width={64} height={64} onError={() => setBroken(logo)} />
@@ -298,30 +305,30 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
               </div>
               <div>
                 <div className="cwl-c-logo-actions">
-                  <Button size="small" disabled={disabled || uploading} onClick={() => fileInput.current?.click()}>{uploading ? "Uploading…" : logo ? "Replace" : "Add logo"}</Button>
-                  {logo && <Button size="small" disabled={disabled || uploading} onClick={() => { set("logo_url", ""); setNotice(""); }}>Remove</Button>}
+                  <Button size="small" disabled={disabled || uploading || churchEditsLocked} onClick={() => fileInput.current?.click()}>{uploading ? "Uploading…" : logo ? "Replace" : "Add logo"}</Button>
+                  {logo && <Button size="small" disabled={disabled || uploading || churchEditsLocked} onClick={() => { set("logo_url", ""); setNotice(""); }}>Remove</Button>}
                 </div>
-                <input ref={fileInput} type="file" hidden aria-label="Logo file" accept="image/png,image/jpeg,image/webp"
+                <input ref={fileInput} type="file" hidden disabled={churchEditsLocked} aria-label="Logo file" accept="image/png,image/jpeg,image/webp"
                   onChange={event => void upload(event.target.files?.[0])} />
                 <div className="cwl-ui-field-help">PNG, JPEG or WebP, up to 1 MB. Drop a file here.</div>
-                <Button variant="quiet" size="small" aria-expanded={showAddress} onClick={() => setShowAddress(!showAddress)}>Paste an address instead</Button>
+                <Button variant="quiet" size="small" disabled={churchEditsLocked} aria-expanded={showAddress} onClick={() => setShowAddress(!showAddress)}>Paste an address instead</Button>
               </div>
             </div>
-            {showAddress && <Field label="Logo address"><input type="url" value={logo} onChange={event => set("logo_url", event.target.value)} /></Field>}
+            {showAddress && <Field label="Logo address"><input type="url" value={logo} disabled={churchEditsLocked} onChange={event => set("logo_url", event.target.value)} /></Field>}
           </div>
           {textField("name", "text", { required: true })}
           <Field label="Time zone" dirty={dirtyFields.includes("timezone")}>
-            <Combobox label="Time zone" value={values.timezone} options={zones} onChange={zone => set("timezone", zone)} />
+            <Combobox label="Time zone" value={values.timezone} options={zones} disabled={churchEditsLocked} onChange={zone => set("timezone", zone)} />
           </Field>
           {planned && <div className="cwl-ui-field is-wide">
             <strong>Planned dates</strong>
             {planned.elements.length + planned.events.length === 0 && <p>No planned dates were found.</p>}
             {planned.elements.map(item => <div className="cwl-c-planned" key={item.id}><span>{item.title} · {item.scheduled_date ?? "Date to follow"}</span>
-              {item.scheduled_date && <Button variant="quiet" size="small" onClick={() => set(wayfinding ? "retreat_start_date" : "start_date", item.scheduled_date!.slice(0, 10))}>
+              {item.scheduled_date && <Button variant="quiet" size="small" disabled={eventEditsLocked} onClick={() => set(wayfinding ? "retreat_start_date" : "start_date", item.scheduled_date!.slice(0, 10))}>
                 {wayfinding ? "Use for retreat start" : "Use for workshop date"}
               </Button>}</div>)}
             {planned.events.map(item => <div className="cwl-c-planned" key={item.id}><span>{item.event_name} · {item.start_date_time ? localTime(item.start_date_time, values.timezone).replace("T", " ") : "Time to follow"}</span>
-              {item.start_date_time && <Button variant="quiet" size="small" onClick={() => set(wayfinding ? "pre_call_local" : "start_date", wayfinding ? localTime(item.start_date_time, values.timezone) : localTime(item.start_date_time, values.timezone).slice(0, 10))}>
+              {item.start_date_time && <Button variant="quiet" size="small" disabled={eventEditsLocked} onClick={() => set(wayfinding ? "pre_call_local" : "start_date", wayfinding ? localTime(item.start_date_time, values.timezone) : localTime(item.start_date_time, values.timezone).slice(0, 10))}>
                 {wayfinding ? "Use for pre-call" : "Use for workshop date"}
               </Button>}</div>)}
           </div>}
@@ -347,7 +354,7 @@ export function SetupEditor({ id, initial, members, admin, hubConfigured, canCha
             {lensFields.map(key => textField(key, "text", { required: true }))}
             {(["mission", "purpose", "values", "strategy", "leadership_rhythms"] as const).map(key =>
               <Field key={key} label={detailsLabels[key]} wide dirty={dirtyFields.includes(key)} help={key === "values" || key === "leadership_rhythms" ? "Use one per line." : undefined}>
-                <textarea rows={3} maxLength={10000} value={values[key]} onChange={event => set(key, event.target.value)} />
+                <textarea rows={3} maxLength={10000} value={values[key]} disabled={churchEditsLocked} onChange={event => set(key, event.target.value)} />
               </Field>)}
           </SettingsSection>
         </div>}
