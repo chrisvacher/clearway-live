@@ -1,3 +1,4 @@
+import { parseDetailsChange } from "../../lib/setup/details";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { zoneOptions,canadaZones,usZones } from "../../lib/setup/timezones";
@@ -29,4 +30,14 @@ test("a logo address must be HTTPS, except on this machine",()=>{
  assert.equal(save("https://example.org/a.png"),"https://example.org/a.png");
  assert.equal(save("http://127.0.0.1:54321/storage/v1/object/public/church-logos/a.png"),"http://127.0.0.1:54321/storage/v1/object/public/church-logos/a.png");
  assert.throws(()=>save("http://example.org/a.png"),/HTTPS/);
+});
+
+
+test("Details patch keys cannot change the kind, stage, or unrelated room preferences", () => {
+  assert.deepEqual(parseDetailsChange({ title: "A workshop", logo_url: "" }, true), { title: "A workshop", logo_url: "" });
+  assert.equal(parseDetailsChange({ type: "wayfinding" }, true), null);
+  assert.equal(parseDetailsChange({ status: "closed" }, true), null);
+  assert.equal(parseDetailsChange({ open_join: true }, true), null);
+  assert.equal(parseDetailsChange({ lens1: "Leadership" }, true), null);
+  assert.deepEqual(parseDetailsChange({ lens1: "Leadership" }, false), { lens1: "Leadership" });
 });
