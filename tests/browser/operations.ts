@@ -52,14 +52,13 @@ async function main() {
     await until(async () => (await sql.query("select count(*)::int as n from private.client_errors where event->>'name'='RangeError'")).rows[0].n > 0, "Second error received");
     await page.getByRole("button", { name: "Refresh status", exact: true }).click();
     assert.equal(mail.count, count, "One alert per hour");
-    await admin.request.post(app.origin + "/api/operations/errors", {
-      headers: { Origin: app.origin },
-      data: { kind: "error", name: "Error", route: "/admin/templates", issue: "react_418", frames: ["/_next/static/chunks/fixture.js:1:2"] },
-    });
-    await admin.request.post(app.origin + "/api/operations/errors", {
-      headers: { Origin: app.origin },
-      data: { kind: "error", name: "Error", route: "/admin/templates", issue: "react_418", frames: ["/_next/static/chunks/fixture-next.js:1:2"] },
-    });
+    for (const [release, frame] of [["abcdef0", "fixture.js"], ["abcdef1", "fixture-next.js"]]) {
+      const sent: import("playwright").APIResponse = await admin.request.post(app.origin + "/api/operations/errors", {
+        headers: { Origin: app.origin },
+        data: { kind: "error", name: "Error", route: "/admin/templates", issue: "react_418", release, frames: [`/_next/static/chunks/${frame}:1:2`] },
+      });
+      assert.equal(sent.status(), 202, "The local monitoring endpoint records the fixture");
+    }
     const other = await facilitator(env, sql, room.id), context = await browser.newContext();
     await context.addCookies(other.cookies(app.origin));
     assert.equal((await context.request.get(app.origin + "/api/operations")).status(), 403);

@@ -21,6 +21,8 @@ async function main() {
     await sql.query("update public.engagements set title=$2,type=$3::public.engagement_type,start_date='2027-02-20',end_date='2027-02-20' where id=$1",[room.id,afterArea?"Riverside Wayfinding retreat":"Staff planning workshop",afterArea?"wayfinding":"team_workshop"]);
     if(process.env.KIT_AREA==="c") {
       await sql.query("insert into public.attendees(engagement_id,name,email) values($1,'Workshop guest',$2)",[room.id,`guest-${room.id}@guest.clearway.invalid`]);
+    }
+    if(process.env.KIT_BEFORE!=="1" && ["c","all"].includes(process.env.KIT_AREA ?? "a")) {
       await sql.query(`insert into private.templates(name,created_by,sessions,created_at)
         select 'Hydration date fixture',u.id,t.sessions,'2026-11-03 05:00:00+00'
         from private.templates t cross join public.clearway_users u
@@ -40,8 +42,15 @@ async function main() {
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
       for (const path of (area==="all"?Object.values(paths).flat():paths[area])) {
-        const response=await page.goto(app.origin+path); await page.waitForLoadState("networkidle");
+        const response=await page.goto(app.origin+path);
         assert.ok(response && response.status()<400,`${path} loads: ${response?.status()}`);
+        if (!before && path.endsWith("/recap")) {
+          await page.getByRole("heading",{name:"Results",level:1,exact:true}).waitFor();
+        } else if (!before && path==="/admin/operations") {
+          await page.getByText(/^Last checked at /).waitFor();
+        } else {
+          await page.waitForLoadState("networkidle");
+        }
         if(!before) {
           assert.equal(await page.locator("#main").count(),1,`${path} has one main destination`);
           assert.ok(await page.locator("h1").count(),`${path} has a heading`);
@@ -732,14 +741,20 @@ async function main() {
       // Reopen the workshop from the live room: the status goes back to setup and End the workshop returns.
       await page.getByTestId("reopen-workshop").click(); await page.getByTestId("workshop-ended").waitFor({state:"detached"});
       assert.equal(await status(),"setup","Reopen puts the workshop back to setup");
-      await page.goto(`${app.origin}/control/${room.id}/recap`); await page.waitForLoadState("networkidle");
-      assert.equal(await page.getByRole("heading",{name:"Results",level:1,exact:true}).count(),1);
+      const recapUrl=`${control}/recap`;
+      assert.ok((await page.goto(recapUrl,{waitUntil:"domcontentloaded"}))?.ok(),"Workshop results load after reopening");
+      // Results poll for late answers. Wait for the actual result and the summary's initial read.
+      await page.getByRole("heading",{name:"Results",level:1,exact:true}).waitFor();
+      await page.locator(`.recap-card[data-session="${wall}"]`).waitFor();
+      await page.getByLabel("Loading summary",{exact:true}).waitFor({state:"hidden"});
       assert.equal(await page.locator("main").getByRole("link",{name:/^(Back to the engagement|All engagements)$/}).count(),0);
       assert.equal(await page.getByTestId("end-workshop").count(),0,"Results keeps the room controls out");
       if(process.env.KIT_SHOTS) { await page.screenshot({path:`${process.env.KIT_SHOTS}/results-1512.png`,fullPage:true}); await page.setViewportSize({width:756,height:982}); await page.screenshot({path:`${process.env.KIT_SHOTS}/results-756.png`,fullPage:true}); await page.setViewportSize({width:1512,height:982}); }
       await sql.query("update public.engagements set status='setup',type='wayfinding' where id=$1",[room.id]);
       await page.goto(control); await page.waitForLoadState("networkidle"); await page.getByTestId("header-more").click(); assert.equal(await page.getByTestId("end-workshop").count(),0,"Wayfinding has no End the workshop");
-      await page.goto(`${app.origin}/control/${room.id}/recap`); assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
+      assert.ok((await page.goto(recapUrl,{waitUntil:"domcontentloaded"}))?.ok(),"Wayfinding results load");
+      await page.getByRole("heading",{name:"Results",level:1,exact:true}).waitFor();
+      assert.equal(await page.getByTestId("end-workshop").count(),0,"nor on its Results");
     }
     const operationsAlert = (message: { to: string[]; subject?: string }) =>
       message.to.length === 1 && message.to[0] === operationsAddress && message.subject === "Check Clearway Live";
