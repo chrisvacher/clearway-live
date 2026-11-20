@@ -639,7 +639,7 @@ async function main() {
       await page.getByRole("button",{name:"No TV. Open the TV",exact:true}).waitFor();
       assert.match(await page.getByRole("group",{name:"Room status"}).innerText(), /0 phones/);
       const rows = page.locator(".ctl-run-step");
-      await page.locator("h1").hover();
+      await page.locator(".ctl-head h1").hover();
       assert.equal(await rows.first().getByRole("button",{name:/^Preview /}).count(),0,"row controls are hidden off the row");
       await rows.first().hover();
       await rows.first().getByRole("button",{name:"Preview Welcome",exact:true}).waitFor();
