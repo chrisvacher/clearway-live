@@ -341,3 +341,8 @@
 .rb-phone-example { display: grid; gap: var(--space-3); }
 .rb-phone-example textarea { width: 100%; min-height: 96px; padding: var(--space-3); resize: none; font-family: inherit; font-size: var(--cwl-fs-phone-input); border-radius: var(--cwl-radius-button); border: 1px solid var(--cwl-border-strong); background: var(--cwl-surface); color: var(--cwl-text); }
 @media (max-width: 900px) { .rb-settings .rb-settings-foot { position: static; } }
+
+.rb-settings .loop-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.loop-item-actions { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1); }
+.loop-item-actions .show-button { min-height: 36px; flex: 1; }
+@media (max-width: 480px) { .loop-item-actions .show-button { min-height: 44px; } }
