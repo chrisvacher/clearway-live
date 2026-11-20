@@ -32,6 +32,6 @@ The sweep uses isolated migrations in CI. Until the Details migration is applied
 
 ## Verification and handoff
 
-The [evidence directory](evidence/design-pass-10/) describes how to reproduce the screenshots and where to find the CI artifacts. The sweep checks all signed-in facilitator routes at 390, 1280, 1440 and 1512 pixels and captures each rendered view at 1440 pixels. The separate browser kits exercise the interactions those layouts support.
+The signed-in layout sweep passed all 292 checks at 390, 1280, 1440 and 1512 pixels for the shared routes, both workshop brands and a Wayfinding retreat. It generated 63 PNGs. The 51 captures at 1440 pixels were visually reviewed and added alongside the six earlier transport views. [Screenshot index](evidence/design-pass-10/) · [Verified CI artifact](https://github.com/chrisvacher/clearway-live/actions/runs/44672701466/artifacts/14600924104).
 
-A completed combined browser run, the screenshots and visual review are pending. Chris will run practice-room acceptance after those checks pass.
+A passing full browser suite and Chris's practice-room acceptance remain pending. The layout sweep used isolated CI fixtures.
