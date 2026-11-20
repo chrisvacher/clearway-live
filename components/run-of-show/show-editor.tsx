@@ -105,8 +105,17 @@ function SectionHead({ name, line, locked, collapsed, onCollapse, onRename, onBl
   </div>;
 }
 
-export function ShowEditor({ initial, notice = "", fourLists = true, shell = null, display, renderTime }: {
+// What Delete does to a step, said before it happens. A step on the TV or still answering is stopped first (admins only).
+function deleteNote(step: ShowSession) {
+  if (["live", "phones_down"].includes(step.state)) return `${step.title} is on the TV now. Deleting it stops its answers, puts Home on the TV and takes it out of the run of show.`;
+  if (step.state === "open") return `${step.title} is still taking answers. Deleting it stops them and takes it out of the run of show.`;
+  return `${step.title} will leave the run of show.`;
+}
+
+export function ShowEditor({ initial, notice = "", fourLists = true, shell = null, display, renderTime, admin = false }: {
   initial: RunOfShow; notice?: string; fourLists?: boolean; shell?: ShellEngagement | null; display?: TvAppearance; renderTime: string;
+  // An admin can always delete a step (November 20): the database stops an open step's answers, and takes the live step off the TV, first.
+  admin?: boolean;
 }) {
   const [show, setShow] = useState(initial), [pending, setPending] = useState<Op[]>([]);
   const [message, setMessage] = useState(notice), [error, setError] = useState(false), [reloadNeeded, setReloadNeeded] = useState(false), [announce, setAnnounce] = useState("");
@@ -714,7 +723,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
                 { label: "Duplicate", icon: <Copy size={16} aria-hidden="true" />, onSelect: () => duplicate(selected), disabled: locked },
                 { label: "Move to section…", onSelect: () => { setSectionChoice(sectionName(selected)); setMovingSection(true); }, disabled: locked },
                 { label: "Delete", icon: <Trash2 size={16} aria-hidden="true" />, onSelect: () => setDeleting(selected),
-                  disabled: locked || ["live", "open", "phones_down"].includes(selected.state), danger: true },
+                  disabled: locked || (!admin && ["live", "open", "phones_down"].includes(selected.state)), danger: true },
               ]} />
             </div>
             <SessionForm key={selected.id} session={selected} context={ctx} workshop={workshop} locked={locked} saving={pending.length > 0}
@@ -728,7 +737,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
         </section>
       </div>
     </div>
-    <ConfirmDialog open={deleting !== null} title="Delete this step?" description={deleting ? `${deleting.title} will leave the run of show.` : ""}
+    <ConfirmDialog open={deleting !== null} title="Delete this step?" description={deleting ? deleteNote(deleting) : ""}
       confirmLabel="Delete step" onCancel={() => setDeleting(null)} onConfirm={() => { if (deleting) remove(deleting); setDeleting(null); }} />
     <ConfirmDialog open={deletingBlock !== null} title="Delete this saved block?" description="Steps already added to a run of show stay there."
       confirmLabel="Delete block" onCancel={() => setDeletingBlock(null)} onConfirm={() => { if (deletingBlock) void removeBlock(deletingBlock); }} />
