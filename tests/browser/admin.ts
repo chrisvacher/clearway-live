@@ -654,6 +654,10 @@ async function main() {
       await press(fac,sql,room.id,"nothing_live");
       await page.locator("#ctl-live-title", { hasText: /^Home screen$/ }).waitFor();
       await page.locator(".ctl-take.is-flashing").waitFor({ state: "detached" });
+      await welcomeRow.click();
+      const enabledGoLive = page.getByRole("button", { name: "Go live: Welcome", exact: true });
+      await enabledGoLive.waitFor();
+      assert.ok(await enabledGoLive.isEnabled(), "the palette is checked on an enabled Go live control");
       // The transport leads with the Navy Go live button and its orange icon tile.
       const take=(await page.locator(".ctl-transport .ctl-take").boundingBox())!, bar=(await page.locator(".ctl-transport").boundingBox())!;
       assert.ok(take.height>=63&&take.width>=179,`Go live is at least 64 by 180: ${take.width}x${take.height}`);
@@ -722,7 +726,7 @@ async function main() {
       await sql.query("update public.engagements set skin='novetera' where id=$1",[room.id]); await page.goto(control); await page.waitForLoadState("networkidle");
       const line=await page.getByTestId("room-identity").innerText();
       assert.ok(line.includes(`${noveteraHost}/${linkName}`)&&!line.includes(clearwayHost),`a Novetera engagement shows its own address: ${line}`);
-      assert.equal(await page.getByRole("heading",{name:"Staff planning workshop",level:1}).count(),1,"the live room title names the event");
+      assert.equal(await page.locator(".ctl-head").getByRole("heading",{name:"Staff planning workshop",level:1}).count(),1,"the live room title names the event");
       if(process.env.KIT_SHOTS) { await mkdir(process.env.KIT_SHOTS,{recursive:true}); await page.screenshot({path:`${process.env.KIT_SHOTS}/control-1512.png`}); }
       // Half a laptop screen: the live screen first, then the preview, the transport bar and the controls, the run of show folded after.
       await page.setViewportSize({width:756,height:982}); await page.goto(control); await page.waitForLoadState("networkidle");
