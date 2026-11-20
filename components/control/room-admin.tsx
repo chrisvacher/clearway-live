@@ -20,6 +20,7 @@ import { ItemList, useSecondTap, type Room } from "./live-controls";
 import { RehearsalPanel, StartFresh } from "./rehearsal";
 import { TimerCard } from "./timer-panel";
 import { SecondComputer } from "./second-computer";
+import { EventLink } from "./event-link";
 
 export type AdminTab = "room" | "questions" | "responses" | "tools";
 export type DrawerPhase = "closed" | "opening" | "open" | "closing";
@@ -108,6 +109,7 @@ export function RoomAdmin({ room, phase, tab, onTab, onClose, door, workshop, ha
         </div>
         <SecondComputer engagement={id} closed={closed} />
       </Section>
+      <EventLink engagement={id} compact wrap={body => <div className="ctl-admin-section">{body}</div>} />
       {handover && <Section title="The remote"><HandoverPanel room={room} /></Section>}
       {!workshop && <>
         <div className="ctl-row"><Link className="show-button is-small" href={`/control/${id}/map`}>Draft Clearway Map</Link><AfterLink engagement={id} /></div>
