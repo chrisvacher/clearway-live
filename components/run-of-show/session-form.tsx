@@ -120,12 +120,12 @@ export function SessionForm({ session, context, locked, workshop, saving, tab, o
           <h3 className="is-full show-group">Timer</h3>
           <StepTimerField session={value} others={others} value={value.options ?? {}} locked={locked} onChange={options => change("options", options)} />
           {kind?.input && canBePrivate(value.interaction) && <label className="is-full" htmlFor="session-visibility">Who sees answers
-            <Select id="session-visibility" disabled={running || alwaysPrivate(value.interaction)} value={visibilityOf(value)}
+            <Select id="session-visibility" disabled={alwaysPrivate(value.interaction)} value={visibilityOf(value)}
               onChange={e => change("options", withVisibility(value.options, e.target.value as Visibility))}>
               {(["public", "private"] as const).map(v => <option key={v} value={v}>{visibilityLabels[v]}</option>)}</Select>
             <span className="show-help">{alwaysPrivate(value.interaction) ? "A private form is always for the facilitators only."
               : visibilityOf(value) === "private" ? `The TV and phones show the question and how many have answered, never the answers. Phones read: “${privateLine}” Results, the CSV and the recap show every answer, marked Private.`
-              : "Answers show on the TV and on phones."}</span></label>}
+              : "Answers show on the TV and on phones. You can change this while the step is live."}</span></label>}
           {kind?.input && <>
             {kind.named === "setting" ? <label className="show-check is-full" htmlFor="session-anonymous"><input id="session-anonymous" type="checkbox" checked={value.settings.anonymous} onChange={e => setting("anonymous", e.target.checked)} />Anonymous on the screen</label>
               : <p className="show-help is-full">{kind.named === "always" ? "Named by design: names show on the screen." : "Answers are anonymous on the screen."}</p>}

@@ -67,3 +67,14 @@ test("a stream that joined a channel as it rotated moves to the current topic", 
     assert.deepEqual(joined, ["live:fixture:old", "live:fixture:new"]);
   } finally { stream.stop(); }
 });
+
+test("a live privacy change clears answers immediately and recovering public visibility requests a snapshot", () => {
+  const show = snapshot();
+  const step = { id: session, title: "Public wall", interaction: "wall" as const, prompt: "Answer here", state: "live", max_sends: 3, max_characters: 100, max_words: 50 };
+  const existing: LiveSnapshot = { ...show, session: step, answers: [{ id, session_id: session, text: "Previous answer", answers: [{ text: "Previous answer", key: "previous" }], revision: 0 }] };
+  const privateEvent = { ...snapshot(2), session: { ...step, options: { visibility: "private" } } };
+  const next = applyLiveEvent(existing, privateEvent);
+  assert.equal(next.kind, "applied");
+  assert.deepEqual(next.value.answers, []);
+  assert.equal(applyLiveEvent(next.value, { ...snapshot(3), session: step }).kind, "snapshot");
+});

@@ -3,7 +3,7 @@
 import { Check, Undo2 } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
-type ToastOptions = { action?: { label: string; onClick: () => void | Promise<void>; icon?: ReactNode }; icon?: ReactNode };
+type ToastOptions = { duration?: number; action?: { label: string; onClick: () => void | Promise<void>; icon?: ReactNode }; icon?: ReactNode };
 type AddToast = (message: string, options?: ToastOptions) => void;
 type ToastRecord = ToastOptions & { id: number; message: string };
 
@@ -37,7 +37,7 @@ function Toast({ item, remove }: { item: ToastRecord; remove: (id: number) => vo
   useEffect(() => {
     if (hover || focus || running) return;
     if (remaining.current === undefined && element.current) {
-      remaining.current = Number.parseFloat(getComputedStyle(element.current).getPropertyValue("--cwl-dur-toast-hold")) || 5000;
+      remaining.current = item.duration ?? (Number.parseFloat(getComputedStyle(element.current).getPropertyValue("--cwl-dur-toast-hold")) || 5000);
     }
     const start = performance.now();
     const timeout = setTimeout(() => remove(item.id), remaining.current);
@@ -45,7 +45,7 @@ function Toast({ item, remove }: { item: ToastRecord; remove: (id: number) => vo
       clearTimeout(timeout);
       remaining.current = Math.max(0, (remaining.current ?? 5000) - (performance.now() - start));
     };
-  }, [focus, hover, item.id, remove, running]);
+  }, [focus, hover, item.id, item.duration, remove, running]);
 
   return <div ref={element} className="cwl-ui-toast" role="status" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
     onFocus={() => setFocus(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocus(false); }}>

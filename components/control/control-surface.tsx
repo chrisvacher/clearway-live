@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChartColumn, Copy, EyeOff, NotebookPen, PanelRight, Repeat, Smartphone, Timer } from "lucide-react";
+import { VisibilityControl } from "./visibility-control";
 import { PrivateTag } from "@/components/interactions/private-tag";
 import { Button } from "@/components/ui/button";
 import { StageChip, StepChip } from "@/components/ui/chips";
@@ -231,6 +232,7 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
           <div id="ctl-step-timer" hidden={!timerOpen}><TimerChip room={room} engagement={engagement} /></div>
           {current && <p className="ctl-notes" id="ctl-live-notes" hidden={!notesOpen}>{current.notes || "No presenter notes."}</p>}
           {room.status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}
+          <VisibilityControl room={room} step={current} />
           <StepControls room={room} minutes={minutes} setMinutes={setMinutes} onPanel={openPanel} workshop={workshop} />
           <div id="ctl-decision-host" />
           {(!side.open || side.tab !== "responses") && <ItemList room={room} />}
@@ -255,6 +257,7 @@ function PreviewScreen({ room, session, context, chosen }: { room: Room; session
       <StepChip state="preview" compact />
       <h2 id="ctl-preview-title" className="ctl-screen-title">{session ? session.title : "Nothing to preview"}</h2>
       <PrivateTag step={session} />
+      <VisibilityControl room={room} step={session} />
       {session && !chosen && <span className="ctl-screen-note">Up next</span>}
     </div>
     <div className="ctl-screen-frame">

@@ -212,19 +212,20 @@ select is((select count(*)::integer from seen where what like '%live_snapshot={%
 select is((select count(*)::integer from seen where what like '%live_snapshot={%"role": "tv"%'),2,'and as the TV');
 select ok((select bool_and(what !~ '"status"' and what like '%live_snapshot!42501%') from seen where who like 'anon%'),'A signed-out visitor can call none of them');
 
--- The run of show cannot change a live step, but the setting is enforced on the row: changed underneath a live step, the room
--- follows at once (counts only while it is private, the answers once it is public).
+-- The visibility-only action leaves the rest of a running step untouched.
 set local role authenticated; select tests.login(1);
 select is(tests.go(916,310),'ok','Back to the private wall');
 select is(public.show_write(tests.id(100),'save',jsonb_build_object('id',tests.id(310),'revision',tests.rev(310),'title','Testimonials','part','Day 1','mode','live','interaction','wall',
   'prompt','Prompt','phone_depth','','notes','','lands_in','','segment','','state','ready','planned_minutes',5,'max_sends',3,'max_characters',200,'max_words',50,
   'settings',jsonb_build_object('anonymous',true,'burst_minutes',4,'join_strip',false),'options','{"visibility":"public"}'::jsonb))->>'status','invalid_state','A live step cannot be switched from the run of show');
-reset role;
-update sessions set options='{"visibility":"public"}' where id=tests.id(310);
+select is(public.show_write(tests.id(100),'visibility',jsonb_build_object('session',tests.id(310),'visibility','public','title','Changed'))->>'status','invalid_request','A visibility action refuses any other field');
+select is(public.show_write(tests.id(100),'visibility',jsonb_build_object('session',tests.id(310),'visibility','public'))->>'status','ok','A facilitator can make the live step public');
 set local role authenticated; select tests.login(5);
 select ok(public.live_snapshot(tests.id(100),null,null)::text like '%SECRETWALL-testimonial%','Made public underneath, its answers show at once');
+select is(public.show_write(tests.id(100),'visibility',jsonb_build_object('session',tests.id(310),'visibility','private'))->>'status','denied','An attendee cannot change visibility');
+select tests.login(1);
+select is(public.show_write(tests.id(100),'visibility',jsonb_build_object('session',tests.id(310),'visibility','private'))->>'status','ok','A facilitator can make the live step private');
 reset role;
-update sessions set options='{"visibility":"private"}' where id=tests.id(310);
 select is(tests.results(),'{"total":2,"people":2,"words":[]}'::jsonb,'Made private again, the room state is counts only at once');
 set local role authenticated; select tests.login(5);
 select ok(public.live_snapshot(tests.id(100),null,null)::text not like '%SECRETWALL%','with no answers in the snapshot');

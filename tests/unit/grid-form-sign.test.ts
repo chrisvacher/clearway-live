@@ -104,8 +104,7 @@ test("a private form's answers never reach the TV: the event carries only the co
   const next = applyLiveEvent(frame, event);
   assert.equal(next.kind, "applied");
   assert.equal(next.value.state.results.people, 1, "the count climbs");
-  assert.equal(next.value.answers[0].value, undefined, "no value on the TV");
-  assert.equal(next.value.answers[0].text, null, "no text on the TV");
+  assert.deepEqual(next.value.answers, [], "no answer records on the TV");
 });
 
 // ---------- INT-10 ----------

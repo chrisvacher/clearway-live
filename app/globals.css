@@ -1391,3 +1391,17 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .cwl-private-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; width: fit-content; padding: 1px var(--space-2); border-radius: var(--cwl-radius-marker); font-size: var(--cwl-fs-app-micro); font-weight: var(--fw-semibold); line-height: 1.4; background: var(--cwl-run-draft); color: var(--cwl-on-run-draft); }
 .cwl-private-tag svg { width: 12px; height: 12px; flex: none; }
 .cwl-private-tag.is-compact { padding: 2px; margin-inline-end: var(--space-1); vertical-align: middle; }
+
+.ctl-visibility { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding-block: 8px; }
+.ctl-visibility .ctl-seg { grid-template-columns: repeat(2, minmax(0, auto)); }
+.ctl-visibility .ctl-seg button { display: flex; align-items: center; justify-content: center; gap: 7px; padding-inline: 10px; }
+.ctl-visibility .ctl-seg button[aria-pressed="true"] { background: var(--cwl-app-selected); color: var(--cwl-app-selected-ink); }
+.ctl-visibility .ctl-seg button:focus-visible { outline: 2px solid var(--cwl-app-focus); outline-offset: -2px; }
+.tv-stage .tv-private-count { align-items: center; justify-content: center; gap: 20px; animation: tv-private-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive) both; }
+.tv-stage .tv-private-count .gfs-count { display: flex; align-items: baseline; gap: 26px; font-size: var(--cwl-fs-tv-main); }
+.tv-stage .tv-private-count .gfs-n { font-size: var(--cwl-fs-tv-display); }
+.tv-stage .tv-private-line { display: flex; align-items: center; gap: 18px; color: var(--cwl-text-muted); }
+.tv-private-line svg { width: 1em; height: 1em; }
+[data-motion="reduced"] .tv-private-count { animation: none; }
+@media (prefers-reduced-motion: reduce) { .tv-private-count { animation: none; } }
+@keyframes tv-private-arrive { from { opacity: 0; } to { opacity: 1; } }

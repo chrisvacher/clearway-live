@@ -1,4 +1,5 @@
 "use client";
+import { VisibilityControl } from "./visibility-control";
 import { useState } from "react";
 import { EyeOff, X } from "lucide-react";
 import type { RunOfShow } from "@/lib/run-of-show/types";
@@ -38,6 +39,7 @@ export function Remote({ initial, workshop = false, handover = false }: { initia
       <ReloadNotice room={room} />
       <div className={`ctl-live-monitor${pressFlash.flashing ? " is-flashing" : ""}`}><TvMirror frame={confirmed} /></div>
       <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On the TV now</p><p className="ctl-label">{shown?.title ?? (confirmed?.state.tv_content === "join" ? "Join screen" : "Holding screen")}{confirmed?.session && confirmed.session.interaction !== "content" ? ` · ${confirmed.state.results.total} ${confirmed.state.results.total === 1 ? "answer" : "answers"}` : ""}</p></div>{pill}</div>
+      <VisibilityControl room={room} step={room.frame?.session} />
       <Banners room={room} compact />
       {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
       <section className="ctl-private" aria-label="Up next, only you see this"><div className="show-private"><EyeOff size={16} aria-hidden="true" />Only you see this<span>Up next</span></div>

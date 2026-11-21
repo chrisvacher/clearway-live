@@ -1,3 +1,4 @@
+import { isPrivateStep } from "../interactions/visibility";
 import type { LiveEvent, LiveSnapshot, SubmissionRequest } from "./types";
 
 // State and its anonymous answer patch share one version and one committed event.
@@ -6,14 +7,16 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   if (!Number.isSafeInteger(version) || event.state.engagement_id !== current.state.engagement_id) return { kind: "snapshot", value: current };
   if (version <= current.version) return { kind: "same", value: current };
   if (version !== current.version + 1 || event.state.live_session_id !== current.state.live_session_id) return { kind: "snapshot", value: current };
+  const privateStep = isPrivateStep(event.session);
+  if (!privateStep && isPrivateStep(current.session)) return { kind: "snapshot", value: current };
   // A content revision also covers private phone depth. Fetch its guarded snapshot
   // before advancing a phone; depth never travels on the shared TV channel.
-  if (current.role === "participant" && (event.session?.revision !== current.session?.revision || event.session?.base_year !== current.session?.base_year)) return { kind: "snapshot", value: current };
-  const answers = new Map(current.answers.map(answer => [answer.id, answer]));
+  if (!privateStep && current.role === "participant" && (event.session?.revision !== current.session?.revision || event.session?.base_year !== current.session?.base_year)) return { kind: "snapshot", value: current };
+  const answers = new Map((privateStep ? [] : current.answers).map(answer => [answer.id, answer]));
   const hidden = Array.isArray(event.state.hidden_ids) ? event.state.hidden_ids : [];
   for (const id of hidden) answers.delete(id);
   const patch = event.answer;
-  if (patch && patch.session_id === event.state.live_session_id) {
+  if (!privateStep && patch && patch.session_id === event.state.live_session_id) {
     // One answer per person: the answers it replaced leave in the same version.
     for (const id of Array.isArray(patch.replaced) ? patch.replaced : []) answers.delete(id);
     if (patch.withdrawn || patch.hidden) answers.delete(patch.id);
@@ -27,7 +30,7 @@ export function applyLiveEvent(current: LiveSnapshot, event: LiveEvent): { kind:
   // the next snapshot, so a newly visible word is never invented on the client.
   const hiddenKeys = new Set(Array.isArray(event.state.hidden_keys) ? event.state.hidden_keys : []);
   const unhidden = (current.state.hidden_keys || []).some(key => !hiddenKeys.has(key));
-  if (unhidden) return { kind: "snapshot", value: current };
+  if (!privateStep && unhidden) return { kind: "snapshot", value: current };
   const visible = [...answers.values()].map(answer => hiddenKeys.size && answer.answers.some(item => hiddenKeys.has(item.key))
     ? { ...answer, answers: answer.answers.filter(item => !hiddenKeys.has(item.key)) } : answer);
   return { kind: "applied", value: { ...current, state: event.state, session: event.session, display: event.display ?? current.display, presence: event.presence ?? current.presence,

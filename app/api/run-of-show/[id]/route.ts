@@ -7,6 +7,7 @@ import { uuid } from "@/lib/room/identity";
 import { sessionInput } from "@/lib/run-of-show/policy";
 import { readShow } from "@/lib/run-of-show/server";
 import { parts } from "@/lib/run-of-show/types";
+import { visibilityInput } from "@/lib/run-of-show/visibility-input";
 import { roomMutation } from "@/lib/live/mutation";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   let action: string, input: unknown;
   try {
     const body = await limitedJson(request, 262144); action = String(body.action);
-    if (action === "save") {
+    if (action === "visibility") input = visibilityInput(body.input);
+    else if (action === "save") {
       // A drop (SET-07) lands a new session at its place in the part.
       const index = (body.input as Record<string, unknown> | null)?.index;
       if (index !== undefined && (!Number.isInteger(index) || Number(index) < 0 || Number(index) > 5000)) throw new Error("Drop the session into the run of show again.");

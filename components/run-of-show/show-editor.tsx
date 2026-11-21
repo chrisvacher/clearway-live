@@ -12,7 +12,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, House, Image as ImageIcon, LayoutTemplate,
   Check, CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, Newspaper, PencilLine, PenLine, Plus, Printer, Radio, RefreshCw, Repeat, ScanLine, Search, Trash2, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type ShowSession } from "@/lib/run-of-show/types";
-import { SessionForm, sessionInput, type FormDraft } from "./session-form";
+import { SessionForm, initialDraft, sessionInput, type FormDraft } from "./session-form";
 import { SaveTemplate } from "./save-template";
 import { AddImages, type ImageTarget } from "./add-images";
 import type { EngagementImage } from "@/lib/images/shared";
@@ -20,6 +20,7 @@ import { loopOf } from "@/lib/images/loop";
 import { stepTimer, timerMarks } from "@/lib/live/timer";
 import { sortSessions } from "@/lib/run-of-show/policy";
 import { Timer as TimerIcon } from "lucide-react";
+import { visibilityOf, withVisibility } from "@/lib/interactions/visibility";
 import { PrivateTag } from "@/components/interactions/private-tag";
 import { contentLabels, contentOf, fallbackKinds, type ContentScreen, type InteractionKind, type KindInfo } from "@/lib/interactions/kinds";
 import { canSelfPace, clock, droppedSession, endOfRun, hasSections, liveMinutes, onlyMoved, palette, partOf, partTimes, placeSession, sectionAt, sectionName, sectionsOf, slots, stepSlot, type PaletteEntry, type Section, type Slot } from "@/lib/run-of-show/builder";
@@ -238,6 +239,13 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
         const basis = bases.current.get(id);
         const expected = basis && !onlyMoved(basis, server) ? basis.revision : server.revision;
         // Live state is managed in the live room. An edit here retains whatever state the server holds.
+        if (!intent && basis && visibilityOf(basis) !== visibilityOf(input)) {
+          const normalizedBasis = sessionInput(initialDraft(basis, ctx.timezone), ctx.timezone, basis.state);
+          const withoutVisibility = (step: typeof input) => ({ ...step, options: withVisibility(step.options, "public") });
+          if (JSON.stringify(withoutVisibility(input)) === JSON.stringify(withoutVisibility(normalizedBasis))) {
+            return { action: "visibility", input: { session: id, visibility: visibilityOf(input) } };
+          }
+        }
         const state = intent && ["draft", "ready"].includes(server.state) ? input.state : server.state;
         return { action: "save", input: { ...(sectionEdited ? input : withoutSection), state, revision: expected } };
       },

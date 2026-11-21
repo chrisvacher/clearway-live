@@ -1,6 +1,6 @@
 "use client";
 import { expiredLinkLine } from "@/lib/tv/pair-link";
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { linkQr } from "@/lib/tv/qr";
 import { publicRoomLink, roomPath } from "@/lib/tv/policy";
@@ -75,7 +75,10 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
     return <div key={layer.id} className={`tv-layer${layer.leaving ? " is-leaving" : ""}${layer.entering ? " is-entering" : ""}${input ? " is-input" : " is-content"}`} data-kind={session.interaction} data-private={hidden ? "true" : undefined} aria-hidden={layer.leaving}>
       {input ? <>
         <InputHead session={session} engagement={shown.state.engagement_id} />
-        {View && <View session={session.id} frame={shown} flow={flow} />}
+        {hidden && session.interaction !== "form" ? <div className="tv-board tv-private-count" data-empty="false">
+          <p className="gfs-count"><b className="gfs-n">{shown.state.results.total}</b><span>{shown.state.results.total === 1 ? "answer in" : "answers in"}</span></p>
+          <p className="tv-private-line"><Lock aria-hidden="true" />Only the facilitators see these answers.</p>
+        </div> : View && <View session={session.id} frame={shown} flow={flow} />}
         {!kind?.structured && !hidden && <p className="tv-note tv-muted">Waiting for answers</p>}
         {joinLink && <div className="tv-join-strip"><span className="tv-upclose">{joinLink.replace("https://", "")}</span><Qr link={joinLink} /></div>}
       </> : <ContentScreen frame={shown} />}
