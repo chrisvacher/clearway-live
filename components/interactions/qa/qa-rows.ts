@@ -25,6 +25,7 @@ export class QaRows {
   private at = 0;
   private moment?: ReturnType<typeof setTimeout>;
   private observer?: ResizeObserver;
+  private framedRowHeight = 0;
   readonly list: HTMLElement;
   private more: HTMLElement;
   private note: HTMLElement;
@@ -47,6 +48,7 @@ export class QaRows {
     const limit = this.root.closest('[data-join-frame="on"]') ? 4 : 3;
     const H = this.list.clientHeight, { shown, rest } = topQuestions(list, limit), snap = Boolean(o.instant) || reducedMotion(this.root);
     const rowH = Math.max(1, Math.floor(H / limit));
+    this.framedRowHeight = limit === 4 ? Math.max(0, rowH - 12) : 0;
     this.root.style.setProperty("--qa-row-h", `${rowH}px`);
     this.root.classList.toggle("is-compact", rowH < 200);
     shown.forEach((q, i) => {
@@ -151,11 +153,23 @@ export class QaRows {
       if (r.going && r.o.x < 0.02) { r.el.remove(); this.rows.delete(id); return; }
       const settled = Math.abs(r.y.x - r.ty) < 0.3 && Math.abs(r.y.v) < 0.3 && Math.abs(r.o.x - r.to) < 0.002;
       if (settled) { r.y.x = r.ty; r.y.v = 0; r.o.x = r.to; r.o.v = 0; }
-      if (settled && r.rest) return;
+      if (settled && r.rest && !this.framedRowHeight) return;
       r.rest = settled; busy = busy || !settled;
       r.el.style.transform = `translateY(${r.y.x.toFixed(2)}px)`;
       r.el.style.opacity = r.o.x >= 0.999 ? "" : r.o.x.toFixed(3);
     });
+    if (this.framedRowHeight) {
+      // Keep an arriving or reordering row's text clear of other cards while it glides.
+      const drawing: number[] = [];
+      const ordered = [...this.rows.values()].sort((a, b) => Number(a.going) - Number(b.going) || b.o.x - a.o.x);
+      for (const row of ordered) {
+        const clearance = Math.min(Infinity, ...drawing.map(y => Math.abs(row.y.x - y)));
+        const room = Math.max(0, Math.min(1, (clearance - this.framedRowHeight) / 12));
+        const opacity = row.o.x * room;
+        row.el.style.opacity = opacity >= 0.999 ? "" : opacity.toFixed(3);
+        if (opacity >= 0.02) drawing.push(row.y.x);
+      }
+    }
     return busy;
   }
 }

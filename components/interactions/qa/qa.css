@@ -114,5 +114,6 @@
 [data-join-frame="on"] .qa-row { height: calc(var(--qa-row-h) - 12px); align-items: center; left: 0; padding-inline: 12px; border-radius: var(--cwl-radius-marker); background: var(--cwl-bar-track); }
 [data-join-frame="on"] .qa-votes { justify-content: center; height: auto; min-height: 1.5em; background: var(--cwl-surface); color: var(--cwl-text); }
 [data-join-frame="on"] .qa-row.is-first .qa-votes { background: var(--cwl-callout); color: var(--cwl-on-callout); }
+[data-join-frame="on"] .qa-row.is-first::before { background: transparent; }
 [data-join-frame="on"] .qa-votes b { color: inherit; }
 [data-join-frame="on"] .qa-votes svg { display: none; }

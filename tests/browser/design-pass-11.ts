@@ -156,8 +156,14 @@ async function main() {
           assert.equal((await answering.send(room.id, qa, question)).status, "accepted");
         }
         await until(async () => await tv.locator(".tv-layer:not(.is-leaving) .qa-row").count() === 4, "four framed questions");
-        const rows = await tv.locator(".tv-layer:not(.is-leaving) .qa-row").evaluateAll(elements => elements.map(el => el.getBoundingClientRect().bottom));
-        assert.ok(rows.every(bottom => bottom <= 864), "Q&A rows stay above the join frame");
+        const questions = tv.locator(".tv-layer:not(.is-leaving) .qa-row");
+        await until(() => questions.evaluateAll(elements => elements.length === 4 && elements.every(el => Number(getComputedStyle(el).opacity) >= .99)), "four questions finish arriving", 5000);
+        const rows = (await questions.evaluateAll(elements => elements.map(el => {
+          const box = el.getBoundingClientRect();
+          return { top: box.top, bottom: box.bottom };
+        }))).sort((a, b) => a.top - b.top);
+        assert.ok(rows.every(({ bottom }) => bottom <= 864), "Q&A rows stay above the join frame");
+        assert.ok(rows.every((row, i) => i === 0 || rows[i - 1].bottom <= row.top), "all four questions fit without overlap");
         await shot(tv, `${name}-frame-qa`);
         if (enabled("FRAME_BOARDS")) await testPass11FrameBoards({ sql, room, fac, tv });
         if (enabled("SCALE") || enabled("BEFORE_AFTER")) {
