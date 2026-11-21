@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { appendFile, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type pg from "pg";
@@ -14,13 +14,38 @@ export async function testPass11Video({ sql, room, fac, control, tv, phone, name
   try {
     const path = join(temp, "Workshop clip.mp4");
     execFileSync("ffmpeg", ["-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=24:duration=12", "-f", "lavfi", "-i", "sine=frequency=220:duration=12", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", path]);
+    const resumable = process.env.KIT_RESUMABLE === "1" || (!process.env.KIT_FILTER && name === "novetera-very_small-dark-full");
+    if (resumable) {
+      const free = Buffer.alloc(8 * 1024 * 1024);
+      free.writeUInt32BE(free.length);
+      free.write("free", 4);
+      await appendFile(path, free);
+    }
     await editor.goto(`${appOrigin}/admin/${room.id}/run-of-show`);
     await editor.getByRole("button", { name: "Add step", exact: true }).click();
     await editor.locator(".rb-tile").filter({ hasText: "Video" }).click();
     const panel = editor.locator(".rb-settings");
     await panel.locator("#session-title").fill("Uploaded workshop clip");
+    let dropped = false;
+    const uploadTrace: string[] = [];
+    if (resumable) {
+      editor.on("response", response => {
+        if (response.url().includes("/upload/resumable")) uploadTrace.push(`${response.request().method()} ${response.status()}`);
+      });
+      editor.on("requestfailed", request => {
+        if (request.url().includes("/upload/resumable")) uploadTrace.push(`${request.method()} ${request.failure()?.errorText}`);
+      });
+    }
+    if (resumable) await editor.route("**/upload/resumable/**", async route => {
+      if (!dropped && route.request().method() === "PATCH") {
+        dropped = true;
+        await route.abort();
+      } else await route.continue();
+    });
     await panel.getByLabel("Upload video", { exact: true }).setInputFiles(path);
-    await panel.getByText(/Uploaded$/).waitFor({ timeout: 25000 });
+    try { await panel.getByText(/Uploaded$/).waitFor({ timeout: 25000 }); }
+    catch (cause) { throw new Error(`Video upload did not finish (${uploadTrace.join(", ")}). ${await panel.getByRole("alert").allTextContents()}`, { cause }); }
+    if (resumable) assert.ok(dropped, "the resumable upload recovered after a dropped PATCH");
     await panel.getByRole("button", { name: "Mark ready" }).click();
     const clip = await until(async () => (await sql.query("select id,options->'video' as video from public.sessions where engagement_id=$1 and title='Uploaded workshop clip' and state='ready'", [room.id])).rows[0], "video upload and readiness", 10000);
     await shot(editor, `${name}-video-setup`);

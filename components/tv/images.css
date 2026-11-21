@@ -1,6 +1,6 @@
 /* Batch 1: images on the TV (TC-2, TC-3) and the image loop (LP-1). Tokens only. */
 /* The image stage covers the whole TV, header and footer included, on the skin's TV ground. */
-.tv-imgstage { position: absolute; inset: 0; z-index: 5; background: var(--cwl-surface); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature); overflow: hidden; }
+.tv-imgstage { position: absolute; inset: 0; z-index: 5; background: var(--cwl-surface); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), bottom var(--cwl-dur-make-room) var(--cwl-ease-signature) var(--tv-frame-delay, 0ms); overflow: hidden; }
 .tv-imgstage.is-active { opacity: 1; }
 .tv-img-layer { position: absolute; inset: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .tv-imgstage.is-loop-fade .tv-img-layer { transition-duration: var(--cwl-dur-regroup); transition-timing-function: var(--cwl-ease-calm); }
@@ -11,7 +11,8 @@
 .tv-img-layer.is-cut { transition: none; }
 .tv-img-preload { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .tv-img-preload img { width: 1px; height: 1px; }
-.tv-viewport[data-motion="reduced"] .tv-imgstage, .tv-mirror[data-motion="reduced"] .tv-imgstage { transition-duration: var(--cwl-dur-reduced); }
+.tv-viewport[data-motion="reduced"] .tv-imgstage, .tv-mirror[data-motion="reduced"] .tv-imgstage { transition-duration: var(--cwl-dur-reduced); transition-delay: 0ms; }
+@media (prefers-reduced-motion: reduce) { .tv-imgstage { transition: none; } }
 /* In place: beside the headline, shown whole. A content step gives it up to 860px; an interaction step 480 by 270, and the results below don't move. */
 .tv-inplace { display: grid; grid-template-columns: minmax(0, 1fr) 860px; gap: 72px; align-items: center; height: 100%; }
 .tv-inplace-main { min-width: 0; }

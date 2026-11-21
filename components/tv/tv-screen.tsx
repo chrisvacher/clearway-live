@@ -123,8 +123,9 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
     // The screen-check ladder deliberately keeps its calibration sizes.
     const active = el.querySelector<HTMLElement>(".tv-scene.is-active"), viewport = root.current!;
     const scene = active?.querySelector<HTMLElement>(".tv-layer:not(.is-leaving)") ?? active;
-    viewport.style.setProperty("--cwl-fit-scale", "1");
-    if (scene) {
+    const fitStage = () => {
+      viewport.style.setProperty("--cwl-fit-scale", "1");
+      if (!scene) return;
       const roomScale = parseFloat(getComputedStyle(viewport).getPropertyValue("--cwl-room-scale")) || 1;
       const fits = () => {
         const area = scene.getBoundingClientRect(), children = [...scene.children].map(child => child.getBoundingClientRect());
@@ -136,7 +137,13 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
       // Keep a remaining count when long arrival names exceed the readable
       // floor, rather than shrinking or clipping the room's content.
       if (!fits() && frame.state.tv_content === "join" && nameLimit > 1) setNameLimit(nameLimit - 1);
-    }
+    };
+    fitStage();
+    // The frame changes a board's available height while its existing items stay mounted.
+    const resize = (event: TransitionEvent) => { if (event.propertyName === "bottom") fitStage(); };
+    const scenes = el.querySelector<HTMLElement>(".tv-scenes");
+    scenes?.addEventListener("transitionend", resize);
+    const cleanup = () => scenes?.removeEventListener("transitionend", resize);
     const style = getComputedStyle(el), scale = el.getBoundingClientRect().width / 1920;
     const duration = frame.display?.reduced_motion || window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : parseFloat(style.getPropertyValue("--cwl-dur-make-room"));
     el.querySelectorAll<HTMLElement>("[data-name-key]").forEach(name => {
@@ -153,9 +160,9 @@ export function TvScreen({ initial, address }: { initial: TvBinding | null; addr
     // TV's DOM shows this version, and the live room shouldn't wait on a paint
     // that only comes when someone looks at the laptop (November 15).
     committed.current = frame.version;
-    if (document.visibilityState === "hidden") { receipt.current?.paint(frame.version); return; }
+    if (document.visibilityState === "hidden") { receipt.current?.paint(frame.version); return cleanup; }
     const raf = requestAnimationFrame(() => receipt.current?.paint(frame.version));
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); cleanup(); };
   }, [frame, nameLimit]);
   // A frame committed just before the window was hidden has its paint cancelled with it: confirm it then.
   useEffect(() => {

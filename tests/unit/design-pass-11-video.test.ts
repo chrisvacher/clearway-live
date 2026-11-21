@@ -13,7 +13,7 @@ test("the video upload contract accepts MP4 and MOV up to 500 MiB", () => {
   assert.equal(videoUploadRequest({ ...upload, mime: "audio/mpeg" }), null);
   assert.equal(videoUploadRequest({ ...upload, action: "finish", width: 1920, height: 1080, duration: 32 })?.action, "finish");
   assert.equal(videoUploadRequest({ ...upload, action: "finish", width: 1920, height: 1080, duration: "32" }), null);
-  assert.equal(resumableVideoEndpoint("https://example.supabase.co"), "https://example.storage.supabase.co/storage/v1/upload/resumable");
+  assert.equal(resumableVideoEndpoint("https://example.supabase.co"), "https://example.storage.supabase.co/storage/v1/upload/resumable/sign");
 });
 
 test("linked clips use YouTube and Vimeo video identifiers", () => {

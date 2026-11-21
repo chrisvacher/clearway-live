@@ -44,15 +44,21 @@ async function main() {
         const tvContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, reducedMotion: reduced ? "reduce" : "no-preference" });
         const tv = await tvContext.newPage();
         const broadcasts: unknown[] = [];
-        tv.on("websocket", ws => ws.on("framereceived", ({ payload }) => {
-          try {
-            const message = JSON.parse(String(payload));
-            const event = Array.isArray(message) ? message[3] : message.event;
-            const data = Array.isArray(message) ? message[4] : message.payload;
-            if (event === "broadcast" && data?.event === "room") broadcasts.push(data.payload);
-          }
-          catch { /* Ignore transport frames outside the room broadcast protocol. */ }
-        }));
+        const subscribed = new Map<object, Set<string>>();
+        tv.on("websocket", ws => {
+          const topics = new Set<string>(); subscribed.set(ws, topics);
+          ws.on("close", () => subscribed.delete(ws));
+          ws.on("framereceived", ({ payload }) => {
+            try {
+              const message = JSON.parse(String(payload));
+              const topic = Array.isArray(message) ? message[2] : message.topic;
+              const event = Array.isArray(message) ? message[3] : message.event;
+              const data = Array.isArray(message) ? message[4] : message.payload;
+              if (event === "broadcast" && data?.event === "room") broadcasts.push(data.payload);
+              if (event === "phx_reply" && typeof topic === "string" && data?.status === "ok") topics.add(topic);
+            } catch { /* Ignore transport frames outside the room broadcast protocol. */ }
+          });
+        });
         await tv.goto(`${origin}/tv`);
         const pair = await until(async () => { const code = (await tv.locator(".tv-code span").allTextContents()).join(""); return /^\d{6}$/.test(code) && code; }, "pairing code", 20000);
         await pairTv(fac, room.id, app.secret, pair, "Pass 11 TV");
@@ -64,6 +70,8 @@ async function main() {
         await phone.locator("#open-name").fill("Watching phone");
         await phone.getByRole("button", { name: "Join the room" }).click();
         await phone.locator(".ph-app").waitFor();
+        const currentTopic = (await sql.query("select 'realtime:live:'||engagement_id::text||':'||channel_id::text as name from private.room_transport where engagement_id=$1", [room.id])).rows[0].name as string;
+        await until(() => [...subscribed.values()].some(topics => topics.has(currentTopic)), "paired TV connects to the room after phone joins", 15000);
         await remote.goto(`${app.origin}/remote/${room.id}`);
         await control.goto(`${app.origin}/control/${room.id}`);
         await press(fac, sql, room.id, "go_live", { session: scale });
@@ -97,11 +105,34 @@ async function main() {
         await phone.locator("[data-private-line]").waitFor({ state: "detached", timeout: 1000 });
 
         const frame = tv.locator(".tv-join-frame[aria-hidden=false]");
+        await tv.evaluate(`(() => {
+          const scene = document.querySelector(".tv-scenes"), start = performance.now();
+          window.pass11FrameSamples = [scene.getBoundingClientRect().bottom];
+          requestAnimationFrame(function sample(now) {
+            window.pass11FrameSamples.push(scene.getBoundingClientRect().bottom);
+            if (now - start < 1150) requestAnimationFrame(sample);
+            else window.pass11FrameDone = true;
+          });
+        })()`);
         await control.locator("#ctl-transport").getByRole("button", { name: "Frame", exact: true }).click();
         await frame.waitFor({ timeout: 1000 });
         assert.match(await frame.innerText(), new RegExp(link));
+        await tv.waitForFunction("window.pass11FrameDone");
+        const samples = await tv.evaluate<number[]>("window.pass11FrameSamples");
+        assert.ok(samples[0] - samples.at(-1)! >= 130, "the tracked board makes room for the frame");
+        if (!reduced) {
+          const largest = Math.max(...samples.slice(1).map((bottom, index) => Math.abs(bottom - samples[index])));
+          assert.ok(largest < 100, `the board's content area transitions without a jump (largest frame ${largest.toFixed(1)}px)`);
+        }
         await control.keyboard.press("f"); await frame.waitFor({ state: "detached", timeout: 1000 });
-        await remote.getByRole("button", { name: "Frame", exact: true }).click(); await frame.waitFor({ timeout: 1000 });
+        const remoteFrame = remote.getByRole("button", { name: "Frame", exact: true, pressed: false });
+        await remoteFrame.waitFor({ timeout: 1000 });
+        const [remotePress] = await Promise.all([
+          remote.waitForResponse(response => response.url().endsWith(`/api/control/${room.id}`) && response.request().method() === "POST", { timeout: 5000 }),
+          remoteFrame.click(),
+          frame.waitFor({ timeout: 1500 }),
+        ]);
+        assert.equal((await remotePress.json()).status, "ok", "the remote toggles the shared flag");
         await press(fac, sql, room.id, "next");
         await tv.getByText("What did you learn?", { exact: true }).waitFor();
         await frame.waitFor();
@@ -110,8 +141,10 @@ async function main() {
         await press(fac, sql, room.id, "go_live", { session: wall }); await frame.waitFor();
         await press(fac, sql, room.id, "tv_screen", { screen: "blackout" }); await frame.waitFor({ state: "detached" });
         await press(fac, sql, room.id, "go_live", { session: wall }); await frame.waitFor();
-        const box = await tv.locator(".tv-layer:not(.is-leaving) .tv-board").boundingBox();
-        assert.ok(box && box.y + box.height <= 833, "the board ends above the frame");
+        await until(async () => {
+          const box = await tv.locator(".tv-layer:not(.is-leaving) .tv-board").boundingBox();
+          return box && box.y + box.height <= 833;
+        }, "the board settles above the frame", 1500);
         await shot(tv, `${name}-frame-tv`); await shot(remote, `${name}-frame-remote`);
         await control.locator(".ctl-run-step", { hasText: "Questions" }).hover();
         await control.getByRole("button", { name: "Preview Questions" }).click();

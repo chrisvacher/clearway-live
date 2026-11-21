@@ -21,5 +21,5 @@ export function videoUploadRequest(body: Record<string, unknown>) {
 export function resumableVideoEndpoint(base: string) {
   const url = new URL(base);
   if (/^[a-z0-9]+\.supabase\.co$/i.test(url.hostname)) url.hostname = url.hostname.replace(".supabase.co", ".storage.supabase.co");
-  return new URL("/storage/v1/upload/resumable", url).href;
+  return new URL("/storage/v1/upload/resumable/sign", url).href;
 }
