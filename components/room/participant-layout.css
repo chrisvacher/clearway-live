@@ -1,0 +1,41 @@
+/* The phone DOM and skin are shared with laptop participants. */
+.ph-step-intro, .ph-answer-area { display: contents; }
+.ph-key-hint { display: none; }
+.ph-app .ph-body:has(.ph-foot) { padding-bottom: 0; }
+.ph-app .ph-step:has(.ph-foot) { flex: 1; }
+.ph-answer-area .ph-foot { width: calc(100% + 2 * var(--cwl-phone-gutter)); margin-inline: calc(-1 * var(--cwl-phone-gutter)); margin-top: auto; }
+@media (min-width: 900px) {
+  .ph-app .ph-head { min-height: var(--space-16); height: var(--space-16); padding-inline: var(--space-10); }
+  .ph-app .ph-church { font-size: var(--cwl-fs-phone-body); }
+  .ph-app .ph-mark-slot { width: 30px; height: 30px; margin-left: auto; }
+  .ph-app .ph-body { width: min(100%, 1120px); padding: 56px var(--space-10) var(--space-10); gap: var(--space-4); }
+  .ph-app .ph-body:has(.ph-foot) { padding-bottom: var(--space-10); }
+  .ph-app .ph-step { min-width: 0; }
+  .ph-app .ph-step:has(.ph-answer-area) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 56px; align-items: start; }
+  .ph-step:has(.ph-answer-area) > :not(.ph-step-intro):not(.ph-answer-area) { grid-column: 1 / -1; }
+  .ph-app .ph-step-intro, .ph-app .ph-answer-area { display: flex; flex-direction: column; min-width: 0; gap: var(--space-4); }
+  .ph-app .ph-step-intro { grid-column: 1; }
+  .ph-app .ph-answer-area { grid-column: 2; }
+  .surface .ph-app :is(.ph-headline, .ph-prompt) { font-size: var(--space-10); font-weight: var(--fw-bold); line-height: 1.15; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+  .ph-app .ph-depth, .ph-app .ph-more, .surface .ph-app .ph-text { font-size: 18px; line-height: 1.55; }
+  .ph-app .ph-foot { position: static; width: 100%; padding: 0; margin: 0; border: 0; gap: 14px; }
+  .ph-app .ph-foot .ph-input { min-height: 260px; font-size: var(--cwl-fs-phone-input); line-height: 1.5; padding: 18px var(--space-5); resize: vertical; }
+  .ph-app .ph-compose-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
+  .ph-app .ph-actions { justify-content: flex-end; }
+  .ph-app .ph-send { flex: 0 0 auto; padding-inline: 28px; }
+  .ph-app .ph-bars[role="radiogroup"], .ph-app .ph-bars[role="group"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  .ph-app .ph-opt { min-height: 72px; font-size: 19px; text-align: left; }
+  .ph-app .ph-opt-text { overflow-wrap: anywhere; }
+  .ph-app .ph-bars-foot { position: static; margin: 0; padding: var(--space-3) 0 0; }
+  .ph-app .ph-content, .ph-app .ph-waiting { width: min(100%, 640px); margin-inline: auto; }
+  .ph-app .ph-who { line-height: 1.5; }
+  .ph-app .ph-answers, .ph-app .ph-self, .ph-app .ph-content { min-width: 0; }
+}
+@media (min-width: 900px) and (pointer: fine) {
+  .ph-app .ph-key-hint { display: flex; justify-content: flex-end; align-items: baseline; flex-wrap: wrap; gap: 5px; font-size: var(--cwl-fs-phone-label); color: var(--cwl-text-muted); }
+  .ph-key-hint kbd { border: 1px solid var(--cwl-border-strong); border-radius: var(--cwl-radius-button); padding: 2px 6px; color: var(--cwl-text); font: inherit; font-weight: var(--fw-bold); }
+}
+.ph-laptop-eyebrow { display: none; }
+@media (min-width: 900px) {
+  .ph-app .ph-laptop-eyebrow { display: block; color: var(--cwl-text-muted); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); text-transform: uppercase; letter-spacing: .06em; }
+}

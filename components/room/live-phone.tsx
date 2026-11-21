@@ -17,6 +17,8 @@ import { QaAsk } from "@/components/interactions/qa/qa-ask";
 import { PhoneTeamRemote } from "@/components/interactions/intent/phone-team-remote";
 import { recheckDelay, requestedStep, selfPacedState, windowLabel } from "@/lib/run-of-show/self-paced";
 import "./self-paced.css";
+import "./participant-layout.css";
+import { sendsWithEnter } from "@/lib/phone/keyboard";
 import { AiMark, useAiSweep } from "@/components/interactions/ai/ai-icon";
 import { combinedWith } from "@/lib/interactions/ai";
 import { lensOptions, seedingWhoText } from "@/lib/interactions/lens";
@@ -192,7 +194,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
   return <div className={`ph-app${down ? " is-dimmed" : ""}`} data-screen={(takesInput || view?.interaction === "content") && !phoneContentWaits(view) ? "phone-answering" : "phone-waiting"}>
     <div className="ph-texture" aria-hidden="true" />
     <header className="ph-head"><span className="ph-church">{church}</span><QaAsk frame={frame} viewing={isLive ? view?.id ?? null : null} answers={phone.answers} /><PhoneTimer timer={frame?.state.timer} />{marker}</header>
-    <div className="ph-body">
+    <div className="ph-body" data-participant-kind={view?.interaction}>
       <PhoneTeamRemote engagement={engagement} frame={frame} />
       {bannerShown && !bannerSeen && <p className="ph-banner" role="status"><Check size={16} aria-hidden="true" />
         <span>Signed in on this phone. Your earlier answers are here.</span><button type="button" onClick={() => setBannerSeen(true)}>OK</button></p>}
@@ -212,12 +214,12 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
         <h1 className="ph-prompt">{view.title}</h1>
         <p className="ph-text">This opens {windowLabel(view, zone, serverNow).replace(/^Opens /, "").replace(/\.$/, "")}. Come back then.</p>
         {selfList}
-      </section> : <section className="ph-step" aria-live="polite">
+      </section> : <section className={`ph-step${asks ? " ph-step-answering" : ""}`} aria-live="polite">
         {selfView && <><p className="ph-muted">{view.title} · Self-paced</p><p className="ph-window">{windowLabel(view, zone, serverNow)}</p></>}
         {lookingBack && <p className="ph-muted">{view.title} · {view.state === "open" ? "still open" : !asks ? "earlier" : "finished"}</p>}
         {isLive && burstLeft !== null && burstLeft > 0 && burstLength.current && <Burst left={burstLeft} total={burstLength.current.total} />}
         {!asks ? <PhoneContent step={view} />
-          : <><h1 className="ph-prompt">{view.prompt}</h1>
+          : <><div className="ph-step-intro"><h1 className="ph-prompt">{view.prompt}</h1>
             {view.phone_depth && <details className="ph-more"><summary>More detail</summary><div className="ph-depth">{view.phone_depth}</div></details>}
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
             {takesInput && (view.interaction === "lens" && lensOptions(view.options).seed
@@ -226,6 +228,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
               ? <p className="ph-who" data-private-line><span className="ph-marker"><Lock size={14} aria-hidden="true" />Private</span><span><strong>Who sees my answers?</strong> {privateLine}</span></p>
               : <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>)}
+            </div><div className="ph-answer-area">
             {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}
               change={(id, answer) => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "change", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) }); }}
               withdraw={id => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" }); }} />}
@@ -236,18 +239,23 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
             {down && running && draft.trim() && <p className="ph-muted">Your draft is kept for when phones open.</p>}
             {closed && <p className="ph-text">{stepFinished}</p>}
             {!takesInput && !down && !closed && isLive && !running && <p className="ph-text">Watch the screen. This will open in a moment.</p>}
+            {view && takesInput && textForm && <form className="ph-foot" onSubmit={send}>
+      <label className="ph-label" htmlFor="ph-answer">{editing ? "Change your answer" : "Your answer"}</label>
+      <textarea ref={input} id="ph-answer" className="ph-input" rows={view.interaction === "wall" ? 3 : 1} value={draft} placeholder={view.interaction === "wall" ? "Write a sentence" : "A word or two"}
+        aria-invalid={Boolean(check.message)} aria-describedby="ph-count" enterKeyHint="send" onChange={e => setDraft(e.target.value)}
+        onKeyDown={e => { if (sendsWithEnter(e.key, e.shiftKey, e.nativeEvent.isComposing, window.matchMedia("(pointer: fine)").matches, window.matchMedia("(min-width: 900px)").matches, view.interaction)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
+      <div className="ph-compose-meta">
+      <p className="ph-count" id="ph-count" aria-live="polite"><span>{check.message || (atLimit ? `You’ve sent ${used} of ${view.max_sends}. Change one to say something new.` : `${limitHint(view)}. ${used} of ${view.max_sends} sent.`)}</span><span>{check.count}</span></p>
+      <p className="ph-key-hint"><kbd>Enter</kbd> sends · <kbd>Shift + Enter</kbd> new line</p>
+      </div>
+      <div className="ph-actions">{editing && <button type="button" className="ph-secondary" onClick={() => { setEditing(null); setDraft(""); }}>Cancel</button>}
+        <button className="ph-send" disabled={!check.ok || atLimit}><Send size={18} aria-hidden="true" />{editing ? "Save change" : "Send"}</button></div>
+    </form>}
+            </div>
           </>}
         {selfList}
       </section>}
     </div>
-    {view && takesInput && textForm && <form className="ph-foot" onSubmit={send}>
-      <label className="ph-label" htmlFor="ph-answer">{editing ? "Change your answer" : "Your answer"}</label>
-      <textarea ref={input} id="ph-answer" className="ph-input" rows={view.interaction === "wall" ? 3 : 1} value={draft} placeholder={view.interaction === "wall" ? "Write a sentence" : "A word or two"}
-        aria-invalid={Boolean(check.message)} aria-describedby="ph-count" enterKeyHint="send" onChange={e => setDraft(e.target.value)}
-        onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && view.interaction !== "wall") { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
-      <p className="ph-count" id="ph-count" aria-live="polite"><span>{check.message || (atLimit ? `You’ve sent ${used} of ${view.max_sends}. Change one to say something new.` : `${limitHint(view)}. ${used} of ${view.max_sends} sent.`)}</span><span>{check.count}</span></p>
-      <div className="ph-actions">{editing && <button type="button" className="ph-secondary" onClick={() => { setEditing(null); setDraft(""); }}>Cancel</button>}
-        <button className="ph-send" disabled={!check.ok || atLimit}><Send size={18} aria-hidden="true" />{editing ? "Save change" : "Send"}</button></div>
-    </form>}
+
   </div>;
 }

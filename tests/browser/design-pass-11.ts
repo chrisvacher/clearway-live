@@ -2,12 +2,14 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { chromium, type Browser, type Page } from "playwright";
+import { testParticipantLayout } from "./participant-layout";
 import { testAutoSend } from "./auto-send";
 import { testPass11ScaleBeforeAfter } from "./pass11-scale-before-after";
 import { joinPhones } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
 
 async function main() {
+  if (process.env.KIT_PARTICIPANT === "1") await testParticipantLayout();
   if (process.env.KIT_AUTO_SEND === "1") await testAutoSend();
   const env = localEnv(), sql = db(env), app = await startApp(env);
   let browser: Browser | undefined;
