@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUp, Check, CircleDashed, Info, Plus, RefreshCw, Send, WifiOff } from "lucide-react";
+import { ArrowUp, Check, Info, Plus, RefreshCw, WifiOff } from "lucide-react";
 import "./bars.css";
+import { useAutoSend } from "@/components/interactions/use-auto-send";
 import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { allocate, budget, optionItems, pointsKey, rankTap, rankUp, scaleUsesSlider, valueOf, type OptionItem } from "@/lib/interactions/bars";
 
@@ -10,25 +11,33 @@ import { allocate, budget, optionItems, pointsKey, rankTap, rankUp, scaleUsesSli
 // earlier one. Each shows the person's own standing answer from `mine`, and its state:
 // sent, saved on this phone, sending, or not sent.
 type Answer = PhoneInputProps["mine"][number];
-function Status({ answer, hint }: { answer: Answer | undefined; hint?: string }) {
+function Status({ answer, hint, sentText = "Sent. You can change it until the session closes." }: { answer: Answer | undefined; hint?: string; sentText?: string }) {
   if (!answer) return hint ? <p className="ph-note"><Info size={16} aria-hidden="true" />{hint}</p> : null;
   if (answer.status === "failed") return <p className="ph-note" role="alert"><Info size={16} aria-hidden="true" />{answer.reason || "Not sent."}</p>;
   if (answer.status === "saved") return <p className="ph-note" role="status"><WifiOff size={16} aria-hidden="true" />Saved on this phone. It sends when you’re back online.</p>;
   if (answer.status === "sending") return <p className="ph-note" role="status"><RefreshCw size={16} aria-hidden="true" />Sending</p>;
-  return <p className="ph-note" role="status"><Check size={16} aria-hidden="true" />Sent. You can change it until the session closes.</p>;
+  return <p className="ph-note" role="status"><Check size={16} aria-hidden="true" />{sentText}</p>;
 }
 const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
 const label = (items: OptionItem[], keys: string[]) => keys.map(k => items.find(o => o.key === k)?.text ?? k).join(", ");
 
 // INT-04: pick one, or pick any (a setting). Answers change until the session closes.
-export function ChoiceInput({ step, mine, open, send }: PhoneInputProps) {
+export function ChoiceInput(props: PhoneInputProps) { return <ChoiceStep key={props.step.id} {...props} />; }
+function ChoiceStep({ step, mine, open, send, withdraw }: PhoneInputProps) {
   const items = optionItems(step.options), many = (step.options as { multiple?: boolean } | undefined)?.multiple === true;
   const sent = mine[mine.length - 1], sentPicks = valueOf<string[]>(sent?.value, "choices") ?? [];
   const [draft, setDraft] = useState<string[] | null>(null);
   const picks = (draft ?? sentPicks).filter(k => items.some(o => o.key === k));
   const changed = draft !== null && !same([...draft].sort(), [...sentPicks].sort());
-  const tap = (key: string) => { if (!open) return; setDraft(many ? (picks.includes(key) ? picks.filter(k => k !== key) : [...picks, key]) : [key]); };
-  const go = () => { if (!picks.length) return; send({ text: label(items, picks), value: { choices: items.filter(o => picks.includes(o.key)).map(o => o.key) } }); setDraft(null); };
+  const auto = useAutoSend(sentPicks, (next: string[]) => {
+    if (next.length) send({ text: label(items, next), value: { choices: next } });
+    else if (sent) withdraw(sent.id);
+  }, open);
+  const tap = (key: string) => {
+    if (!open) return;
+    const next = items.filter(o => (many ? (picks.includes(key) ? picks.filter(k => k !== key) : [...picks, key]) : [key]).includes(o.key)).map(o => o.key);
+    setDraft(next); auto.schedule(next, !many);
+  };
   return <div className="ph-bars">
     <p className="ph-sec" id={`ph-choice-${step.id}`}>{many ? "Pick any that apply" : "Pick one"}</p>
     <div className="ph-bars" role={many ? "group" : "radiogroup"} aria-labelledby={`ph-choice-${step.id}`}>
@@ -38,8 +47,7 @@ export function ChoiceInput({ step, mine, open, send }: PhoneInputProps) {
       </button>)}
     </div>
     <div className="ph-bars-foot">
-      <Status answer={changed ? undefined : sent} />
-      {open && <button type="button" className="ph-send" disabled={!picks.length || (Boolean(sent) && !changed)} onClick={go}><Send size={18} aria-hidden="true" />{sent ? "Change my answer" : "Send"}</button>}
+      <Status answer={changed ? undefined : sent} hint={many ? "Tap to choose. Your choices save as you go." : "Tap a choice to send it."} sentText="Sent. Tap another to change it." />
     </div>
   </div>;
 }
@@ -55,10 +63,12 @@ function Ends({ low, high, max }: { low: string; high: string; max: number }) {
 
 // INT-05: up to seven numbers as buttons (a tap sends, another tap changes it); wider
 // ranges as a slider that sends when it comes to rest.
-export function ScaleInput({ step, mine, open, send }: PhoneInputProps) {
+export function ScaleInput(props: PhoneInputProps) { return <ScaleStep key={props.step.id} {...props} />; }
+function ScaleStep({ step, mine, open, send }: PhoneInputProps) {
   const o = (step.options ?? {}) as { max?: number; low?: string; high?: string };
   const max = typeof o.max === "number" ? o.max : 5, sent = mine[mine.length - 1], value = valueOf<number>(sent?.value, "value");
-  const choose = (n: number) => { if (open && n !== value) send({ text: String(n), value: { value: n } }); };
+  const auto = useAutoSend<number | undefined>(value, n => { if (n !== undefined) send({ text: String(n), value: { value: n } }); }, open);
+  const choose = (n: number) => { if (open) auto.schedule(n, true); };
   const [slide, setSlide] = useState<number | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -71,7 +81,7 @@ export function ScaleInput({ step, mine, open, send }: PhoneInputProps) {
       <input className="ph-slider" type="range" min={1} max={max} step={1} value={shown} disabled={!open} aria-label={`From 1, ${o.low ?? "Not at all"}, to ${max}, ${o.high ?? "Completely"}`}
         aria-valuetext={String(shown)} onChange={e => settle(Number(e.target.value))} />
       {ends}
-      <Status answer={slide !== null ? undefined : sent} hint="Slide to your number. It sends when you let go." />
+      <Status answer={slide !== null ? undefined : sent} hint="It sends when you let go." sentText="Sent. Slide again to change it." />
     </div>;
   }
   return <div className="ph-bars">
@@ -86,30 +96,34 @@ export function ScaleInput({ step, mine, open, send }: PhoneInputProps) {
 // INT-06: tap options in priority order, tap a ranked one to remove it, or move one up. A
 // partial ranking counts. Add an option (a setting) suggests a missing one to the facilitator.
 const added = (key: string) => /^a[0-9a-f]{10}$/.test(key);
-export function RankingInput({ step, mine, open, send, engagement }: PhoneInputProps) {
+export function RankingInput(props: PhoneInputProps) { return <RankingStep key={props.step.id} {...props} />; }
+function RankingStep({ step, mine, open, send, engagement, withdraw }: PhoneInputProps) {
   const items = optionItems(step.options), suggest = (step.options as { suggest?: boolean } | undefined)?.suggest === true;
   const sent = mine[mine.length - 1], sentOrder = (valueOf<string[]>(sent?.value, "order") ?? []).filter(k => items.some(o => o.key === k));
   const [draft, setDraft] = useState<string[] | null>(null);
   const order = (draft ?? sentOrder).filter(k => items.some(o => o.key === k)), rest = items.filter(o => !order.includes(o.key));
   const changed = draft !== null && !same(draft, sentOrder);
   const text = (key: string) => items.find(o => o.key === key)?.text ?? key;
-  const go = () => { send({ text: order.map((k, i) => `${i + 1}. ${text(k)}`).join(", "), value: { order } }); setDraft(null); };
+  const auto = useAutoSend(sentOrder, (next: string[]) => {
+    if (next.length) send({ text: next.map((k, i) => `${i + 1}. ${text(k)}`).join(", "), value: { order: next } });
+    else if (sent) withdraw(sent.id);
+  }, open);
+  const update = (next: string[]) => { if (!open) return; setDraft(next); auto.schedule(next); };
   return <div className="ph-bars">
     {order.length > 0 && <><p className="ph-sec">Your order</p>
       <ol className="ph-bars ph-list" aria-label="Your order">{order.map((k, i) => <li key={k} className="ph-ranked">
-        <button type="button" className="ph-opt is-ranked" disabled={!open} aria-label={`${i + 1}. ${text(k)}. Tap to remove.`} onClick={() => setDraft(rankTap(order, k))}>
+        <button type="button" className="ph-opt is-ranked" disabled={!open} aria-label={`${i + 1}. ${text(k)}. Tap to remove.`} onClick={() => update(rankTap(order, k))}>
           <span className="ph-rank">{i + 1}</span><span className="ph-opt-text">{text(k)}</span></button>
-        <button type="button" className="ph-up" disabled={!open || i === 0} aria-label={`Move ${text(k)} up`} onClick={() => setDraft(rankUp(order, k))}><ArrowUp size={20} aria-hidden="true" /></button>
+        <button type="button" className="ph-up" disabled={!open || i === 0} aria-label={`Move ${text(k)} up`} onClick={() => update(rankUp(order, k))}><ArrowUp size={20} aria-hidden="true" /></button>
       </li>)}</ol></>}
     {rest.length > 0 && <><p className="ph-sec">{order.length ? "Not ranked yet · counts as the middle" : "Tap in order of priority"}</p>
       <ul className="ph-bars ph-list">{rest.map(o => <li key={o.key}>
-        <button type="button" className="ph-opt" disabled={!open} onClick={() => setDraft([...order, o.key])}>
+        <button type="button" className="ph-opt" disabled={!open} onClick={() => update([...order, o.key])}>
           <span className="ph-rank is-empty" /><span className="ph-opt-text">{o.text}</span>{added(o.key) && <span className="ph-new">New</span>}</button>
       </li>)}</ul></>}
     {suggest && open && engagement && <Suggest engagement={engagement} session={step.id} />}
     <div className="ph-bars-foot">
-      <Status answer={changed ? undefined : sent} hint="Partial rankings count." />
-      {open && <button type="button" className="ph-send" disabled={!order.length || (Boolean(sent) && !changed)} onClick={go}><Send size={18} aria-hidden="true" />Send my order</button>}
+      <Status answer={changed ? undefined : sent} hint="Saved as you go. Partial rankings count." sentText="Saved as you go. Partial rankings count." />
     </div>
   </div>;
 }
@@ -145,7 +159,8 @@ function Suggest({ engagement, session }: { engagement: string; session: string 
 // INT-07 (pass 3 change 11): one line per option with a circle to drag, all on one screen.
 // Dragging past the budget takes the overage from the others in proportion; dragging back only
 // frees points. A person's points count once all 100 are placed.
-export function PointsInput({ step, mine, open, send }: PhoneInputProps) {
+export function PointsInput(props: PhoneInputProps) { return <PointsStep key={props.step.id} {...props} />; }
+function PointsStep({ step, mine, open, send }: PhoneInputProps) {
   const items = optionItems(step.options), sent = mine[mine.length - 1];
   const sentPoints = valueOf<Record<string, number>>(sent?.value, "points");
   const fromSent = () => items.map(o => Math.max(0, Number(sentPoints?.[o.key] ?? 0)));
@@ -154,13 +169,25 @@ export function PointsInput({ step, mine, open, send }: PhoneInputProps) {
   const changed = values !== null && !same(values.map(String), fromSent().map(String));
   const [dragging, setDragging] = useState<number | null>(null);
   const tracks = useRef<(HTMLDivElement | null)[]>([]);
-  const set = (i: number, v: number) => { if (open) setValues(prev => allocate(prev ?? fromSent(), i, v)); };
+  const current = useRef(shown), fingerDown = useRef(false);
+  current.current = shown;
+  const auto = useAutoSend(fromSent(), (next: number[]) => {
+    send({ text: items.map((o, i) => next[i] ? `${o.text} ${next[i]}` : "").filter(Boolean).join(", "), value: { points: Object.fromEntries(items.map((o, i) => [o.key, next[i]])) } });
+  }, open);
+  const settle = (next: number[]) => {
+    if (next.reduce((a, b) => a + b, 0) === budget) auto.schedule(next); else auto.cancel();
+  };
+  const set = (i: number, v: number) => {
+    if (!open) return;
+    const next = allocate(current.current, i, v); current.current = next; setValues(next);
+    if (!fingerDown.current) settle(next);
+  };
+  const release = () => { fingerDown.current = false; setDragging(null); settle(current.current); };
   const fromX = (i: number, x: number) => {
     const track = tracks.current[i]; if (!track) return shown[i];
     const r = track.getBoundingClientRect(), knob = 34;
     return (x - r.left - knob / 2) / Math.max(1, r.width - knob) * budget;
   };
-  const go = () => { send({ text: items.map((o, i) => shown[i] ? `${o.text} ${shown[i]}` : "").filter(Boolean).join(", "), value: { points: Object.fromEntries(items.map((o, i) => [o.key, shown[i]])) } }); setValues(null); };
   return <div className="ph-bars">
     <div className={`ph-left${left === 0 ? " is-done" : ""}`} role="status" aria-live="polite"><span>{left === 0 ? <><Check size={16} aria-hidden="true" /> All 100 placed</> : "Points left"}</span><b>{left}</b></div>
     <div className="ph-faders" role="group" aria-label="Your 100 points">
@@ -169,32 +196,34 @@ export function PointsInput({ step, mine, open, send }: PhoneInputProps) {
         onKeyDown={e => { const next = pointsKey(e.key, shown[i]); if (next !== null && open) { e.preventDefault(); set(i, next); } }}>
         <div className="ph-fader-top"><span className="ph-fader-label">{o.text}</span><b className="ph-fader-n">{shown[i]}</b></div>
         <div className="ph-fader-track" ref={el => { tracks.current[i] = el; }}
-          onPointerDown={e => { if (!open) return; e.currentTarget.setPointerCapture(e.pointerId); setDragging(i); set(i, fromX(i, e.clientX)); e.preventDefault(); }}
+          onPointerDown={e => { if (!open) return; e.currentTarget.setPointerCapture(e.pointerId); fingerDown.current = true; auto.cancel(); setDragging(i); set(i, fromX(i, e.clientX)); e.preventDefault(); }}
           onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) set(i, fromX(i, e.clientX)); }}
-          onPointerUp={() => setDragging(null)} onPointerCancel={() => setDragging(null)}>
+          onPointerUp={release} onPointerCancel={release}>
           <i className="ph-fader-fill" /><span className="ph-fader-knob" />
         </div>
       </div>)}
     </div>
     <div className="ph-bars-foot">
-      {left ? <p className="ph-note"><Info size={16} aria-hidden="true" />Counts once all 100 are placed.</p> : <Status answer={changed ? undefined : sent} hint="All placed. Send when you’re ready." />}
-      {open && <button type="button" className="ph-send" disabled={left !== 0 || (Boolean(sent) && !changed)} onClick={go}>
-        {left ? <><CircleDashed size={18} aria-hidden="true" />Place {left} more</> : <><Send size={18} aria-hidden="true" />{sent ? "Send my change" : "Send"}</>}</button>}
+      {left ? <p className="ph-note"><Info size={16} aria-hidden="true" />{left} points left. Counts once all 100 are placed.</p> : <Status answer={changed ? undefined : sent} hint="All placed. Saving your answer." />}
     </div>
   </div>;
 }
 
 // INT-17: every statement with five numbered buttons on one screen. Each tap sends the
 // person's whole set of ratings; tapping another number changes it.
-export function StatementsInput({ step, mine, open, send }: PhoneInputProps) {
+export function StatementsInput(props: PhoneInputProps) { return <StatementsStep key={props.step.id} {...props} />; }
+function StatementsStep({ step, mine, open, send }: PhoneInputProps) {
   const items = optionItems(step.options), o = (step.options ?? {}) as { low?: string; high?: string };
   const sent = mine[mine.length - 1], sentRatings = valueOf<Record<string, number>>(sent?.value, "ratings") ?? {};
   const [local, setLocal] = useState<Record<string, number> | null>(null);
   const ratings = local ?? sentRatings, done = items.filter(s => ratings[s.key]).length;
+  const auto = useAutoSend(sentRatings, (next: Record<string, number>) => {
+    send({ text: `${Object.keys(next).length} of ${items.length} rated`, value: { ratings: next } });
+  }, open);
   const tap = (key: string, n: number) => {
     if (!open || ratings[key] === n) return;
     const next = Object.fromEntries(Object.entries({ ...ratings, [key]: n }).filter(([k]) => items.some(s => s.key === k)));
-    setLocal(next); send({ text: `${Object.keys(next).length} of ${items.length} rated`, value: { ratings: next } });
+    setLocal(next); auto.schedule(next);
   };
   return <div className="ph-bars">
     <Ends low={o.low ?? "Strongly disagree"} high={o.high ?? "Strongly agree"} max={5} />

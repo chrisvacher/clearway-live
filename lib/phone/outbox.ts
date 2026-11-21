@@ -27,9 +27,17 @@ export class PhoneOutbox {
     // A send cut off by a reload is retried; the server deduplicates it.
     this.entries = saved.map(e => e.state === "sending" ? { ...e, state: "saved" } : e);
   }
-  add(request: SubmissionRequest) {
+  add(request: SubmissionRequest, replaceSelection = false) {
+    // Only whole replacement submissions can supersede a queued selection. In-flight
+    // requests keep their identity for idempotent retry; typed answers keep every send.
+    if (replaceSelection && request.action === "submit") this.entries = this.entries.filter(e =>
+      e.state !== "saved" || e.request.session !== request.session || e.request.action !== "submit");
     this.entries = [...this.entries, { request: this.online() ? request : { ...request, queuedAt: request.queuedAt ?? request.sentAt }, state: "saved" }];
     this.persist(); this.kick();
+  }
+  discardSavedSelections(session: string) {
+    this.entries = this.entries.filter(e => e.state !== "saved" || e.request.session !== session || e.request.action !== "submit");
+    this.persist();
   }
   dismiss(id: string, revision: number) { this.entries = this.entries.filter(e => !(e.state === "failed" && e.request.id === id && e.request.revision === revision)); this.persist(); }
   kick() { if (this.stopped) return; clearTimeout(this.timer); this.timer = undefined; this.attempt = 0; void this.run(); }
@@ -40,7 +48,7 @@ export class PhoneOutbox {
     if (this.running || this.stopped) return;
     this.running = true;
     try {
-      while (!this.stopped) {
+      while (!this.stopped && this.online()) {
         let entry = this.entries.find(e => e.state !== "failed");
         if (!entry) break;
         entry = this.update(entry, { state: "sending" });

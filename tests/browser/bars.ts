@@ -179,19 +179,19 @@ async function main() {
       await shot(tv, "int-04-empty-tv"); await shot(ruth, "int-04-empty-phone");
     });
     await step("INT-04 first item: the bar grows from zero and takes the lead in Sunrise", async () => {
-      await ruth.getByRole("radio", { name: "Next generation" }).click(); await ruth.getByRole("button", { name: "Send" }).click();
+      await ruth.getByRole("radio", { name: "Next generation" }).click();
       await tally(1); await matches(choiceText, "first answer on the TV");
       assert.equal((await tvRows()).find(r => r.key === "o2")!.leader, true);
-      await until(async () => (await ruth.locator(".ph-note").innerText()).includes("Sent. You can change it"), "sent on the phone");
+      await until(async () => (await ruth.locator(".ph-note").innerText()).includes("Sent. Tap another to change it."), "sent on the phone");
       await shot(tv, "int-04-first-tv"); await shot(ruth, "int-04-first-phone");
     });
     await step("INT-04 typical: live bars, leader on top, n · % beside each bar; a changed answer moves both bars", async () => {
-      await ben.getByRole("radio", { name: "Welcome and first visits" }).click(); await ben.getByRole("button", { name: "Send" }).click();
-      await grace.getByRole("radio", { name: "Welcome and first visits" }).click(); await grace.getByRole("button", { name: "Send" }).click();
-      await mateo.getByRole("radio", { name: "Next generation" }).click(); await mateo.getByRole("button", { name: "Send" }).click();
+      await ben.getByRole("radio", { name: "Welcome and first visits" }).click();
+      await grace.getByRole("radio", { name: "Welcome and first visits" }).click();
+      await mateo.getByRole("radio", { name: "Next generation" }).click();
       await tally(4); await matches(choiceText, "four answers");
       assert.deepEqual((await tvRows()).filter(r => r.leader).map(r => r.key).sort(), ["o2", "o3"], "ties share the lead");
-      await ruth.getByRole("radio", { name: "Welcome and first visits" }).click(); await ruth.getByRole("button", { name: "Change my answer" }).click();
+      await ruth.getByRole("radio", { name: "Welcome and first visits" }).click();
       await until(async () => (await results()).bars!.find(b => b.key === "o3")!.count === 3, "the change reaches the server", 8000);
       await tally(4); await matches(choiceText, "a changed answer");
       const top = [...await tvRows()].sort((a, b) => a.y - b.y)[0];
@@ -217,7 +217,7 @@ async function main() {
     await step("INT-04 offline and queued: the pick is saved on the phone and sends when it is back", async () => {
       await until(async () => !(await ben.getByRole("radio", { name: "Systems and data" }).isDisabled()), "phones open");
       await contexts[1].setOffline(true);
-      await ben.getByRole("radio", { name: "Systems and data" }).click(); await ben.getByRole("button", { name: "Change my answer" }).click();
+      await ben.getByRole("radio", { name: "Systems and data" }).click();
       await until(async () => (await ben.locator(".ph-note").innerText()).includes("Saved on this phone"), "saved on this phone", 8000);
       await shot(ben, "int-04-offline-phone");
       await contexts[1].setOffline(false);
@@ -228,15 +228,15 @@ async function main() {
       await live(any);
       await until(async () => await ruth.getByRole("checkbox").count() === 5, "checkboxes on the phone", 10000);
       for (const name of ["Worship", "Care and prayer", "Groups"]) await ruth.getByRole("checkbox", { name }).click();
-      await ruth.getByRole("button", { name: "Send" }).click();
-      await ben.getByRole("checkbox", { name: "Worship" }).click(); await ben.getByRole("button", { name: "Send" }).click();
+
+      await ben.getByRole("checkbox", { name: "Worship" }).click();
       await tally(2); await matches(choiceText, "pick any");
       assert.equal([...await tvRows()].sort((a, b) => a.y - b.y)[0].value, "2 · 100%");
       await shot(tv, "int-04-pick-any-tv"); await shot(ruth, "int-04-pick-any-phone");
     });
     await step("INT-04 very long text: labels wrap to two lines then end, never below the floor; the phone shows all of it", async () => {
       await live(long);
-      await ruth.getByRole("radio").first().click(); await ruth.getByRole("button", { name: "Send" }).click();
+      await ruth.getByRole("radio").first().click();
       await tally(1);
       const rows = await tvRows(), floor = await layer().locator(".tv-bars").evaluate(el => parseFloat(getComputedStyle(el).fontSize));
       assert.ok(floor >= 36, "labels at the floor or larger");
@@ -285,8 +285,8 @@ async function main() {
       for (const name of ["Systems and data", "Reaching new people", "Next generation"]) await ruth.getByRole("button", { name, exact: true }).click();
       await ruth.getByRole("button", { name: "Move Next generation up" }).click();
       await shot(ruth, "int-06-partial-phone");
-      await ruth.getByRole("button", { name: "Send my order" }).click();
-      await ben.getByRole("button", { name: "Next generation", exact: true }).click(); await ben.getByRole("button", { name: "Send my order" }).click();
+
+      await ben.getByRole("button", { name: "Next generation", exact: true }).click();
       await tally(2);
       await matches((b, people) => people && b.average != null ? `avg ${Number(b.average).toFixed(1)}` : "No rankings yet", "the room's order by average place");
       const order = [...await tvRows()].sort((a, b) => a.y - b.y);
@@ -353,19 +353,19 @@ async function main() {
       const values = await ruth.locator(".ph-fader-n").allInnerTexts();
       assert.equal(values.map(Number).reduce((a, b) => a + b, 0), 100, "the budget holds while dragging");
       assert.ok(Number(values[2]) >= 45 && Number(values[0]) < 40 && Number(values[1]) < 30, `the others slide back in proportion: ${values}`);
-      await ruth.getByRole("button", { name: "Send" }).click();
+
       await fader(ben, "Second campus").focus(); await ben.keyboard.press("End");
-      await ben.getByRole("button", { name: "Send" }).click();
+
       await fader(grace, "Next generation").focus(); await grace.keyboard.press("End");
-      assert.equal(await grace.getByRole("button", { name: "Send" }).isEnabled(), true);
-      await grace.getByRole("button", { name: "Send" }).click();
+      assert.equal(await grace.getByRole("button", { name: "Send", exact: true }).count(), 0);
+
       await tally(3);
       await matches(b => `${b.share}%`, "shares of the room's points");
       await unclipped("100 points");
       await shot(tv, "int-07-typical-tv"); await shot(ben, "int-07-typical-phone");
       // Points move until close: the bars and the cut line move as one.
-      await fader(mateo, "Systems and data").focus(); await mateo.keyboard.press("End"); await mateo.getByRole("button", { name: "Send" }).click();
-      await fader(ben, "Systems and data").focus(); await ben.keyboard.press("End"); await ben.getByRole("button", { name: "Send my change" }).click();
+      await fader(mateo, "Systems and data").focus(); await mateo.keyboard.press("End");
+      await fader(ben, "Systems and data").focus(); await ben.keyboard.press("End");
       await tally(4); await matches(b => `${b.share}%`, "points still moving");
       await smooth("points");
       await shot(tv, "int-07-moving-tv");
@@ -407,7 +407,7 @@ async function main() {
       await live(choice);
       await until(async () => !(await grace.getByRole("radio", { name: "Systems and data" }).isDisabled()), "the step gone back to takes answers", 10000);
       await tv.evaluate(() => { (window as unknown as { __bars: unknown[] }).__bars.length = 0; });
-      await grace.getByRole("radio", { name: "Systems and data" }).click(); await grace.getByRole("button", { name: "Change my answer" }).click();
+      await grace.getByRole("radio", { name: "Systems and data" }).click();
       await matches(choiceText, "reduced motion");
       const log = await tv.evaluate(() => (window as unknown as { __bars: Sample[] }).__bars.slice()) as Sample[];
       const ys = new Map<string, Set<number>>();

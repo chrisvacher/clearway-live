@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Check, Info, WifiOff } from "lucide-react";
+import { useAutoSend } from "@/components/interactions/use-auto-send";
 import type { PhoneInputProps } from "@/components/interactions/phone-inputs";
 import { clamp01, gridAnswer, gridColor, gridOf, nextOpen, placesOf, type Places } from "@/lib/interactions/grid-form-sign";
 import { ReasonAdd } from "@/components/interactions/goals/reason-add";
@@ -18,7 +19,7 @@ function pinAt(el: HTMLElement | null, p: [number, number] | undefined) {
 }
 // One input per step: moving to another grid starts fresh.
 export function GridInput(props: PhoneInputProps) { return <GridStep key={props.step.id} {...props} />; }
-function GridStep({ step, mine, open, engagement, send, change }: PhoneInputProps) {
+function GridStep({ step, mine, open, engagement, send }: PhoneInputProps) {
   const grid = gridOf(step.options), items = grid.items;
   const own = mine[0] ?? null;
   const [places, setPlaces] = useState<Places>(() => placesOf(own?.value));
@@ -30,11 +31,12 @@ function GridStep({ step, mine, open, engagement, send, change }: PhoneInputProp
   useEffect(() => { if (serverPlaces !== null && !dragging.current) setPlaces(JSON.parse(serverPlaces)); }, [serverPlaces]);
   const label = (key: string | null) => items.find(i => i.key === key);
   const numOf = (key: string) => items.findIndex(i => i.key === key) + 1;
-  const commit = (next: Places) => {
+  const auto = useAutoSend(places, (next: Places) => {
     const answer = gridAnswer(next, items);
     if (!Object.keys(answer.value.places).length) return;
-    if (own) change(own.id, answer); else send(answer);
-  };
+    send(answer);
+  }, open);
+  const commit = (next: Places) => auto.schedule(next);
   const at = (e: PointerEvent): [number, number] => {
     const r = plot.current!.getBoundingClientRect();
     return [clamp01(((e.clientX - r.left) / r.width - 0.08) / 0.84), clamp01(1 - ((e.clientY - r.top) / r.height - 0.08) / 0.84)];
@@ -46,7 +48,7 @@ function GridStep({ step, mine, open, engagement, send, change }: PhoneInputProp
     if (!key) return;
     e.preventDefault();
     plot.current!.setPointerCapture(e.pointerId);
-    dragging.current = { key, fresh: !places[key] };
+    auto.cancel(); dragging.current = { key, fresh: !places[key] };
     setSelected(key); setPlaces(p => ({ ...p, [key]: at(e) }));
   }
   function move(e: PointerEvent<HTMLDivElement>) {

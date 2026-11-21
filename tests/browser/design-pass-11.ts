@@ -2,11 +2,13 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { chromium, type Browser, type Page } from "playwright";
+import { testAutoSend } from "./auto-send";
 import { testPass11ScaleBeforeAfter } from "./pass11-scale-before-after";
 import { joinPhones } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
 
 async function main() {
+  if (process.env.KIT_AUTO_SEND === "1") await testAutoSend();
   const env = localEnv(), sql = db(env), app = await startApp(env);
   let browser: Browser | undefined;
   const shot = async (page: Page, name: string) => {
@@ -118,6 +120,27 @@ async function main() {
         assert.ok(rows.every(bottom => bottom <= 864), "Q&A rows stay above the join frame");
         await shot(tv, `${name}-frame-qa`);
         if (process.env.KIT_SCALE === "1") await testPass11ScaleBeforeAfter({ sql, room, fac, origin, tv, name, shot, beforeAfter: false });
+        if (process.env.KIT_AUTO_SEND === "1") {
+          const choice = await room.session("Choose offline", "choice", "What should we do first?", 4);
+          await sql.query("update public.sessions set options=private.session_options('choice',$2::jsonb,engagement_id) where id=$1", [choice,
+            JSON.stringify({ multiple: true, items: [{ key: "a", text: "Start with a question" }, { key: "b", text: "Make a plan" }] })]);
+          await press(fac, sql, room.id, "go_live", { session: choice });
+          const first = phone.getByRole("checkbox", { name: "Start with a question" }), second = phone.getByRole("checkbox", { name: "Make a plan" });
+          await first.waitFor();
+          const posts: unknown[] = [];
+          phone.on("request", request => { if (request.method() === "POST" && request.url().endsWith(`/api/live/${room.id}`)) posts.push(request.postDataJSON()); });
+          await phoneContext.setOffline(true);
+          await first.click();
+          await phone.getByText(/Saved on this phone/).waitFor();
+          await second.click(); await first.click();
+          await new Promise(resolve => setTimeout(resolve, 650));
+          assert.equal(posts.length, 0);
+          await phoneContext.setOffline(false);
+          await phone.getByText("Sent. Tap another to change it.").waitFor();
+          assert.equal(posts.length, 1);
+          assert.deepEqual((posts[0] as { value: unknown }).value, { choices: ["b"] });
+          await shot(phone, `${name}-offline-selection-sent`);
+        }
         await phoneContext.close(); await tvContext.close(); await context.close();
         console.log(`ok · ${name} · visibility, private results and join frame`);
       }

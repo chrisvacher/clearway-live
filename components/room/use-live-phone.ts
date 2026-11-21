@@ -72,7 +72,7 @@ export function useLivePhone(engagement: string) {
       if (response.status >= 500 || response.status === 403) throw new Error("retry");
       return await response.json() as { status: string };
     }, setEntries, (request, reason) => {
-      if (!reason) setSettledAnswers(list => [...list.filter(a => a.id !== request.id), { id: request.id, session_id: request.session, text: request.text, revision: request.revision, withdrawn: request.action === "withdraw", settledAt: Date.now() }]);
+      if (!reason) setSettledAnswers(list => [...list.filter(a => a.id !== request.id), { id: request.id, session_id: request.session, text: request.text, value: request.value, revision: request.revision, withdrawn: request.action === "withdraw", settledAt: Date.now() }]);
       loadRoom.current();
     }, browserStore, () => navigator.onLine);
     outbox.current = box; setEntries(box.entries); box.kick();
@@ -92,8 +92,19 @@ export function useLivePhone(engagement: string) {
   useEffect(() => { if (shape) loadRoom.current(); }, [shape]);
 
   const submit = useCallback((request: Omit<SubmissionRequest, "sentAt" | "uncertaintyMs">) => {
-    outbox.current?.add({ ...request, sentAt: new Date(Date.now() + clock.current.offsetMs).toISOString(), uncertaintyMs: Math.min(60000, clock.current.uncertaintyMs) });
-  }, []);
+    const step = [...(room?.sessions ?? []), ...(room?.self_paced ?? [])].find(s => s.id === request.session);
+    const replaceSelection = Boolean(step && ["choice", "scale", "ranking", "points", "statements", "grid", "before_after"].includes(step.interaction));
+    if (replaceSelection && request.action === "withdraw" && outbox.current) {
+      // Clearing a pick-any or ranking also clears queued replacements. Withdraw
+      // the answer the server knows, rather than an offline submission never sent.
+      const active = outbox.current.entries.find(e => e.state === "sending" && e.request.session === request.session && e.request.action === "submit")?.request;
+      const known = [...(room?.answers ?? []), ...settledAnswers].filter(a => a.session_id === request.session && !a.withdrawn && !a.replaced).at(-1);
+      outbox.current.discardSavedSelections(request.session);
+      if (!active && !known) return;
+      request = { ...request, id: active?.id ?? known!.id, revision: (active?.revision ?? known!.revision) + 1 };
+    }
+    outbox.current?.add({ ...request, sentAt: new Date(Date.now() + clock.current.offsetMs).toISOString(), uncertaintyMs: Math.min(60000, clock.current.uncertaintyMs) }, replaceSelection);
+  }, [room, settledAnswers]);
   const dismiss = useCallback((id: string, revision: number) => outbox.current?.dismiss(id, revision), []);
   const answers = room ? [...room.answers.filter(a => !settledAnswers.some(s => s.id === a.id && s.revision > a.revision)), ...settledAnswers.filter(s => !room.answers.some(a => a.id === s.id && a.revision >= s.revision))] : settledAnswers;
   // Read the phone's own view again now (a self-paced session just opened or closed).
