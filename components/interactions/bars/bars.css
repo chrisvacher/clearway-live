@@ -52,29 +52,40 @@
    TV's own theme there too (live_tokens.css redefines the text colors for it, not these). */
 [data-theme="light"] [data-surface="tv"][data-theme="dark"] { --cwl-bar-track: var(--cwl-bar-track-ink); --cwl-bar-label: var(--cw-off-white); --cwl-cut-line: var(--cw-off-white); }
 
-/* ---------- TV: the scale ---------- */
-.tv-scale { margin-bottom: calc(24px * var(--cwl-tv-scale)); display: grid; grid-template-columns: min(calc(520px * var(--cwl-tv-scale)), 34%) minmax(0, 1fr); gap: calc(72px * var(--cwl-tv-scale)); align-items: stretch; }
-.tv-scale-average { display: flex; flex-direction: column; justify-content: center; gap: var(--space-4); min-width: 0; }
-.tv-scale-number { align-self: flex-start; font-size: calc(var(--cwl-fs-tv-display) * 1.25); font-weight: var(--fw-bold); line-height: 1; letter-spacing: -0.03em; color: var(--cwl-callout); font-variant-numeric: tabular-nums; }
-[data-surface="tv"][data-theme="light"] .tv-scale-number { color: var(--cwl-on-callout); background: var(--cwl-callout); border-radius: var(--cwl-radius-tv-card); padding: 0 0.15em; }
-.tv-stage:has(.tv-spot.is-on) .tv-scale-number { color: var(--cwl-text); background: none; }
-.tv-scale-of { font-size: var(--cwl-fs-tv-main); font-weight: var(--fw-semibold); color: var(--cwl-text); }
-.tv-scale-none { font-size: var(--cwl-fs-tv-headline); font-weight: var(--fw-light); color: var(--cwl-text-muted); }
-.tv-scale-chart { position: relative; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
-.tv-scale-cols { position: relative; flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: calc(20px * var(--cwl-tv-scale)); align-items: end; border-bottom: 4px solid var(--cwl-cut-line); font-size: var(--cwl-fs-tv-floor); }
-.tv-col { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
-.tv-col-fill { display: block; height: 0; background: var(--cwl-bar); border-radius: var(--cwl-radius-card) var(--cwl-radius-card) 0 0; will-change: height; }
-.tv-col-count { position: absolute; left: 0; right: 0; bottom: 0.2em; text-align: center; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); color: var(--cwl-text); font-variant-numeric: tabular-nums; will-change: transform; }
-.tv-scale-marker { position: absolute; top: 0; bottom: -8px; left: 0; width: 0; will-change: transform; pointer-events: none; transition: opacity var(--cwl-dur-arrive) var(--cwl-ease-signature); }
-.tv-scale-marker::before { content: ""; position: absolute; top: 1.6em; bottom: 0; left: -3px; width: 6px; border-radius: 3px; background: var(--cwl-cut-line); }
-.tv-scale-marker span { position: absolute; top: 0; left: 0; transform: translateX(-50%); white-space: nowrap; font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-bold); line-height: 1.3;
-  color: var(--cwl-surface); background: var(--cwl-cut-line); border-radius: var(--cwl-radius-marker); padding: 0 0.45em; font-variant-numeric: tabular-nums; }
-.tv-scale-marker.is-off { opacity: 0; }
-.tv-scale-axis { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: calc(20px * var(--cwl-tv-scale)); padding-top: var(--space-3); }
-.tv-scale-axis span { text-align: center; font-size: var(--cwl-fs-tv-body); font-weight: var(--fw-bold); color: var(--cwl-text); font-variant-numeric: tabular-nums; }
-.tv-scale-ends { display: flex; justify-content: space-between; gap: var(--space-8); padding-top: var(--space-2); font-size: var(--cwl-fs-tv-floor); font-weight: var(--fw-semibold); line-height: 1.2; color: var(--cwl-text-muted); }
+/* ---------- TV: one scale track, one dot per answer ---------- */
+.tv-stage .tv-layer[data-kind="scale"]:not([data-private="true"]) > .tv-headline { padding-inline-end: 480px; font-size: min(72px, var(--cwl-fs-tv-headline)); font-weight: 700; }
+.tv-layer[data-kind="scale"]:not([data-private="true"]) > .tv-inplace-head { padding-right: 480px; }
+.tv-scale { overflow: visible; min-height: 180px; margin: 0 24px 24px; display: flex; }
+.tv-scale-average { position: absolute; right: -24px; bottom: calc(100% + 32px); display: flex; align-items: center; gap: 24px; max-width: 460px; }
+.tv-scale-number { color: var(--cwl-text); background: none; font-size: 132px; font-weight: 800; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tv-scale.has-nps .tv-scale-number { font-size: 112px; }
+.tv-scale-of { font-size: 44px; max-width: 180px; font-weight: 500; line-height: 1.25; color: var(--cwl-text-muted); }
+.tv-scale-none { font-size: var(--cwl-fs-tv-floor); color: var(--cwl-text-muted); }
+.tv-scale-chart { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+.tv-scale-plot { position: relative; flex: 1; min-height: 0; font-size: var(--cwl-fs-tv-floor); }
+.tv-scale-dot { position: absolute; top: 0; left: 0; border-radius: 50%; background: var(--cwl-bar); will-change: transform; transition: background var(--cwl-dur-arrive), opacity var(--cwl-dur-hide); animation: scale-dot-arrive var(--cwl-dur-arrive) var(--cwl-ease-arrive); }
+.tv-scale-dot.is-new { background: var(--cwl-live); }
+.tv-scale-dot.is-leaving { opacity: 0; }
+@keyframes scale-dot-arrive { from { opacity: 0; scale: .8; } to { opacity: 1; scale: 1; } }
+.tv-scale-average-line { position: absolute; top: 0; bottom: -8px; width: 0; border-left: 4px dashed var(--cwl-callout); pointer-events: none; }
+.tv-scale-track { position: relative; height: 16px; flex: 0 0 16px; border-radius: 999px; background: var(--cwl-bar-track); }
+.tv-scale-track i { position: absolute; top: 50%; width: 28px; height: 28px; transform: translate(-50%, -50%); border-radius: 50%; background: var(--cwl-surface); box-shadow: inset 0 0 0 4px var(--cwl-border-strong); }
+.tv-scale-axis { position: relative; height: 88px; flex: 0 0 88px; }
+.tv-scale-axis span { position: absolute; top: 16px; transform: translateX(-50%); white-space: nowrap; font-size: max(54px, var(--cwl-fs-tv-floor)); font-weight: 700; color: var(--cwl-text); font-variant-numeric: tabular-nums; }
+.tv-scale-ends { display: flex; justify-content: space-between; gap: 32px; font-size: max(38px, var(--cwl-fs-tv-floor)); line-height: 1.2; color: var(--cwl-text-muted); }
+.tv-scale-ends span { max-width: 48%; overflow-wrap: anywhere; }
 .tv-scale-ends span:last-child { text-align: right; }
-[data-motion="reduced"] .tv-scale-marker { transition-duration: var(--cwl-dur-reduced); }
+.tv-scale-bands { position: absolute; inset: 0 -5.55% -8px; display: flex; pointer-events: none; }
+.tv-scale-bands > div { display: flex; align-items: baseline; justify-content: center; gap: 16px; flex: 6; padding-top: 24px; text-align: center; background: color-mix(in srgb, var(--cwl-text) 3%, transparent); border-radius: var(--cwl-radius-card); color: var(--cwl-text-muted); font-size: 38px; }
+.tv-scale-band b { font-size: 56px; font-weight: 800; color: var(--cwl-text); }
+.tv-scale-bands > div:nth-child(2) { flex: 2; background: color-mix(in srgb, var(--cwl-text) 7%, transparent); }
+.tv-scale-bands > div:nth-child(3) { flex: 2; background: color-mix(in srgb, var(--cwl-text) 13%, transparent); }
+.tv-scale-bands b { color: var(--cwl-text); font-size: 56px; font-weight: 800; margin-right: 12px; }
+.tv-scale-count-columns { position: absolute; inset: 0; }
+.tv-scale-count-columns > div { position: absolute; bottom: 16px; width: 76px; background: var(--cwl-bar); transform: translateX(-50%); border-radius: var(--cwl-radius-card) var(--cwl-radius-card) 0 0; transition: height var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+.tv-scale-count-columns b { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); color: var(--cwl-text); font-size: var(--cwl-fs-tv-floor); font-style: normal; }
+[data-motion="reduced"] .tv-scale-dot, [data-motion="reduced"] .tv-scale-count-columns > div { animation: none; transition: none; }
+@media (prefers-reduced-motion: reduce) { .tv-scale-dot, .tv-scale-count-columns > div { animation: none; transition: none; } }
 
 /* ---------- Phones ---------- */
 .ph-bars { display: flex; flex-direction: column; gap: 10px; }

@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { chromium, type Browser, type Page } from "playwright";
+import { testPass11ScaleBeforeAfter } from "./pass11-scale-before-after";
 import { joinPhones } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
 
@@ -116,6 +117,7 @@ async function main() {
         const rows = await tv.locator(".tv-layer:not(.is-leaving) .qa-row").evaluateAll(elements => elements.map(el => el.getBoundingClientRect().bottom));
         assert.ok(rows.every(bottom => bottom <= 864), "Q&A rows stay above the join frame");
         await shot(tv, `${name}-frame-qa`);
+        if (process.env.KIT_SCALE === "1") await testPass11ScaleBeforeAfter({ sql, room, fac, origin, tv, name, shot, beforeAfter: false });
         await phoneContext.close(); await tvContext.close(); await context.close();
         console.log(`ok · ${name} · visibility, private results and join frame`);
       }

@@ -2,6 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./bars.css";
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
+import { npsSummary, scaleDotLayout, signedScore, type ScaleDot } from "@/lib/interactions/scale";
 import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
 import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
@@ -181,78 +182,88 @@ export function LiveBars({ kind, session, frame, flow }: { kind: Exclude<BarKind
   </div>;
 }
 
-// INT-05: the average large, the spread as live columns beneath, and an average marker
-// that slides along the axis. Columns rise from where they are on cwl-dur-bar-grow; the
-// marker and the large number ride the same spring.
+// Every answer has a session-local opaque key, so moving a slider moves the same dot.
 export function LiveScale({ session, frame, flow }: { session: string; frame: LiveSnapshot | null; flow?: TvFlow | null }) {
-  const host = useRef<HTMLDivElement>(null), cols = useRef<HTMLDivElement>(null), raf = useRef(0), wake = useRef<() => void>(() => {});
+  const host = useRef<HTMLDivElement>(null), plot = useRef<HTMLDivElement>(null);
   const shown = useResults(session, frame, flow), results = shown?.state.results ?? null, scale = scaleOf(results);
-  const options = (shown?.session?.options ?? frame?.session?.options ?? {}) as { max?: number; low?: string; high?: string };
-  const max = scale?.max ?? options.max ?? 5, people = results?.people ?? 0;
-  const heights = useRef<Spring[]>([]), avg = useRef<Spring | null>(null);
-  const big = useRef<HTMLSpanElement>(null), chip = useRef<HTMLSpanElement>(null), marker = useRef<HTMLDivElement>(null);
-
+  const options = (shown?.session?.options ?? frame?.session?.options ?? {}) as { max?: number; low?: string; high?: string; nps?: boolean };
+  const max = scale?.max ?? options.max ?? 5, bands = max === 10 && options.nps === true;
+  const columns = scale?.columns ?? Array.from({ length: max }, (_, i) => ({ key: String(i + 1), value: i + 1, count: 0, fraction: 0 }));
+  const dots: ScaleDot[] = scale?.dots ?? columns.flatMap(c => Array.from({ length: c.count }, (_, i) => ({ key: `${c.value}-${i}`, value: c.value })));
+  const summary = scale?.nps ?? npsSummary(dots.map(d => d.value));
+  const [box, setBox] = useState({ width: 1600, height: 400, floor: 36 });
+  const motion = useRef(new Map<string, { x: Spring; y: Spring; el: HTMLSpanElement | null }>()), average = useRef<Spring | null>(null);
+  const marker = useRef<HTMLDivElement>(null), number = useRef<HTMLSpanElement>(null), raf = useRef(0), wake = useRef(() => {});
+  const [gone, setGone] = useState<ScaleDot[]>([]), previous = useRef<ScaleDot[]>([]);
+  const [newest, setNewest] = useState<string | null>(null);
+  const layout = scaleDotLayout(dots, max, box.width, box.height, box.floor, bands);
   useLayoutEffect(() => {
-    const el = host.current; if (!el) return;
-    const snap = reducedMotion(el);
-    while (heights.current.length < max) heights.current.push(spring(0));
-    heights.current.length = max;
-    (scale?.columns ?? []).forEach((c, i) => { const s = heights.current[i]; if (s) { s.t = c.fraction; if (snap) { s.x = s.t; s.v = 0; } } });
-    if (scale?.average != null) {
-      if (!avg.current || snap) avg.current = spring(scale.average); else avg.current.t = scale.average;
-    } else avg.current = null;
+    const el = plot.current; if (!el) return;
+    const read = () => { const floor = parseFloat(getComputedStyle(el).fontSize) || 36;
+      setBox(old => old.width === el.clientWidth && old.height === el.clientHeight && old.floor === floor ? old : { width: el.clientWidth, height: el.clientHeight, floor }); };
+    read(); const observer = new ResizeObserver(read); observer.observe(el); return () => observer.disconnect();
+  }, []);
+  useLayoutEffect(() => {
+    const last = previous.current, keys = new Set(dots.map(d => d.key));
+    const removed = last.filter(d => !keys.has(d.key));
+    previous.current = dots;
+    if (removed.length) setGone(old => [...old.filter(d => !keys.has(d.key)), ...removed]);
+    const arrival = dots.find(d => !last.some(p => p.key === d.key && p.value === d.value));
+    const avgX = scale?.average == null ? null : (scale.average - 1) * box.width / (max - 1);
+    // Sunrise's average line keeps its 48px quiet space. A nearby dot skips its live moment.
+    const safe = arrival && (bands || avgX === null || Math.abs((arrival.value - 1) * box.width / (max - 1) - avgX) >= 48 + layout.size / 2);
+    if (safe) setNewest(arrival.key);
+    const hold = host.current ? tokenMs(host.current, "cwl-dur-new-hold") : 1400;
+    const timer = setTimeout(() => setNewest(null), hold);
+    const hide = setTimeout(() => { setGone([]); removed.forEach(d => motion.current.delete(d.key)); }, host.current ? tokenMs(host.current, "cwl-dur-hide") : 400);
+    return () => { clearTimeout(timer); clearTimeout(hide); };
+  }, [results]); // eslint-disable-line react-hooks/exhaustive-deps
+  const dotMotion = (key: string, x: number, y: number) => {
+    let dot = motion.current.get(key);
+    if (!dot) { dot = { x: spring(x), y: spring(y), el: null }; motion.current.set(key, dot); }
+    return dot;
+  };
+  useLayoutEffect(() => {
+    layout.positions.forEach(p => { const d = dotMotion(p.key, p.x, p.y); d.x.t = p.x; d.y.t = p.y; });
+    if (scale?.average == null) average.current = null;
+    else if (!average.current) average.current = spring(scale.average);
+    else average.current.t = scale.average;
     wake.current();
-  }, [results, max]); // eslint-disable-line react-hooks/exhaustive-deps
-
+  }, [results, box, max]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const el = host.current; if (!el) return;
-    const grow = springRate(tokenMs(el, "cwl-dur-bar-grow") || 600);
-    let lastAt = performance.now(), text = "";
+    const rate = springRate(tokenMs(el, "cwl-dur-bar-trade") || 700); let at = performance.now();
     const paint = () => {
-      const box = cols.current; if (!box) return;
-      const items = box.querySelectorAll<HTMLElement>(".tv-col"), room = Math.max(0, box.clientHeight - (parseFloat(getComputedStyle(box).fontSize) || 36) * 2.2);
-      items.forEach((col, i) => {
-        const px = Math.max(0, heights.current[i]?.x ?? 0) * room;
-        (col.querySelector(".tv-col-fill") as HTMLElement).style.height = `${px.toFixed(2)}px`;
-        (col.querySelector(".tv-col-count") as HTMLElement).style.transform = `translateY(${(-px).toFixed(2)}px)`;
-      });
-      if (avg.current && marker.current && items.length) {
-        const w = box.clientWidth, gap = items.length > 1 ? (items[1].offsetLeft - items[0].offsetLeft - items[0].offsetWidth) : 0, cw = items[0].offsetWidth;
-        const x = (avg.current.x - 1) * (cw + gap) + cw / 2;
-        marker.current.style.transform = `translateX(${Math.max(0, Math.min(w, x)).toFixed(2)}px)`;
-        const t = avg.current.x.toFixed(1);
-        if (t !== text) { text = t; if (big.current) big.current.textContent = t; if (chip.current) chip.current.textContent = t; }
+      motion.current.forEach(d => { if (d.el) d.el.style.transform = `translate(${d.x.x.toFixed(2)}px, ${d.y.x.toFixed(2)}px) translate(-50%, -50%)`; });
+      if (average.current) {
+        if (marker.current && plot.current) marker.current.style.left = `${(average.current.x - 1) * plot.current.clientWidth / (max - 1)}px`;
+        if (number.current && !bands) number.current.textContent = average.current.x.toFixed(1);
       }
     };
     const tick = (now: number) => {
-      const dt = Math.min(0.05, Math.max(0, (now - lastAt) / 1000)); lastAt = now;
-      const snap = reducedMotion(el);
-      let done = true;
-      heights.current.forEach(s => { done = step(s, grow, dt, snap, 0.002) && done; });
-      if (avg.current) done = step(avg.current, grow, dt, snap, 0.002) && done;
-      paint();
-      raf.current = done || !el.isConnected ? 0 : requestAnimationFrame(tick);
+      const dt = Math.min(.05, Math.max(0, (now - at) / 1000)); at = now; let done = true; const snap = reducedMotion(el);
+      motion.current.forEach(d => { done = step(d.x, rate, dt, snap, .05) && done; done = step(d.y, rate, dt, snap, .05) && done; });
+      if (average.current) done = step(average.current, rate, dt, snap, .002) && done;
+      paint(); raf.current = done || !el.isConnected ? 0 : requestAnimationFrame(tick);
     };
-    wake.current = () => { if (!raf.current) { lastAt = performance.now(); raf.current = requestAnimationFrame(tick); } };
-    const observer = typeof ResizeObserver === "function" ? new ResizeObserver(() => paint()) : null;
-    if (cols.current) observer?.observe(cols.current);
-    wake.current();
-    return () => { cancelAnimationFrame(raf.current); raf.current = 0; wake.current = () => {}; observer?.disconnect(); };
-  }, []);
-
-  const columns = scale?.columns ?? Array.from({ length: max }, (_, i) => ({ key: String(i + 1), value: i + 1, count: 0, fraction: 0 }));
-  const has = scale?.average != null;
-  return <div ref={host} className="tv-board tv-scale" data-empty={String(!people)} data-kind="scale">
-    <div className="tv-scale-average" aria-live="off">
-      {has ? <><span ref={big} className="tv-scale-number">{scale!.average!.toFixed(1)}</span><span className="tv-scale-of">average of {people}</span></>
-        : <span className="tv-scale-none">No average yet</span>}
-    </div>
+    wake.current = () => { paint(); if (!raf.current) { at = performance.now(); raf.current = requestAnimationFrame(tick); } }; wake.current();
+    return () => { cancelAnimationFrame(raf.current); raf.current = 0; wake.current = () => {}; };
+  }, [max, bands]);
+  const has = scale?.average != null, total = columns.reduce((n, c) => n + c.count, 0);
+  return <div ref={host} className={`tv-board tv-scale${bands ? " has-nps" : ""}`} data-empty={String(!total)} data-kind="scale" data-layout={layout.columns ? "columns" : "dots"}>
+    <div className="tv-scale-average" aria-live="off">{has ? <><span ref={bands ? undefined : number} className="tv-scale-number">{bands ? signedScore(summary.score ?? 0) : scale.average!.toFixed(1)}</span><span className="tv-scale-of">{bands ? <>NPS-style<br />score</> : <>average of {total}</>}</span></> : <span className="tv-scale-none">No answers yet</span>}</div>
     <div className="tv-scale-chart">
-      <div ref={cols} className="tv-scale-cols">
-        {columns.map(c => <div key={c.key} className="tv-col" data-value={c.value}><span className="tv-col-fill" /><b className="tv-col-count">{c.count}</b></div>)}
-        <div ref={marker} className={`tv-scale-marker${has ? "" : " is-off"}`} aria-hidden="true"><span ref={chip}>{has ? scale!.average!.toFixed(1) : ""}</span></div>
+      <div ref={plot} className="tv-scale-plot">
+        {bands && <div className="tv-scale-bands">{[{ count: summary.low, label: "1 to 6", width: 6 }, { count: summary.middle, label: "7 or 8", width: 2 }, { count: summary.high, label: "9 or 10", width: 2 }].map((band, i) => <div key={band.label} className={`tv-scale-band is-band-${i}`}><b>{band.count}</b><span>{band.label}</span></div>)}</div>}
+        {layout.columns ? <div className="tv-scale-count-columns">{columns.map(c => <div key={c.key} ref={el => { if (el) { el.style.left = `${(c.value - 1) * 100 / (max - 1)}%`; el.style.height = `${c.fraction * Math.max(0, box.height - (bands ? 150 : 60))}px`; } }}><b>{c.count}</b></div>)}</div>
+          : [...layout.positions, ...gone.filter(d => !dots.some(p => p.key === d.key)).map(d => ({ ...d, x: motion.current.get(d.key)?.x.x ?? 0, y: motion.current.get(d.key)?.y.x ?? 0 }))].map(d => {
+            const leaving = gone.some(g => g.key === d.key) && !dots.some(g => g.key === d.key);
+            return <span key={d.key} data-dot={d.key} data-value={d.value} className={`tv-scale-dot${leaving ? " is-leaving" : ""}${newest === d.key ? " is-new" : ""}`} ref={el => { if (el) { el.style.width = `${layout.size}px`; el.style.height = `${layout.size}px`; } const m = dotMotion(d.key, d.x, d.y); m.el = el; if (el) el.style.transform = `translate(${m.x.x}px, ${m.y.x}px) translate(-50%, -50%)`; }} />;
+          })}
+        {!bands && has && <div ref={marker} className="tv-scale-average-line tv-scale-marker" aria-hidden="true" />}
       </div>
-      <div className="tv-scale-axis">{columns.map(c => <span key={c.key}>{c.value}</span>)}</div>
+      <div className="tv-scale-track">{columns.map(c => <i key={c.key} className="tv-col" ref={el => { if (el) el.style.left = `${(c.value - 1) * 100 / (max - 1)}%`; }}><b className="tv-col-count sr-only">{c.count}</b></i>)}</div>
+      <div className="tv-scale-axis">{columns.map(c => <span key={c.key} ref={el => { if (el) el.style.left = `${(c.value - 1) * 100 / (max - 1)}%`; }}>{c.value}</span>)}</div>
       <div className="tv-scale-ends"><span>1 · {options.low ?? "Not at all"}</span><span>{max} · {options.high ?? "Completely"}</span></div>
     </div>
   </div>;

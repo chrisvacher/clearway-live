@@ -12,6 +12,8 @@ import { windowLabel } from "@/lib/run-of-show/self-paced";
 import { type ShowContext } from "@/lib/run-of-show/types";
 import type { LiveSnapshot } from "@/lib/live/types";
 import { WorkshopSummary } from "./workshop-summary";
+import { scaleOf } from "@/lib/interactions/bars";
+import { signedScore } from "@/lib/interactions/scale";
 import { PrivateTag } from "@/components/interactions/private-tag";
 import "./self-paced.css";
 
@@ -27,6 +29,10 @@ const Card = memo(function Card({ entry, frame, engagement, zone, now }: { entry
     <PrivateTag step={s} />
     {s.prompt && <p className="recap-prompt">{s.prompt}</p>}
     <TvMirror frame={frame} label={`Results for ${s.title}`} />
+    {s.interaction === "scale" && s.options?.nps === true && (() => {
+      const scale = scaleOf(entry.results), nps = scale?.nps;
+      return nps ? <p className="recap-prompt">Average {scale?.average?.toFixed(1) ?? "No answers yet"} · NPS-style score {nps.score == null ? "No answers yet" : signedScore(nps.score)} · 1 to 6: {nps.low} · 7 or 8: {nps.middle} · 9 or 10: {nps.high}</p> : null;
+    })()}
     {s.interaction === "lens" && !lensOptions(s.options).seed && lensOf(entry.results).seeded.length > 0 && <p className="recap-prompt">The count is this step&rsquo;s own answers. Seeded sentences are counted in the seeding step&rsquo;s CSV.</p>}
     <div className="recap-meta"><span className="recap-count" aria-live="polite">{recapCount(entry)}</span>
       <Button variant="quiet" size="small" href={`/api/control/${engagement}/export?session=${s.id}`} download aria-label="Download CSV">CSV</Button></div>

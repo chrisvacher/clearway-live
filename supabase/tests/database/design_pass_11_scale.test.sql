@@ -1,0 +1,11 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select plan(5);
+select is(private.bar_options_scale('{"max":10,"nps":true}'::jsonb)->>'nps','true','NPS bands are accepted for 1 to 10');
+select is(private.bar_options_scale('{"max":5,"nps":true}'::jsonb),null::jsonb,'NPS bands refuse other ranges');
+select is(private.bar_options_scale('{"max":10,"nps":"yes"}'::jsonb),null::jsonb,'NPS bands require a boolean');
+select is(private.bar_options_scale('{"max":10,"surprise":true}'::jsonb),null::jsonb,'Scale options still refuse unknown keys');
+select is(private.bar_options_scale('{"max":5}'::jsonb)->>'nps','false','NPS bands default off');
+select * from finish();
+rollback;

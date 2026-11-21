@@ -1,4 +1,5 @@
 "use client";
+import { signedScore } from "@/lib/interactions/scale";
 import { useLayoutEffect, useRef } from "react";
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
 import { springRate, springStep } from "@/lib/tv/motion";
@@ -34,7 +35,10 @@ function ScaleResults({ items, options, compact }: { items: ControlItem[]; optio
   const num = columns.reduce((acc, count) => acc + count, 0);
   const avg = num ? columns.reduce((acc, count, i) => acc + (i + 1) * count, 0) / num : null;
   const highest = Math.max(1, ...columns);
+  const low = columns.slice(0, 6).reduce((a, b) => a + b, 0), middle = columns.slice(6, 8).reduce((a, b) => a + b, 0), high = columns.slice(8).reduce((a, b) => a + b, 0);
+  const score = num ? Math.sign(high - low) * Math.round(Math.abs(high - low) * 100 / num) || 0 : null;
   return <div className="ctl-private-scale">
+    {max === 10 && options?.nps === true && <p>NPS-style score {score === null ? "No answers yet" : signedScore(score)} · 1 to 6: {low} · 7 or 8: {middle} · 9 or 10: {high}</p>}
     <div className="ctl-private-average"><Average value={avg} /><span>average of {num} {num === 1 ? "answer" : "answers"}</span></div>
     {!compact && <><ol className="ctl-private-columns" ref={el => { if (el) el.style.gridTemplateColumns = `repeat(${max}, minmax(0, 1fr))`; }}>
       {columns.map((count, i) => <li key={i}><span>{count}</span><div ref={el => { if (el) el.style.height = `${Math.max(3, count / highest * 120)}px`; }} /><b>{i + 1}</b></li>)}

@@ -65,10 +65,11 @@ export function ScaleOptions({ value, locked, onChange }: OptionsEditorProps) {
   const set = (patch: Record<string, unknown>) => { const next = { ...value, ...patch }; delete next.items; onChange(next); };
   const max = typeof value.max === "number" ? value.max : 5;
   return <>
-    <label htmlFor="scale-max">Range<select id="scale-max" value={max} disabled={locked} onChange={e => set({ max: Number(e.target.value) })}>
+    <label htmlFor="scale-max">Range<select id="scale-max" value={max} disabled={locked} onChange={e => set({ max: Number(e.target.value), ...(Number(e.target.value) !== 10 ? { nps: false } : {}) })}>
       {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>1 to {n}{n > 7 ? ", a slider on phones" : ""}</option>)}</select></label>
     <span className="show-help bars-end">Up to seven numbers show as buttons on phones.</span>
     {ends(value, set, locked, "Not at all", "Completely", "scale")}
+    {max === 10 && check("scale-nps", "Show NPS-style bands", value.nps === true, locked, nps => set({ nps }))}
   </>;
 }
 // INT-06

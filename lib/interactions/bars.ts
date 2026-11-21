@@ -12,7 +12,7 @@ export type OptionItem = { key: string; text: string };
 // One bar as the server sends it, in display order. Each kind adds its own numbers.
 export type Bar = { key: string; text: string; place: number; fraction: number; leader: boolean;
   count?: number; percent?: number; ranked?: number; average?: number | null; points?: number; share?: number; agree?: number };
-export type ScaleResults = { max: number; average: number | null; low: number | null; high: number | null; columns: { key: string; value: number; count: number; fraction: number }[] };
+export type ScaleResults = { dots?: import("./scale").ScaleDot[]; nps?: import("./scale").NpsSummary; max: number; average: number | null; low: number | null; high: number | null; columns: { key: string; value: number; count: number; fraction: number }[] };
 
 export function optionItems(options: unknown): OptionItem[] {
   const items = options && typeof options === "object" && Array.isArray((options as { items?: unknown }).items) ? (options as { items: unknown[] }).items : [];

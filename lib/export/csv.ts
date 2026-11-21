@@ -3,6 +3,7 @@
 // as names, never strokes. This only lays the rows out, one column per option, statement,
 // item or question so a spreadsheet can sort and total them.
 import type { InteractionKind } from "../interactions/kinds";
+import { npsSummary, signedScore } from "../interactions/scale";
 import { isPrivateStep } from "../interactions/visibility";
 
 export type ExportRow = { id: string; at: string; name?: string | null; text: string; value?: Record<string, unknown> | null; hidden: boolean; test: boolean;
@@ -53,7 +54,13 @@ function kindColumns(data: SessionExport): { header: string[]; cells: (row: Expo
       return { header: ["Answer", ...list.map(i => i.text)], cells: r => { const picks = Array.isArray(record(r.value).choices) ? record(r.value).choices as string[] : [];
         return [r.text, ...list.map(i => picks.includes(i.key) ? 1 : "")]; } };
     }
-    case "scale": return { header: ["Value"], cells: r => [record(r.value).value ?? r.text] };
+    case "scale": {
+      if (o.max !== 10 || o.nps !== true) return { header: ["Value"], cells: r => [record(r.value).value ?? r.text] };
+      const values = data.rows.filter(r => !r.hidden).map(r => Number(record(r.value).value)).filter(Number.isFinite);
+      const summary = npsSummary(values), average = values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1) : "";
+      return { header: ["Value", "Room average", "NPS-style score", "1 to 6 count", "7 or 8 count", "9 or 10 count"],
+        cells: r => [record(r.value).value ?? r.text, average, summary.score == null ? "" : signedScore(summary.score), summary.low, summary.middle, summary.high] };
+    }
     case "ranking": {
       const list = items(o);
       return { header: ["Ranking", ...list.map(i => `Place: ${i.text}`)], cells: r => { const order = Array.isArray(record(r.value).order) ? record(r.value).order as string[] : [];
