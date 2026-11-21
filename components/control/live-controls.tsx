@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, MonitorSmartphone, MonitorOff, House, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleCheck, EyeOff, Eye, PanelBottom, QrCode, MonitorSmartphone, MonitorOff, House, Plus, RefreshCw, RotateCcw, Smartphone, Square, Sun, SunDim, Timer, TriangleAlert, Info, X } from "lucide-react";
 import { PrivateTag } from "@/components/interactions/private-tag";
 import { isPrivateStep } from "@/lib/interactions/visibility";
 import { fillYears } from "@/lib/run-of-show/policy";
@@ -143,8 +143,14 @@ export function LiveControls({ room, variant, onItems, onRoomSize, flashing, onG
       {input && !readOnly && !burst && (down
         ? <button className={btn} disabled={busy} onClick={() => void press("open_phones")}><Smartphone size={18} aria-hidden="true" />Open phones</button>
         : <button className={btn} disabled={busy} onClick={() => void press("phones_down")}><Smartphone size={18} aria-hidden="true" />Phones down</button>)}
-      <button className={btn} disabled={busy || !frame?.state.live_session_id} onClick={() => void press("nothing_live")}><House size={18} aria-hidden="true" />Home</button>
+      {variant !== "remote" && <button className={btn} disabled={busy || !frame?.state.live_session_id} onClick={() => void press("nothing_live")}><House size={18} aria-hidden="true" />Home</button>}
     </div>
+    {variant === "remote" && <><div className="ctl-grid ctl-remote-screens" role="group" aria-label="TV screen">
+      <button className={btn} disabled={busy} aria-pressed={frame?.state.tv_content === "blackout"} onClick={() => void press("tv_screen", { screen: "blackout" })}><Square size={18} aria-hidden="true" />Blackout</button>
+      <button className={btn} disabled={busy} aria-pressed={frame?.state.tv_content === "join"} onClick={() => void press("tv_screen", { screen: "join" })}><QrCode size={18} aria-hidden="true" />Join</button>
+      <button className={btn} disabled={busy} aria-pressed={Boolean(frame?.state.join_frame)} onClick={() => void press("join_frame", { on: !frame?.state.join_frame })}><PanelBottom size={18} aria-hidden="true" />{frame?.state.join_frame ? "Frame on" : "Frame"}</button>
+      <button className={btn} disabled={busy} aria-pressed={frame?.state.tv_content === "holding"} onClick={() => void press("tv_screen", { screen: "holding" })}><House size={18} aria-hidden="true" />Home</button>
+    </div><p className="show-help">Frame keeps the join link and QR code along the bottom of the TV across steps until you turn it off.</p></>}
     {input && <div className="ctl-grid"><AnswersToggle room={room} className={btn} /></div>}
     {input && <div className="ctl-grid">
       {spotlit

@@ -1,5 +1,5 @@
 export const controlActions = ["go_live", "next", "back", "nothing_live", "reopen", "stop_answers", "take_answers", "start_burst", "extend_burst", "end_burst", "phones_down", "open_phones",
-  "spotlight", "clear_spotlight", "hide", "unhide", "refresh_phones", "tv_on_phones", "room_size", "close_part", "tv_screen"] as const;
+  "spotlight", "clear_spotlight", "hide", "unhide", "refresh_phones", "tv_on_phones", "room_size", "close_part", "tv_screen", "join_frame"] as const;
 export type ControlAction = typeof controlActions[number];
 // The screens the live room can put on the TV in place of a step: Blackout, Join and Home (the holding screen).
 export const tvScreens = ["blackout", "join", "holding"] as const;

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { ChevronLeft, ChevronRight, House, Plus, QrCode, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
+import { ChevronLeft, ChevronRight, PanelBottom, House, Plus, QrCode, Smartphone, Square, Sun, SunDim, EyeOff, Timer } from "lucide-react";
 import { kindOf } from "@/lib/interactions/kinds";
 import { isPrivateStep } from "@/lib/interactions/visibility";
 import type { ShowContext, ShowSession } from "@/lib/run-of-show/types";
@@ -41,8 +41,9 @@ export function Transport({ room, context, previewing, onGoLive, flashing = fals
     <div className="ctl-screen-bar" role="group" aria-label="TV screen">
       {screenButtons.map(({ screen, label, key, Icon }) => {
         const on = !liveId && content === screen;
-        return <button key={screen} type="button" className={`ctl-screen-btn is-${screen}`} aria-pressed={on} disabled={busy || on} aria-keyshortcuts={key} aria-label={label} title={label}
-          onClick={() => void press("tv_screen", { screen })}><Icon size={16} aria-hidden="true" /><span>{label}</span><Key k={key} /></button>;
+        return <div key={screen} className="ctl-screen-button-group">{screen === "holding" && <button type="button" className="ctl-screen-btn is-frame" aria-pressed={Boolean(frame?.state.join_frame)} aria-keyshortcuts="F" disabled={busy}
+          onClick={() => void press("join_frame", { on: !frame?.state.join_frame })}><PanelBottom size={16} aria-hidden="true" /><span>{frame?.state.join_frame ? "Frame on" : "Frame"}</span><Key k="F" /></button>}<button type="button" className={`ctl-screen-btn is-${screen}`} aria-pressed={on} disabled={busy || on} aria-keyshortcuts={key} aria-label={label} title={label}
+          onClick={() => void press("tv_screen", { screen })}><Icon size={16} aria-hidden="true" /><span>{label}</span><Key k={key} /></button></div>;
       })}
     </div>
     </div>
@@ -102,6 +103,7 @@ export function useRoomKeys({ room, previewing, onGoLive, minutes }: { room: Roo
       else if (key === "Enter" && !target?.closest("button, a, summary") && previewing && previewing.id !== liveId && previewing.state !== "draft") act = () => onGoLive(previewing);
       else if (key === "b" && !(!liveId && content === "blackout" && !room.steps.back)) act = () => void (!liveId && content === "blackout" ? room.press("back") : room.press("tv_screen", { screen: "blackout" }));
       else if (key === "j" && (liveId || content !== "join")) act = () => void room.press("tv_screen", { screen: "join" });
+      else if (key === "f") act = () => void room.press("join_frame", { on: !frame.state.join_frame });
       else if (key === "h" && (liveId || content !== "holding")) act = () => void room.press("tv_screen", { screen: "holding" });
       else if (key === "p" && input) act = () => void room.press(frame.state.phones_down ? "open_phones" : "phones_down");
       else if ((key === "3" || key === "4" || key === "5") && input && !burstLeft(room)) act = () => void room.press("start_burst", { minutes: Number(key) as 3 | 4 | 5 });

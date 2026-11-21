@@ -36,7 +36,7 @@ export class QaRows {
     root.dataset.empty = "true";
     if (typeof ResizeObserver === "function") {
       let h = 0;
-      this.observer = new ResizeObserver(() => { if (this.list.clientHeight !== h) { h = this.list.clientHeight; this.set(this.last, { instant: true }); } });
+      this.observer = new ResizeObserver(() => { if (this.list.clientHeight !== h) { const first = h === 0; h = this.list.clientHeight; this.set(this.last, { instant: first }); } });
       this.observer.observe(this.list);
     }
   }
@@ -44,8 +44,9 @@ export class QaRows {
   element(id: string) { const r = this.rows.get(id); return r && !r.going ? r.el : null; }
   set(list: QaQuestion[], o: { instant?: boolean; fresh?: string[] } = {}) {
     this.last = list;
-    const H = this.list.clientHeight, { shown, rest } = topQuestions(list), snap = Boolean(o.instant) || reducedMotion(this.root);
-    const rowH = Math.max(1, Math.floor(H / 3));
+    const limit = this.root.closest('[data-join-frame="on"]') ? 4 : 3;
+    const H = this.list.clientHeight, { shown, rest } = topQuestions(list, limit), snap = Boolean(o.instant) || reducedMotion(this.root);
+    const rowH = Math.max(1, Math.floor(H / limit));
     this.root.style.setProperty("--qa-row-h", `${rowH}px`);
     this.root.classList.toggle("is-compact", rowH < 200);
     shown.forEach((q, i) => {

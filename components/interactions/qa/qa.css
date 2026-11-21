@@ -110,3 +110,9 @@
 .qa-ctl-edit textarea { width: 100%; padding: var(--space-2); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); font: inherit; font-size: var(--cwl-fs-app-body); color: var(--cwl-app-text); background: var(--cwl-app-card); resize: vertical; }
 .qa-ctl-sub { margin: var(--space-2) 0 0; font-size: var(--cwl-fs-app-label); font-weight: var(--fw-bold); color: var(--cwl-app-text-muted); }
 @media (max-width: 700px) { .qa-ctl-item { grid-template-columns: 2rem minmax(0, 1fr); } .qa-ctl-actions { grid-column: 1 / -1; max-width: none; justify-content: flex-start; } }
+
+[data-join-frame="on"] .qa-row { height: calc(var(--qa-row-h) - 12px); align-items: center; left: 0; padding-inline: 12px; border-radius: var(--cwl-radius-marker); background: var(--cwl-bar-track); }
+[data-join-frame="on"] .qa-votes { justify-content: center; height: auto; min-height: 1.5em; background: var(--cwl-surface); color: var(--cwl-text); }
+[data-join-frame="on"] .qa-row.is-first .qa-votes { background: var(--cwl-callout); color: var(--cwl-on-callout); }
+[data-join-frame="on"] .qa-votes b { color: inherit; }
+[data-join-frame="on"] .qa-votes svg { display: none; }

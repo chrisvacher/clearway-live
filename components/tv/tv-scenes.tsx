@@ -37,7 +37,7 @@ function CodeExpiry({ seconds }: { seconds: number }) {
 // cross-fades in; the old layer keeps its last picture while it fades out, so
 // the TV never blanks.
 type Layer = { id: string; frame: LiveSnapshot; leaving: boolean; entering: boolean };
-function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; flow?: TvFlow | null; asking: boolean }) {
+function SessionLayers({ frame, flow, asking, joinFrame }: { frame: LiveSnapshot | null; flow?: TvFlow | null; asking: boolean; joinFrame: boolean }) {
   const id = frame?.state.tv_content === "session" ? frame.session?.id ?? null : null;
   const [layers, setLayers] = useState<Layer[]>(() => frame && id ? [{ id, frame, leaving: false, entering: false }] : []);
   const box = useRef<HTMLDivElement>(null), last = useRef<LiveSnapshot | null>(frame);
@@ -80,7 +80,7 @@ function SessionLayers({ frame, flow, asking }: { frame: LiveSnapshot | null; fl
           <p className="tv-private-line"><Lock aria-hidden="true" />Only the facilitators see these answers.</p>
         </div> : View && <View session={session.id} frame={shown} flow={flow} />}
         {!kind?.structured && !hidden && <p className="tv-note tv-muted">Waiting for answers</p>}
-        {joinLink && <div className="tv-join-strip"><span className="tv-upclose">{joinLink.replace("https://", "")}</span><Qr link={joinLink} /></div>}
+        {joinLink && !joinFrame && <div className="tv-join-strip"><span className="tv-upclose">{joinLink.replace("https://", "")}</span><Qr link={joinLink} /></div>}
       </> : <ContentScreen frame={shown} />}
     </div>;
   })}</div>;
@@ -130,14 +130,16 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
   const publicHost = brandFor(skin, {}).host;
   const link = display ? publicRoomLink(display.room_code, skin, display.link_name) : "";
   const session = frame?.session ?? null, kind = kindOf(session);
+  const joinPath = display ? roomPath(display.room_code, display.link_name) : "";
   const surface = useContext(MediaSurface);
   const ask = surface !== "phone" && paired && mode === "session" && typeof frame?.state.neutral_question === "string" && frame.state.neutral_question ? frame.state.neutral_question : null;
+  const frameOn = Boolean(paired && frame?.state.join_frame && surface !== "phone" && !["join", "blackout", "opening", "pair", "screen_check"].includes(mode));
   const inputOn = mode === "session" && Boolean(kind?.input);
   // A screen check in the run of show uses the full-bleed check, like the room's own.
   const checkOn = mode === "screen_check" || (mode === "session" && session?.interaction === "content" && contentOf(session.options).screen === "screen_check");
   const mark: MarkState = !inputOn || !session ? null
     : ["live", "phones_down"].includes(session.state) ? (frame!.state.phones_down || session.state === "phones_down" ? "down" : "live") : null;
-  return <>
+  return <div className="tv-scene-stack" data-join-frame={frameOn ? "on" : "off"}>
     <div className="tv-texture" aria-hidden="true"><span /></div>
     <header className="tv-top"><div className="tv-brand-row">{paired && display && <ChurchLockup display={display} />}
       {inputOn && frame && kind?.counts !== "none" && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Tally flow={flow} results={frame.state.results} counts={kind?.counts} kind={session?.interaction} /></span>}</div>
@@ -155,7 +157,7 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
         {display && <><Qr link={link} /><div><p className="tv-eyebrow">{display.church}</p><h1 className="tv-join-link" aria-label={link.replace("https://", "")}><span>{publicHost}</span><span>/{roomPath(display.room_code, display.link_name)}</span></h1><p className="tv-body tv-muted">Scan the code or type the link. No app needed.</p><div className="tv-names" aria-live="polite">{presence?.names.length ? presence.names.slice(0, nameLimit).map(person => <span key={person.key} data-name-key={person.key}>{person.name}</span>) : <span>Waiting for the first phone</span>}{(presence?.count || 0) > nameLimit && <span>+ {(presence?.count || 0) - nameLimit} more</span>}</div></div></>}
       </section>
       <section className={`tv-scene tv-session${mode === "session" ? " is-active" : ""}`} aria-hidden={mode !== "session"}>
-        <SessionLayers frame={paired ? frame : null} flow={flow} asking={Boolean(ask)} />
+        <SessionLayers frame={paired ? frame : null} joinFrame={frameOn} flow={flow} asking={Boolean(ask)} />
         <NeutralQuestion frame={frame} text={ask} />
       </section>
       <section className={`tv-scene tv-opening${mode === "opening" ? " is-active" : ""}`} aria-hidden={mode !== "opening"}><h1 className="tv-headline">{status.status === "ended" ? "Workshop ended" : status.status === "closed" ? "This engagement has closed" : "Opening this screen"}</h1>
@@ -170,5 +172,9 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><PromotedQuoteSpot frame={frame} /></span>}
     <footer className="tv-foot"><span className="tv-foot-left">{mode === "pair" && <span className="tv-upclose">{address?.host ?? publicHost}/tv</span>}{code && pair && <CodeExpiry seconds={pair.seconds} />}{mode === "pair" && linkExpired && <span className="tv-upclose" role="status">{expiredLinkLine}</span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><QaWaiting frame={frame} /></span>}{paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><AiFoot frame={frame} /></span>}</span>
       <span className="tv-foot-right">{mode === "join" && <span className="tv-here"><b>{presence?.count || 0}</b> here</span>}</span></footer>
-  </>;
+    {display && surface !== "phone" && <aside className="tv-join-frame" aria-hidden={!frameOn}>
+      <div className="tv-join-frame-copy" data-long-link={joinPath.length > 12 ? "true" : undefined}><p>Join on your phone or laptop</p><strong className="tv-join-frame-address" aria-label={link.replace("https://", "")}><span>{publicHost}</span>/{joinPath}</strong></div>
+      <div className="tv-join-frame-scan"><span>or scan<br />the code</span><div className="tv-join-frame-qr"><Qr link={link} /></div></div>
+    </aside>}
+  </div>;
 }
