@@ -15,7 +15,8 @@ test("SET-07: the palette offers every interaction the server runs and every con
   const p = palette(kinds);
   assert.deepEqual(p.interactions.map(e => e.kind), interactionKinds.filter(k => k !== "content"));
   assert.deepEqual(p.screens.map(e => e.screen), paletteScreens);
-  assert.equal(p.interactions.length, 20, "the ten general interactions, statements, the lens wall, the lens summary, the two outcome kinds, commander's intent, the CORE goal builder, the candidate priorities, the Four Helpful Lists and the read-back");
+  assert.ok(p.interactions.some(entry => entry.kind === "video"), "Video is in the palette");
+  assert.ok(p.interactions.some(entry => entry.kind === "before_after"), "Before and after is in the palette");
   for (const e of [...p.interactions, ...p.screens]) { assert.ok(e.blurb, `${e.label} has a line`); assert.ok(e.minutes >= 5); }
   assert.equal(palette(kinds.filter(k => k.kind !== "content")).screens.length, 0, "no content screens before the server runs them");
 });

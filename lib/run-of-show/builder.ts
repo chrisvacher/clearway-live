@@ -1,4 +1,5 @@
 import { videoOptions } from "../video/playback";
+import { beforeAfterDefaults } from "../interactions/before-after";
 // The drag-to-build run of show (SET-07, design pass 3 change 15). Pure rules shared by the
 // builder, its keyboard path and the tests: the palette, a dropped session's defaults, where a
 // drop lands, and the times worked out from the durations (the server's show_retime does the
@@ -20,6 +21,7 @@ const blurbs: Partial<Record<InteractionKind, string>> = {
   four_lists: "Right, wrong, missing, confused, with agreement",
   read_back: "Confirm each lens and outcome, with a correction that folds in",
   video: "Play a clip on the TV",
+  before_after: "Compare two sets of answers as a room",
 };
 const screenBlurbs: Record<ContentScreen, string> = {
   scripture: "Passage, reference, translation", headline: "One line on the TV, depth on phones", prayer: "A still screen or a single line",
@@ -44,6 +46,7 @@ export function palette(kinds: KindInfo[]): { interactions: PaletteEntry[]; scre
 const items = (word: string, n: number) => Array.from({ length: n }, (_, i) => ({ key: `o${i + 1}`, text: `${["First", "Second", "Third", "Fourth", "Fifth"][i]} ${word}` }));
 export const dropOptions: Partial<Record<InteractionKind, Record<string, unknown>>> = {
   video: {},
+  before_after: { ...beforeAfterDefaults },
   word_cloud: {}, wall: {}, qa: { any_time: false },
   choice: { items: items("option", 3), multiple: false },
   scale: { max: 5, low: "Not at all", high: "Completely" },
@@ -65,6 +68,7 @@ export const dropPrompts: Partial<Record<InteractionKind, string>> = { read_back
 // The read-back's 60 sends and 280 characters are the template step's: one Yes or change per item and several "What's missing?" answers
 // for each of up to ten items must never run into the limit.
 const limits: Partial<Record<InteractionKind, [number, number, number]>> = {
+  before_after: [1, 280, 50],
   wall: [3, 280, 50], qa: [10, 200, 50], four_lists: [12, 140, 30], read_back: [60, 280, 50],
   lens: [8, 200, 50], lens_summary: [1, 140, 50], bullets: [12, 200, 50], confirm: [1, 280, 50], candidates: [1, 200, 50],
 };

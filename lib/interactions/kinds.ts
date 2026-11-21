@@ -1,20 +1,20 @@
 // The interaction library (PRD "The interaction library"). Every kind is a TV and phone
 // pair. The database registers each kind (private.interaction_kinds) when its step lands,
 // so the run of show offers only the kinds the server can run; this list fixes the names.
-export const interactionKinds = ["word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "grid", "form", "sign", "statements", "goals", "content", "bullets", "confirm", "intent", "lens", "lens_summary", "candidates", "four_lists", "read_back", "video"] as const;
+export const interactionKinds = ["word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "grid", "form", "sign", "statements", "goals", "content", "bullets", "confirm", "intent", "lens", "lens_summary", "candidates", "four_lists", "read_back", "video", "before_after"] as const;
 export type InteractionKind = typeof interactionKinds[number];
 // Names held for the Wayfinding kinds (milestone 4). They join interactionKinds, screenIds and the
 // database registry as each step builds them, so no step picks a name another already holds.
 export const reservedKinds = [] as const;
 export const isReservedKind = (value: unknown): boolean => reservedKinds.includes(value as typeof reservedKinds[number]);
 export const screenIds: Record<InteractionKind, string> = {
-  video: "VD-1", word_cloud: "INT-01", wall: "INT-02", qa: "INT-03", choice: "INT-04", scale: "INT-05", ranking: "INT-06", points: "INT-07",
+  video: "VD-1", before_after: "BA-1", word_cloud: "INT-01", wall: "INT-02", qa: "INT-03", choice: "INT-04", scale: "INT-05", ranking: "INT-06", points: "INT-07",
   grid: "INT-08", form: "INT-09", sign: "INT-10", intent: "INT-16", statements: "INT-17", content: "Content", bullets: "D1-11", confirm: "D2-05", goals: "INT-15", lens: "INT-12", lens_summary: "INT-18", candidates: "INT-13", four_lists: "INT-11", read_back: "D2-03",
 };
 // The registry's labels (private.interaction_kinds), for places that have no server kind in hand, such as the
 // template preview. The run of show shows the same words.
 export const kindLabels: Record<InteractionKind, string> = {
-  video: "Video", word_cloud: "Word cloud", wall: "Open text", qa: "Q&A", choice: "Multiple choice", scale: "Scale", ranking: "Ranking", points: "100 points",
+  video: "Video", before_after: "Before and after", word_cloud: "Word cloud", wall: "Open text", qa: "Q&A", choice: "Multiple choice", scale: "Scale", ranking: "Ranking", points: "100 points",
   grid: "2x2 grid", form: "Private form", sign: "Sign together", statements: "Statements", content: "Content screen", goals: "CORE goals",
   bullets: "Outcome bullets", confirm: "Outcome confirm", intent: "Commander's intent", lens: "Lens wall", lens_summary: "Lens summary", candidates: "Candidate priorities", four_lists: "Four Helpful Lists", read_back: "Read-back",
 };
@@ -25,6 +25,7 @@ export type KindInfo = {
 // Used only before the server's own kind arrives (an old snapshot): milestone 2's two kinds.
 export const fallbackKinds: Record<string, KindInfo> = {
   video: { kind: "video", label: "Video", input: false, one_per_person: false, counts: "none", structured: true, shares_answers: false, spotlight: "none" },
+  before_after: { kind: "before_after", label: "Before and after", input: true, one_per_person: true, counts: "people", structured: true, shares_answers: false, spotlight: "none" },
   word_cloud: { kind: "word_cloud", label: "Word cloud", input: true, one_per_person: false, counts: "answers", structured: false, shares_answers: true, spotlight: "key" },
   wall: { kind: "wall", label: "Open text", input: true, one_per_person: false, counts: "answers", structured: false, shares_answers: true, spotlight: "id" },
   content: { kind: "content", label: "Content screen", input: false, one_per_person: false, counts: "none", structured: false, shares_answers: true, spotlight: "none" },

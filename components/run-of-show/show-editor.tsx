@@ -545,7 +545,7 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const chosenFirst = selected && partOf(sessions, selected.part).find(step => step.mode === "live")?.id === selected.id;
   const existingSections = selected ? [...new Set(partOf(sessions, selected.part).map(sectionName).filter(Boolean))] : [];
   const query = lookup.trim().toLowerCase(), menuQuery = addQuery.trim().toLowerCase();
-  const questionKinds = ["word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa"];
+  const questionKinds = ["word_cloud", "wall", "choice", "scale", "before_after", "ranking", "points", "grid", "qa"];
   const layoutGroups = [
     { title: "Show", entries: [...tiles.screens.filter(entry => ["headline", "image", "loop", "holding"].includes(entry.screen ?? "")).map(entry => ({ ...entry, label: entry.screen === "headline" ? "Content screen" : entry.screen === "image" ? "Image slide" : entry.screen === "holding" ? "Holding screen" : entry.label })), ...tiles.interactions.filter(entry => entry.kind === "video")] },
     { title: "Ask the room", entries: tiles.interactions.filter(entry => questionKinds.includes(entry.kind)) },

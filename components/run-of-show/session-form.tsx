@@ -17,7 +17,7 @@ import { StepImageField } from "./step-image";
 import { alwaysPrivate, canBePrivate, privateLine, visibilityLabels, visibilityOf, withVisibility, type Visibility } from "@/lib/interactions/visibility";
 
 const stepTakesImage = (s: Pick<ShowSession, "interaction" | "options">) => s.interaction !== "content" || !["image", "loop", "screen_check"].includes(contentOf(s.options).screen);
-const workshopKinds: InteractionKind[] = ["content", "video", "word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa", "sign", "form"];
+const workshopKinds: InteractionKind[] = ["content", "video", "before_after", "word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa", "sign", "form"];
 const tabs = [{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "notes", label: "Notes" }];
 
 export type FormDraft = { value: ShowSession; start: string; opens: string; closes: string };

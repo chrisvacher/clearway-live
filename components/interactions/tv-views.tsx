@@ -3,6 +3,7 @@ import type { ComponentType } from "react";
 import type { InteractionKind } from "@/lib/interactions/kinds";
 import type { LiveSnapshot } from "@/lib/live/types";
 import type { TvFlow } from "@/lib/tv/flow";
+import { BeforeAfterTv } from "@/components/interactions/before-after/before-after-tv";
 import { LiveBoard } from "@/components/tv/live-board";
 import { LiveBars, LiveScale } from "@/components/interactions/bars/tv-bars";
 import { GridView } from "@/components/interactions/grid-form-sign/grid-view";
@@ -25,6 +26,7 @@ import { ReadBackView } from "@/components/interactions/read-back/read-back-tv";
 // Each step of milestone 3 adds its own kinds here, one line each.
 export type TvViewProps = { session: string; frame: LiveSnapshot; flow?: TvFlow | null };
 export const tvViews: Partial<Record<InteractionKind, ComponentType<TvViewProps>>> = {
+  before_after: BeforeAfterTv,
   word_cloud: props => <LiveBoard kind="word_cloud" {...props} />,
   wall: WallView,
   lens: LensView,

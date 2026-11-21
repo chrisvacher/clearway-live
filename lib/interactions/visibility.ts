@@ -9,7 +9,7 @@ export type Visibility = "public" | "private";
 // The kinds that can be private, as private.interaction_kinds.private_ok. The form is always private. The Wayfinding boards
 // (lens wall, four lists, candidates, intent, goals, outcomes, read-back, lens summary) are built for the room to see, so they
 // have no setting.
-export const privateKinds: readonly InteractionKind[] = ["word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "statements", "grid", "sign", "form"];
+export const privateKinds: readonly InteractionKind[] = ["before_after", "word_cloud", "wall", "qa", "choice", "scale", "ranking", "points", "statements", "grid", "sign", "form"];
 export const canBePrivate = (kind: InteractionKind) => privateKinds.includes(kind);
 export const alwaysPrivate = (kind: InteractionKind) => kind === "form";
 

@@ -10,8 +10,10 @@ import { joinPhones } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
 
 async function main() {
-  if (process.env.KIT_PARTICIPANT === "1") await testParticipantLayout();
-  if (process.env.KIT_AUTO_SEND === "1") await testAutoSend();
+  const enabled = (feature: string) => process.env[`KIT_${feature}`] === "1"
+    || (!process.env.KIT_FILTER && process.env[`KIT_${feature}`] !== "0");
+  if (enabled("PARTICIPANT")) await testParticipantLayout();
+  if (enabled("AUTO_SEND")) await testAutoSend();
   const env = localEnv(), sql = db(env), app = await startApp(env);
   let browser: Browser | undefined;
   const shot = async (page: Page, name: string) => {
@@ -122,8 +124,10 @@ async function main() {
         const rows = await tv.locator(".tv-layer:not(.is-leaving) .qa-row").evaluateAll(elements => elements.map(el => el.getBoundingClientRect().bottom));
         assert.ok(rows.every(bottom => bottom <= 864), "Q&A rows stay above the join frame");
         await shot(tv, `${name}-frame-qa`);
-        if (process.env.KIT_SCALE === "1") await testPass11ScaleBeforeAfter({ sql, room, fac, origin, tv, name, shot, beforeAfter: false });
-        if (process.env.KIT_AUTO_SEND === "1") {
+        if (enabled("SCALE") || enabled("BEFORE_AFTER")) {
+          await testPass11ScaleBeforeAfter({ sql, room, fac, origin, tv, name, shot, beforeAfter: enabled("BEFORE_AFTER") });
+        }
+        if (enabled("AUTO_SEND")) {
           const choice = await room.session("Choose offline", "choice", "What should we do first?", 4);
           await sql.query("update public.sessions set options=private.session_options('choice',$2::jsonb,engagement_id) where id=$1", [choice,
             JSON.stringify({ multiple: true, items: [{ key: "a", text: "Start with a question" }, { key: "b", text: "Make a plan" }] })]);
@@ -144,9 +148,9 @@ async function main() {
           assert.deepEqual((posts[0] as { value: unknown }).value, { choices: ["b"] });
           await shot(phone, `${name}-offline-selection-sent`);
         }
-        if (process.env.KIT_VIDEO === "1") await testPass11Video({ sql, room, fac, control, tv, phone, name, shot, appOrigin: app.origin });
+        if (enabled("VIDEO")) await testPass11Video({ sql, room, fac, control, tv, phone, name, shot, appOrigin: app.origin });
         await phoneContext.close(); await tvContext.close(); await context.close();
-        console.log(`ok · ${name} · visibility, private results and join frame`);
+        console.log(`ok · ${name} · visibility, private results, join frame${enabled("SCALE") ? ", scale" : ""}${enabled("BEFORE_AFTER") ? ", before and after" : ""}${enabled("AUTO_SEND") ? ", offline auto-send" : ""}${enabled("VIDEO") ? ", video" : ""}`);
       }
   } finally { await browser?.close(); await sql.end(); app.stop(); }
 }

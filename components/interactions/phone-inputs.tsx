@@ -2,6 +2,8 @@
 import type { ComponentType } from "react";
 import type { InteractionKind } from "@/lib/interactions/kinds";
 import type { OwnShown, PhoneStep } from "@/lib/phone/types";
+import { BeforeAfterInput } from "@/components/interactions/before-after/before-after-phone";
+import type { OwnAnswer } from "@/lib/phone/types";
 import { ChoiceInput, PointsInput, RankingInput, ScaleInput, StatementsInput } from "@/components/interactions/bars/phone-bars";
 import { GridInput } from "@/components/interactions/grid-form-sign/grid-input";
 import { FormInput } from "@/components/interactions/grid-form-sign/form-input";
@@ -28,10 +30,12 @@ export type PhoneInputProps = {
   withdraw: (id: string) => void;
   // The person's own first name, for a named kind (sign together prints it under the line).
   name?: string | null;
+  sourceAnswers?: OwnAnswer[];
   // The room as the phone follows it, for kinds that show the room's answers (Q&A votes on them).
   frame?: LiveSnapshot | null;
 };
 export const phoneInputs: Partial<Record<InteractionKind, ComponentType<PhoneInputProps>>> = {
+  before_after: BeforeAfterInput,
   qa: QaPhoneInput,
   lens: LensInput,
   lens_summary: LensSummaryInput,

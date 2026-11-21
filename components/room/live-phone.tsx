@@ -224,12 +224,13 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
             {takesInput && (view.interaction === "lens" && lensOptions(view.options).seed
               ? <p className="ph-who"><span className="ph-marker"><Lock size={14} aria-hidden="true" />Hidden</span><span><strong>Who sees my answers?</strong> {seedingWhoText}</span></p>
-              : isPrivateStep(view) || kind?.shares_answers === false
+              : isPrivateStep(view) || (kind?.shares_answers === false && view.interaction !== "before_after")
               ? <p className="ph-who" data-private-line><span className="ph-marker"><Lock size={14} aria-hidden="true" />Private</span><span><strong>Who sees my answers?</strong> {privateLine}</span></p>
+              : view.interaction === "before_after" ? null
               : <p className="ph-who"><span className="ph-marker">{named ? "Named" : "Anonymous"}</span>
               <span><strong>Who sees my answers?</strong> {named ? "Your answers show on the screen with your name." : "Your answers show on the screen without your name."}</span></p>)}
             </div><div className="ph-answer-area">
-            {Input && <Input step={view} mine={mine} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}
+            {Input && <Input step={view} mine={mine} sourceAnswers={phone.answers} open={takesInput} engagement={engagement} frame={frame} name={name || room?.name} send={answer => structured(answer)}
               change={(id, answer) => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "change", text: answer.text, ...(answer.value !== undefined ? { value: answer.value } : {}) }); }}
               withdraw={id => { const a = mine.find(x => x.id === id); if (a) phone.submit({ id, session: view.id, revision: revisionOf(a) + 1, action: "withdraw", text: "" }); }} />}
             {!Input && mine.length > 0 && <ul className="ph-answers" aria-label="Your answers">{mine.map(a => <AnswerCard key={a.id} answer={a} editable={takesInput} combined={combinedWith(frame, a.id)}

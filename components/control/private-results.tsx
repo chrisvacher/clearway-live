@@ -1,4 +1,5 @@
 "use client";
+import { BeforeAfterControl } from "@/components/interactions/before-after/before-after-control";
 import { signedScore } from "@/lib/interactions/scale";
 import { useLayoutEffect, useRef } from "react";
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
@@ -21,6 +22,7 @@ export function PrivateResults({ room, compact = false }: { room: Room; compact?
   const scoped = { ...room, status };
   return <section className="ctl-private-results" aria-label="Private results" data-private-results>
     <header><h2>Results</h2><span className="cwl-private-tag"><Lock size={13} aria-hidden="true" />Facilitators only</span></header>
+    {step.interaction === "before_after" && <BeforeAfterControl items={items} options={step.options} compact={compact} />}
     {step.interaction === "scale" && <ScaleResults items={items} options={step.options} compact={compact} />}
     {bars.has(step.interaction) && <PrivateBars items={items} compact={compact} />}
     {text.has(step.interaction) && (compact

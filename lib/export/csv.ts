@@ -61,6 +61,7 @@ function kindColumns(data: SessionExport): { header: string[]; cells: (row: Expo
       return { header: ["Value", "Room average", "NPS-style score", "1 to 6 count", "7 or 8 count", "9 or 10 count"],
         cells: r => [record(r.value).value ?? r.text, average, summary.score == null ? "" : signedScore(summary.score), summary.low, summary.middle, summary.high] };
     }
+    case "before_after": return { header: [String(o.before_label ?? "Before today"), String(o.after_label ?? "After today")], cells: r => [record(r.value).before ?? "", record(r.value).after ?? ""] };
     case "ranking": {
       const list = items(o);
       return { header: ["Ranking", ...list.map(i => `Place: ${i.text}`)], cells: r => { const order = Array.isArray(record(r.value).order) ? record(r.value).order as string[] : [];
