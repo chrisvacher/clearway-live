@@ -2,7 +2,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./bars.css";
 import { reducedMotion, tokenMs } from "@/lib/tv/board";
-import { npsSummary, scaleDotLayout, signedScore, type ScaleDot } from "@/lib/interactions/scale";
+import { npsSummary, scaleDotLayout, scaleStackOrder, signedScore, type ScaleDot } from "@/lib/interactions/scale";
 import type { TvFlow } from "@/lib/tv/flow";
 import { springRate, springStep } from "@/lib/tv/motion";
 import type { LiveResults, LiveSnapshot } from "@/lib/live/types";
@@ -189,13 +189,15 @@ export function LiveScale({ session, frame, flow }: { session: string; frame: Li
   const options = (shown?.session?.options ?? frame?.session?.options ?? {}) as { max?: number; low?: string; high?: string; nps?: boolean };
   const max = scale?.max ?? options.max ?? 5, bands = max === 10 && options.nps === true;
   const columns = scale?.columns ?? Array.from({ length: max }, (_, i) => ({ key: String(i + 1), value: i + 1, count: 0, fraction: 0 }));
-  const dots: ScaleDot[] = scale?.dots ?? columns.flatMap(c => Array.from({ length: c.count }, (_, i) => ({ key: `${c.value}-${i}`, value: c.value })));
-  const summary = scale?.nps ?? npsSummary(dots.map(d => d.value));
   const [box, setBox] = useState({ width: 1600, height: 400, floor: 36 });
   const motion = useRef(new Map<string, { x: Spring; y: Spring; el: HTMLSpanElement | null }>()), average = useRef<Spring | null>(null);
   const marker = useRef<HTMLDivElement>(null), number = useRef<HTMLSpanElement>(null), raf = useRef(0), wake = useRef(() => {});
   const [gone, setGone] = useState<ScaleDot[]>([]), previous = useRef<ScaleDot[]>([]);
   const [newest, setNewest] = useState<string | null>(null);
+  const lastSize = useRef(0);
+  const incoming = scale?.dots ?? columns.flatMap(c => Array.from({ length: c.count }, (_, i) => ({ key: `${c.value}-${i}`, value: c.value })));
+  const dots = scaleStackOrder(previous.current, incoming);
+  const summary = scale?.nps ?? npsSummary(dots.map(d => d.value));
   const layout = scaleDotLayout(dots, max, box.width, box.height, box.floor, bands);
   useLayoutEffect(() => {
     const el = plot.current; if (!el) return;
@@ -211,8 +213,8 @@ export function LiveScale({ session, frame, flow }: { session: string; frame: Li
     const arrival = dots.find(d => !last.some(p => p.key === d.key && p.value === d.value));
     const avgX = scale?.average == null ? null : (scale.average - 1) * box.width / (max - 1);
     // Sunrise's average line keeps its 48px quiet space. A nearby dot skips its live moment.
-    const safe = arrival && (bands || avgX === null || Math.abs((arrival.value - 1) * box.width / (max - 1) - avgX) >= 48 + layout.size / 2);
-    if (safe) setNewest(arrival.key);
+    const gap = host.current ? parseFloat(getComputedStyle(host.current).getPropertyValue("--cwl-tv-moment-gap")) || 48 : 48;
+    if (arrival) setNewest(bands || avgX === null || Math.abs((arrival.value - 1) * box.width / (max - 1) - avgX) >= gap + layout.size / 2 ? arrival.key : null);
     const hold = host.current ? tokenMs(host.current, "cwl-dur-new-hold") : 1400;
     const timer = setTimeout(() => setNewest(null), hold);
     const hide = setTimeout(() => { setGone([]); removed.forEach(d => motion.current.delete(d.key)); }, host.current ? tokenMs(host.current, "cwl-dur-hide") : 400);
@@ -224,7 +226,15 @@ export function LiveScale({ session, frame, flow }: { session: string; frame: Li
     return dot;
   };
   useLayoutEffect(() => {
-    layout.positions.forEach(p => { const d = dotMotion(p.key, p.x, p.y); d.x.t = p.x; d.y.t = p.y; });
+    const repack = lastSize.current && Math.abs(layout.size - lastSize.current) >= 1;
+    lastSize.current = layout.size;
+    layout.positions.forEach(p => {
+      const d = dotMotion(p.key, p.x, p.y);
+      // The diameter and pitch change together when a stack crowds, keeping
+      // the neighbouring dots clear of a new dot at the top.
+      if (repack && d.x.x === p.x && d.x.t === p.x) d.y = spring(p.y);
+      d.x.t = p.x; d.y.t = p.y;
+    });
     if (scale?.average == null) average.current = null;
     else if (!average.current) average.current = spring(scale.average);
     else average.current.t = scale.average;

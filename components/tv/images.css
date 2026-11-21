@@ -1,6 +1,6 @@
 /* Batch 1: images on the TV (TC-2, TC-3) and the image loop (LP-1). Tokens only. */
 /* The image stage covers the whole TV, header and footer included, on the skin's TV ground. */
-.tv-imgstage { position: absolute; inset: 0; z-index: 5; background: var(--cwl-surface); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), bottom var(--cwl-dur-make-room) var(--cwl-ease-signature) var(--tv-frame-delay, 0ms); overflow: hidden; }
+.tv-imgstage { position: absolute; inset: 0; z-index: 5; background: var(--cwl-surface); opacity: 0; pointer-events: none; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), bottom var(--cwl-dur-make-room) var(--cwl-ease-signature) var(--cwl-tv-frame-exit-delay); overflow: hidden; }
 .tv-imgstage.is-active { opacity: 1; }
 .tv-img-layer { position: absolute; inset: 0; transition: opacity var(--cwl-dur-make-room) var(--cwl-ease-signature), transform var(--cwl-dur-make-room) var(--cwl-ease-signature); }
 .tv-imgstage.is-loop-fade .tv-img-layer { transition-duration: var(--cwl-dur-regroup); transition-timing-function: var(--cwl-ease-calm); }

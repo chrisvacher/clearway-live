@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile, mkdir } from "node:fs/promises";
+import { join } from "node:path";
 import { build } from "esbuild";
 import { interactionKinds } from "../../lib/interactions/kinds";
 import { dropOptions } from "../../lib/run-of-show/builder";
@@ -21,7 +22,8 @@ const bundle = await build({ stdin: { contents: `import React from 'react'; impo
 const css = (await Promise.all(["design/clearway-base/colors_and_type.css", "design/clearway-live/live_tokens.css", "app/globals.css", "design/novetera-live/novetera_tokens.css"].map(p => readFile(p,"utf8")))).join("\n").replace(/^@(import|tailwind)\b.*$/gm, "")+"\n"+bundle.outputFiles.filter(x=>x.path.endsWith('.css')).map(x=>x.text).join('\n');
 const js = bundle.outputFiles.find(x=>!x.path.endsWith('.css'))!.text;
 const browser = await chromium.launch({ channel: process.env.KIT_CHROME_CHANNEL });
-await mkdir("docs/evidence/design-pass-11/participant",{recursive:true});
+const evidence = process.env.KIT_SHOTS && join(process.env.KIT_SHOTS, "participant");
+if (evidence) await mkdir(evidence, { recursive: true });
 try {
   for (const skin of ['clearway','novetera']) for (const width of [390,1280,1440]) for (const kind of width === 390 ? ['wall','choice','content'] : interactionKinds) {
     const page = await browser.newPage({viewport:{width,height:width===1440?900:800}});
@@ -38,7 +40,7 @@ try {
       await input.press('Enter');
       assert.equal(await page.evaluate(()=>((window as unknown as {sent?: unknown[]}).sent||[]).length),width>=900?1:0);
     }
-    await page.screenshot({path:`docs/evidence/design-pass-11/participant/${skin}-${width}-${kind}.png`,fullPage:true});
+    if (evidence) await page.screenshot({ path: join(evidence, `${skin}-${width}-${kind}.png`), fullPage: true });
     await page.close();
   }
 } finally { await browser.close(); }

@@ -21,7 +21,7 @@ function Input({ step, mine, open, send, sourceAnswers }: Props) {
     return (own?.value as { value?: number } | undefined)?.value;
   };
   if (o.mode === "steps") return <div className="ba-phone">
-    <div className="ba-own">{([{ label: o.before_label, value: source(o.before_session) }, { label: o.after_label, value: source(o.after_session) }]).map(item => <div key={item.label}><span>{item.label}</span><b>{item.value ?? "·"}</b><small>Your answer</small></div>)}</div>
+    <div className="ba-own">{([{ label: o.before_label, value: source(o.before_session) }, { label: o.after_label, value: source(o.after_session) }]).map((item, i) => <div key={i}><span>{item.label}</span><b>{item.value ?? "-"}</b><small>Your answer</small></div>)}</div>
     <p className="ba-watch"><Monitor size={28} aria-hidden="true" />Look at the screen to see how the room moved.</p>
   </div>;
   return <div className="ba-phone"><p className="ph-note">Rate both now. Think back to before today for the first one.</p>

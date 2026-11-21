@@ -80,6 +80,21 @@ jobs:
         # The system packages come from Ubuntu's archive. When it can't be reached, the runner image's own
         # libraries are enough for Chromium, so install the browser alone rather than fail before any test runs.
         run: npx playwright install --with-deps chromium || npx playwright install chromium
+      - name: Test design pass 11 in disposable workshops
+        run: |
+          command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          mkdir -p "$KIT_SHOTS"
+          npm run test:pass-11
+        env:
+          KIT_SHOTS: ${{ runner.temp }}/design-pass-11
+      - name: Upload design pass 11 screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: design-pass-11-screens
+          path: ${{ runner.temp }}/design-pass-11/
+          if-no-files-found: ignore
+          retention-days: 14
       - name: Test shared facilitator components and keyboard controls
         run: npm run test:ui-kit
       - name: Make the screenshot folder for the kits

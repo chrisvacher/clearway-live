@@ -191,10 +191,12 @@ test("The scripted stand-in for the browser kits follows the same expectations",
     check(c, scripted({ system: p.system, user: p.user(c.inputs), maxTokens: p.maxTokens, timeoutMs: 1000 }));
   }
 });
-test("The scripted stand-in can be slow or fail, for FAIL-09", async () => {
-  const dir = new URL("../../node_modules/.cache/", import.meta.url).pathname, path = `${dir}ai-fake-unit.json`;
-  const { mkdirSync, writeFileSync } = await import("node:fs");
-  mkdirSync(dir, { recursive: true });
+test("The scripted stand-in can be slow or fail, for FAIL-09", async t => {
+  const { mkdtempSync, rmSync, writeFileSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const dir = mkdtempSync(join(tmpdir(), "clearway-ai-fake-")), path = join(dir, "settings.json");
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
   const p = prompts.fold_questions, call = { system: p.system, user: "{\"questions\":[]}", maxTokens: 10, timeoutMs: 1000 };
   writeFileSync(path, JSON.stringify({ fail: true }));
   await assert.rejects(fakeClient("script", path).complete(call, aiConfig({})), /unavailable/);

@@ -32,3 +32,9 @@
 @keyframes ba-arrive { from { opacity: 0; scale: .8; } to { opacity: 1; scale: 1; } }
 [data-motion="reduced"] :is(.ba-plot-dot, .ba-column) { animation: none; transition: none; }
 @media (prefers-reduced-motion: reduce) { .ba-plot-dot, .ba-column { animation: none; transition: none; } }
+.ba-mode { display: grid; gap: var(--space-2); min-width: 0; margin: 0; padding: 0; border: 0; }
+.ba-mode legend { margin-bottom: var(--space-2); font-weight: var(--fw-semibold); }
+.show-fields .ba-mode label { display: grid; grid-template-columns: auto 1fr; align-items: start; padding: var(--space-3); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-button); }
+.ba-mode label:has(input:checked) { background: var(--cwl-app-selected); }
+.ba-mode small { display: block; margin-top: var(--space-1); color: var(--cwl-app-text-muted); }
+.show-fields .ba-change-option { display: flex; justify-content: space-between; align-items: center; }

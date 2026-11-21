@@ -6,7 +6,7 @@ import type { Page } from "playwright";
 import { joinPhones } from "../../scripts/load-test";
 import { engagement, facilitator, press, until } from "./harness";
 
-type Args = { sql: pg.Client; room: Awaited<ReturnType<typeof engagement>>; fac: Awaited<ReturnType<typeof facilitator>>; tv: Page; origin: string; name: string; beforeAfter?: boolean; shot?: (page: Page, name: string) => Promise<void> };
+type Args = { sql: pg.Client; room: Awaited<ReturnType<typeof engagement>>; fac: Awaited<ReturnType<typeof facilitator>>; tv: Page; phone?: Page; origin: string; name: string; beforeAfter?: boolean; shot?: (page: Page, name: string) => Promise<void> };
 async function noOverlap(page: Page, selector: string, label: string) {
   const boxes = await page.locator(selector).evaluateAll(els => els.map(el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, w: r.width, h: r.height }; }));
   for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
@@ -14,7 +14,7 @@ async function noOverlap(page: Page, selector: string, label: string) {
     assert.ok(a.x + a.w <= b.x + 1 || b.x + b.w <= a.x + 1 || a.y + a.h <= b.y + 1 || b.y + b.h <= a.y + 1, `${label}: dots ${i}/${j} do not overlap`);
   }
 }
-export async function testPass11ScaleBeforeAfter({ sql, room, fac, tv, origin, name, beforeAfter = true, shot }: Args) {
+export async function testPass11ScaleBeforeAfter({ sql, room, fac, tv, phone, origin, name, beforeAfter = true, shot }: Args) {
   const create = async (title: string, kind: string, options: Record<string, unknown>, position: number) => {
     const id = await room.session(title, kind, title, position);
     await sql.query("update public.sessions set options=private.session_options(interaction,$2::jsonb,engagement_id) where id=$1", [id, JSON.stringify(options)]);
@@ -60,7 +60,7 @@ export async function testPass11ScaleBeforeAfter({ sql, room, fac, tv, origin, n
 
   if (!beforeAfter) return;
   const afterScale = await create("Later scale checks", "scale", opts, 101);
-  const paired = await create("Compare together", "before_after", { ...opts, mode: "paired" }, 102);
+  const paired = await create("Compare together", "before_after", { ...opts, mode: "paired", question: "How ready did you feel before and after?" }, 102);
   const sourced = await create("Compare earlier scales", "before_after", { mode: "steps", before_session: scale, after_session: afterScale, ...opts }, 103);
   await go(paired, "before_after");
   assert.equal(await phones[0].sendValue(room.id, paired, { before: 2 }), "accepted");
@@ -72,6 +72,17 @@ export async function testPass11ScaleBeforeAfter({ sql, room, fac, tv, origin, n
   assert.equal(await layer().locator("[data-person], [data-attendee], [data-pair], [data-before-person], [data-after-person]").count(), 0);
   await noOverlap(tv, ".tv-layer:not(.is-leaving) .ba-plot-dot", "paired aggregate");
   await shot?.(tv, `${name}-before-after-paired`);
+  if (phone) {
+    await phone.getByRole("heading", { name: "How ready did you feel before and after?" }).waitFor();
+    const before = phone.getByRole("slider", { name: "Before today" });
+    const after = phone.getByRole("slider", { name: "After today" });
+    await before.press("Home");
+    await phone.getByText("Sent. Slide either one to change it.").waitFor();
+    await until(async () => (await state()).before_after?.before.count === 3, "paired phone sends before on its own");
+    await after.press("End");
+    await until(async () => (await state()).before_after?.after.count === 3, "paired phone adds an after answer");
+    await shot?.(phone, `${name}-before-after-paired-phone`);
+  }
 
   await go(afterScale);
   assert.equal(await phones[0].sendValue(room.id, afterScale, { value: 9 }), "accepted");
@@ -80,6 +91,12 @@ export async function testPass11ScaleBeforeAfter({ sql, room, fac, tv, origin, n
   assert.equal(await phones[1].sendValue(room.id, afterScale, { value: 7 }), "accepted");
   await until(async () => (await state()).before_after?.after.count === 2, "late source updates aggregate", 8000);
   await shot?.(tv, `${name}-before-after-sources`);
+  if (phone) {
+    await phone.getByText("Look at the screen to see how the room moved.").waitFor();
+    assert.equal(await phone.getByRole("slider").count(), 0, "source mode collects no answers");
+    assert.deepEqual(await phone.locator(".ba-own b").allTextContents(), ["-", "-"]);
+    await shot?.(phone, `${name}-before-after-sources-phone`);
+  }
   await sql.query("update public.sessions set options=options||'{\"visibility\":\"private\"}'::jsonb where id=$1", [afterScale]);
   await tv.locator(".tv-private-count").waitFor({ timeout: 1000 });
   assert.deepEqual(Object.keys(await state()).sort(), ["people", "total", "words"]);

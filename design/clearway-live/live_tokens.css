@@ -299,6 +299,8 @@
 .cwl-tv-headline strong, .cwl-tv-headline-xl strong { font-weight: 700; }
 
 :root { --cwl-app-sidebar-w: 248px; --cwl-app-header-h: 64px; --cwl-app-panel-w: 480px; --cwl-app-gutter: 24px; --cwl-app-gap: 16px; }
+:root { --cwl-tv-frame-exit-delay: var(--cwl-dur-hide); }
+[data-join-frame="on"] { --cwl-tv-frame-exit-delay: 0ms; }
 
 /* Approved pass 2 app surface tokens. TV/phone motion tokens follow in their PRs. */
 /* ---------- App surfaces: control, setup, scribe, review (light by default) ---------- */

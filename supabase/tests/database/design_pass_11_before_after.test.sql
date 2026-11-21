@@ -45,6 +45,8 @@ insert into private.live_tv_sessions(id,engagement_id,auth_user_id,auth_session_
 -- Options validation and the registered privacy boundary.
 select ok((select input and one_per_person and structured and not shares_answers and private_ok from private.interaction_kinds where kind='before_after'),'Raw pairs never share to the room');
 select is(private.options_before_after('{}',tests.id(100))->>'mode','paired','Paired mode is default');
+select is(private.options_before_after('{"question":"  How ready did you feel?  "}',tests.id(100))->>'question','How ready did you feel?','Keep the participant question separate from the TV headline');
+select is(private.options_before_after('{"question":42}',tests.id(100)),null::jsonb,'Refuse non-text participant questions');
 select is(private.options_before_after('{"max":6}',tests.id(100)),null::jsonb,'Reject paired range 6');
 select is(private.options_before_after('{"mode":"steps"}',tests.id(100)),null::jsonb,'Source mode needs two steps');
 set local role authenticated;
@@ -82,7 +84,8 @@ select is(tests.answer(625,311,'{"value":10}')->>'status','accepted','Late answe
 select is((tests.results()#>>'{before_after,after,average}')::numeric,9::numeric,'Late source answer recounts live comparison');
 select is((tests.results()#>>'{before_after,change}')::numeric,7::numeric,'Late source answer changes aggregate difference');
 reset role;
-select throws_ok(format('update public.sessions set position=-1 where id=%L',tests.id(313)),'23514','Choose scale steps earlier in the run of show.','Refuse moving comparison ahead of sources');
+select lives_ok(format('update public.sessions set position=position+10 where engagement_id=%L',tests.id(100)), 'Moving earlier scales and comparison together preserves their order');
+select throws_ok(format('update public.sessions set position=0 where id=%L',tests.id(313)),'23514','Choose scale steps earlier in the run of show.','Refuse moving comparison ahead of sources');
 update public.sessions set options=options||'{"visibility":"private"}'::jsonb where id=tests.id(311);
 select is((select array_agg(key order by key) from jsonb_object_keys(tests.results()) key),array['people','total','words'],'Private source strips every aggregate value');
 select ok(private.session_is_private(tests.id(313)),'Source privacy is inherited');

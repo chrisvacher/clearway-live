@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { npsSummary, scaleDotLayout, signedScore } from "../../lib/interactions/scale";
+import { npsSummary, scaleDotLayout, scaleStackOrder, signedScore } from "../../lib/interactions/scale";
 import { sessionCsv, type SessionExport } from "../../lib/export/csv";
 
 test("NPS-style scores use 1 to 10, signed and rounded, with empty distinct from zero", () => {
@@ -31,6 +31,12 @@ test("a changed answer keeps its opaque dot key and changes value position", () 
   const after = scaleDotLayout([{ key: "same", value: 8 }], 10, 1680, 400).positions[0];
   assert.equal(before.key, after.key);
   assert.ok(after.x > before.x);
+});
+test("an arrival appends above stationary answers even when its key sorts first", () => {
+  const earlier = [{ key: "z", value: 3 }, { key: "y", value: 3 }];
+  const arrived = { key: "a", value: 3 };
+  assert.deepEqual(scaleStackOrder(earlier, [arrived, ...earlier]), [...earlier, arrived]);
+  assert.deepEqual(scaleStackOrder(earlier, [{ key: "z", value: 8 }, earlier[1]]), [earlier[1], { key: "z", value: 8 }]);
 });
 test("scale CSV keeps individual values and includes aggregate NPS and average", () => {
   const data: SessionExport = { status: "ok", named: false, timezone: "UTC", session: { id: "s", title: "Recommend", part: "Feedback", mode: "live", interaction: "scale", label: "Scale", prompt: "Question", options: { max: 10, nps: true } }, rows: [1, 7, 9, 10].map((value, i) => ({ id: String(i), at: "2026-11-20T12:00:00Z", text: String(value), value: { value }, hidden: false, test: false })) };

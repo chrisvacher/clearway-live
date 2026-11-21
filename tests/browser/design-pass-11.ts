@@ -1,12 +1,13 @@
 // This kit uses throwaway local workshops. It never opens or resets the practice room.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { chromium, type Browser, type Page } from "playwright";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright";
 import { testPass11Video } from "./pass11-video";
 import { testParticipantLayout } from "./participant-layout";
 import { testAutoSend } from "./auto-send";
 import { testPass11ScaleBeforeAfter } from "./pass11-scale-before-after";
 import { testPass11Duplicate } from "./pass11-duplicate";
+import { testPass11FrameBoards } from "./pass11-frame-boards";
 import { joinPhones } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
 
@@ -36,11 +37,11 @@ async function main() {
         const wall = await room.session("Reflections", "wall", "What did you learn?", 2);
         const qa = await room.session("Questions", "qa", "What questions do you have?", 3, { maxChars: 200 });
         await sql.query("update public.sessions set options=private.session_options('qa','{\"any_time\":false}'::jsonb,engagement_id) where id=$1", [qa]);
-        const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+        const context: BrowserContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
         await context.addCookies(fac.cookies(app.origin));
         await context.addInitScript(() => localStorage.setItem("clearway-live.room-admin", "closed"));
         const control = await context.newPage();
-        const remote = await context.newPage(); await remote.setViewportSize({ width: 390, height: 844 });
+        const remote: Page = await context.newPage(); await remote.setViewportSize({ width: 390, height: 844 });
         const tvContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, reducedMotion: reduced ? "reduce" : "no-preference" });
         const tv = await tvContext.newPage();
         const broadcasts: unknown[] = [];
@@ -158,8 +159,9 @@ async function main() {
         const rows = await tv.locator(".tv-layer:not(.is-leaving) .qa-row").evaluateAll(elements => elements.map(el => el.getBoundingClientRect().bottom));
         assert.ok(rows.every(bottom => bottom <= 864), "Q&A rows stay above the join frame");
         await shot(tv, `${name}-frame-qa`);
+        if (enabled("FRAME_BOARDS")) await testPass11FrameBoards({ sql, room, fac, tv });
         if (enabled("SCALE") || enabled("BEFORE_AFTER")) {
-          await testPass11ScaleBeforeAfter({ sql, room, fac, origin, tv, name, shot, beforeAfter: enabled("BEFORE_AFTER") });
+          await testPass11ScaleBeforeAfter({ sql, room, fac, origin, tv, phone, name, shot, beforeAfter: enabled("BEFORE_AFTER") });
         }
         if (enabled("AUTO_SEND")) {
           const choice = await room.session("Choose offline", "choice", "What should we do first?", 4);

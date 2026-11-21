@@ -23,8 +23,10 @@ export function VideoStepOptions({ value, context, locked, onChange }: OptionsEd
   const file = records.find(record => record.id === video?.id);
   useEffect(() => {
     let valid = true;
-    void fetch(`/api/setup/videos?engagement=${context.id}`).then(response => response.json()).then(data => {
-      if (valid && data.status === "ok") setRecords(data.videos);
+    void fetch(`/api/setup/videos?engagement=${context.id}`).then(response => response.json() as Promise<{ status: string; videos: VideoFile[] }>).then(data => {
+      if (valid && data.status === "ok") {
+        setRecords(current => [...data.videos, ...current.filter(record => !data.videos.some(video => video.id === record.id))]);
+      }
     }).catch(() => {});
     return () => { valid = false; };
   }, [context.id]);

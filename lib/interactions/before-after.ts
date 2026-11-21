@@ -1,5 +1,5 @@
 import type { LiveResults } from "../live/types";
-export type BeforeAfterOptions = { mode: "paired" | "steps"; max: 5 | 7 | 10; low: string; high: string; before_label: string; after_label: string; show_change: boolean; before_session?: string; after_session?: string };
+export type BeforeAfterOptions = { mode: "paired" | "steps"; max: number; low: string; high: string; before_label: string; after_label: string; show_change: boolean; question?: string; before_session?: string; after_session?: string };
 export const beforeAfterDefaults: BeforeAfterOptions = { mode: "paired", max: 10, low: "Not at all", high: "Completely", before_label: "Before today", after_label: "After today", show_change: true };
 export const beforeAfterOptions = (options: Record<string, unknown> | undefined): BeforeAfterOptions => ({ ...beforeAfterDefaults, ...options } as BeforeAfterOptions);
 export type Aggregate = { count: number; average: number | null; columns: number[] };

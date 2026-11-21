@@ -1429,10 +1429,8 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 .ctl-screen-button-group { display: flex; gap: inherit; }
 .ctl-screen-btn.is-frame[aria-pressed="true"], .ctl-remote-screens button[aria-pressed="true"] { background: var(--cwl-app-selected); border-color: var(--cwl-app-focus); color: var(--cwl-app-selected-ink); }
 .tv-scene-stack { display: contents; }
-.tv-scene-stack { --tv-frame-delay: var(--cwl-dur-hide); }
-.tv-scene-stack[data-join-frame="on"] { --tv-frame-delay: 0ms; }
 .tv-scene-stack :is(.tv-scenes, .tv-foot) {
-  transition: bottom var(--cwl-dur-make-room) var(--cwl-ease-signature) var(--tv-frame-delay);
+  transition: bottom var(--cwl-dur-make-room) var(--cwl-ease-signature) var(--cwl-tv-frame-exit-delay);
 }
 .tv-join-frame {
   position: absolute; inset: auto 0 0; height: 216px; padding: 20px 96px; z-index: 6;

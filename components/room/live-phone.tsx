@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Lock, FlaskConical, MonitorSmartphone
 import { LiveMark } from "@/components/tv/live-mark";
 import { phoneInputs } from "@/components/interactions/phone-inputs";
 import { kindOf } from "@/lib/interactions/kinds";
+import { beforeAfterOptions } from "@/lib/interactions/before-after";
 import { isPrivateStep, privateLine } from "@/lib/interactions/visibility";
 import { PhoneContent, phoneContentWaits } from "./phone-content";
 import { PhoneTimer } from "@/components/tv/tv-timer";
@@ -219,7 +220,7 @@ export function LivePhone({ engagement, church, name, skin }: { engagement: stri
         {lookingBack && <p className="ph-muted">{view.title} · {view.state === "open" ? "still open" : !asks ? "earlier" : "finished"}</p>}
         {isLive && burstLeft !== null && burstLeft > 0 && burstLength.current && <Burst left={burstLeft} total={burstLength.current.total} />}
         {!asks ? <PhoneContent step={view} />
-          : <><div className="ph-step-intro"><h1 className="ph-prompt">{view.prompt}</h1>
+          : <><div className="ph-step-intro"><h1 className="ph-prompt">{view.interaction === "before_after" ? beforeAfterOptions(view.options).question || view.prompt : view.prompt}</h1>
             {view.phone_depth && <details className="ph-more"><summary>More detail</summary><div className="ph-depth">{view.phone_depth}</div></details>}
             {down && running && <p className="ph-down"><Smartphone size={20} aria-hidden="true" />Phones down</p>}
             {takesInput && (view.interaction === "lens" && lensOptions(view.options).seed

@@ -248,7 +248,7 @@ async function main() {
 
     await step("INT-05 empty, first item and typical: the average large with live columns; the marker slides", async () => {
       await live(scale);
-      await until(async () => (await layer().locator(".tv-scale-none").innerText().catch(() => "")) === "No average yet", "no average yet", 10000);
+      await until(async () => (await layer().locator(".tv-scale-none").innerText().catch(() => "")) === "No answers yet", "the empty scale", 10000);
       assert.equal(await layer().locator(".tv-col").count(), 5);
       await shot(tv, "int-05-empty-tv");
       await until(async () => await ruth.getByRole("radio").count() === 5, "five buttons", 10000);
@@ -268,13 +268,14 @@ async function main() {
       await shot(tv, "int-05-spotlight-tv");
       await press(fac, sql, room.id, "clear_spotlight");
     });
-    await step("INT-05 1 to 10: a slider on phones, ten columns on the TV", async () => {
+    await step("INT-05 1 to 10: a slider on phones, ten track marks on the TV", async () => {
       await live(slider);
       await until(async () => await ruth.locator("input.ph-slider").count() === 1, "a slider", 10000);
       assert.equal(await layer().locator(".tv-col").count(), 10);
       await ruth.locator("input.ph-slider").focus();
       for (let i = 0; i < 2; i++) await ruth.keyboard.press("ArrowRight");
       await until(async () => (await layer().locator(".tv-scale-number").innerText().catch(() => "")) === "7.0", "the slider sends when it comes to rest", 8000);
+      await layer().locator('.tv-scale-dot[data-value="7"]').waitFor();
       await shot(tv, "int-05-slider-tv"); await shot(ruth, "int-05-slider-phone");
     });
 
