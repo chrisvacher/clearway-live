@@ -145,7 +145,10 @@ async function main() {
       return w;
     };
     const logged = async (label: string, session: string, from: string, sends: number, w: Watch) => {
-      const r = await report(from), mine = r.sessions.find(s => s.id === session);
+      // The TV confirms each answer just after painting it, so the log can trail the last answers by a moment on a busy
+      // runner: read it again for up to 5 seconds before counting. A missing answer still fails.
+      let r = await report(from), mine = r.sessions.find(s => s.id === session);
+      for (let i = 0; i < 25 && (mine?.measured ?? 0) < sends; i++) { await delay(200); r = await report(from); mine = r.sessions.find(s => s.id === session); }
       assert.ok(mine, `${label}: the latency log has the session`);
       assert.equal(mine!.measured, sends, `${label}: every answer reached the TV and was logged`);
       const v = verdict(mine!), share = mine!.measured ? Math.floor(mine!.under_second / mine!.measured * 1000) / 10 : 0;

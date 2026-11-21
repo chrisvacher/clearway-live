@@ -49,10 +49,10 @@ export function neighbours(sessions: ShowSession[], shown: string | null, anchor
   if (!shown) return { next: at < 0 ? steps[0] ?? null : steps[at + 1] ?? null, back: at < 0 ? null : steps[at] };
   return { next: at < 0 ? null : steps[at + 1] ?? null, back: at <= 0 ? null : steps[at - 1] };
 }
-// Up next: the next Ready step after the one on the TV.
+// Up next: the next step in the run of show after the one on the TV, whatever its state, so Go live and Next agree.
+// Skipping steps already run sent the preview (and the remote's Go live) to the end of the show after a re-run.
 export function upNext(sessions: ShowSession[], shown: string | null, anchor: string | null) {
-  const steps = liveSteps(sessions), at = steps.findIndex(s => s.id === (shown ?? anchor));
-  return steps.slice(at + 1).find(s => s.state === "ready") ?? null;
+  return neighbours(sessions, shown, anchor).next;
 }
 
 export function timing(session: Pick<ShowSession, "planned_start" | "planned_minutes"> | null, now: number) {
