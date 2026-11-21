@@ -1,3 +1,4 @@
+import { videoOptions } from "../video/playback";
 // The drag-to-build run of show (SET-07, design pass 3 change 15). Pure rules shared by the
 // builder, its keyboard path and the tests: the palette, a dropped session's defaults, where a
 // drop lands, and the times worked out from the durations (the server's show_retime does the
@@ -18,6 +19,7 @@ const blurbs: Partial<Record<InteractionKind, string>> = {
   intent: "One card per outcome, written in pairs", lens_summary: "Each lens's 10-year Future, approved or changed live", candidates: "Name the priorities, then weigh them against each other",
   four_lists: "Right, wrong, missing, confused, with agreement",
   read_back: "Confirm each lens and outcome, with a correction that folds in",
+  video: "Play a clip on the TV",
 };
 const screenBlurbs: Record<ContentScreen, string> = {
   scripture: "Passage, reference, translation", headline: "One line on the TV, depth on phones", prayer: "A still screen or a single line",
@@ -41,6 +43,7 @@ export function palette(kinds: KindInfo[]): { interactions: PaletteEntry[]; scre
 // Starting options that pass each kind's check on the server, so a session can go as dropped.
 const items = (word: string, n: number) => Array.from({ length: n }, (_, i) => ({ key: `o${i + 1}`, text: `${["First", "Second", "Third", "Fourth", "Fifth"][i]} ${word}` }));
 export const dropOptions: Partial<Record<InteractionKind, Record<string, unknown>>> = {
+  video: {},
   word_cloud: {}, wall: {}, qa: { any_time: false },
   choice: { items: items("option", 3), multiple: false },
   scale: { max: 5, low: "Not at all", high: "Completely" },
@@ -71,6 +74,7 @@ const readyScreens: ContentScreen[] = ["prayer", "holding", "screen_check"];
 // A Scripture, Headline or Image step with nothing to show is a Draft, whatever button was pressed: Done marks a session Ready only
 // when it has its words (the passage or the headline) or its image. Other screens and every interaction need nothing more.
 export function hasContent(session: Pick<ShowSession, "interaction" | "prompt" | "options">): boolean {
+  if (session.interaction === "video") return Boolean(videoOptions(session.options));
   if (session.interaction !== "content") return true;
   const screen = (session.options as { screen?: unknown }).screen ?? "headline";
   if (screen === "image") return Boolean(stepImage(session.options)) || typeof (session.options as { media?: unknown }).media === "string" && Boolean((session.options as { media: string }).media);

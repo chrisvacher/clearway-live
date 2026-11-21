@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { type NextRequest, NextResponse } from "next/server";
 import { runFileBackups } from "@/lib/operations/backups";
 import { sendOperationsAlert } from "@/lib/operations/server";
+import { purgeDeletedVideos } from "@/lib/video/server";
 import { purgeDeletedImages } from "@/lib/images/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
     const result = await runFileBackups();
     // A deleted engagement's images leave Storage too. A failure here is logged and tried again tomorrow.
     try { await purgeDeletedImages(); } catch { console.error("Image clean-up unavailable"); }
+    try { await purgeDeletedVideos(); } catch { console.error("Video clean-up unavailable"); }
     await sendOperationsAlert();
     return answer({ status: result.failed ? "attention" : "ok", ...result }, result.failed ? 503 : 200);
   } catch { console.error("Operational sweep unavailable"); return answer({ status: "unavailable" }, 503); }

@@ -59,6 +59,7 @@ export function StepControls({ room, minutes, setMinutes, onPanel, workshop }: {
   if (!session) return <div className="ctl-stepctl is-quiet"><p>Nothing live on the TV. Go live with what&apos;s in preview, or press Back to return to the last step.</p></div>;
   if (session.state === "closed") return <div className="ctl-stepctl is-quiet"><p>Answers for this step are stopped. Phones show it without taking answers.</p>
     <div className="ctl-slot is-answers"><AnswersToggle room={room} /></div></div>;
+  if (session.interaction === "video") return null;
   if (session.interaction === "content") return <div className="ctl-stepctl is-quiet"><p>Nothing to run on a content screen.</p>
     {!workshop && <div className="ctl-slot is-decision"><MarkDecision room={room} variant="laptop" host="ctl-decision-host" /></div>}</div>;
   const spotlightKind = (kindOf(session)?.spotlight ?? "none") !== "none";
@@ -95,7 +96,7 @@ export function useRoomKeys({ room, previewing, onGoLive, minutes }: { room: Roo
       const frame = room.frame;
       if (!frame || room.pending || room.show.context.closed) return;
       const session = frame.session, liveId = frame.state.live_session_id, content = frame.state.tv_content;
-      const input = Boolean(session && session.interaction !== "content" && session.state !== "closed");
+      const input = Boolean(session && session.interaction !== "content" && session.interaction !== "video" && session.state !== "closed");
       const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       let act: (() => void) | null = null;
       if (key === "ArrowRight" && room.steps.next) act = () => void room.press("next");
@@ -103,6 +104,7 @@ export function useRoomKeys({ room, previewing, onGoLive, minutes }: { room: Roo
       else if (key === "Enter" && !target?.closest("button, a, summary") && previewing && previewing.id !== liveId && previewing.state !== "draft") act = () => onGoLive(previewing);
       else if (key === "b" && !(!liveId && content === "blackout" && !room.steps.back)) act = () => void (!liveId && content === "blackout" ? room.press("back") : room.press("tv_screen", { screen: "blackout" }));
       else if (key === "j" && (liveId || content !== "join")) act = () => void room.press("tv_screen", { screen: "join" });
+      else if (key === "k" && frame.state.media) act = () => void room.press(frame.state.media?.playing ? "media_pause" : "media_play");
       else if (key === "f") act = () => void room.press("join_frame", { on: !frame.state.join_frame });
       else if (key === "h" && (liveId || content !== "holding")) act = () => void room.press("tv_screen", { screen: "holding" });
       else if (key === "p" && input) act = () => void room.press(frame.state.phones_down ? "open_phones" : "phones_down");

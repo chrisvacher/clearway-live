@@ -21,6 +21,7 @@ import { QaSpotlight } from "@/components/interactions/qa/qa-spotlight";
 import { PromotedQuoteSpot } from "./promoted-quote";
 import { AiFoot } from "@/components/interactions/ai/ai-foot";
 import { TvTimer } from "./tv-timer";
+import { TestVideoSound, VideoStage } from "./video-stage";
 import { TvImageStage } from "./image-stage";
 import { imageUrl, stepImage } from "@/lib/images/shared";
 
@@ -81,7 +82,7 @@ function SessionLayers({ frame, flow, asking, joinFrame }: { frame: LiveSnapshot
         </div> : View && <View session={session.id} frame={shown} flow={flow} />}
         {!kind?.structured && !hidden && <p className="tv-note tv-muted">Waiting for answers</p>}
         {joinLink && !joinFrame && <div className="tv-join-strip"><span className="tv-upclose">{joinLink.replace("https://", "")}</span><Qr link={joinLink} /></div>}
-      </> : <ContentScreen frame={shown} />}
+      </> : session.interaction === "video" ? null : <ContentScreen frame={shown} />}
     </div>;
   })}</div>;
 }
@@ -132,6 +133,13 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
   const session = frame?.session ?? null, kind = kindOf(session);
   const joinPath = display ? roomPath(display.room_code, display.link_name) : "";
   const surface = useContext(MediaSurface);
+  const [sound, setSound] = useState(false);
+  useEffect(() => {
+    if (surface !== "tv" || sound) return;
+    const unlock = (event: PointerEvent) => { if (event.isTrusted) setSound(true); };
+    window.addEventListener("pointerdown", unlock);
+    return () => window.removeEventListener("pointerdown", unlock);
+  }, [surface, sound]);
   const ask = surface !== "phone" && paired && mode === "session" && typeof frame?.state.neutral_question === "string" && frame.state.neutral_question ? frame.state.neutral_question : null;
   const frameOn = Boolean(paired && frame?.state.join_frame && surface !== "phone" && !["join", "blackout", "opening", "pair", "screen_check"].includes(mode));
   const inputOn = mode === "session" && Boolean(kind?.input);
@@ -165,6 +173,8 @@ export function TvScenes({ status, pair, linkExpired, frame, reconnecting, nameL
     </div>
     <section className={`tv-check${checkOn ? " is-active" : ""}`} aria-hidden={!checkOn}><ScreenCheck /></section>
     {paired && <TvImageStage frame={frame} reduced={Boolean(display?.reduced_motion)} />}
+    {paired && frame && surface !== "phone" && <VideoStage frame={frame} surface={surface} sound={sound} />}
+    {surface === "tv" && (checkOn || mode === "holding") && <TestVideoSound armed={sound} onSound={() => setSound(true)} />}
     {/* Blackout covers everything on the TV, header and footer included, and fades in and out like a scene. */}
     <div className={`tv-blackout${mode === "blackout" ? " is-active" : ""}`} aria-hidden="true" data-testid="tv-blackout" />
     {paired && <span className={`tv-ask-hide${ask ? " is-hidden" : ""}`}><Spotlight frame={frame} /></span>}

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChartColumn, Copy, EyeOff, NotebookPen, PanelRight, Repeat, Smartphone, Timer } from "lucide-react";
 import { PrivateResults } from "./private-results";
+import { VideoControls } from "./video-controls";
 import { VisibilityControl } from "./visibility-control";
 import { isPrivateStep } from "@/lib/interactions/visibility";
 import { PrivateTag } from "@/components/interactions/private-tag";
@@ -140,6 +141,12 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
     ? neighbours(show.sessions, lastTake.id, null).next
     : room.steps.next;
   const previewing = selected ?? next;
+  const previewMedia = previewing?.interaction === "video" ? previewing?.id : undefined;
+  const preloaded = frame?.state.media_preload?.session;
+  const { press } = room;
+  useEffect(() => {
+    if (previewMedia && previewMedia !== preloaded && previewMedia !== shownId) void press("media_preview", { session: previewMedia });
+  }, [previewMedia, preloaded, shownId, press]);
   const KindPanel = frame?.session ? controlPanels[frame.session.interaction] : undefined;
   const minutes = picked ?? ([3, 4, 5].includes(Number(current?.settings?.burst_minutes)) ? Number(current?.settings?.burst_minutes) as 3 | 4 | 5 : 4);
   const stage = context.closed ? workshop ? "done" : "closed" : shownId ? "live" : (initialStage === "done" || initialStage === "closed" || (frame && initialStage === "live")) ? "setup" : initialStage;
@@ -236,6 +243,7 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
           {current && <p className="ctl-notes" id="ctl-live-notes" hidden={!notesOpen}>{current.notes || "No presenter notes."}</p>}
           {room.status?.rehearsal?.since && <span className="ctl-chip sp-rehearsing">Rehearsing</span>}
           <VisibilityControl room={room} step={current} />
+          <VideoControls room={room} />
           <StepControls room={room} minutes={minutes} setMinutes={setMinutes} onPanel={openPanel} workshop={workshop} />
           <div id="ctl-decision-host" />
           {(!side.open || side.tab !== "responses") && <ItemList room={room} />}

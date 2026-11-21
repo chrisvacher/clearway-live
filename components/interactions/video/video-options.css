@@ -1,0 +1,8 @@
+.ros-video-options, .ros-video-options fieldset { display: grid; gap: 10px; }
+.ros-video-options fieldset { padding: 12px; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); }
+.ros-video-options fieldset > label { display: flex; align-items: center; gap: 7px; }
+.ros-video-options .show-help { margin: 0; }
+.ros-video-file { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; padding: 8px; background: var(--cwl-app-sunken); border-radius: var(--cwl-radius-button); }
+.ros-video-file p { margin: 0; color: var(--cwl-app-text-muted); }
+.ros-video-file .show-button:focus-within { outline: 2px solid var(--cwl-app-focus); outline-offset: 2px; }
+.ros-video-options progress { width: 100%; accent-color: var(--cwl-app-primary); }

@@ -1,5 +1,5 @@
 "use client";
-import { ChevronDown, Smartphone } from "lucide-react";
+import { ChevronDown, Monitor, Smartphone } from "lucide-react";
 import { Bold } from "@/components/tv/content-screen";
 import { contentOf, depthBlocks, plainText, type DepthBlock } from "@/lib/interactions/kinds";
 import type { PhoneStep } from "@/lib/phone/types";
@@ -14,6 +14,10 @@ export function Blocks({ blocks }: { blocks: DepthBlock[] }) {
 // to read, or one line about what happens next. Slide images are for the TV only (November 19): a phone never draws one
 // and never asks for one, so an Image step shows its title and phone words, and a loop shows the waiting message alone.
 export function PhoneContent({ step }: { step: PhoneStep }) {
+  if (step.interaction === "video") return <div className="ph-content ph-video">
+    <p className="ph-muted">Video</p><h1 className="ph-headline">{step.title}</h1>
+    <div className="ph-video-watch"><Monitor size={28} aria-hidden="true" /><p>Watch the screen. The video plays there, with sound.</p></div>
+  </div>;
   const o = contentOf(step.options);
   switch (o.screen) {
     case "loop":

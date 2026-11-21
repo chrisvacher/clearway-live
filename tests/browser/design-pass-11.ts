@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { chromium, type Browser, type Page } from "playwright";
+import { testPass11Video } from "./pass11-video";
 import { testParticipantLayout } from "./participant-layout";
 import { testAutoSend } from "./auto-send";
 import { testPass11ScaleBeforeAfter } from "./pass11-scale-before-after";
@@ -143,6 +144,7 @@ async function main() {
           assert.deepEqual((posts[0] as { value: unknown }).value, { choices: ["b"] });
           await shot(phone, `${name}-offline-selection-sent`);
         }
+        if (process.env.KIT_VIDEO === "1") await testPass11Video({ sql, room, fac, control, tv, phone, name, shot, appOrigin: app.origin });
         await phoneContext.close(); await tvContext.close(); await context.close();
         console.log(`ok · ${name} · visibility, private results and join frame`);
       }

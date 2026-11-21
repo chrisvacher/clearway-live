@@ -14,6 +14,7 @@ import { CandidatesOptions } from "@/components/interactions/candidates/candidat
 import { LensOptions } from "@/components/interactions/lens/lens-options";
 import { LensSummaryOptions } from "@/components/interactions/lens-summary/summary-options";
 import { FourListsOptions } from "@/components/interactions/four-lists/four-options";
+import { VideoStepOptions } from "@/components/interactions/video/video-options";
 import { ReadBackOptions } from "@/components/interactions/read-back/read-back-options";
 
 // Per-interaction settings in the run of show (SET-07). Each kind's editor writes only
@@ -24,6 +25,7 @@ export type OptionsEditorProps = { session: ShowSession; value: Record<string, u
   // Lets a kind's preset set the step's prompt too (the Pre-mortem's own question).
   setPrompt?: (prompt: string) => void };
 export const optionEditors: Partial<Record<InteractionKind, ComponentType<OptionsEditorProps>>> = {
+  video: VideoStepOptions,
   content: ContentOptions,
   word_cloud: WordCloudOptions,
   wall: WallOptions,
@@ -47,6 +49,7 @@ export const optionEditors: Partial<Record<InteractionKind, ComponentType<Option
 // Each kind's starting options and limits when it is chosen.
 export type KindDefaults = Partial<Pick<ShowSession, "max_sends" | "max_characters" | "max_words" | "options">>;
 export const kindDefaults: Partial<Record<InteractionKind, KindDefaults>> = {
+  video: { options: {} },
   word_cloud: { max_sends: 3, max_characters: 28, max_words: 3, options: {} },
   wall: { max_sends: 3, max_characters: 280, max_words: 50, options: {} },
   content: { options: { screen: "headline" } },

@@ -5,6 +5,9 @@ export type LiveSession = { revision?: number; base_year?: number; settings?: { 
   options?: Record<string, unknown>; kind?: KindInfo };
 export type LiveState = { engagement_id: string; live_session_id: string | null; version: number; tv_content: string; phones_down: boolean; burst_ends_at: string | null;
   join_frame?: boolean;
+  media?: import("@/lib/video/playback").VideoPlayback | null;
+  media_preload?: import("@/lib/video/playback").VideoPreload | null;
+  media_sound_blocked?: boolean;
   spotlight_key?: string | null; neutral_question?: string; hidden_keys?: string[]; hidden_ids?: string[]; show_tv_on_phones?: boolean; phone_refresh_version?: number;
   // Batch 1: images the TV loads before they go live, when the current screen went up (an image loop counts from it), the Home loop.
   preload?: string[]; screen_started_at?: string | null; home?: { session: string; images: string[]; seconds: number; transition: "fade" | "slide" | "cut" } | null;

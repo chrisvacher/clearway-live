@@ -17,7 +17,7 @@ import { StepImageField } from "./step-image";
 import { alwaysPrivate, canBePrivate, privateLine, visibilityLabels, visibilityOf, withVisibility, type Visibility } from "@/lib/interactions/visibility";
 
 const stepTakesImage = (s: Pick<ShowSession, "interaction" | "options">) => s.interaction !== "content" || !["image", "loop", "screen_check"].includes(contentOf(s.options).screen);
-const workshopKinds: InteractionKind[] = ["content", "word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa", "sign", "form"];
+const workshopKinds: InteractionKind[] = ["content", "video", "word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa", "sign", "form"];
 const tabs = [{ id: "content", label: "Content" }, { id: "settings", label: "Settings" }, { id: "notes", label: "Notes" }];
 
 export type FormDraft = { value: ShowSession; start: string; opens: string; closes: string };
@@ -91,8 +91,8 @@ export function SessionForm({ session, context, locked, workshop, saving, tab, o
     <fieldset disabled={locked} className="rb-settings-fields">
       <TabPanel id="content" active={tab === "content"}>
         <div className="show-fields">
-          <label className="is-full" htmlFor="session-title">Title in the run of show<input id="session-title" required maxLength={200} value={value.title} onChange={e => { const title = e.target.value; setValue(previous => { const { untitled: _u, ...options } = (previous.options ?? {}) as Record<string, unknown>; void _u; return { ...previous, title, options }; }); }} /></label>
-          <label className="is-full" htmlFor="session-prompt">{value.interaction === "content" ? contentPromptLabel[contentOf(value.options).screen] : "Question on the TV and phones"}<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>
+          <label className="is-full" htmlFor="session-title">{value.interaction === "video" ? "Title on phones and in the run of show" : "Title in the run of show"}<input id="session-title" required maxLength={200} value={value.title} onChange={e => { const title = e.target.value; setValue(previous => { const { untitled: _u, ...options } = (previous.options ?? {}) as Record<string, unknown>; void _u; return { ...previous, title, options }; }); }} /></label>
+          {value.interaction !== "video" && <label className="is-full" htmlFor="session-prompt">{value.interaction === "content" ? contentPromptLabel[contentOf(value.options).screen] : "Question on the TV and phones"}<textarea id="session-prompt" maxLength={4000} rows={4} value={value.prompt} onChange={e => change("prompt", e.target.value)} /></label>}
           {!workshop && <p className="show-help is-full">Use {"{base year + 10}"}, {"{base year + 3}"} or {"{base year + 1}"} to fill in the year.</p>}
           {!workshop && value.prompt.includes("{base year") && <div className="show-preview is-full"><span className="show-help">Prompt preview</span><p>{fillYears(value.prompt, context.base_year)}</p></div>}
           <label className="is-full" htmlFor="session-interaction">Interaction<Select id="session-interaction" disabled={running} value={value.interaction} onChange={e => choose(e.target.value as InteractionKind)}>

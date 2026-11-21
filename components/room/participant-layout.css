@@ -39,3 +39,6 @@
 @media (min-width: 900px) {
   .ph-app .ph-laptop-eyebrow { display: block; color: var(--cwl-text-muted); font-size: var(--cwl-fs-phone-label); font-weight: var(--fw-bold); text-transform: uppercase; letter-spacing: .06em; }
 }
+.ph-video-watch { display: flex; align-items: flex-start; gap: 12px; margin-top: 24px; padding: 18px; border-radius: var(--cwl-radius-card); background: var(--cwl-surface-card); color: var(--cwl-text-on-card); }
+.ph-video-watch svg { flex: none; }
+.ph-video-watch p { margin: 0; font-weight: 600; }

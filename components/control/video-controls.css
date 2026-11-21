@@ -1,0 +1,6 @@
+.ctl-video { display: grid; gap: 10px; padding: 12px; border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); border: 1px solid var(--cwl-app-border); }
+.ctl-video-time { font-weight: 700; font-variant-numeric: tabular-nums; }
+.ctl-video .show-help { margin: 0; }
+.ctl-video-scrub { width: 100%; accent-color: var(--cwl-app-primary); min-height: 28px; }
+.ctl-video-warning { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px; border-radius: var(--cwl-radius-button); color: var(--cwl-app-text); background: var(--cwl-app-warning-bg); }
+.ctl-video-warning svg { width: 18px; flex: none; }

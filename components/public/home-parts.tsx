@@ -88,6 +88,7 @@ export function Gallery({ items }: { items: GalleryItem[] }) {
 // so a visitor who has never seen a Wayfinding retreat knows what each one is. Typed against
 // the interaction library, so a new kind can't be left out of the count.
 const tools: Record<Exclude<InteractionKind, "content">, string> = {
+  video: "Play a clip on the TV",
   word_cloud: "Word cloud", wall: "Open-ended responses", qa: "Questions and upvotes", choice: "Multiple choice",
   scale: "Rating scale", ranking: "Ranking", points: "100-point allocation", grid: "2x2 matrix",
   form: "Private responses", sign: "Group sign-off", statements: "Agree or disagree", lens: "Themed brainstorm",

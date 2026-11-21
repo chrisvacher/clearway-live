@@ -9,7 +9,7 @@ import { StepChip } from "@/components/ui/chips";
 import type { TvAppearance } from "@/lib/tv/types";
 import { StepPreview } from "./step-preview";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
-import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Gauge, GripVertical, Grid2x2, HandHeart, House, Image as ImageIcon, LayoutTemplate,
+import { AlignLeft, BookOpen, ChevronDown, CircleCheck, Cloud, Coins, Columns4, Copy, EyeOff, Film, Gauge, GripVertical, Grid2x2, HandHeart, House, Image as ImageIcon, LayoutTemplate,
   Check, CheckCheck, Layers, List, ListChecks, ListOrdered, Lock, MessageCircleQuestion, MessageSquareQuote, Monitor, MoreHorizontal, Newspaper, PencilLine, PenLine, Plus, Printer, Radio, RefreshCw, Repeat, ScanLine, Search, Trash2, type LucideProps } from "lucide-react";
 import { parts, type Part, type RunOfShow, type ShowSession } from "@/lib/run-of-show/types";
 import { SessionForm, initialDraft, sessionInput, type FormDraft } from "./session-form";
@@ -30,7 +30,7 @@ import { springRate, springStep } from "@/lib/tv/motion";
 import "./builder.css";
 
 type Icon = ComponentType<LucideProps>;
-const kindIcons: Partial<Record<InteractionKind, Icon>> = { word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
+const kindIcons: Partial<Record<InteractionKind, Icon>> = { video: Film, word_cloud: Cloud, wall: AlignLeft, qa: MessageCircleQuestion, choice: ListChecks, scale: Gauge, ranking: ListOrdered,
   points: Coins, grid: Grid2x2, form: Lock, sign: PenLine, statements: MessageSquareQuote, content: Monitor, bullets: List, confirm: CheckCheck, four_lists: Columns4 };
 // An image loop's row says whether it is Home and how it runs (LP-1).
 function loopChips(s: ShowSession, home: string | null | undefined) {
@@ -547,10 +547,10 @@ export function ShowEditor({ initial, notice = "", fourLists = true, shell = nul
   const query = lookup.trim().toLowerCase(), menuQuery = addQuery.trim().toLowerCase();
   const questionKinds = ["word_cloud", "wall", "choice", "scale", "ranking", "points", "grid", "qa"];
   const layoutGroups = [
-    { title: "Show", entries: tiles.screens.filter(entry => ["headline", "image", "loop", "holding"].includes(entry.screen ?? "")).map(entry => ({ ...entry, label: entry.screen === "headline" ? "Content screen" : entry.screen === "image" ? "Image slide" : entry.screen === "holding" ? "Holding screen" : entry.label })) },
+    { title: "Show", entries: [...tiles.screens.filter(entry => ["headline", "image", "loop", "holding"].includes(entry.screen ?? "")).map(entry => ({ ...entry, label: entry.screen === "headline" ? "Content screen" : entry.screen === "image" ? "Image slide" : entry.screen === "holding" ? "Holding screen" : entry.label })), ...tiles.interactions.filter(entry => entry.kind === "video")] },
     { title: "Ask the room", entries: tiles.interactions.filter(entry => questionKinds.includes(entry.kind)) },
     { title: "Commit", entries: tiles.interactions.filter(entry => entry.kind === "sign" || entry.kind === "form") },
-    ...(!workshop ? [{ title: "Wayfinding", entries: tiles.interactions.filter(entry => ![...questionKinds, "sign", "form"].includes(entry.kind) && (entry.kind !== "four_lists" || fourLists)) }] : []),
+    ...(!workshop ? [{ title: "Wayfinding", entries: tiles.interactions.filter(entry => ![...questionKinds, "sign", "form", "video"].includes(entry.kind) && (entry.kind !== "four_lists" || fourLists)) }] : []),
   ];
   const visibleGroups = layoutGroups.map(group => ({
     ...group, entries: group.entries.filter(item => `${item.label} ${item.blurb}`.toLowerCase().includes(menuQuery)),

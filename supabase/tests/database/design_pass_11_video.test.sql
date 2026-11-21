@@ -1,0 +1,16 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+set local search_path=public,extensions;
+select plan(10);
+select is(private.options_video('{}',null),'{}'::jsonb,'A missing clip may be saved as a draft');
+select is(private.options_video('{"video":{"source":"link","url":"https://youtu.be/dQw4w9WgXcQ"}}',null)#>>'{video,ends}','hold','YouTube links default to hold');
+select is(private.options_video('{"video":{"source":"link","url":"https://player.vimeo.com/video/12345","sound":false}}',null)#>>'{video,sound}','false','Vimeo links may start muted');
+select is(private.options_video('{"video":{"source":"link","url":"https://vimeo.com/12345","start":5,"end":5}}',null),null::jsonb,'End must be later than start');
+select is(private.options_video('{"video":{"source":"link","url":"https://vimeo.com/12345","start":"1"}}',null),null::jsonb,'Start must be numeric');
+select is(private.options_video('{"video":{"source":"link","url":"https://vimeo.com.evil.example/12345"}}',null),null::jsonb,'Reject unrecognized hosts');
+select is(private.options_video('{"video":{"source":"upload","id":"50b9a6ff-1381-4d95-8509-0f29773a2c04"}}',null),null::jsonb,'An uploaded clip must belong to the engagement');
+select is((select file_size_limit from storage.buckets where id='engagement-videos'),524288000::bigint,'The private bucket allows 500 MiB');
+select ok((select not public and allowed_mime_types=array['video/mp4','video/quicktime']::text[] from storage.buckets where id='engagement-videos'),'Only MP4 and MOV are allowed in the private bucket');
+select ok(not (select input from private.interaction_kinds where kind='video'),'Video accepts no participant answers');
+select * from finish();
+rollback;

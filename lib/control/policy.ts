@@ -3,7 +3,7 @@ import { parts, type ShowSession } from "../run-of-show/types";
 import { controlActions, tvScreens, type ControlAction, type ControlResult, type ControlScreen, type TvScreen } from "./types";
 
 const sizes = ["very_small", "small", "medium", "large", "very_large"];
-export const roomWide: ControlAction[] = ["refresh_phones", "tv_on_phones", "room_size", "close_part", "join_frame"];
+export const roomWide: ControlAction[] = ["refresh_phones", "tv_on_phones", "room_size", "close_part", "join_frame", "media_preview"];
 
 // Validates a browser press into the RPC's arguments. The database checks it again.
 export function controlBody(value: unknown): { id: string; action: ControlAction; p: Record<string, unknown> } | null {
@@ -14,6 +14,14 @@ export function controlBody(value: unknown): { id: string; action: ControlAction
   if (!roomWide.includes(action)) {
     if (v.from !== null && !uuid(v.from)) return null;
     p.from = v.from;
+  }
+  if (action === "media_seek") {
+    if (typeof v.position !== "number" || !Number.isFinite(v.position) || v.position < 0 || v.position > 86400) return null;
+    p.position = v.position;
+  }
+  if (action === "media_preview") {
+    if (v.session !== null && !uuid(v.session)) return null;
+    p.session = v.session;
   }
   if (action === "go_live") { if (!uuid(v.session)) return null; p.session = v.session; }
   // Stop answers and Take answers act on the live step, or on the step named.
@@ -71,7 +79,7 @@ export const actionNames: Record<string, string> = {
   go_live: "Go live", next: "Next", back: "Back", nothing_live: "Home", reopen: "Take answers", stop_answers: "Stop answers", take_answers: "Take answers", start_burst: "Start burst",
   extend_burst: "Extend 1 min", end_burst: "End burst", phones_down: "Phones down", open_phones: "Open phones", spotlight: "Spotlight",
   clear_spotlight: "Clear spotlight", hide: "Hide", unhide: "Unhide", refresh_phones: "Refresh phones", tv_on_phones: "TV view on phones",
-  room_size: "Room size", close_part: "Close the day", tv_screen: "TV screen", join_frame: "Frame", burst_ended: "Burst ended",
+  room_size: "Room size", close_part: "Close the day", tv_screen: "TV screen", join_frame: "Frame", media_play: "Play video", media_pause: "Pause video", media_seek: "Seek video", media_restart: "Restart video", media_preview: "Preview video", burst_ended: "Burst ended",
   turn_ai_on: "Turn AI on", turn_ai_off: "Turn AI off", undo_ai_combine: "Undo an AI combine", undo_ai_group: "Undo an AI group", redo_ai_group: "Redo an AI group",
   pin_group: "Pin a group", unpin_group: "Unpin a group", rename_group: "Rename a group", undo_last_ai_change: "Undo last AI change", show_summary: "Show summary", hide_summary: "Hide summary",
   dismiss_signal: "Dismiss a signal card", save_signal_citation: "Save a citation", ask_the_room: "Ask the room", back_to_session: "Back to the session",
