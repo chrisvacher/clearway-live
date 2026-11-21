@@ -121,7 +121,7 @@
     font-size: 13px; overflow-wrap: anywhere;
   }
   .cwl-ui-toast > svg { flex: none; }
-  .cwl-ui-toast button {
+  .cwl-ui-toast :is(button, a) {
     display: inline-flex; align-items: center; gap: var(--space-1); white-space: nowrap; margin-left: auto;
     min-height: 36px; padding: 0 var(--space-1); color: var(--cw-sky-blue); font-weight: var(--fw-bold); cursor: pointer;
   }

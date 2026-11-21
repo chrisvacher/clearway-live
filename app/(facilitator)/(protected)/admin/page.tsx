@@ -9,8 +9,8 @@ import { EngagementsTable, type EngagementTableRow } from "@/components/facilita
 
 export const metadata: Metadata = { title: "Engagements" };
 
-const columns = "id,title,type,status,settings,room_code,link_name,skin,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone)";
-type Listing = ListedEngagement & { room_code: string; link_name: string | null; skin: string; archived_at?: string; settings?: { open_join?: boolean } };
+const columns = "id,title,type,status,settings,room_code,link_name,skin,start_date,end_date,retreat_start_date,retreat_end_date,pre_call_at,team_hub_client_id,church:churches!engagements_church_id_fkey(name,timezone),sessions(count)";
+type Listing = ListedEngagement & { room_code: string; link_name: string | null; skin: string; archived_at?: string; settings?: { open_join?: boolean }; sessions?: { count: number }[] };
 
 function dateBlock(day: string | null): EngagementTableRow["date"] {
   if (!day) return null;
@@ -27,7 +27,7 @@ export default async function EngagementsPage() {
   ]);
   const selected = archiveAvailable ? `${columns},archived_at` : columns;
   const { data, error } = await client.from("engagements").select(selected)
-    .eq("deleted", false).order("created_at", { ascending: false }).order("id");
+    .eq("deleted", false).eq("sessions.deleted", false).order("created_at", { ascending: false }).order("id");
   const engagements = (data ?? []) as unknown as Listing[];
   const where = await teamHubPlaces(engagements.map(event => event.team_hub_client_id));
   const rows: EngagementTableRow[] = [];
@@ -52,7 +52,7 @@ export default async function EngagementsPage() {
         id: event.id, title: event.title, church: event.church?.name ?? "Church not named", type: event.type,
         place: event.team_hub_client_id ? place(where.get(event.team_hub_client_id)) : null,
         skin: brand.skin, brand: brand.label, group, stage, stageNote, date: dateBlock(day), soon: delta === 0 || delta === 1,
-        host: brand.host, origin: brand.origin, code: event.link_name ?? event.room_code,
+        host: brand.host, origin: brand.origin, code: event.link_name ?? event.room_code, stepCount: event.sessions?.[0]?.count ?? 0,
       };
     })));
   }

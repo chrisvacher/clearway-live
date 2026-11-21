@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import type { MenuItem } from "@/components/ui/menu";
+import { DuplicateRunOfShow } from "./duplicate-run-of-show";
 
 export async function engagementRequest(body: Record<string, unknown>, signal?: AbortSignal) {
   const response = await fetch("/api/setup/engagement", {
@@ -32,12 +33,13 @@ export function CopyRoomLink({ href, label }: { href: string; label: string }) {
   </Button>;
 }
 
-type EventSummary = { id: string; title: string; type?: string };
+type EventSummary = { id: string; title: string; type?: string; stepCount?: number };
 
 export function useEventMenu(canDuplicate: boolean) {
   const router = useRouter();
   const toast = useToast();
   const [editing, setEditing] = useState<EventSummary | null>(null);
+  const [copying, setCopying] = useState<EventSummary | null>(null);
   const [duplicating, setDuplicating] = useState(false);
 
   function duplicate(event: EventSummary) {
@@ -56,15 +58,18 @@ export function useEventMenu(canDuplicate: boolean) {
 
   function actions(event: EventSummary, overview = false): MenuItem[] {
     const duplicateAllowed = canDuplicate && event.type !== "practice";
+    const canCopy = (event.stepCount ?? 0) > 0;
     return [
       ...(duplicateAllowed ? [{ label: overview ? "Duplicate" : "Duplicate as a new event", disabled: duplicating, onSelect: () => duplicate(event), dividerBefore: !overview }] : []),
-      { label: "Save run of show as template", onSelect: () => setEditing(event), dividerBefore: !overview && !duplicateAllowed },
+      ...(canCopy ? [{ label: "Duplicate run of show", onSelect: () => setCopying(event), dividerBefore: !overview && !duplicateAllowed }] : []),
+      { label: "Save run of show as template", onSelect: () => setEditing(event), dividerBefore: !overview && !duplicateAllowed && !canCopy },
       ...(overview ? [{ label: "Print run of show", href: `/admin/${event.id}/run-of-show/print` }] : []),
     ];
   }
 
   const templateDialog = editing && <SaveRunTemplate event={editing} onClose={() => setEditing(null)} />;
-  return { actions, templateDialog };
+  const copyDialog = copying && <DuplicateRunOfShow source={copying.id} onClose={() => setCopying(null)} />;
+  return { actions, templateDialog, copyDialog };
 }
 
 function SaveRunTemplate({ event, onClose }: { event: EventSummary; onClose: () => void }) {

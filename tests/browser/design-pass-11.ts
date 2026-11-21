@@ -6,6 +6,7 @@ import { testPass11Video } from "./pass11-video";
 import { testParticipantLayout } from "./participant-layout";
 import { testAutoSend } from "./auto-send";
 import { testPass11ScaleBeforeAfter } from "./pass11-scale-before-after";
+import { testPass11Duplicate } from "./pass11-duplicate";
 import { joinPhones } from "../../scripts/load-test";
 import { db, engagement, facilitator, localEnv, pairTv, press, startApp, until } from "./harness";
 
@@ -152,6 +153,7 @@ async function main() {
         await phoneContext.close(); await tvContext.close(); await context.close();
         console.log(`ok · ${name} · visibility, private results, join frame${enabled("SCALE") ? ", scale" : ""}${enabled("BEFORE_AFTER") ? ", before and after" : ""}${enabled("AUTO_SEND") ? ", offline auto-send" : ""}${enabled("VIDEO") ? ", video" : ""}`);
       }
+    if (enabled("DUPLICATE")) await testPass11Duplicate({ env, sql, appOrigin: app.origin, browser, shot });
   } finally { await browser?.close(); await sql.end(); app.stop(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });

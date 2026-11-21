@@ -1,9 +1,11 @@
 "use client";
 
 import { Check, Undo2 } from "lucide-react";
+import Link from "next/link";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
-type ToastOptions = { duration?: number; action?: { label: string; onClick: () => void | Promise<void>; icon?: ReactNode }; icon?: ReactNode };
+type ToastAction = { label: string; icon?: ReactNode } & ({ href: string } | { onClick: () => void | Promise<void> });
+type ToastOptions = { duration?: number; action?: ToastAction; icon?: ReactNode };
 type AddToast = (message: string, options?: ToastOptions) => void;
 type ToastRecord = ToastOptions & { id: number; message: string };
 
@@ -28,6 +30,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 function Toast({ item, remove }: { item: ToastRecord; remove: (id: number) => void }) {
+  const { action } = item;
   const element = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
@@ -51,15 +54,15 @@ function Toast({ item, remove }: { item: ToastRecord; remove: (id: number) => vo
     onFocus={() => setFocus(true)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setFocus(false); }}>
     {item.icon ?? <Check size={16} aria-hidden="true" />}
     <span>{failure ? "Could not complete that action. Try again." : item.message}</span>
-    {item.action && <button type="button" disabled={running} onClick={async () => {
+    {action && ("href" in action ? <Link href={action.href} onClick={() => remove(item.id)}>{action.icon}{action.label}</Link> : <button type="button" disabled={running} onClick={async () => {
       setRunning(true);
       try {
-        await item.action?.onClick();
+        await action.onClick();
         remove(item.id);
       } catch {
         setFailure(true);
         setRunning(false);
       }
-    }}>{item.action.icon ?? <Undo2 size={14} aria-hidden="true" />}{item.action.label}</button>}
+    }}>{action.icon ?? <Undo2 size={14} aria-hidden="true" />}{action.label}</button>)}
   </div>;
 }

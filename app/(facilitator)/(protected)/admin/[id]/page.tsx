@@ -64,7 +64,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ id: s
 
   return <main id="main" className="admin-page eng-overview">
     <OverviewHeader id={id} church={churchName} title={engagement.title} type={engagement.type} stage={stage}
-      when={when} place={location} lead={leadName} countdown={countdown} canDuplicate={canDuplicate} />
+      when={when} place={location} lead={leadName} countdown={countdown} canDuplicate={canDuplicate} stepCount={facts.stepCount} />
     <div className="eng-overview-grid">
       <section className="admin-panel eng-ready" aria-labelledby="eng-ready-title">
         <header><h2 id="eng-ready-title">Getting ready</h2><span>{ready} of {readiness.length} ready</span></header>

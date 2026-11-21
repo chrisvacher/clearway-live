@@ -20,7 +20,7 @@ type Bucket = ListGroup | "archived";
 export type EngagementTableRow = {
   id: string; title: string; church: string; type: string; place: string | null; skin: Skin; brand: string;
   group: Bucket; stage: Stage; stageNote: string; date: { month: string; day: string; weekday: string } | null;
-  soon: boolean; host: string; origin: string; code: string;
+  soon: boolean; host: string; origin: string; code: string; stepCount: number;
 };
 const groups = { ...groupNames, archived: "Archived" };
 const kinds = [
@@ -129,5 +129,6 @@ export function EngagementsTable({ rows, archiveAvailable, canCreate, canDuplica
       description={<><p>It leaves Engagements. Answers and results are kept, and you can restore it from Archived.</p>{error && <p role="alert">{error}</p>}</>}
       onCancel={() => setArchive(null)} onConfirm={() => void changeArchive(archive, false)} busy={Boolean(busy)} />}
     {eventMenu.templateDialog}
+    {eventMenu.copyDialog}
   </>;
 }

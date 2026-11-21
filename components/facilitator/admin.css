@@ -266,6 +266,29 @@ label.create-option { flex-direction:row; }
 .eng-template-dialog label.show-check { display: flex; align-items: center; }
 .eng-template-dialog input:not([type="checkbox"]) { min-height: 38px; padding: 0 var(--space-3); border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); }
 .eng-template-dialog [role="alert"] { color: var(--cwl-app-error-ink); }
+.eng-duplicate-dialog { width: 640px; padding: 0; border-radius: var(--cwl-radius-card); }
+.eng-duplicate-dialog > header, .eng-duplicate-dialog footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4) var(--space-6); }
+.eng-duplicate-dialog > header { border-bottom: 1px solid var(--cwl-app-border); }
+.eng-duplicate-dialog h2 { margin: 0; font-size: 22px; font-weight: var(--fw-bold); }
+.eng-duplicate-dialog footer { border-top: 1px solid var(--cwl-app-border); background: var(--cwl-app-page); }
+.eng-duplicate-body { display: grid; gap: var(--space-4); padding: var(--space-5) var(--space-6); }
+.eng-duplicate-source, .eng-duplicate-choice { display: grid; gap: var(--space-1); padding: var(--space-3); border-radius: var(--cwl-radius-button); border: 1px solid var(--cwl-app-border); }
+.eng-duplicate-source { background: var(--cwl-app-page); }
+.eng-duplicate-body p, .eng-duplicate-body small { margin: 0; color: var(--cwl-app-text-muted); }
+.eng-duplicate-body p[role="alert"] { color: var(--cwl-app-error-ink); }
+.eng-duplicate-picker { position: relative; }
+.eng-duplicate-picker label { display: grid; gap: var(--space-1); }
+.eng-duplicate-search { display: flex; gap: var(--space-2); align-items: center; min-width: 0; border: 1px solid var(--cwl-app-border-strong); border-radius: var(--cwl-radius-button); padding: 0 var(--space-3); }
+.eng-duplicate-search input { min-width: 0; width: 100%; min-height: 44px; border: 0; background: transparent; }
+.eng-duplicate-picker ul { position: absolute; z-index: 2; inset-inline: 0; max-height: 200px; overflow: auto; list-style: none; margin: var(--space-1) 0 0; padding: var(--space-1); border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-button); background: var(--cwl-app-card); box-shadow: var(--shadow-lg); }
+.eng-duplicate-picker li { padding: var(--space-1); }
+.eng-duplicate-picker li button { width: 100%; min-height: 38px; padding: var(--space-1) var(--space-2); text-align: left; }
+.eng-duplicate-picker li button:is(:hover, :focus-visible), .eng-duplicate-choice:has(input:checked) { background: var(--cwl-app-selected); }
+.eng-duplicate-body fieldset { display: grid; gap: var(--space-2); min-width: 0; margin: 0; padding: 0; border: 0; }
+.eng-duplicate-body legend { margin-bottom: var(--space-2); font-weight: var(--fw-semibold); }
+.eng-duplicate-choice { grid-template-columns: auto 1fr; align-items: start; gap: var(--space-2); }
+.eng-duplicate-choice small { display: block; }
+.eng-duplicate-check { display: flex; align-items: center; gap: var(--space-2); }
 
 .create-church-label, .create-link > label { display: block; margin: var(--space-3) 0 var(--space-1); font-size: 13px; font-weight: var(--fw-semibold); }
 .create-flow .cwl-ui-combo { max-width: 440px; }

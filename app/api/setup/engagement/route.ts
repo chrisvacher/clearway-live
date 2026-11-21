@@ -5,6 +5,9 @@ import { getFacilitator } from "@/lib/server/facilitator";
 import { limitedJson } from "@/lib/server/request";
 import { uuid } from "@/lib/room/identity";
 import { stagesFor } from "@/lib/setup/stage";
+import { duplicateEvent } from "@/lib/run-of-show/duplicate-server";
+
+export const maxDuration = 300;
 
 const answer = (body: { ok: boolean; message?: string; status?: string; id?: string }, status = 200) =>
   privateResponse(NextResponse.json(body, { status }));
@@ -34,7 +37,13 @@ export async function POST(request: NextRequest) {
       return error || !data ? answer({ ok: false, message: "We couldn't change the stage." }, 400) : answer({ ok: true });
     }
 
-    const rpc = action === "archive" ? "engagement_hide_from_list" : action === "restore" ? "engagement_restore" : action === "duplicate" ? "engagement_duplicate" : null;
+    if (action === "duplicate") {
+      const copy = await duplicateEvent(client, id);
+      if (copy.status === "ok") return answer({ ok: true, id: copy.id });
+      if (copy.status === "denied") return answer({ ok: false, message: "You don't have access to do that for this engagement." }, 403);
+      return answer({ ok: false, message: "We couldn't duplicate this event. Please try again." }, 409);
+    }
+    const rpc = action === "archive" ? "engagement_hide_from_list" : action === "restore" ? "engagement_restore" : null;
     if (!rpc) return answer({ ok: false }, 400);
     const { data, error } = await client.rpc(rpc, { p_engagement: id });
     if (error || !data) return answer({ ok: false, message: "We couldn't finish that. Please try again." }, 503);

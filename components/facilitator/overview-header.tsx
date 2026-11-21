@@ -12,9 +12,9 @@ import type { Stage, StageChoice } from "@/lib/setup/stage";
 import { engagementRequest, useEventMenu } from "./engagement-actions";
 import { setupRequest } from "./setup-editor";
 
-export function OverviewHeader({ id, title, church, type, stage, when, place, lead, countdown, canDuplicate }: {
+export function OverviewHeader({ id, title, church, type, stage, when, place, lead, countdown, canDuplicate, stepCount }: {
   id: string; title: string; church: string; type: string; stage: Stage; when: string | null; place: string | null;
-  lead?: string; countdown: string | null; canDuplicate: boolean;
+  lead?: string; countdown: string | null; canDuplicate: boolean; stepCount: number;
 }) {
   const router = useRouter(), toast = useToast();
   const eventMenu = useEventMenu(canDuplicate);
@@ -53,7 +53,7 @@ export function OverviewHeader({ id, title, church, type, stage, when, place, le
         if (choice.status === "closed") { setConfirm(choice); setError(""); }
         else void change(choice);
       }} />}
-      facts={facts} more={eventMenu.actions({ id, title }, true)}
+      facts={facts} more={eventMenu.actions({ id, title, type, stepCount }, true)}
       primary={<Button variant="primary" href={`/control/${id}`}><Radio aria-hidden="true" />Open the live room</Button>} />
     {confirm && <ConfirmDialog open title={workshop ? "End the workshop?" : "Close this engagement?"}
       description={<>
@@ -66,5 +66,6 @@ export function OverviewHeader({ id, title, church, type, stage, when, place, le
       cancelLabel={workshop ? "Keep going" : "Cancel"}
       onCancel={() => setConfirm(null)} onConfirm={() => void change(confirm)} busy={busy} />}
     {eventMenu.templateDialog}
+    {eventMenu.copyDialog}
   </>;
 }
