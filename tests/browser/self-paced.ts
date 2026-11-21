@@ -154,7 +154,7 @@ async function main() {
       await bPage.locator(".ph-self button", { hasText: "Choose a focus" }).click();
       await until(async () => (await bPage.locator(".ph-step").innerText()).includes("Which matters most this season?"), "it opens on the phone on time", 40000);
       await shot(bPage, "self-paced-opened-phone");
-      await bPage.locator(".ph-opt", { hasText: "Hospitality" }).click(); await bPage.locator(".ph-bars-foot .ph-send").click();
+      await bPage.locator(".ph-opt", { hasText: "Hospitality" }).click();
       await until(async () => (await sql.query("select count(*)::int as n from public.submissions where session_id=$1 and not deleted", [later])).rows[0].n === 1, "answered while open", 8000);
       await until(async () => (await bPage.locator(".ph-step").innerText()).includes("Answers for this step are finished."), "it closes on the phone on time", 30000);
       assert.equal(await bPage.locator(".ph-opt").first().isDisabled(), true, "input closes with it");
@@ -176,8 +176,8 @@ async function main() {
         await until(async () => await page.locator(".ph-opt").count() === 3, "the live choice", 15000);
         await until(async () => (await page.locator(".ph-body").innerText()).includes("Rehearsal. Your answers are test answers"), "the rehearsal line on phones", 20000);
       }
-      await pPage.locator(".ph-opt", { hasText: "Prayer" }).click(); await pPage.locator(".ph-bars-foot .ph-send").click();
-      await rPage.locator(".ph-opt", { hasText: "Next generation" }).click(); await rPage.locator(".ph-bars-foot .ph-send").click();
+      await pPage.locator(".ph-opt", { hasText: "Prayer" }).click();
+      await rPage.locator(".ph-opt", { hasText: "Next generation" }).click();
       await until(async () => (await tv.locator(".tv-top .tv-tally").getAttribute("aria-label").then(v => v ?? "")).trim() === "2 answering", "the TV counts the test answers like any others", 8000);
       const rows = (await sql.query("select test from public.submissions where session_id=$1 and not deleted", [choice])).rows;
       assert.ok(rows.length === 2 && rows.every(r => r.test), "both are marked test");

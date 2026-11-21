@@ -10,7 +10,7 @@ export async function testAutoSend() {
   try {
     for (const skin of ["clearway", "novetera"]) {
       const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
-      await page.route("http://auto-send.test/**", route => route.fulfill({ contentType: "text/html", body: `<div id="root"></div><script>${js}</script>` }));
+      await page.route("http://auto-send.test/**", route => route.fulfill({ contentType: "text/html", body: `<style>.gfs-phplot{position:relative;width:300px;height:220px}</style><div id="root"></div><script>${js}</script>` }));
       await page.goto(`http://auto-send.test/?skin=${skin}`);
       const count = () => page.evaluate(() => window.autoLog.length);
       await page.getByRole("radio", { name: "First", exact: true }).click();
@@ -38,6 +38,17 @@ export async function testAutoSend() {
       await page.keyboard.press("End"); await page.waitForTimeout(700); assert.equal(await count(), 1);
       await page.getByLabel("Interaction").selectOption("scale");
       await page.getByRole("radio", { name: "3", exact: true }).click(); await page.getByRole("radio", { name: "3", exact: true }).click(); assert.equal(await count(), 1);
+      await page.getByLabel("Interaction").selectOption("grid");
+      const plot = await page.getByRole("application").boundingBox();
+      assert.ok(plot);
+      await page.mouse.move(plot.x + 60, plot.y + 70);
+      await page.mouse.down();
+      await page.mouse.move(plot.x + 110, plot.y + 90);
+      await page.waitForTimeout(700);
+      assert.equal(await count(), 0, "a held grid drag does not send");
+      await page.mouse.up();
+      await page.getByText("Sent. Drag a dot to move it.").waitFor();
+      assert.equal(await count(), 1, "releasing a grid drag sends the completed placement once");
       await page.close();
     }
   } finally { await browser.close(); }

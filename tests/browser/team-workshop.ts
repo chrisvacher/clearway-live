@@ -357,7 +357,7 @@ async function main() {
         await p.page.getByRole("slider", { name: a, exact: true }).waitFor({ timeout: 10000 });
         await p.page.getByRole("slider", { name: a, exact: true }).focus(); for (let k = 0; k < na; k++) await p.page.keyboard.press("PageUp");
         await p.page.getByRole("slider", { name: b, exact: true }).focus(); for (let k = 0; k < nb; k++) await p.page.keyboard.press("PageUp");
-        await p.page.locator(".ph-bars-foot .ph-send").click();
+        await p.page.getByText("Sent. You can change it until the session closes.", { exact: true }).waitFor();
       });
       await counts("100 points", { people: 8, unit: "answering" });
       const bars = (await results()).bars as { key: string; share: number; fraction: number }[];

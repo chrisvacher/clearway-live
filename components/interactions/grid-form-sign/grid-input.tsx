@@ -31,12 +31,12 @@ function GridStep({ step, mine, open, engagement, send }: PhoneInputProps) {
   useEffect(() => { if (serverPlaces !== null && !dragging.current) setPlaces(JSON.parse(serverPlaces)); }, [serverPlaces]);
   const label = (key: string | null) => items.find(i => i.key === key);
   const numOf = (key: string) => items.findIndex(i => i.key === key) + 1;
-  const auto = useAutoSend(places, (next: Places) => {
+  const auto = useAutoSend(gridAnswer(placesOf(own?.value), items).value.places, (next: Places) => {
     const answer = gridAnswer(next, items);
     if (!Object.keys(answer.value.places).length) return;
     send(answer);
   }, open);
-  const commit = (next: Places) => auto.schedule(next);
+  const commit = (next: Places) => auto.schedule(gridAnswer(next, items).value.places);
   const at = (e: PointerEvent): [number, number] => {
     const r = plot.current!.getBoundingClientRect();
     return [clamp01(((e.clientX - r.left) / r.width - 0.08) / 0.84), clamp01(1 - ((e.clientY - r.top) / r.height - 0.08) / 0.84)];
@@ -90,6 +90,11 @@ function GridStep({ step, mine, open, engagement, send }: PhoneInputProps) {
     </div>
     <p className="gfs-status"><span>{placed} of {items.length} placed</span>{open && placed > 0 && <span>Drag a dot to move it</span>}</p>
     {reasons}
-    <p className="ph-note">{own?.status === "saved" ? <><WifiOff size={14} aria-hidden="true" />Saved on this phone. Your placements send when you’re back online.</> : <><Info size={14} aria-hidden="true" />Each placement shows on the screen as you make it.</>}</p>
+    <p className="ph-note" role={own?.status === "failed" ? "alert" : "status"}>{own?.status === "saved"
+      ? <><WifiOff size={14} aria-hidden="true" />Saved on this phone. Your placements send when you’re back online.</>
+      : own?.status === "sending" ? "Sending"
+      : own?.status === "failed" ? own.reason || "Not sent. Try again."
+      : own ? <><Check size={14} aria-hidden="true" />Sent. Drag a dot to move it.</>
+      : <><Info size={14} aria-hidden="true" />Each placement shows on the screen as you make it.</>}</p>
   </div>;
 }
