@@ -1,4 +1,5 @@
 "use client";
+import { PrivateResults } from "./private-results";
 import { VisibilityControl } from "./visibility-control";
 import { useState } from "react";
 import { EyeOff, X } from "lucide-react";
@@ -39,6 +40,7 @@ export function Remote({ initial, workshop = false, handover = false }: { initia
       <ReloadNotice room={room} />
       <div className={`ctl-live-monitor${pressFlash.flashing ? " is-flashing" : ""}`}><TvMirror frame={confirmed} /></div>
       <div className="ctl-row is-between"><div><p className="ctl-eyebrow">On the TV now</p><p className="ctl-label">{shown?.title ?? (confirmed?.state.tv_content === "join" ? "Join screen" : "Holding screen")}{confirmed?.session && confirmed.session.interaction !== "content" ? ` · ${confirmed.state.results.total} ${confirmed.state.results.total === 1 ? "answer" : "answers"}` : ""}</p></div>{pill}</div>
+      <PrivateResults room={room} compact />
       <VisibilityControl room={room} step={room.frame?.session} />
       <Banners room={room} compact />
       {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}

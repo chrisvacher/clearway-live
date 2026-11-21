@@ -1405,3 +1405,23 @@ main:has(> .ph-app) > :not(.ph-app) { display: none; }
 [data-motion="reduced"] .tv-private-count { animation: none; }
 @media (prefers-reduced-motion: reduce) { .tv-private-count { animation: none; } }
 @keyframes tv-private-arrive { from { opacity: 0; } to { opacity: 1; } }
+
+.ctl-screens.has-private-results { align-items: start; }
+.ctl-private-results { align-self: stretch; min-width: 0; padding: 16px; border: 1px solid var(--cwl-app-border); border-radius: var(--cwl-radius-card); background: var(--cwl-app-card); }
+.ctl-private-results header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.ctl-private-results h2 { font-size: var(--cwl-fs-app-section-title); margin: 0; }
+.ctl-private-average { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; color: var(--cwl-app-text-muted); }
+.ctl-private-average strong { font-size: 56px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--cwl-app-text); }
+.ctl-private-columns { display: grid; gap: 8px; padding: 8px 0 0; margin: 0; list-style: none; }
+.ctl-private-columns li { display: grid; grid-template-rows: auto auto 28px; align-content: end; text-align: center; font-size: 13px; font-weight: 700; }
+.ctl-private-columns li div { background: var(--cwl-app-primary); border-radius: 4px 4px 0 0; transition: height var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+.ctl-private-columns b { padding-top: 6px; border-top: 1px solid var(--cwl-app-border); }
+.ctl-private-scale-labels { font-size: 12px; color: var(--cwl-app-text-muted); }
+.ctl-private-bars, .ctl-private-answer-list { display: grid; gap: 8px; margin: 0; padding-left: 0; list-style: none; }
+.ctl-private-bars li div { height: 7px; border-radius: var(--radius-pill); background: var(--cwl-app-border); overflow: hidden; }
+.ctl-private-bars li i { display: block; height: 100%; background: var(--cwl-app-primary); transition: width var(--cwl-dur-bar-grow) var(--cwl-ease-signature); }
+@container ctl-centre (min-width: 641px) {
+  .ctl-screens.has-private-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ctl-screens.has-private-results .is-preview { grid-column: 1; order: 2; }
+}
+@media (prefers-reduced-motion: reduce) { .ctl-private-columns li div, .ctl-private-bars li i { transition: none; } }

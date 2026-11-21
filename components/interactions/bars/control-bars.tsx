@@ -67,3 +67,11 @@ export function StatementsPanel({ room }: ControlPanelProps) {
       : <p className="show-help">None yet. A statement is divided when at least 35% disagree and at least 35% agree, once four people have rated it.</p>}
   </Private>;
 }
+
+export function PrivateBars({ items, compact }: { items: import("@/lib/control/types").ControlItem[]; compact: boolean }) {
+  const bars = compact ? items.slice().sort((a, b) => b.count - a.count).slice(0, 3) : items;
+  const peak = Math.max(1, ...bars.map(item => item.count));
+  return bars.length ? <ul className="ctl-private-bars">{bars.map(item => <li key={item.key}>
+    <span>{item.text}{item.hidden ? " (hidden)" : ""}</span><div aria-hidden="true"><i ref={el => { if (el) el.style.width = `${item.count / peak * 100}%`; }} /></div>
+  </li>)}</ul> : <p className="show-help">No answers yet.</p>;
+}

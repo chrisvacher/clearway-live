@@ -13,6 +13,8 @@ export type ControlLogEntry = { id: string; action: string; version: number; at:
 export type ControlStatus = {
   status: "ok"; server_time: string; version: number; fac_topic: string | null; screens: ControlScreen[];
   counts: { signed_in: number; answered: number; answers: number; hidden: number; latency_p95_ms: number | null };
+  live_session_id?: string | null;
+  recent_items?: { key: string; text: string }[];
   items: ControlItem[]; controls: ControlLogEntry[];
   // Step 6a: self-paced sessions with their state worked out from their times, and the rehearsal.
   self_paced?: ControlSelfPaced[]; rehearsal?: ControlRehearsal;

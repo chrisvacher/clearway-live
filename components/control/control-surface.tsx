@@ -3,7 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ChartColumn, Copy, EyeOff, NotebookPen, PanelRight, Repeat, Smartphone, Timer } from "lucide-react";
+import { PrivateResults } from "./private-results";
 import { VisibilityControl } from "./visibility-control";
+import { isPrivateStep } from "@/lib/interactions/visibility";
 import { PrivateTag } from "@/components/interactions/private-tag";
 import { Button } from "@/components/ui/button";
 import { StageChip, StepChip } from "@/components/ui/chips";
@@ -212,9 +214,10 @@ export function ControlSurface({ initial, door, workshop = false, handover = fal
         <ReloadNotice room={room} />
         <Banners room={room} />
         {room.message && <p className="show-message is-error" role="alert">{room.message}</p>}
-        <div className="ctl-screens">
+        <div className={`ctl-screens${isPrivateStep(frame?.session) ? " has-private-results" : ""}`}>
           <PreviewScreen room={room} session={previewing} context={context} chosen={Boolean(selected)} />
           <LiveScreen room={room} flashing={pressFlash.flashing} />
+          <PrivateResults room={room} />
         </div>
         <Transport room={room} context={context} previewing={previewing} onGoLive={goLive} flashing={pressFlash.flashing} />
         <section id="ctl-step-panel" className="ctl-step-panel" aria-label="Live step" tabIndex={-1}>
@@ -257,13 +260,13 @@ function PreviewScreen({ room, session, context, chosen }: { room: Room; session
       <StepChip state="preview" compact />
       <h2 id="ctl-preview-title" className="ctl-screen-title">{session ? session.title : "Nothing to preview"}</h2>
       <PrivateTag step={session} />
-      <VisibilityControl room={room} step={session} />
       {session && !chosen && <span className="ctl-screen-note">Up next</span>}
     </div>
     <div className="ctl-screen-frame">
       {preview.frame ? <TvMirror frame={preview.frame} label="Preview" /> : <div className="ctl-screen-empty">{!session ? "Choose Preview on a step in the run of show." : preview.failed ? "We couldn’t load this preview." : "Loading the preview"}</div>}
     </div>
     {session && <div className="ctl-screen-foot">
+      <VisibilityControl room={room} step={session} />
       {session.state === "draft" && <p className="show-help">Mark this step ready in setup before it goes live.</p>}
       {session.phone_depth && <p className="ctl-screen-line"><span>Phones only</span>{fillYears(session.phone_depth, context.base_year)}</p>}
       <details className="ctl-screen-notes"><summary>Presenter notes</summary><p className="ctl-notes">{session.notes || "No presenter notes."}</p></details>

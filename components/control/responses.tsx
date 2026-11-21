@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Eye, EyeOff, Sun, SunDim, X } from "lucide-react";
 import type { Room } from "./live-controls";
 import type { ControlItem } from "@/lib/control/types";
@@ -13,6 +13,7 @@ import { isPrivateStep } from "@/lib/interactions/visibility";
 // Cancel; Spotlight stays beside them. A hidden response is struck through with who hid it and when, and Show again puts it
 // back everywhere. Only the facilitators see this list. Answers stay anonymous here: no names.
 export function ResponsesList({ room, onClose, title = "Responses" }: { room: Room; onClose?: () => void; title?: string }) {
+  const heading = useId();
   const items = room.status?.items ?? [], spot = room.frame?.state.spotlight_key, busy = Boolean(room.pending);
   const kind = room.frame?.session?.interaction, zone = room.show.context.timezone, hiddenStep = isPrivateStep(room.frame?.session);
   const [filter, setFilter] = useState<"all" | "hidden">("all"), [picked, setPicked] = useState<string | null>(null);
@@ -31,8 +32,8 @@ export function ResponsesList({ room, onClose, title = "Responses" }: { room: Ro
     }
     return result;
   };
-  return <section className="ctl-items ctl-responses" aria-labelledby="ctl-responses-title" data-responses>
-    <div className="ctl-row is-between"><h2 id="ctl-responses-title">{title}</h2><PrivateTag step={room.frame?.session} />
+  return <section className="ctl-items ctl-responses" aria-labelledby={heading} data-responses>
+    <div className="ctl-row is-between"><h2 id={heading}>{title}</h2><PrivateTag step={room.frame?.session} />
       <span className="show-help">{shown} shown{hiddenCount ? ` · ${hiddenCount} hidden` : ""}</span>
       {onClose && <button className="show-button is-icon" aria-label="Close responses" onClick={onClose}><X size={20} aria-hidden="true" /></button>}</div>
     <div className="ctl-responses-filter" role="tablist" aria-label="Which responses">
