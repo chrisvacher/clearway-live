@@ -38,6 +38,13 @@ Its social metadata and images are not present on this baseline.
 
 ## Implementation and acceptance
 
+Design pass 11 adds live answer visibility and facilitator Results, the TV
+join frame, scale tracks and NPS-style bands, automatic answers, a participant
+laptop layout, synchronized video, aggregate Before and after, and copying a
+run of show between engagements. See the [pass 11 handoff](design-pass-11-handoff.md)
+for release commits, migration order, screenshots and remaining acceptance
+checks.
+
 | Area | What is in the repository | Acceptance evidence and next step |
 | --- | --- | --- |
 | 1. Foundation | Google facilitator auth, setup, attendees, invites, room auth, restricted Team Hub reader, practice room | [Accepted October 30](milestone-1-acceptance.md), including Chris's real-phone checks. Counts in that record apply to that historical revision |

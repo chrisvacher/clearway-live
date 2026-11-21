@@ -63,7 +63,7 @@ The experience runs on three separate surfaces at once, as Synrg's does. This is
 | --- | --- | --- | --- |
 | Control | The facilitator (and co-facilitator) | A laptop, plus a phone as the remote | In charge of everything the room sees and does. It decides what's on the TV and what's on every phone, at the same time, and shows the facilitator far more than the room ever sees: what's next, presenter notes, counts, the door list, the alignment signal. It is never shown to the room |
 | TV or projector | The whole room | A browser on a separate computer at the screen, connected by HDMI or screen mirroring and paired to the engagement | The headline: one idea, huge type, the room's input landing and moving live. It shows only what the control surface has put live |
-| Phone | Each participant | Their own phone, no app | The depth and the input: the prompt, the full text and sources, the answer box, and their own answers |
+| Participant browser | Each participant | Their own phone or laptop, no app | The prompt, full text and sources, answer controls and their own answers |
 
 - The three are separate clients that never share a screen. They all follow one room state on the server, so they always agree.
 - The control surface drives the other two over the network. Nothing about the TV depends on the facilitator's laptop being plugged into it.
@@ -439,6 +439,8 @@ Every role is enforced in the database with row-level security, not only hidden 
 
 **Templates** (SET-08): a template is a saved run of show. Starting an engagement from a template copies its sessions, prompts, interaction settings, timings and presenter notes, all editable. The Wayfinding and day-and-a-half templates ship with the app (see "Wayfinding sessions"). Facilitators can save any run of show as a new template.
 
+**Duplicate run of show** (DR-1, Decided November 20): copy steps into another editable engagement from the Engagements or Overview menu. Append after the target's existing steps, or replace its steps if they have no answers. The target room must have no live step. Images and videos, timers and planned starts, and answer visibility can each be included. The copied steps get new IDs and their internal step references follow those IDs. Media belongs to the target engagement, planned starts keep their local clock time, and the engagement keeps its own brand. Answers stay with the original engagement.
+
 **The run of show** (SET-07) is an ordered list of sessions grouped by part (Pre-call, Day 1, Day 2, Follow-up). Each session has:
 
 | Field | What it holds |
@@ -494,6 +496,9 @@ Every role is enforced in the database with row-level security, not only hidden 
 - Mark a decision: records what the room decided by consensus, with reasons, against the live session. These feed the report's Decisions section, together with the scribe's decision cards.
 - Refresh phones reloads every phone (never the TV, which never reloads), keeping unsent drafts.
 - Show the TV view on phones: for when the TV fails but the network works, every phone shows what the TV would show, with input still available underneath.
+- On eligible steps, **Who sees answers** switches between Everyone and Facilitators only in the live room, remote and run of show. It works while a step is taking answers and supports Undo for eight seconds. Private steps show a count on the TV and a privacy line on participant screens. The live room and remote get facilitator results through the private control data. Forms always keep answers private.
+- **Frame** (F) adds the room's join address and QR code along the bottom of the TV without leaving the step. Boards reflow above the frame. The frame survives navigation and Preview, hides during Join and Blackout, and resets when the workshop closes.
+- Video controls on the live room and remote synchronize playback through the room state. The live room supports play and pause (K), restart and seek. The TV's Screen check can test sound.
 
 **The practice room and test answers**
 
@@ -506,7 +511,7 @@ The live room is the heart of the product and the riskiest part to build. These 
 
 **One room state**
 
-- Each engagement has one room state on the server: the live session, what the TV shows, whether phones are down, the burst end time, the spotlight and hidden items, the remote holder and team-led block, phones showing the TV view, and a version number that rises on every change.
+- Each engagement has one room state on the server: the live session, what the TV shows, whether phones are down, the burst end time, the spotlight and hidden items, the remote holder and team-led block, phones showing the TV view, the join frame, video playback with a position and server timestamp, and a version number that rises on every change.
 - The TV, the remote, the control surface and every phone render from that state. The remote shows what the TV has confirmed it is showing, not what the remote asked for.
 - Counts shown anywhere come from one source, so the TV, remote and control surface can never show different totals.
 - Every client keeps the last version it applied. If it misses a version, it fetches a fresh snapshot and animates to it, never redrawing.
@@ -624,29 +629,30 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 **INT-04 Multiple choice**
 
-- Phone: pick one, or pick any (setting). Answers can change until the session closes.
+- Phone: pick one, or pick any (setting). Pick one sends on tap. Pick any sends after a 600 ms quiet period. Answers can change until the step closes.
 - TV: live horizontal bars, leader on top, each with "n · %". For pick any, percentages are of people answering. Royal on Navy, the leading bar in Sunrise.
 
 **INT-05 Scale**
 
-- Phone: 1 to 5 or 1 to 10 with labeled ends. Up to seven numbers as buttons, wider ranges as a slider.
-- TV: the average large ("3.8 average of 8"), with the spread as live columns beneath. Columns rise and the average marker slides.
+- Phone: a numbered range with labelled ends. Buttons send on tap and sliders send when they come to rest.
+- TV: a track matching the participant's scale and a stack of dots at each value, one dot per answer, with columns for crowded stacks. The average is shown beside the headline, and its marker slides along the track.
+- A range of 1 to 10 can show NPS-style bands for 1 to 6, 7 or 8, and 9 or 10. The signed score is the rounded difference between the shares of 9 to 10 and 1 to 6. Facilitator results and CSV retain the average alongside the score and band counts.
 
 **INT-06 Ranking**
 
-- Phone: tap the options in priority order. Tap again to remove, or move one up. A partial ranking counts.
+- Phone: tap the options in priority order. Tap again to remove, or move one up. A partial ranking counts and saves automatically after a 600 ms quiet period.
 - Scoring (Default, Synrg's rule): unranked options get the middle of the remaining places. The room's order is by average place.
 - Add an option (setting): people can suggest a missing option. It lands on the control surface, and the facilitator adds it (merging duplicates) with one tap. It then appears on every phone's list and on the TV with a glide, and earlier rankings treat it as unranked.
 - TV: live horizontal bars ordered by average place, each with its place number and "avg 2.3", gliding as averages change.
 
 **INT-07 100 points**
 
-- Phone: one slider or stepper per option in steps of 5, sharing a budget of 100, with the remaining points always visible. A person's points count once all 100 are placed (Default, where Synrg counts partly spent budgets). Points can move until the session closes.
+- Phone: one slider or stepper per option in steps of 5, sharing a budget of 100, with the remaining points always visible. The allocation saves automatically once all 100 are placed and changes have settled for 600 ms. Points can move until the session closes.
 - TV: live horizontal bars of each option's share of the room's points, reordering with a glide, with an optional cut line ("top five") that slides with them.
 
 **INT-08 2x2 grid**
 
-- Phone: name an item (or pick a listed one), then place it by tapping or dragging on two labeled axes, or with two sliders.
+- Phone: name an item (or pick a listed one), then place it by tapping or dragging on two labelled axes, or with two sliders. A completed placement saves automatically after a 600 ms quiet period.
 - TV: each item as a numbered dot at the room's average position, sized by how many placed or named it, with a legend beside the plot so labels never crowd it. Individual placements show faintly behind the average once two people have placed it. Overlapping dots ease apart. Averages glide to new positions. Duplicate items merge and the dot grows.
 - Used for the pre-mortem's likelihood and impact grid.
 
@@ -664,10 +670,16 @@ Every interaction is a TV and phone pair, and every one follows the live room en
 
 **INT-17 Statements** (Decided November 2, design pass 3)
 
-- Phone: several statements (up to eight), each rated 1 to 5 from Strongly disagree to Strongly agree, all on one screen with five numbered buttons per statement. Each tap sends, and tapping another number changes it.
+- Phone: several statements (up to eight), each rated 1 to 5 from Strongly disagree to Strongly agree. Ratings save automatically after a 600 ms quiet period.
 - TV: one bar per statement from 1 (empty) to 5 (full), ordered by average agreement, leader in Sunrise, with the average and the share who agree (4 or 5) beside it. Bars grow and trade places on the bar motion tokens. Labels sit at the TV floor size because statements are sentences.
 - A statement where at least 35% disagree and at least 35% agree is flagged Divided on the control surface only, never on the TV.
 - Settings: the statements, the two end labels, anonymous on the screen, and Flag divided statements.
+
+**Video** (VD-1, Decided November 20): a content step for an MP4 or MOV upload up to 500 MiB, or a YouTube or Vimeo link. The facilitator sets start and end positions, sound, and whether the video holds its last frame or advances. The paired TV preloads Preview and follows the server playback clock on Go live and on reconnect. Participants see the title and a cue to watch the screen. If the browser blocks sound, the TV plays muted and the live room asks the facilitator for a click on the TV.
+
+**Before and after** (BA-1, Decided November 20): compare a room's two sets of answers under one TV headline. Ask a separate participant question with two automatically saving sliders on a range of 1 to 5, 7 or 10, or read earlier scales with the same range. The TV and facilitator views show aggregate distributions, averages and optional change. A private comparison or private source limits the TV to the answer count. Each participant can see their own earlier scale answers. Anonymous CSV can retain the paired values when asked together.
+
+**Participant layout** (RP-1, Decided November 20): at 900px and up, prompts and answers sit in two columns with a centred, bounded width. A text input can use Enter to send and Shift + Enter for a new line with a fine pointer. Touch retains the Send button. Narrow browsers use the participant phone layout.
 
 **Mentimeter coverage** (Decided November 2). The ten general interactions, the statements vote (INT-17) and the content screens cover what Clearway uses Mentimeter for today. No quizzes or predictions for now. INT-11 to INT-16 stay reserved for Wayfinding.
 
@@ -1152,7 +1164,7 @@ Claude Design builds the app's design system before the first high-fidelity scre
 **How the TV shows popularity**
 
 - Word clouds: size and color together (see INT-01). Size follows the square root of the count from the TV minimum to headline size. Color steps from Sky to Off-White to Sunrise for the leader on Navy. A new word shows Lime for a moment. A repeated word swells and shifts color over about 400 ms while neighbours ease aside.
-- Scales: the average large with the spread as live columns beneath (INT-05).
+- Scales: a matching track with one dot per person or columns when crowded, and an animated average marker or optional NPS-style bands (INT-05).
 - Polls, rankings and 100 points: live horizontal bars, the leader on top, growing as answers land and trading places with a smooth slide, each with its label and its count or share. Royal on Navy, the leading bar in Sunrise. On a light screen the same bars sit on Off-White with Navy labels.
 
 **Motion.** The design system is where "the screen is alive" becomes exact.

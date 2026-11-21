@@ -40,7 +40,7 @@ async function main() {
         const context: BrowserContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
         await context.addCookies(fac.cookies(app.origin));
         await context.addInitScript(() => localStorage.setItem("clearway-live.room-admin", "closed"));
-        const control = await context.newPage();
+        const control: Page = await context.newPage();
         const remote: Page = await context.newPage(); await remote.setViewportSize({ width: 390, height: 844 });
         const tvContext = await browser.newContext({ viewport: { width: 1920, height: 1080 }, reducedMotion: reduced ? "reduce" : "no-preference" });
         const tv = await tvContext.newPage();
@@ -147,10 +147,16 @@ async function main() {
           return box && box.y + box.height <= 833;
         }, "the board settles above the frame", 1500);
         await shot(tv, `${name}-frame-tv`); await shot(remote, `${name}-frame-remote`);
+        const frameVersion = Number((await sql.query("select version from public.room_states where engagement_id=$1", [room.id])).rows[0].version);
+        await until(async () => Number(await control.locator(".ctl-app").getAttribute("data-room-version")) >= frameVersion, "the live room sees the current step before previewing another", 5000);
         await control.locator(".ctl-run-step", { hasText: "Questions" }).hover();
         await control.getByRole("button", { name: "Preview Questions" }).click();
         await frame.waitFor();
-        await control.locator("#ctl-transport").getByRole("button", { name: "Go live: Questions" }).click();
+        const [take] = await Promise.all([
+          control.waitForResponse(response => response.url().endsWith(`/api/control/${room.id}`) && response.request().method() === "POST", { timeout: 5000 }),
+          control.locator("#ctl-transport").getByRole("button", { name: "Go live: Questions" }).click(),
+        ]);
+        assert.equal((await take.json()).status, "ok", "Go live takes the previewed step");
         await tv.locator(".tv-layer:not(.is-leaving) .tv-qa").waitFor();
         for (const question of ["How will we get started?", "What should happen next?", "How will we gather feedback?", "What can we share with the team?"]) {
           assert.equal((await answering.send(room.id, qa, question)).status, "accepted");
